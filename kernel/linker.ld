@@ -7,9 +7,13 @@ SECTIONS
 
     kernel_start = .;
 
+    .multiboot_header :
+    {
+	    *(.multiboot_header)
+    }
+
 	.text :
 	{
-	    *(.multiboot)
 	    *(.text*)
 	    *(.rodata)
 	}

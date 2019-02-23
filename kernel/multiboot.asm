@@ -9,14 +9,15 @@ BITS 32
 ; ------------------------------------
 MAGIC equ 0xE85250D6
 ARCHITECTURE equ 0
-LENGTH equ (multiboot_header_end - multiboot_header_start)
+LENGTH equ (multiboot_header_end - multiboot_header)
 CHECKSUM equ  -(MAGIC + ARCHITECTURE + LENGTH)
 
 ; ------------------------------------
 ; Actual header
 ; ------------------------------------
-SECTION .multiboot
-multiboot_header_start:
+SECTION .multiboot_header
+ALIGN 8
+multiboot_header:
 DD MAGIC
 DD ARCHITECTURE
 DD LENGTH
@@ -34,7 +35,6 @@ multiboot_header_end:
 SECTION .text
 
 extern kernel_main
-extern bootloader_identity_map_memory
 
 global multiboot_main
 multiboot_main:

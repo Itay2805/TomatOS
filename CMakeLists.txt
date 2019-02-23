@@ -16,7 +16,7 @@ set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <SOURCE> <FLAGS> -o <OBJECT>"
 # Setup compilation flags
 set(CMAKE_C_FLAGS "-fPIC -Wall -Wextra -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -march=x86-64")
 set(CMAKE_ASM_FLAGS "-f elf64")
-set(CMAKE_EXE_LINKER_FLAGS "-no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${KERNEL_PATH}/linker.ld")
+set(CMAKE_EXE_LINKER_FLAGS "-z max-pgae-size=0x1000 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${KERNEL_PATH}/linker.ld")
 
 # For debugging
 if (CMAKE_BUILD_TYPE MATCHES Debug)
