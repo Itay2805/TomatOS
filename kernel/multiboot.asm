@@ -34,8 +34,6 @@ multiboot_header_end:
 ; ====================================
 SECTION .text
 
-extern kernel_main
-
 global multiboot_main
 multiboot_main:
 
@@ -70,7 +68,19 @@ multiboot_main:
 
     ; Jump to the kernel using real long mode (64bit)
     lgdt [gdt64]
-    jmp 8:kernel_main
+    jmp 8:multiboot_64bit
+
+BITS 64
+    extern kernel_main
+    multiboot_64bit:
+        mov rsp, kernel_stack
+        push rbx
+        call kernel_main
+        add rsp, 4
+
+        ; halt if we reach here
+        cli
+        hlt
 
 ; ====================================
 ;   64Bit GDT
@@ -133,3 +143,11 @@ resq 512
 
 pdpe:
 resq 512
+
+; ====================================
+;   Stack
+; ====================================
+SECTION .bss
+
+resb 2 * 1024 * 1024
+kernel_stack:
