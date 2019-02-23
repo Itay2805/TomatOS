@@ -6,11 +6,11 @@ project(TomatKernel)
 set(KERNEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/kernel")
 
 # Setup C
-set(CMAKE_C_COMPILER gcc)
+set(CMAKE_C_COMPILER /usr/bin/gcc)
 
 # Setup using asm
 enable_language(ASM)
-set(CMAKE_ASM_COMPILER nasm)
+set(CMAKE_ASM_COMPILER /usr/bin/nasm)
 set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <SOURCE> <FLAGS> -o <OBJECT>")
 
 # Setup compilation flags
