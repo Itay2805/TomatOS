@@ -1,5 +1,5 @@
-#ifndef TOMATKERNEL_STDINT_H
-#define TOMATKERNEL_STDINT_H
+#ifndef COMMON_STDINT_H
+#define COMMON_STDINT_H
 
 typedef signed char         int8_t;
 typedef signed short        int16_t;
@@ -34,4 +34,4 @@ typedef int64_t             ptrdiff_t;
 #define UINTPTR_MAX         ((size_t)UINT64_MAX)
 #define PTRDIFF_MAX         ((size_t)INT64_MAX)
 
-#endif //TOMATKERNEL_STDINT_H
+#endif
