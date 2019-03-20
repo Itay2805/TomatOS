@@ -26,11 +26,17 @@ endif ()
 
 # Setup kernel sources
 set(KERNEL_SOURCE_FILES
-        kernel/klibc/stdint.h
+        kernel/common/common.h
+        kernel/common/kernel_info.h
+        kernel/common/multiboot.h
+        kernel/common/stdbool.h
+        kernel/common/stdint.h
 
-        kernel/memory/virtual_memory_manager.c
-        kernel/memory/virtual_memory_manager.h
-
+        kernel/graphics/font.c
+        kernel/graphics/font.h
+        kernel/graphics/term.c
+        kernel/graphics/term.h
+ 
         kernel/multiboot.asm
         kernel/kernel.c
         )
