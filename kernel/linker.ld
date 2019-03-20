@@ -5,6 +5,7 @@ SECTIONS
 {
 	. = 0x0100000;
     kernel_start = .;
+	
     .multiboot_header :
     {
 	    *(.multiboot_header)
@@ -20,17 +21,11 @@ SECTIONS
 	.data :
 	{
 	    *(.data)
-	    . = ALIGN(4096);
-	}
-
-    .kernel_info :
-    {
         kernel_info = .;
         LONG(kernel_end - kernel_start);
         LONG(kernel_start);
 	    . = ALIGN(4096);
-    }
-	data_end = .;
+	}
 
 	.bss :
 	{
