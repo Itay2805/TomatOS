@@ -51,12 +51,7 @@ multiboot_main:
     ; set the pdpe entry, starts at physical 0
     ; all the way to 1GB
     ; PRESENT | READ_WRITE | LARGE_PAGE
-    mov ecx, 0
-    .mapping_loop:
-        mov dword [2*ecx+pdpe], 0x83
-        inc ecx
-        cmp ecx, 512
-        je .mapping_loop
+	mov dword [2*ecx+pdpe], 0x83
 
     mov eax, pml4
     mov cr3, eax
