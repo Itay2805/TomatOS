@@ -5,8 +5,8 @@
 static uint32_t* vram;
 static int width;
 static int height;
-static int cur_x, cur_y;
-static uint32_t bg_color, fg_color;
+static int cur_x = 0, cur_y = 0;
+static uint32_t bg_color = COLOR_BLACK, fg_color = COLOR_WHITE;
 
 /**
  * Used to draw a single character
