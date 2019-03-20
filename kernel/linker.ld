@@ -1,12 +1,10 @@
 ENTRY(multiboot_main)
-OUTPUT_FORMAT("elf64-x86-64", "elf64-x86-64", "elf64-x86-64")
+OUTPUT_FORMAT("elf64-x86-64")
 OUTPUT_ARCH(i386:x86-64)
 SECTIONS
 {
 	. = 0x0100000;
-
     kernel_start = .;
-
     .multiboot_header :
     {
 	    *(.multiboot_header)
@@ -15,21 +13,32 @@ SECTIONS
 	.text :
 	{
 	    *(.text*)
-	    *(.rodata)
+	    *(.rodata*)
+	    . = ALIGN(4096);
 	}
 
 	.data :
 	{
 	    *(.data)
+	    . = ALIGN(4096);
 	}
+
+    .kernel_info :
+    {
+        kernel_info = .;
+        LONG(kernel_end - kernel_start);
+        LONG(kernel_start);
+	    . = ALIGN(4096);
+    }
+	data_end = .;
 
 	.bss :
 	{
 	    *(.bss)
+	    *(.COMMON)
+	    . = ALIGN(4096);
 	}
 
     kernel_end = .;
-
-    kernel_size = kernel_end - kernel_start;
 
 }
