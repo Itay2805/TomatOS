@@ -35,9 +35,10 @@ SECTION .text
 global multiboot_main
 multiboot_main:
 
+    ; TODO: Check that we were loaded from multiboot
+
     ; push the parameters to the
     ; kernel main function
-    push eax
     push ebx
 
     ; set the first pml4 entry
@@ -79,7 +80,10 @@ multiboot_main:
 BITS 64
     extern kernel_main
     multiboot_64bit:
+        xor rbp, rbp
+        pop ebp
         mov rsp, kernel_stack
+        push rbp
         call kernel_main
         add rsp, 4
 
