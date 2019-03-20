@@ -1,5 +1,5 @@
-#ifndef GRAPHICS_TERM_H
-#define GRAPHICS_TERM_H
+#ifndef GRAPHICS_FONT_H
+#define GRAPHICS_FONT_H
 
 #include "../common/stdint.h"
 
