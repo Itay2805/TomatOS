@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 mkdir iso
 mkdir iso/boot
 mkdir iso/boot/grub
@@ -10,5 +9,5 @@ echo 'menuentry "TomatOS" {' >> iso/boot/grub/grub.cfg
 echo '    multiboot /boot/TomatKernel' >> iso/boot/grub/grub.cfg
 echo '    boot' >> iso/boot/grub/grub.cfg
 echo '}' >> iso/boot/grub/grub.cfg
-grub-mkrescue -p ./grub -o ./tomatos.iso ./iso
+grub-mkrescue -o ./tomatos.iso ./iso
 rm -rf iso
