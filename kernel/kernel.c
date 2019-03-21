@@ -1,3 +1,4 @@
+#include <memory/pmm.h>
 #include "kernel.h"
 
 #include "graphics/term.h"
@@ -8,6 +9,16 @@ extern void* boot_pdpe;
 #define READ_WRITE_BIT ((uint64_t)1 << (uint64_t)1)
 #define PAGE_SIZE_BIT ((uint64_t)1 << (uint64_t)7)
 #define PAGING_1GB_PDPE_MASK    ((uint64_t)0x7FFFFFFFC0000000)
+
+#define LOG(msg) \
+do { \
+    term_write("["); \
+    term_write(__FUNCTION__); \
+    term_write("] "); \
+    term_write(msg); \
+    term_write("\n"); \
+} while(0)
+
 
 void kernel_main(multiboot_info_t* info) {
     // identity map first 4GB
@@ -20,6 +31,8 @@ void kernel_main(multiboot_info_t* info) {
 
     term_init(info);
     term_clear();
+    LOG("Terminal initialized!");
 
-    term_write("We are in kernel_main!");
+    LOG("Initializing physical memory manager");
+    pmm_init(info);
 }
