@@ -10,6 +10,8 @@ static uint32_t bg_color = COLOR_BLACK, fg_color = COLOR_WHITE;
 
 /**
  * Used to draw a single character
+ *
+ * TODO: Maybe add some scaling to make it easier to view
  */
 static void draw_char(char chr) {
     char* letter = font_basic[chr];
@@ -70,7 +72,7 @@ void term_write(const char* text) {
 }
 
 void term_clear() {
-    for(int i = 0; i < width * height * 8; i++) {
+    for(int i = 0; i < width * height * 8 * 8; i++) {
         vram[i] = bg_color;
     }
 }
