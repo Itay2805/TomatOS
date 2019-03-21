@@ -36,7 +36,10 @@ set(KERNEL_SOURCE_FILES
         kernel/graphics/font.h
         kernel/graphics/term.c
         kernel/graphics/term.h
- 
+
+        kernel/memory/pmm.c
+        kernel/memory/pmm.h
+
         kernel/multiboot.asm
         kernel/kernel.c
         )
