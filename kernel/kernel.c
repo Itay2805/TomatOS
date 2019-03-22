@@ -1,5 +1,8 @@
-#include <memory/pmm.h>
 #include "kernel.h"
+
+#include <memory/pmm.h>
+#include <memory/vmm.h>
+
 
 #include "graphics/term.h"
 
@@ -20,11 +23,8 @@ void kernel_main(multiboot_info_t* info) {
     }
 
     term_init(info);
-    term_clear();
-    term_print("[%s] Terminal initialized!\n", __FUNCTION__);
+    term_print("[kernel_main] successfully loaded the kernel (bootloader='%s', cmdline='%s')\n", (char *)(uintptr_t)info->boot_loader_name, (char *)(uintptr_t)info->cmdline);
 
-    term_print("[%s] Initializing physical memory manager\n", __FUNCTION__);
     pmm_init(info);
-
-    pmm_map_kernel();
+    vmm_init(info);
 }
