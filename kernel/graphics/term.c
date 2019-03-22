@@ -14,7 +14,7 @@ static uint32_t bg_color = COLOR_BLACK, fg_color = COLOR_WHITE;
  *
  * TODO: Maybe add some scaling to make it easier to view
  */
-static void draw_char(char chr) {
+static void draw_char(int chr) {
     char* letter = font_basic[chr];
     int scrn_y, scrn_x;
     int index;
@@ -25,7 +25,7 @@ static void draw_char(char chr) {
             scrn_y = y + cur_y * 8;
             scrn_x = x + cur_x * 8;
             index = x + y * 8;
-            if(chr < 128 && (letter[index / 8] & (1 << index % 8)) != 0) {
+            if(chr <= 128 && (letter[index / 8] & (1 << index % 8)) != 0) {
                 vram[scrn_x + scrn_y * width * 8] = fg_color;
             }else {
                 vram[scrn_x + scrn_y * width * 8] = bg_color;
@@ -41,6 +41,9 @@ void term_init(multiboot_info_t* multiboot) {
     height = multiboot->framebuffer_height / 8;
 
     // TODO: Right now we are assuming 32bpp, should have it more dynamic
+
+    term_clear();
+    term_print("[term_init] width=%d, height=%d\n", width, height);
 }
 
 void term_write(const char* text) {
@@ -75,10 +78,11 @@ void term_write(const char* text) {
 size_t term_print(const char* fmt, ...) {
     va_list list;
     va_start(list, fmt);
-    char buffer[1024];
-    mini_vsnprintf(buffer, (unsigned int)1024, fmt, list);
+    char buffer[width * height];
+    int printed = mini_vsnprintf(buffer, (unsigned int)width * height, fmt, list);
     term_write(buffer);
     va_end(list);
+    return (size_t) printed;
 }
 
 void term_clear() {
@@ -126,7 +130,7 @@ uint32_t term_get_height() {
 }
 
 void term_scroll(uint32_t n) {
-    for(int i = 0; i <  (height - n) * width * 8 * 8; i++) {
+    for(size_t i = 0; i <  (height - n) * width * 8 * 8; i++) {
         vram[i] = vram[i + (n * width * 8 * 8)];
     }
     for(int i = (height - n) * width * 8 * 8; i <  width * height * 8 * 8; i++) {
@@ -135,7 +139,7 @@ void term_scroll(uint32_t n) {
 }
 
 void term_clear_line(uint32_t n) {
-    for(int y = n; y < n + 8; y++) {
+    for(size_t y = n; y < n + 8; y++) {
         for(int x = 0; x < width * 8; x++) {
             vram[x + y * width] = bg_color;
         }
