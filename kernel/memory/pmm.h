@@ -30,6 +30,11 @@ extern uintptr_t end_of_kernel;
 void pmm_init(multiboot_info_t* multiboot);
 
 /**
+ * Map the kernel (including bitmaps or other statically allocated stuff)
+ */
+void pmm_map_kernel(void);
+
+/**
  * Set the given physical address as unavailable
  */
 void pmm_map(void* phys);

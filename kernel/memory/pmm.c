@@ -10,7 +10,7 @@
 // Variables
 ////////////////////////////////////////////////////////////////////////////
 
-uintptr_t end_of_kernel = 0;
+uint32_t end_of_kernel = 0;
 
 /**
  * This is the bitmap itself
@@ -47,7 +47,7 @@ void pmm_init(multiboot_info_t* multiboot) {
     uintptr_t ptr;
 
     // set the end of the kernel
-    end_of_kernel = ALIGN_UP(KERNEL_END, 4096u);
+    end_of_kernel = (uint32_t)ALIGN_UP(KERNEL_END, 4096u);
 
     // set the bitmap start
     bitmap = (size_t*)end_of_kernel;
@@ -70,10 +70,13 @@ void pmm_init(multiboot_info_t* multiboot) {
             }
         }
     }
+}
 
-    // set all of the modules as allocated
-    term_print("[pmm_init] mapping kernel (0x%08x-0x%08x)\n", (uint32_t)KERNEL_START, (uint32_t)KERNEL_END);
-    for(ptr = ALIGN_DOWN(KERNEL_START, 4096u); ptr < ALIGN_UP(KERNEL_END, 4096u); ptr += 4096) {
+void pmm_map_kernel(void) {
+    uintptr_t ptr;
+
+    term_print("[pmm_init] mapping kernel (0x%08x-0x%08x)\n", (uint32_t)KERNEL_START, end_of_kernel);
+    for(ptr = ALIGN_DOWN(KERNEL_START, 4096u); ptr < ALIGN_UP(end_of_kernel, 4096u); ptr += 4096) {
         pmm_map((void*)ptr);
     }
 }

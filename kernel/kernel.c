@@ -25,4 +25,6 @@ void kernel_main(multiboot_info_t* info) {
 
     term_print("[%s] Initializing physical memory manager\n", __FUNCTION__);
     pmm_init(info);
+
+    pmm_map_kernel();
 }
