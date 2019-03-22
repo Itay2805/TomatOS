@@ -22,7 +22,7 @@
  * this is used for defining areas for static data like bitmaps for
  * the pmm and vmm
  */
-extern uintptr_t end_of_kernel;
+extern uint32_t end_of_kernel;
 
 /**
  * Initialize the physical memory manager

@@ -18,12 +18,13 @@ uint32_t end_of_kernel = 0;
 static size_t* bitmap;
 
 /**
- * This is the bitmap size in entries
+ * This is the bitmap size in bits
  */
 static size_t bitmap_size;
 
 /**
  * Current index for allocating in the bitmap
+ * in bits
  */
 static size_t bitmap_index = 0;
 
@@ -40,19 +41,17 @@ static const char* mmap_type_names[] = {
 };
 
 void pmm_init(multiboot_info_t* multiboot) {
-    multiboot_memory_map_t* entries = (multiboot_memory_map_t*)multiboot->mmap_addr;
-    multiboot_module_t* modules = (multiboot_module_t*)multiboot->mods_addr;
+    multiboot_memory_map_t* entries = (multiboot_memory_map_t*)(uintptr_t)multiboot->mmap_addr;
     multiboot_memory_map_t* entry;
-    multiboot_module_t* module;
     uintptr_t ptr;
 
     // set the end of the kernel
-    end_of_kernel = (uint32_t)ALIGN_UP(KERNEL_END, 4096u);
+    end_of_kernel = (uint32_t)ALIGN_UP((uint32_t)KERNEL_END, 4096u);
 
     // set the bitmap start
-    bitmap = (size_t*)end_of_kernel;
-    bitmap_size = (multiboot->mem_lower + multiboot->mem_upper) / sizeof(size_t);
-    end_of_kernel += ALIGN_UP((multiboot->mem_lower + multiboot->mem_upper), 4096u);
+    bitmap = (size_t*)(uintptr_t)end_of_kernel;
+    bitmap_size = (ALIGN_UP((multiboot->mem_lower + multiboot->mem_upper) * 1024, 4096u) / 4096);
+    end_of_kernel += bitmap_size;
 
     // allocate all the pages set as unavailable ram as allocated
     term_print("[pmm_init] iterating memory map:\n");
@@ -70,6 +69,11 @@ void pmm_init(multiboot_info_t* multiboot) {
             }
         }
     }
+
+    // setting the first 1MB as allocated, since it might have important stuff in there
+    for(ptr = 0; ptr < ALIGN_UP(0x100000, 4096u); ptr += 4096) {
+        pmm_map((void*)ptr);
+    }
 }
 
 void pmm_map_kernel(void) {
@@ -82,11 +86,11 @@ void pmm_map_kernel(void) {
 }
 
 void pmm_map(void* phys) {
-    uintptr_t addr = ALIGN_DOWN((uintptr_t)phys, 4096u);
-    if((void*)addr >= bitmap + bitmap_size) {
-        // TODO: Error, page outside of range
+    uintptr_t addr = ALIGN_DOWN((uintptr_t)phys, 4096u) / 4096;
+    if(addr >= bitmap_size) {
+        // TODO: Address outside of range
     }else {
-        bitmap[addr / sizeof(size_t)] &= (1u << (addr & sizeof(size_t)));
+        bitmap[addr / sizeof(size_t)] |= (1u << (addr % sizeof(size_t)));
     }
 }
 
@@ -94,18 +98,22 @@ void* pmm_allocate(size_t count) {
     uintptr_t started_from = bitmap_index;
     uintptr_t start = bitmap_index;
     size_t count_found;
-    bool found = false;
-    uintptr_t final_addr, map_addr;
-    int i;
+    uintptr_t final_addr;
+    size_t i;
 
     // search for memory, starting at the bitmap index, enough physical pages
     // linearly in memory. making sure they are free.
     for(
         count_found = 0; 
-        count_found < count && start < bitmap_size * sizeof(size_t); 
-        start++, count_found++) {
-        if(bitmap[start / sizeof(size_t)] & (1u << (start & sizeof(size_t))) == 0) {
-            break;                                
+        count_found < count && bitmap_index < bitmap_size;
+        bitmap_index++) {
+        if((bitmap[bitmap_index / sizeof(size_t)] & (1u << (bitmap_index % sizeof(size_t)))) != 0) {
+            count_found = 0;
+        }else {
+            if(count_found == 0) {
+                start = bitmap_index;
+            }
+            count_found++;
         }
     }
 
@@ -114,6 +122,7 @@ void* pmm_allocate(size_t count) {
         if(started_from == 0) {
             // we started from 0, that means we scanned everything
             // and we just can't find any free memory :(
+            term_print("[pmm_allocate] no linear buffer with %d free pages found!\n", (int) count);
             return 0;
         }else {
             // try to look from the start
@@ -123,20 +132,19 @@ void* pmm_allocate(size_t count) {
     }else {
         // we found enough memory, lets map it and return the address to the
         // start of it
-        map_addr = start * 4096;
-        final_addr = map_addr;
-        for(i = 0; i < count; i++, map_addr += 4096) {
-            bitmap[map_addr / sizeof(size_t)] &= (1u << (map_addr & sizeof(size_t)));
+        final_addr = start * 4096;
+        for(i = 0; i < count; i++, start++) {
+            bitmap[start / sizeof(size_t)] |= (1u << (start % sizeof(size_t)));
         }
         return (void*)final_addr;
     }
 }
 
 void pmm_free(void* phys) {
-    uintptr_t addr = ALIGN_DOWN((uintptr_t)phys, 4096u);
-    if((void*)addr >= bitmap + bitmap_size) {
-        // TODO: Error, page outside of range
+    uintptr_t addr = ALIGN_DOWN((uintptr_t)phys, 4096u) / 4096;
+    if(addr >= bitmap_size) {
+        // TODO: Address outside of range
     }else {
-        bitmap[addr / sizeof(size_t)] = ~(bitmap[addr / sizeof(size_t)] & (1u << (addr & sizeof(size_t))));
+        bitmap[addr / sizeof(size_t)] &= ~(1u << (addr % sizeof(size_t)));
     }
 }
