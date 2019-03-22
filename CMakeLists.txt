@@ -31,6 +31,9 @@ set(KERNEL_SOURCE_FILES
         kernel/common/multiboot.h
         kernel/common/stdbool.h
         kernel/common/stdint.h
+        kernel/common/stdarg.h
+        kernel/common/mini-printf.c
+        kernel/common/mini-printf.h
 
         kernel/graphics/font.c
         kernel/graphics/font.h
@@ -39,10 +42,12 @@ set(KERNEL_SOURCE_FILES
 
         kernel/memory/pmm.c
         kernel/memory/pmm.h
+        kernel/memory/vmm.c
+        kernel/memory/vmm.asm
+        kernel/memory/vmm.h
 
         kernel/multiboot.asm
-        kernel/kernel.c
-        )
+        kernel/kernel.c kernel/common/string.c kernel/common/string.h)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
