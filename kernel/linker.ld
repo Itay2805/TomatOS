@@ -21,9 +21,6 @@ SECTIONS
 	.data :
 	{
 	    *(.data)
-        kernel_info = .;
-        LONG(kernel_end - kernel_start);
-        LONG(kernel_start);
 	    . = ALIGN(4096);
 	}
 
@@ -35,5 +32,4 @@ SECTIONS
 	}
 
     kernel_end = .;
-
 }

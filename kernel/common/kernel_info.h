@@ -11,11 +11,10 @@
 
 #include "stdint.h"
 
-typedef struct kernel_info {
-    size_t size;
-    uintptr_t start;
-} kernel_info_t;
+extern void* kernel_start;
+extern void* kernel_end;
 
-extern kernel_info_t kernel_info;
+#define KERNEL_START (uint64_t)(&kernel_start)
+#define KERNEL_END (uint64_t)(&kernel_end)
 
 #endif

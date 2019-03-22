@@ -4,6 +4,8 @@
 #include "../common/common.h"
 #include "../common/stdbool.h"
 
+#include "../graphics/term.h"
+
 ////////////////////////////////////////////////////////////////////////////
 // Variables
 ////////////////////////////////////////////////////////////////////////////
@@ -29,6 +31,14 @@ static size_t bitmap_index = 0;
 // Implementation
 ////////////////////////////////////////////////////////////////////////////
 
+static const char* mmap_type_names[] = {
+        "Available",
+        "Reserved",
+        "ACPI reclaimable",
+        "NVS",
+        "Bad memory"
+};
+
 void pmm_init(multiboot_info_t* multiboot) {
     multiboot_memory_map_t* entries = (multiboot_memory_map_t*)multiboot->mmap_addr;
     multiboot_module_t* modules = (multiboot_module_t*)multiboot->mods_addr;
@@ -37,7 +47,7 @@ void pmm_init(multiboot_info_t* multiboot) {
     uintptr_t ptr;
 
     // set the end of the kernel
-    end_of_kernel = ALIGN_UP(kernel_info.start + kernel_info.size, 4096u);
+    end_of_kernel = ALIGN_UP(KERNEL_END, 4096u);
 
     // set the bitmap start
     bitmap = (size_t*)end_of_kernel;
@@ -45,7 +55,15 @@ void pmm_init(multiboot_info_t* multiboot) {
     end_of_kernel += ALIGN_UP((multiboot->mem_lower + multiboot->mem_upper), 4096u);
 
     // allocate all the pages set as unavailable ram as allocated
-    for(entry = entries; entry < entries + multiboot->mmap_length; entry++) {
+    term_print("[pmm_init] iterating memory map:\n");
+    for(entry = entries; (char*)entry - (char*)entries < multiboot->mmap_length; entry++) {
+        // print the entry
+        uint32_t addr_start_lower = (uint32_t)(entry->addr & 0xFFFFFFFF);
+        uint32_t addr_start_higher = (uint32_t)(entry->addr >> 32u);
+        uint32_t addr_end_lower = (uint32_t)((entry->addr + entry->len) & 0xFFFFFFFF);
+        uint32_t addr_end_higher = (uint32_t)((entry->addr + entry->len) >> 32u);
+        term_print("[pmm_init] \t0x%08x_%08x-0x%08x_%08x : %s\n", addr_start_higher, addr_start_lower, addr_end_higher, addr_end_lower, mmap_type_names[entry->type - 1]);
+
         if(entry->type != MULTIBOOT_MEMORY_AVAILABLE) {
             for(ptr = ALIGN_DOWN(entry->addr, 4096u); ptr < ALIGN_UP(entry->addr + entry->len, 4096u); ptr += 4096) {
                 pmm_map((void*)ptr);
@@ -54,10 +72,9 @@ void pmm_init(multiboot_info_t* multiboot) {
     }
 
     // set all of the modules as allocated
-    for(module = modules; module < modules + multiboot->mods_count; module++) {
-        for(ptr = ALIGN_DOWN(module->mod_start, 4096u); ptr < ALIGN_UP(module->mod_end, 4096u); ptr += 4096) {
-            pmm_map((void*)ptr);
-        }
+    term_print("[pmm_init] mapping kernel (0x%08x-0x%08x)\n", (uint32_t)KERNEL_START, (uint32_t)KERNEL_END);
+    for(ptr = ALIGN_DOWN(KERNEL_START, 4096u); ptr < ALIGN_UP(KERNEL_END, 4096u); ptr += 4096) {
+        pmm_map((void*)ptr);
     }
 }
 
