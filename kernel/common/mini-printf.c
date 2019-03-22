@@ -42,7 +42,9 @@
  */
 
 #include "mini-printf.h"
+#include <common/string.h>
 
+/*
 static unsigned int
 mini_strlen(const char *s)
 {
@@ -50,6 +52,9 @@ mini_strlen(const char *s)
     while (s[len] != '\0') len++;
     return len;
 }
+*/
+
+#define mini_strlen strlen
 
 static unsigned int
 mini_itoa(int value, unsigned int radix, unsigned int uppercase, unsigned int unsig,
