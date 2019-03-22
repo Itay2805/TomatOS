@@ -10,16 +10,6 @@ extern void* boot_pdpe;
 #define PAGE_SIZE_BIT ((uint64_t)1 << (uint64_t)7)
 #define PAGING_1GB_PDPE_MASK    ((uint64_t)0x7FFFFFFFC0000000)
 
-#define LOG(msg) \
-do { \
-    term_write("["); \
-    term_write(__FUNCTION__); \
-    term_write("] "); \
-    term_write(msg); \
-    term_write("\n"); \
-} while(0)
-
-
 void kernel_main(multiboot_info_t* info) {
     // identity map first 4GB
     // should be enough to make sure everything will be in a reachable place
@@ -31,8 +21,8 @@ void kernel_main(multiboot_info_t* info) {
 
     term_init(info);
     term_clear();
-    LOG("Terminal initialized!");
+    term_print("[%s] Terminal initialized!\n", __FUNCTION__);
 
-    LOG("Initializing physical memory manager");
+    term_print("[%s] Initializing physical memory manager\n", __FUNCTION__);
     pmm_init(info);
 }

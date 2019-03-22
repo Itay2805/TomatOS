@@ -1,3 +1,4 @@
+#include <common/mini-printf.h>
 #include "term.h"
 
 #include "font.h"
@@ -71,6 +72,15 @@ void term_write(const char* text) {
     }
 }
 
+size_t term_print(const char* fmt, ...) {
+    va_list list;
+    va_start(list, fmt);
+    char buffer[1024];
+    mini_vsnprintf(buffer, (unsigned int)1024, fmt, list);
+    term_write(buffer);
+    va_end(list);
+}
+
 void term_clear() {
     for(int i = 0; i < width * height * 8 * 8; i++) {
         vram[i] = bg_color;
@@ -116,7 +126,12 @@ uint32_t term_get_height() {
 }
 
 void term_scroll(uint32_t n) {
-    // TODO: implement this function
+    for(int i = 0; i <  (height - n) * width * 8 * 8; i++) {
+        vram[i] = vram[i + (n * width * 8 * 8)];
+    }
+    for(int i = (height - n) * width * 8 * 8; i <  width * height * 8 * 8; i++) {
+        vram[i] = bg_color;
+    }
 }
 
 void term_clear_line(uint32_t n) {

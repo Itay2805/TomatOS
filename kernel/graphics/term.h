@@ -50,10 +50,18 @@ void term_init(multiboot_info_t* multiboot);
 
 /**
  * Will write text to the terminal
- * 
- * TODO: Add support for formating like in printf
+ *
+ * @param text the string to write
  */
 void term_write(const char* text);
+
+/**
+ * Print a formatted string
+ *
+ * @param fmt the format (printf style)
+ * @param ... the values
+ */
+size_t term_print(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 /**
  * Clear the terminal
