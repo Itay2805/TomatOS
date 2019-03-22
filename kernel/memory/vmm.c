@@ -98,10 +98,34 @@ bool is_allocated(uintptr_t physical_address) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// Early mapping (before all address spaces has been set)
+// Free page manipulation
 ////////////////////////////////////////////////////////////////////////////
 
-uint64_t* early_get(const uint64_t* table, size_t index) {
+/**
+ * Get the physical address of the free page
+ */
+void* get_free_page_physical() {
+    return get_page(pte_for_free_page, PAGING_PTE_OFFSET(free_page));
+}
+
+/**
+ * Map a physical page to the free page, returning the free page
+ */
+void* map_to_free_page(void* physicalPage) {
+    pte_for_free_page[PAGING_PTE_OFFSET(free_page)] &= ~((uintptr_t)physicalPage & PAGING_4KB_ADDR_MASK);
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Helper functions
+////////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * Will get the page from the table
+ *
+ * Note: This assumes the table is mapped
+ */
+uint64_t* get_page(const uint64_t* table, size_t index) {
     if((table[index] & PAGING_PRESENT_BIT) != 0) {
         return (uint64_t *)(table[index] & PAGING_4KB_ADDR_MASK);
     }else {
@@ -124,15 +148,28 @@ void set_attributes(uint64_t* entry, page_attributes_t attrs) {
     }
 }
 
-uint64_t* early_get_or_create(uint64_t* table, size_t index, page_attributes_t attrs) {
-    uint64_t* ptr = early_get(table, index);
+/**
+ * Will get the page from the table, will create it if it does not exists
+ *
+ * Note: This assumes the table is mapped
+ */
+uint64_t* get_or_create_page(uint64_t* table, size_t index, page_attributes_t attrs) {
+    uint64_t* ptr = get_page(table, index);
     if(ptr != 0) {
         set_attributes(&table[index], attrs);
         return ptr;
     }else {
         // not presented, allocate table
         uint64_t* physical_address = pmm_allocate(1);
-        memset(physical_address, 0, 4096);
+        if(vmm_create_address_space() == boot_address_space) {
+            memset(physical_address, 0, 4096);
+            set_allocated((uintptr_t) physical_address);
+        }else {
+            void* physical = get_free_page_physical();
+            map_to_free_page(physical_address);
+            memset(free_page, 0, 4096);
+            map_to_free_page(physical);
+        }
         set_allocated((uintptr_t) physical_address);
 
         // set the new address
@@ -152,10 +189,10 @@ void early_map(address_space_t address_space, uintptr_t virtual_addr, uintptr_t 
     uint64_t* pml4 = address_space;
 
     // get the tables, allocate if needed to
-    uint64_t* pdp = early_get_or_create(pml4, PAGING_PML4_OFFSET(virtual_addr), attrs);
-    uint64_t* pd = early_get_or_create(pdp, PAGING_PDPE_OFFSET(virtual_addr), attrs);
-    uint64_t* pt = early_get_or_create(pd, PAGING_PDE_OFFSET(virtual_addr), attrs);
-    uint64_t* phys = early_get(pt, PAGING_PTE_OFFSET(virtual_addr));
+    uint64_t* pdp = get_or_create_page(pml4, PAGING_PML4_OFFSET(virtual_addr), attrs);
+    uint64_t* pd = get_or_create_page(pdp, PAGING_PDPE_OFFSET(virtual_addr), attrs);
+    uint64_t* pt = get_or_create_page(pd, PAGING_PDE_OFFSET(virtual_addr), attrs);
+    uint64_t* phys = get_page(pt, PAGING_PTE_OFFSET(virtual_addr));
 
     // check if we should free the current physical page there
     if(phys != 0 && is_allocated((uintptr_t) phys)) {
@@ -168,6 +205,50 @@ void early_map(address_space_t address_space, uintptr_t virtual_addr, uintptr_t 
     pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_PRESENT_BIT;
     set_attributes(&pt[PAGING_PTE_OFFSET(virtual_addr)], attrs);
 }
+
+/**
+ * Will return the pointer to the page table, will create the needed pages if does not exists
+ */
+void* get_or_create_page_table(address_space_t address_space, void* virtual_addr, page_attributes_t attributes) {
+    uint64_t* pml4 = address_space;
+
+    // get the tables, allocate if needed to
+    map_to_free_page(pml4);
+    uint64_t* pdp = get_or_create_page((uint64_t *) free_page, PAGING_PML4_OFFSET(virtual_addr), attributes);
+
+    map_to_free_page(pdp);
+    uint64_t* pd = get_or_create_page((uint64_t *) free_page, PAGING_PDPE_OFFSET(virtual_addr), attributes);
+
+    map_to_free_page(pd);
+    return get_or_create_page((uint64_t *) free_page, PAGING_PDE_OFFSET(virtual_addr), attributes);
+}
+
+/**
+ * Will return the pointer to the page table
+ */
+void* get_page_table(address_space_t address_space, void* virtual_addr) {
+    uint64_t* pml4 = address_space;
+    if(pml4 == NULL) {
+        return NULL;
+    }
+
+    // get the tables, allocate if needed to
+    map_to_free_page(pml4);
+    uint64_t* pdp = get_page((uint64_t *) free_page, PAGING_PML4_OFFSET(virtual_addr));
+    if(pdp == NULL) {
+        return NULL;
+    }
+
+    map_to_free_page(pdp);
+    uint64_t* pd = get_page((uint64_t *) free_page, PAGING_PDPE_OFFSET(virtual_addr));
+    if(pd == NULL) {
+        return NULL;
+    }
+
+    map_to_free_page(pd);
+    return get_page((uint64_t *) free_page, PAGING_PDE_OFFSET(virtual_addr));
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 // Implementation
@@ -205,9 +286,9 @@ void vmm_init(multiboot_info_t* multiboot) {
     // Map the free page to 0 and the pte to the pte
     term_print("[vmm_init] \tMapping free page\n");
     early_map(kernel_address_space, (uintptr_t)free_page, 0, (page_attributes_t){ .write = true, .user = false, .execute = false });
-    uint64_t* pdp = early_get(kernel_address_space, PAGING_PML4_OFFSET(free_page));
-    uint64_t* pd = early_get(pdp, PAGING_PDPE_OFFSET(free_page));
-    uint64_t* pt = early_get(pd, PAGING_PDE_OFFSET(free_page));
+    uint64_t* pdp = get_page(kernel_address_space, PAGING_PML4_OFFSET(free_page));
+    uint64_t* pd = get_page(pdp, PAGING_PDPE_OFFSET(free_page));
+    uint64_t* pt = get_page(pd, PAGING_PDE_OFFSET(free_page));
     early_map(kernel_address_space, (uintptr_t)pte_for_free_page, (uintptr_t)pt, (page_attributes_t){ .write = true, .user = false, .execute = false });
 
     // identity map the kernel now
@@ -229,4 +310,74 @@ void vmm_init(multiboot_info_t* multiboot) {
 
     term_print("[vmm_init] Switching from boot address space to kernel address space\n");
     vmm_set(kernel_address_space);
+}
+
+void vmm_map(address_space_t address_space, void* virtual_addr, void* physical_addr, page_attributes_t attributes) {
+    uint64_t* pt = get_or_create_page_table(address_space, PAGING_PDE_OFFSET(virtual_addr), attributes);
+    map_to_free_page(pt);
+
+    uint64_t* phys = get_page((uint64_t *) free_page, PAGING_PTE_OFFSET(virtual_addr));
+
+    // check if we should free the current physical page there
+    if(phys != 0 && is_allocated((uintptr_t) phys)) {
+        pmm_free(phys);
+        set_free((uintptr_t) phys);
+    }
+
+    // set the entry
+    pt[PAGING_PTE_OFFSET(virtual_addr)] = (uintptr_t)physical_addr & PAGING_4KB_ADDR_MASK;
+    pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_PRESENT_BIT;
+    set_attributes(&pt[PAGING_PTE_OFFSET(virtual_addr)], attributes);
+}
+
+void vmm_unmap(address_space_t address_space, void* virtual_addr) {
+    uint64_t* pt = get_page_table(address_space, virtual_addr);
+    if(pt == NULL) {
+        return;
+    }
+
+    map_to_free_page(pt);
+    uint64_t* phys = get_page((uint64_t *) free_page, PAGING_PTE_OFFSET(virtual_addr));
+
+    if(phys != 0) {
+        pt[PAGING_PTE_OFFSET(virtual_addr)] = 0;
+    }
+}
+
+void* vmm_allocate(address_space_t address_space, void* virtual_addr, page_attributes_t attributes) {
+    uint64_t* pt = get_or_create_page_table(address_space, (void *) PAGING_PDE_OFFSET(virtual_addr), attributes);
+    map_to_free_page(pt);
+
+    uint64_t* phys = get_page((uint64_t *) free_page, PAGING_PTE_OFFSET(virtual_addr));
+
+    // check if we should free the current physical page there
+    if(phys != 0 && is_allocated((uintptr_t) phys)) {
+        pmm_free(phys);
+        set_free((uintptr_t) phys);
+    }
+
+    // set the entry
+    pt[PAGING_PTE_OFFSET(virtual_addr)] = (uintptr_t)pmm_allocate(1) & PAGING_4KB_ADDR_MASK;
+    pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_PRESENT_BIT;
+    set_attributes(&pt[PAGING_PTE_OFFSET(virtual_addr)], attributes);
+}
+
+void vmm_free(address_space_t address_space, void* virtual_addr) {
+    uint64_t* pt = get_page_table(address_space, virtual_addr);
+    if(pt == NULL) {
+        return;
+    }
+
+    map_to_free_page(pt);
+    uint64_t* phys = get_page((uint64_t *) free_page, PAGING_PTE_OFFSET(virtual_addr));
+
+    if(phys != 0) {
+        if(is_allocated((uintptr_t) phys)) {
+            pmm_free(phys);
+            set_free((uintptr_t) phys);
+        }
+
+        pt[PAGING_PTE_OFFSET(virtual_addr)] = 0;
+    }
+
 }
