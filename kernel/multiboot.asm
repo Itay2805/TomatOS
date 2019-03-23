@@ -85,6 +85,13 @@ multiboot_main:
 
     ; Jump to the kernel using real long mode (64bit)
     lgdt [gdt64]
+
+    mov ax, 16
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
     jmp 8:multiboot_64bit
 
 BITS 64
@@ -93,7 +100,6 @@ BITS 64
         mov rsp, kernel_stack
         mov rdi, rbx
         call kernel_main
-        add rsp, 4
 
         ; halt if we reach here
         cli

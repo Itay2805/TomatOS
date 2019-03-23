@@ -32,8 +32,12 @@ void kernel_main(multiboot_info_t* info) {
     pmm_init(info);
     vmm_init(info);
 
-    irq_init();
     isr_init();
+    irq_init();
     idt_init();
     sti();
+
+    while(true) {
+        hlt();
+    }
 }
