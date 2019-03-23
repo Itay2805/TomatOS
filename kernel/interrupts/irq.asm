@@ -27,6 +27,7 @@ irq_common_stub:
     push rdx
     push rsi
     push rdi
+    push rbp
     push r8
     push r9
     push r10
@@ -63,6 +64,7 @@ irq_common_stub:
     pop r10
     pop r9
     pop r8
+    pop rbp
     pop rdi
     pop rsi
     pop rdx
@@ -73,136 +75,102 @@ irq_common_stub:
     ; ignore the int and error code
     add rsp, 16
 
-    mov rsp, rbp
-    pop rbp
     sti
     iretq
 
 
 irq_pit:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 32
     jmp irq_common_stub
 
 irq_keyboard:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 33
     jmp irq_common_stub
 
 irq_cascade:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 34
     jmp irq_common_stub
 
 irq_com2:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 35
     jmp irq_common_stub
 
 irq_com1:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 36
     jmp irq_common_stub
 
 irq_lpt2:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 37
     jmp irq_common_stub
 
 irq_floppy:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 38
     jmp irq_common_stub
 
 irq_lpt1:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 39
     jmp irq_common_stub
 
 irq_cmos:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 40
     jmp irq_common_stub
 
 irq_peripherals_1:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 41
     jmp irq_common_stub
 
 irq_peripherals_2:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 42
     jmp irq_common_stub
 
 irq_peripherals_3:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 43
     jmp irq_common_stub
 
 irq_ps2_mouse:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 44
     jmp irq_common_stub
 
 irq_coprocessor:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 45
     jmp irq_common_stub
 
 irq_primary_ata:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 46
     jmp irq_common_stub
 
 irq_secondary_ata:
     cli
-    push rbp
-    mov rbp, rsp
     push qword 0
     push qword 47
     jmp irq_common_stub

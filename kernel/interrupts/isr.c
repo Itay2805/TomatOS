@@ -58,6 +58,8 @@ static const char* ISR_NAMES[] = {
 extern uint64_t get_cr2();
 
 void isr_common(registers_t regs) {
+    term_set_background_color(COLOR_BLACK);
+    term_set_text_color(COLOR_WHITE);
     term_clear();
     term_set_cursor_pos(0, 0);
     term_set_background_color(COLOR_RED);
@@ -104,7 +106,7 @@ void isr_common(registers_t regs) {
         case ISR_STACK_SEGMENT_FAULT:
         case ISR_GENERAL_PROTECTION_FAULT:
             if(regs.error_code != 0) {
-                term_print("Selector(processor=%s, table=%s, index=%d)",
+                term_print("Selector(processor=%s, table=%s, index=%d)\n",
                            PROCESSOR_NAME[regs.error_code & 0b1],
                            TABLE_NAME[(regs.error_code >> 1) & 0b11],
                            (int) ((regs.error_code >> 3) & 0xFFF8));

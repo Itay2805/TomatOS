@@ -32,6 +32,7 @@ typedef struct registers {
     uint64_t r10;
     uint64_t r9;
     uint64_t r8;
+    uint64_t rbp;
     uint64_t rdi;
     uint64_t rsi;
     uint64_t rdx;
@@ -45,8 +46,6 @@ typedef struct registers {
     // error code (if any)
     uint64_t error_code;
 
-    uint64_t rbp;
-
     // the rip (set this to return to another place)
     uint64_t rip;
 
@@ -59,7 +58,7 @@ typedef struct registers {
     // the stack pointer and segment
     uint64_t rsp;
     uint64_t ss;
-} registers_t;
+} __attribute__((packed)) registers_t;
 
 /**
  * A common interrupt handler

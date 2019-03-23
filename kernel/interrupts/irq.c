@@ -51,7 +51,7 @@ static const char* IRQ_NAMES[] = {
 };
 
 void irq_common(registers_t registers) {
-    /*if(irq_handlers[registers.int_num - IRQ_BASE]) {
+    if(irq_handlers[registers.int_num - IRQ_BASE]) {
         irq_handlers[registers.int_num - IRQ_BASE](&registers);
     }else {
         if(registers.int_num - IRQ_BASE < sizeof(IRQ_NAMES) / sizeof(char*)) {
@@ -59,5 +59,7 @@ void irq_common(registers_t registers) {
         }else {
             term_print("[irq_common] Unhandled interrupt (irq=%d, int=%d)\n", (int) registers.int_num - IRQ_BASE, (int) registers.int_num);
         }
-    }*/
+    }
+
+    pic_send_eoi((uint8_t)registers.int_num);
 }
