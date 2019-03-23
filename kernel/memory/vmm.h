@@ -103,7 +103,7 @@ void vmm_unmap(address_space_t address_space, void* virtual_addr);
 /**
  * Will allocate a page for the virtual address with the given attributes
  */
-void* vmm_allocate(address_space_t address_space, void* virtual_addr, page_attributes_t attributes);
+void vmm_allocate(address_space_t address_space, void* virtual_addr, page_attributes_t attributes);
 
 /**
  * Free the given virtual address, both unmapping it and freeing the underlying physical page
