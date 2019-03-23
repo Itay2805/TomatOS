@@ -147,14 +147,14 @@ uint64_t* get_page(const uint64_t* table, size_t index) {
 /**
  * Will set the attributes for the entry, taking into account permission precedence
  */
-void set_attributes(uint64_t* entry, page_attributes_t attrs) {
-    if((*entry & PAGING_READ_WRITE_BIT) == 0 && attrs.write) {
+void set_attributes(uint64_t* entry, int attrs) {
+    if((*entry & PAGING_READ_WRITE_BIT) == 0 && (attrs & PAGE_ATTR_WRITE) != 0) {
         *entry |= PAGING_READ_WRITE_BIT;
     }
-    if((*entry & PAGING_USER_SUPREVISOR_BIT) == 0 && attrs.user) {
+    if((*entry & PAGING_USER_SUPREVISOR_BIT) == 0 && (attrs & PAGE_ATTR_USER) != 0) {
         *entry |= PAGING_USER_SUPREVISOR_BIT;
     }
-    if((*entry & PAGING_NO_EXECUTE_BIT) != 0 && attrs.execute) {
+    if((*entry & PAGING_NO_EXECUTE_BIT) != 0 && (attrs & PAGE_ATTR_EXECUTE) != 0) {
         *entry &= ~(PAGING_NO_EXECUTE_BIT);
     }
 }
@@ -164,7 +164,7 @@ void set_attributes(uint64_t* entry, page_attributes_t attrs) {
  *
  * Note: This assumes the table is mapped
  */
-uint64_t* get_or_create_page(uint64_t* table, size_t index, page_attributes_t attrs) {
+uint64_t* get_or_create_page(uint64_t* table, size_t index, int attrs) {
     uint64_t* ptr = get_page(table, index);
     if(ptr != 0) {
         set_attributes(&table[index], attrs);
@@ -199,7 +199,7 @@ uint64_t* get_or_create_page(uint64_t* table, size_t index, page_attributes_t at
  *
  * will not map the physical pages!
  */
-void early_map(address_space_t address_space, uintptr_t virtual_addr, uintptr_t physical_addr, page_attributes_t attrs) {
+void early_map(address_space_t address_space, uintptr_t virtual_addr, uintptr_t physical_addr, int attrs) {
     uint64_t* pml4 = address_space;
 
     // get the tables, allocate if needed to
@@ -223,7 +223,7 @@ void early_map(address_space_t address_space, uintptr_t virtual_addr, uintptr_t 
 /**
  * Will return the pointer to the page table, will create the needed pages if does not exists
  */
-void* get_or_create_page_table(address_space_t address_space, void* virtual_addr, page_attributes_t attributes) {
+void* get_or_create_page_table(address_space_t address_space, void* virtual_addr, int attributes) {
     uint64_t* pml4 = address_space;
 
     // get the tables, allocate if needed to
@@ -298,17 +298,17 @@ void vmm_init(multiboot_info_t* multiboot) {
     memset(kernel_address_space, 0, 4096);
 
     // Map the free page to 0 and the pte to the pte
-    term_print("[vmm_init] \tMapping free page\n");
-    uint64_t* pdp = get_or_create_page(kernel_address_space, PAGING_PML4_OFFSET(kernel_address_space), (page_attributes_t){ .write = true, .user = false, .execute = false });
-    uint64_t* pd = get_or_create_page(pdp, PAGING_PDPE_OFFSET(pdp), (page_attributes_t){ .write = true, .user = false, .execute = false });
-    uint64_t* pt = get_or_create_page(pd, PAGING_PDE_OFFSET(pd), (page_attributes_t){ .write = true, .user = false, .execute = false });
-    early_map(kernel_address_space, (uintptr_t)pte_for_free_page, (uintptr_t)pt, (page_attributes_t){ .write = true, .user = false, .execute = false });
+    uint64_t* pdp = get_or_create_page(kernel_address_space, PAGING_PML4_OFFSET(free_page), PAGE_ATTR_WRITE);
+    uint64_t* pd = get_or_create_page(pdp, PAGING_PDPE_OFFSET(free_page), PAGE_ATTR_WRITE);
+    uint64_t* pt = get_or_create_page(pd, PAGING_PDE_OFFSET(free_page), PAGE_ATTR_WRITE);
+    term_print("[vmm_init] \tMapping free page (pt=0x%p>0x%p, page=0x%p)\n", pte_for_free_page, pt, (void *) free_page);
+    early_map(kernel_address_space, (uintptr_t)pte_for_free_page, (uintptr_t)pt, PAGE_ATTR_WRITE);
 
     // identity map the kernel now
     term_print("[vmm_init] \tIdentity mapping kernel\n");
     for(uintptr_t addr = ALIGN_DOWN(KERNEL_START, 4096u); addr < ALIGN_UP(end_of_kernel, 4096u); addr += 4096) {
         // TODO: Parse the kernel elf file properly to setup the correct attributes
-        early_map(kernel_address_space, addr, addr, (page_attributes_t){ .write = true, .user = false, .execute = true });
+        early_map(kernel_address_space, addr, addr, PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE);
     }
 
     // and now we can add the stuff to the end of the kernel
@@ -318,14 +318,14 @@ void vmm_init(multiboot_info_t* multiboot) {
     uintptr_t framebuffer_end = multiboot->framebuffer_addr + multiboot->framebuffer_width * multiboot->framebuffer_height * (multiboot->framebuffer_bpp / 8);
     term_print("[vmm_init] \tIdentity mapping framebuffer\n");
     for(uintptr_t addr = ALIGN_DOWN(multiboot->framebuffer_addr, 4096u); addr < ALIGN_UP(framebuffer_end, 4096u); addr += 4096) {
-        early_map(kernel_address_space, addr, addr, (page_attributes_t){ .write = true, .user = false, .execute = false });
+        early_map(kernel_address_space, addr, addr, PAGE_ATTR_WRITE);
     }
 
     vmm_set(kernel_address_space);
     term_print("[vmm_init] Now using kernel address space\n");
 }
 
-void vmm_map(address_space_t address_space, void* virtual_addr, void* physical_addr, page_attributes_t attributes) {
+void vmm_map(address_space_t address_space, void* virtual_addr, void* physical_addr, int attributes) {
     uint64_t* pt = get_or_create_page_table(address_space, (void *)PAGING_PDE_OFFSET(virtual_addr), attributes);
     map_to_free_page(pt);
 
@@ -357,7 +357,7 @@ void vmm_unmap(address_space_t address_space, void* virtual_addr) {
     }
 }
 
-void vmm_allocate(address_space_t address_space, void* virtual_addr, page_attributes_t attributes) {
+void vmm_allocate(address_space_t address_space, void* virtual_addr, int attributes) {
     uint64_t* pt = get_or_create_page_table(address_space, (void *) PAGING_PDE_OFFSET(virtual_addr), attributes);
     map_to_free_page(pt);
 

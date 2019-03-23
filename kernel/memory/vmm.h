@@ -79,21 +79,14 @@ address_space_t vmm_create_address_space();
 /**
  * Attributes that can be modified in the page attributes
  */
-typedef struct page_attributes {
-    // should it be read only, or read/write
-    bool write;
-
-    // should the user be able to modify these pages or not
-    bool user;
-
-    // should code execution be allowed in that page
-    bool execute;
-} page_attributes_t;
+#define PAGE_ATTR_WRITE (int)(1u << 0u)
+#define PAGE_ATTR_USER (int)(1u << 1u)
+#define PAGE_ATTR_EXECUTE (int)(1u << 2u)
 
 /**
  * Map a virtual address to the physical address with the given page attributes
  */
-void vmm_map(address_space_t address_space, void* virtual_addr, void* physical_addr, page_attributes_t attributes);
+void vmm_map(address_space_t address_space, void* virtual_addr, void* physical_addr, int attributes);
 
 /**
  * Will unmap the given virtual address, keeping the underlying physical page allocated
@@ -103,7 +96,7 @@ void vmm_unmap(address_space_t address_space, void* virtual_addr);
 /**
  * Will allocate a page for the virtual address with the given attributes
  */
-void vmm_allocate(address_space_t address_space, void* virtual_addr, page_attributes_t attributes);
+void vmm_allocate(address_space_t address_space, void* virtual_addr, int attributes);
 
 /**
  * Free the given virtual address, both unmapping it and freeing the underlying physical page
