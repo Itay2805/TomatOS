@@ -54,6 +54,11 @@
 // Variables and helper functions
 ////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Invalidate a page
+ */
+extern void invlpg(uintptr_t addr);
+
 address_space_t boot_address_space;
 address_space_t kernel_address_space;
 
@@ -127,6 +132,7 @@ void *get_free_page_physical() {
  * Map a physical page to the free page, returning the free page
  */
 void *map_to_free_page(void *physicalPage) {
+    invlpg((uintptr_t) free_page);
     pte_for_free_page[PAGING_PTE_OFFSET(free_page)] &= ~PAGING_4KB_ADDR_MASK;
     pte_for_free_page[PAGING_PTE_OFFSET(free_page)] |= ((uintptr_t) physicalPage & PAGING_4KB_ADDR_MASK);
     return free_page;
@@ -135,7 +141,6 @@ void *map_to_free_page(void *physicalPage) {
 ////////////////////////////////////////////////////////////////////////////
 // Helper functions
 ////////////////////////////////////////////////////////////////////////////
-
 
 /**
  * Will get the page from the table
@@ -221,6 +226,7 @@ void early_map(address_space_t address_space, uintptr_t virtual_addr, uintptr_t 
     }
 
     // set the entry
+    invlpg(virtual_addr);
     pt[PAGING_PTE_OFFSET(virtual_addr)] = physical_addr & PAGING_4KB_ADDR_MASK;
     pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_PRESENT_BIT;
     set_attributes(&pt[PAGING_PTE_OFFSET(virtual_addr)], attrs);
@@ -349,6 +355,7 @@ void vmm_map(address_space_t address_space, void *virtual_addr, void *physical_a
     }
 
     // set the entry
+    invlpg((uintptr_t)virtual_addr);
     free_table[PAGING_PTE_OFFSET(virtual_addr)] = (uintptr_t) physical_addr & PAGING_4KB_ADDR_MASK;
     free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_PRESENT_BIT;
     set_attributes(&free_table[PAGING_PTE_OFFSET(virtual_addr)], attributes);
@@ -361,10 +368,11 @@ void vmm_unmap(address_space_t address_space, void *virtual_addr) {
     }
 
     map_to_free_page(pt);
-    uint64_t *phys = get_page((uint64_t *) free_page, PAGING_PTE_OFFSET(virtual_addr));
+    uint64_t *phys = get_page(free_table, PAGING_PTE_OFFSET(virtual_addr));
 
     if (phys != 0) {
-        pt[PAGING_PTE_OFFSET(virtual_addr)] = 0;
+        invlpg((uintptr_t)virtual_addr);
+        free_table[PAGING_PTE_OFFSET(virtual_addr)] = 0;
     }
 }
 
@@ -372,7 +380,7 @@ void vmm_allocate(address_space_t address_space, void *virtual_addr, int attribu
     uint64_t *pt = get_or_create_page_table(address_space, virtual_addr, attributes);
     map_to_free_page(pt);
 
-    uint64_t *phys = get_page((uint64_t *) free_page, PAGING_PTE_OFFSET(virtual_addr));
+    uint64_t *phys = get_page(free_table, PAGING_PTE_OFFSET(virtual_addr));
 
     // check if we should free the current physical page there
     if (phys != 0 && is_allocated((uintptr_t) phys)) {
@@ -381,9 +389,10 @@ void vmm_allocate(address_space_t address_space, void *virtual_addr, int attribu
     }
 
     // set the entry
-    pt[PAGING_PTE_OFFSET(virtual_addr)] = (uintptr_t) pmm_allocate(1) & PAGING_4KB_ADDR_MASK;
-    pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_PRESENT_BIT;
-    set_attributes(&pt[PAGING_PTE_OFFSET(virtual_addr)], attributes);
+    invlpg((uintptr_t)virtual_addr);
+    free_table[PAGING_PTE_OFFSET(virtual_addr)] = (uintptr_t) pmm_allocate(1) & PAGING_4KB_ADDR_MASK;
+    free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_PRESENT_BIT;
+    set_attributes(&free_table[PAGING_PTE_OFFSET(virtual_addr)], attributes);
 }
 
 void vmm_free(address_space_t address_space, void *virtual_addr) {
@@ -393,7 +402,7 @@ void vmm_free(address_space_t address_space, void *virtual_addr) {
     }
 
     map_to_free_page(pt);
-    uint64_t *phys = get_page((uint64_t *) free_page, PAGING_PTE_OFFSET(virtual_addr));
+    uint64_t *phys = get_page(free_table, PAGING_PTE_OFFSET(virtual_addr));
 
     if (phys != 0) {
         if (is_allocated((uintptr_t) phys)) {
@@ -401,7 +410,8 @@ void vmm_free(address_space_t address_space, void *virtual_addr) {
             set_free((uintptr_t) phys);
         }
 
-        pt[PAGING_PTE_OFFSET(virtual_addr)] = 0;
+        invlpg((uintptr_t)virtual_addr);
+        free_table[PAGING_PTE_OFFSET(virtual_addr)] = 0;
     }
 
 }

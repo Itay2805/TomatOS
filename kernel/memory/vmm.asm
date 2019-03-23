@@ -25,3 +25,8 @@ vmm_set:
     mov rsp, rbp
     pop rbp
     ret
+
+GLOBAL invlpg
+invlpg:
+    invlpg [rdi]
+    ret
