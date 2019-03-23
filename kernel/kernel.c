@@ -29,16 +29,21 @@ void kernel_main(multiboot_info_t* info) {
     term_init(info);
     term_print("[kernel_main] successfully loaded the kernel (bootloader='%s', cmdline='%s')\n", (char *)(uintptr_t)info->boot_loader_name, (char *)(uintptr_t)info->cmdline);
 
+    uint64_t faddr = info->framebuffer_addr;
+
     pmm_init(info);
     vmm_init(info);
 
     irq_init();
     isr_init();
     idt_init();
-    sti();
+    //sti();
 
-    vmm_allocate(kernel_address_space, (void *)0xFFFFFFFFC0000000, (page_attributes_t){ .execute = false, .user = true, .write = true });
-    char* buffer = (char *) 0xFFFFFFFFC0000000;
-    strcpy(buffer, "Hello World!");
-    term_print("[kernel_main] %s\n", buffer);
+    char* buffer = (char *) 0xC0000000;
+    vmm_map(kernel_address_space, buffer, (void *) faddr, PAGE_ATTR_WRITE);
+    memset(buffer, 0xFF, 4096);
+
+    //vmm_allocate(kernel_address_space, (void *)0xC0000000, (page_attributes_t){ .execute = false, .user = true, .write = true });
+    //strcpy(buffer, "Hello World!");
+    //term_print("[kernel_main] %s\n", buffer);
 }
