@@ -2,6 +2,10 @@
 
 #include <memory/pmm.h>
 #include <memory/vmm.h>
+#include <common/string.h>
+#include <interrupts/idt.h>
+#include <interrupts/irq.h>
+#include <interrupts/isr.h>
 
 
 #include "graphics/term.h"
@@ -27,4 +31,14 @@ void kernel_main(multiboot_info_t* info) {
 
     pmm_init(info);
     vmm_init(info);
+
+    irq_init();
+    isr_init();
+    idt_init();
+    sti();
+
+    vmm_allocate(kernel_address_space, (void *)0xFFFFFFFFC0000000, (page_attributes_t){ .execute = false, .user = true, .write = true });
+    char* buffer = (char *) 0xFFFFFFFFC0000000;
+    strcpy(buffer, "Hello World!");
+    term_print("[kernel_main] %s\n", buffer);
 }

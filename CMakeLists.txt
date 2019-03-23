@@ -32,6 +32,9 @@ set(KERNEL_SOURCE_FILES
         kernel/common/stdbool.h
         kernel/common/stdint.h
         kernel/common/stdarg.h
+        kernel/common/string.c
+        kernel/common/string.h
+
         kernel/common/mini-printf.c
         kernel/common/mini-printf.h
 
@@ -46,8 +49,24 @@ set(KERNEL_SOURCE_FILES
         kernel/memory/vmm.asm
         kernel/memory/vmm.h
 
+        kernel/interrupts/irq.c
+        kernel/interrupts/irq.asm
+        kernel/interrupts/irq.h
+        kernel/interrupts/isr.c
+        kernel/interrupts/isr.asm
+        kernel/interrupts/isr.h
+        kernel/interrupts/idt.c
+        kernel/interrupts/idt.h
+        kernel/interrupts/interrupts.h
+        kernel/interrupts/interrupts.asm
+
+        kernel/drivers/portio.h
+        kernel/drivers/pic.c
+        kernel/drivers/pic.h
+        kernel/drivers/pic.asm
+
         kernel/multiboot.asm
-        kernel/kernel.c kernel/common/string.c kernel/common/string.h)
+        kernel/kernel.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
