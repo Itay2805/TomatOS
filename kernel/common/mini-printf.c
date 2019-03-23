@@ -76,11 +76,11 @@ mini_itoa(int value, unsigned int radix, unsigned int uppercase, unsigned int un
     /* This builds the string back to front ... */
     do {
         int digit = value % radix;
-        *(pbuffer++) = (digit < 10 ? '0' + digit : (uppercase ? 'A' : 'a') + digit - 10);
+        *(pbuffer++) = (char) (digit < 10 ? '0' + digit : (uppercase ? 'A' : 'a') + digit - 10);
         value /= radix;
     } while (value > 0);
 
-    for (i = (pbuffer - buffer); i < zero_pad; i++)
+    for (i = (unsigned int) (pbuffer - buffer); i < zero_pad; i++)
         *(pbuffer++) = '0';
 
     if (negative)
@@ -90,7 +90,7 @@ mini_itoa(int value, unsigned int radix, unsigned int uppercase, unsigned int un
 
     /* ... now we reverse it (could do it recursively but will
      * conserve the stack space) */
-    len = (pbuffer - buffer);
+    len = (unsigned int) (pbuffer - buffer);
     for (i = 0; i < len / 2; i++) {
         char j = buffer[i];
         buffer[i] = buffer[len-i-1];
@@ -110,7 +110,7 @@ _putc(int ch, struct mini_buff *b)
 {
     if ((unsigned int)((b->pbuffer - b->buffer) + 1) >= b->buffer_len)
         return 0;
-    *(b->pbuffer++) = ch;
+    *(b->pbuffer++) = (char) ch;
     *(b->pbuffer) = '\0';
     return 1;
 }
@@ -121,7 +121,7 @@ _puts(char *s, unsigned int len, struct mini_buff *b)
     unsigned int i;
 
     if (b->buffer_len - (b->pbuffer - b->buffer) - 1 < len)
-        len = b->buffer_len - (b->pbuffer - b->buffer) - 1;
+        len = (unsigned int) (b->buffer_len - (b->pbuffer - b->buffer) - 1);
 
     /* Copy to buffer */
     for (i = 0; i < len; i++)
@@ -137,6 +137,7 @@ mini_vsnprintf(char *buffer, unsigned int buffer_len, const char *fmt, va_list v
     struct mini_buff b;
     char bf[24];
     char ch;
+    uintptr_t ptr_num;
 
     b.buffer = buffer;
     b.pbuffer = buffer;
@@ -160,7 +161,7 @@ mini_vsnprintf(char *buffer, unsigned int buffer_len, const char *fmt, va_list v
                 if (ch == '\0')
                     goto end;
                 if (ch >= '0' && ch <= '9')
-                    zero_pad = ch - '0';
+                    zero_pad = (char) (ch - '0');
                 ch=*(fmt++);
             }
 
@@ -170,13 +171,22 @@ mini_vsnprintf(char *buffer, unsigned int buffer_len, const char *fmt, va_list v
 
                 case 'u':
                 case 'd':
-                    len = mini_itoa(va_arg(va, unsigned int), 10, 0, (ch=='u'), bf, zero_pad);
+                    len = mini_itoa(va_arg(va, unsigned int), 10, 0, (unsigned int) (ch == 'u'), bf, (unsigned int) zero_pad);
                     _puts(bf, len, &b);
                     break;
 
                 case 'x':
                 case 'X':
-                    len = mini_itoa(va_arg(va, unsigned int), 16, (ch=='X'), 1, bf, zero_pad);
+                    len = mini_itoa(va_arg(va, unsigned int), 16, (unsigned int) (ch == 'X'), 1, bf, (unsigned int) zero_pad);
+                    _puts(bf, len, &b);
+                    break;
+
+                case 'p':
+                case 'P':
+                    ptr_num = va_arg(va, uintptr_t);
+                    len = mini_itoa((int) ((ptr_num >> 32) & 0xFFFFFFFF), 16, (unsigned int) (ch == 'P'), 1, bf, 8);
+                    _puts(bf, len, &b);
+                    len = mini_itoa((int) (ptr_num & 0xFFFFFFFF), 16, (unsigned int) (ch == 'P'), 1, bf, 8);
                     _puts(bf, len, &b);
                     break;
 
@@ -186,7 +196,7 @@ mini_vsnprintf(char *buffer, unsigned int buffer_len, const char *fmt, va_list v
 
                 case 's' :
                     ptr = va_arg(va, char*);
-                    _puts(ptr, mini_strlen(ptr), &b);
+                    _puts(ptr, (unsigned int) mini_strlen(ptr), &b);
                     break;
 
                 default:
@@ -196,7 +206,7 @@ mini_vsnprintf(char *buffer, unsigned int buffer_len, const char *fmt, va_list v
         }
     }
     end:
-    return b.pbuffer - b.buffer;
+    return (int) (b.pbuffer - b.buffer);
 }
 
 
