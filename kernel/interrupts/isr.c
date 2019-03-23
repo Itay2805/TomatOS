@@ -94,7 +94,7 @@ void isr_common(registers_t regs) {
     };
 
     static char* USER_NAME[] = {
-            "Kernel",
+            "Supervisor",
             "User",
     };
 
