@@ -43,6 +43,12 @@ extern address_space_t kernel_address_space;
 // Initialization functions
 ///-------------------------------------------------------------------------
 
+/**
+ * This will do early paging initialization
+ *
+ * it will basically set the boot_address_space and identity map the first 8GB
+ */
+void vmm_early_init();
 
 /**
  * This will initialize the virtual memory manager

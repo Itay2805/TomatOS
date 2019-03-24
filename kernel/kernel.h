@@ -1,6 +1,7 @@
 #ifndef TOMATKERNEL_KERNEL_H
 #define TOMATKERNEL_KERNEL_H
 
+#include <memory/mm.h>
 #include "common/multiboot.h"
 
 /**
@@ -10,5 +11,10 @@
  *       1GB identity mapped
  */
 void kernel_main(multiboot_info_t* info);
+
+/**
+ * This is the memory manager of the kernel
+ */
+extern mm_context_t kernel_memory_manager;
 
 #endif //TOMATKERNEL_KERNEL_H

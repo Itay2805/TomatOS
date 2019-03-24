@@ -284,6 +284,18 @@ void *get_page_table(address_space_t address_space, void *virtual_addr) {
  * The label to the boot pml4
  */
 extern void *boot_pml4;
+extern void *boot_pdpe;
+
+void vmm_early_init() {
+    // set the boot address space
+    boot_address_space = &boot_pml4;
+
+    uint64_t* pdpe = (uint64_t *) &boot_pdpe;
+    for(size_t i = 0; i < 4; i++) {
+        uint64_t addr = 0x40000000 * i;
+        pdpe[i] = (addr & PAGING_1GB_PDPE_MASK) | (PAGING_PRESENT_BIT | PAGING_READ_WRITE_BIT | PAGING_PAGE_SIZE_BIT);
+    }
+}
 
 void vmm_init(multiboot_info_t *multiboot) {
     // set the bitmap
@@ -301,9 +313,6 @@ void vmm_init(multiboot_info_t *multiboot) {
     // we could not have done it until now because we had to allocate
     // the other bitmap first
     pmm_map_kernel();
-
-    // set the boot address space
-    boot_address_space = &boot_pml4;
 
     // create the kernel address space
     term_print("[vmm_init] Creating kernel address space\n");
