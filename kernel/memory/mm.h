@@ -10,6 +10,10 @@
 // It is mostly used by the kernel to allocate dynamic data for objects (like
 // threads, processes, events and so on)
 //
+// Note: Since the mm works in virtual memory, meaning that before you try
+//       and allocate something in another address space you must switch to
+//       that address space first!
+//
 ////////////////////////////////////////////////////////////////////////////
 
 #include <common/stdint.h>
