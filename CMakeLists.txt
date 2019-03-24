@@ -72,7 +72,8 @@ set(KERNEL_SOURCE_FILES
         kernel/drivers/pic.asm
 
         kernel/multiboot.asm
-        kernel/kernel.c)
+        kernel/kernel.c kernel/process/thread.c kernel/process/thread.h kernel/process/process.c kernel/process/process.h kernel/process/resource.c kernel/process/resource.h)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
+# TODO: Add a custom command to create the ISO, or maybe as a target?
