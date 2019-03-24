@@ -34,6 +34,10 @@ set(KERNEL_SOURCE_FILES
         kernel/common/stdarg.h
         kernel/common/string.c
         kernel/common/string.h
+        kernel/common/buf.c
+        kernel/common/buf.h
+        kernel/common/map.c
+        kernel/common/map.h
 
         kernel/common/mini-printf.c
         kernel/common/mini-printf.h
