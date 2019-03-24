@@ -48,6 +48,8 @@ set(KERNEL_SOURCE_FILES
         kernel/memory/vmm.c
         kernel/memory/vmm.asm
         kernel/memory/vmm.h
+        kernel/memory/mm.c
+        kernel/memory/mm.h
 
         kernel/interrupts/irq.c
         kernel/interrupts/irq.asm
