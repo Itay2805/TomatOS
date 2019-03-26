@@ -2,4 +2,88 @@
 // Created by Itay on 24/03/2019.
 //
 
+#include <common/buf.h>
+#include <common/string.h>
 #include "process.h"
+
+process_t* processes = NULL;
+
+static int alive_processes = 0;
+
+static size_t next_pid = 1;
+
+process_t* process_create(thread_start_f start) {
+    process_t* proc = NULL;
+
+    // should we even search
+    if(alive_processes < buf_len(processes)) {
+        for(process_t* it = processes; it < buf_end(processes); it++) {
+            if(it->pid == DEAD_PROCESS_PID) {
+                proc = it;
+                break;
+            }
+        }
+    }
+    if(proc == NULL) {
+        // add a new one
+        buf_push(processes, (process_t){0});
+        proc = &processes[buf_len(processes) - 1];
+    }
+
+    proc->pid = next_pid++;
+    proc->next_tid = 1;
+
+    proc->address_space = vmm_create_address_space();
+
+    buf_push(proc->threads, (thread_t) {
+        .start = start,
+        .parent = proc
+    });
+
+    thread_init(&proc->threads[0]);
+
+    return proc;
+}
+
+process_t* process_find(size_t pid) {
+    for(process_t* it = processes; it < buf_end(processes); it++) {
+        if(it->pid == pid) {
+            return it;
+        }
+    }
+    return NULL;
+}
+
+thread_t* process_start_thread(process_t* process, thread_start_f start) {
+    thread_t* thread = NULL;
+    for(thread_t* it = process->threads; it < buf_end(process->threads); it++) {
+        if(it->state == THREAD_DEAD) {
+            thread = it;
+            break;
+        }
+    }
+    if(thread == NULL) {
+        // add a new one
+        buf_push(process->threads, (thread_t){0});
+        thread = &process->threads[buf_len(process->threads) - 1];
+    }
+
+    thread->start = start;
+    thread->parent = process;
+
+    thread_init(thread);
+
+    return thread;
+}
+
+void process_remove(process_t* process) {
+    for(thread_t* it = process->threads; it < buf_end(process->threads); it++) {
+        if(it->state != THREAD_DEAD) {
+            thread_kill(it);
+        }
+    }
+
+    vmm_free_address_space(process->address_space);
+
+    process->pid = DEAD_PROCESS_PID;
+}
