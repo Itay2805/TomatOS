@@ -71,8 +71,15 @@ set(KERNEL_SOURCE_FILES
         kernel/drivers/pic.h
         kernel/drivers/pic.asm
 
+        kernel/process/thread.c
+        kernel/process/thread.h
+        kernel/process/process.c
+        kernel/process/process.h
+        kernel/process/scheduler.c
+        kernel/process/scheduler.h
+
         kernel/multiboot.asm
-        kernel/kernel.c kernel/process/thread.c kernel/process/thread.h kernel/process/process.c kernel/process/process.h kernel/process/resource.c kernel/process/resource.h)
+        kernel/kernel.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
