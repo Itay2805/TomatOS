@@ -73,10 +73,15 @@ extern address_space_t vmm_get();
 
 /**
  * Will create a new address space from the current address space.
- * @return
  */
 address_space_t vmm_create_address_space();
 
+/**
+ * Free the address space, clearing all the pages in it
+ *
+ * Note:    Make sure that the current address space is not the one being freed, otherwise bad stuff will happen!
+ */
+void vmm_free_address_space(address_space_t address_space);
 
 ///-------------------------------------------------------------------------
 // Manipulation functions

@@ -351,6 +351,80 @@ void vmm_init(multiboot_info_t *multiboot) {
     term_print("[vmm_init] Now using kernel address space\n");
 }
 
+address_space_t vmm_create_address_space() {
+    term_write("[vmm_create_address_space] TODO\n");
+}
+
+void vmm_free_address_space(address_space_t address_space) {
+    uint64_t* pml4 = address_space;
+    map_to_free_page(pml4);
+
+    /*
+     * For the tables we are just assuming we allocated them
+     * only for the actual pages we check if we allocated them or not
+     */
+
+    ///------------------
+    // PML4
+    ///------------------
+    for(uint64_t* pml4e = pml4; pml4e < pml4 + 512; pml4e++) {
+        if(*pml4e & PAGING_PRESENT_BIT) {
+            uint64_t* pdp = (uint64_t *) (*pml4e & PAGING_4KB_ADDR_MASK);
+            map_to_free_page(pdp);
+
+            ///------------------
+            // PDP
+            ///------------------
+            for(uint64_t* pdpe = pdp; pdpe < pdp + 512; pdpe++) {
+                if(*pml4e & PAGING_PRESENT_BIT) {
+                    uint64_t *pd = (uint64_t *) (*pml4e & PAGING_4KB_ADDR_MASK);
+                    map_to_free_page(pd);
+
+                    ///------------------
+                    // PD
+                    ///------------------
+                    for(uint64_t* pde = pd; pde < pd + 512; pde++) {
+                        if(*pml4e & PAGING_PRESENT_BIT) {
+                            uint64_t *pt = (uint64_t *) (*pml4e & PAGING_4KB_ADDR_MASK);
+                            map_to_free_page(pt);
+
+                            ///------------------
+                            // PT
+                            ///------------------
+                            for(uint64_t* pte = pt; pte < pt + 512; pte++) {
+                                if(*pml4e & PAGING_PRESENT_BIT) {
+                                    void* phys = (uint64_t *) (*pml4e & PAGING_4KB_ADDR_MASK);
+
+                                    // check if we should free the page
+                                    if(is_allocated((uintptr_t) phys)) {
+                                        set_free((uintptr_t) phys);
+                                        pmm_free(phys);
+                                    }
+                                }
+                            }
+
+                            map_to_free_page(pd);
+                            set_free((uintptr_t) pt);
+                            pmm_free(pt);
+                        }
+                    }
+
+                    map_to_free_page(pdp);
+                    set_free((uintptr_t) pd);
+                    pmm_free(pd);
+                }
+            }
+
+            map_to_free_page(pml4);
+            set_free((uintptr_t) pdp);
+            pmm_free(pdp);
+        }
+    }
+
+    set_free((uintptr_t) pml4);
+    pmm_free(pml4);
+}
+
 void vmm_map(address_space_t address_space, void *virtual_addr, void *physical_addr, int attributes) {
     uint64_t* pt = get_or_create_page_table(address_space, virtual_addr, attributes);
     map_to_free_page(pt);
