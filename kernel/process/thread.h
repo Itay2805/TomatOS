@@ -7,6 +7,8 @@
 // forward declare
 struct process;
 
+typedef void(*thread_start_f)(void*);
+
 /**
  * The different thread states
  */
@@ -56,8 +58,32 @@ typedef struct thread {
      * This is the cpu state, it is used to restore the thread
      */
     registers_t cpu_state;
+
+    /**
+     * pointer to the start of the stack
+     */
+    void* stack;
+
+    /**
+     * The thread start function, this is where the thread will start running from
+     */
+    thread_start_f start;
 } thread_t;
 
+/**
+ * Initialize a thread
+ *
+ * Note:    1.  DO NOT use this function to create a thread but use the process_start_thread, this function only
+ *              initializes the thread context
+*           2.  This function needs to do an address space switch to create the stack!
+ */
+void thread_init(thread_t* thread);
 
+/**
+ * Kill a thread
+ *
+ * Note:    This function needs to do an address space switch to clear the buffer
+ */
+void thread_kill(thread_t* thread);
 
 #endif
