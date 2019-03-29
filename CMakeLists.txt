@@ -83,4 +83,10 @@ set(KERNEL_SOURCE_FILES
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
-# TODO: Add a custom command to create the ISO, or maybe as a target?
+add_custom_command(
+        TARGET TomatKernel
+        COMMAND mkdir -p ${CMAKE_BINARY_DIR}iso/boot/grub
+        COMMAND cp ${CMAKE_BINARY_DIR}/TomatKernel ${CMAKE_BINARY_DIR}iso/boot/TomatKernel
+        COMMAND cp ${CMAKE_SOURCE_DIR}/grub.cfg ${CMAKE_BINARY_DIR}iso/boot/grub/grub.cfg
+        COMMAND grub-mkrescue -o ${CMAKE_BINARY_DIR}/tomatos.iso ${CMAKE_BINARY_DIR}/iso
+)
