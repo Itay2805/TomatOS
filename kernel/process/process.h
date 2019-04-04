@@ -30,6 +30,11 @@ struct process {
      * The process address space
      */
     address_space_t address_space;
+
+    /**
+     * Memory manager context, for dynamic memory management
+     */
+    mm_context_t mm_context;
 };
 
 typedef struct process process_t;

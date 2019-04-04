@@ -8,7 +8,7 @@
 
 process_t* processes = NULL;
 
-static int alive_processes = 0;
+static size_t alive_processes = 0;
 
 static size_t next_pid = 1;
 
@@ -34,6 +34,12 @@ process_t* process_create(thread_start_f start) {
     proc->next_tid = 1;
 
     proc->address_space = vmm_create_address_space();
+
+    // initialize the memory manager at 4GB
+    address_space_t temp = vmm_get();
+    vmm_set(proc->address_space);
+    mm_context_init(&proc->mm_context, TB(3));
+    vmm_set(temp);
 
     buf_push(proc->threads, (thread_t) {
         .start = start,
