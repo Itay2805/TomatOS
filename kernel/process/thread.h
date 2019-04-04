@@ -4,6 +4,8 @@
 #include <common/stdint.h>
 #include <interrupts/interrupts.h>
 
+#define DEFAULT_STACK_SIZE MB(4)
+
 // forward declare
 struct process;
 
@@ -72,6 +74,8 @@ typedef struct thread {
 
 /**
  * Initialize a thread
+ *
+ * This function assumes the parent and the start address have been set
  *
  * Note:    1.  DO NOT use this function to create a thread but use the process_start_thread, this function only
  *              initializes the thread context
