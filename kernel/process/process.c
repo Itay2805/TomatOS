@@ -12,7 +12,7 @@ static size_t alive_processes = 0;
 
 static size_t next_pid = 1;
 
-process_t* process_create(thread_start_f start) {
+process_t* process_create(thread_start_f start, bool kernel) {
     process_t* proc = NULL;
 
     // should we even search
@@ -32,18 +32,20 @@ process_t* process_create(thread_start_f start) {
 
     proc->pid = next_pid++;
     proc->next_tid = 1;
+    proc->kernel = kernel;
 
+    // initialize using a new address space
     proc->address_space = vmm_create_address_space();
 
-    // initialize the memory manager at 4GB
+    // initialize the memory manager
     address_space_t temp = vmm_get();
     vmm_set(proc->address_space);
     mm_context_init(&proc->mm_context, TB(3));
     vmm_set(temp);
 
     buf_push(proc->threads, (thread_t) {
-        .start = start,
-        .parent = proc
+            .start = start,
+            .parent = proc
     });
 
     thread_init(&proc->threads[0]);

@@ -14,7 +14,7 @@ void thread_init(thread_t* thread) {
 
     thread->state = THREAD_NORMAL;
 
-    if(thread->parent->address_space == kernel_address_space) {
+    if(thread->parent->kernel) {
         // will have the ring set to 0
         thread->cpu_state.rflags = RFLAGS_DEFAULT;
         thread->cpu_state.ss = 16;

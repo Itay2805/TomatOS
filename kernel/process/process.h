@@ -3,6 +3,7 @@
 
 #include <common/map.h>
 #include <memory/vmm.h>
+#include <memory/mm.h>
 #include "thread.h"
 
 #define DEAD_PROCESS_PID 0
@@ -32,6 +33,11 @@ struct process {
     address_space_t address_space;
 
     /**
+     * Is this a kernel process
+     */
+    bool kernel;
+
+    /**
      * Memory manager context, for dynamic memory management
      */
     mm_context_t mm_context;
@@ -48,10 +54,11 @@ extern process_t* processes;
 
 /**
  * Create a new process
+ * if the process is running as kernel it will allow it to run code in the kernel.
  *
  * this also creates the main thread
  */
-process_t* process_create(thread_start_f start);
+process_t* process_create(thread_start_f start, bool kernel);
 
 /**
  * find a process by it's PID

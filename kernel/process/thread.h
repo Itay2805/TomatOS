@@ -70,6 +70,11 @@ typedef struct thread {
      * The thread start function, this is where the thread will start running from
      */
     thread_start_f start;
+
+    /**
+     * The time that the thread been waiting to run/running
+     */
+    uint64_t time;
 } thread_t;
 
 /**
