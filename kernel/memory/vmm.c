@@ -300,7 +300,7 @@ void vmm_early_init() {
 
     uint64_t* pdpe = (uint64_t *) &boot_pdpe;
     for(size_t i = 0; i < 4; i++) {
-        uint64_t addr = 0x40000000 * i;
+        uint64_t addr = GB(1) * i;
         pdpe[i] = (addr & PAGING_1GB_PDPE_MASK) | (PAGING_PRESENT_BIT | PAGING_READ_WRITE_BIT | PAGING_PAGE_SIZE_BIT);
     }
 }
@@ -312,10 +312,10 @@ void vmm_init(multiboot_info_t *multiboot) {
     end_of_kernel += bitmap_size;
 
     // set the virtual addresses for the free page and pte for free page
-    end_of_kernel = ALIGN_UP(end_of_kernel, 4096u);
+    end_of_kernel = ALIGN_UP(end_of_kernel, KB(4));
     free_page = (char*)(uintptr_t)end_of_kernel;
     free_table = (uint64_t*)(uintptr_t)end_of_kernel;
-    pte_for_free_page = (uint64_t *)(free_page + 4096u);
+    pte_for_free_page = (uint64_t *)(free_page + KB(4));
 
     // now map the kernel itself in the physical pages
     // we could not have done it until now because we had to allocate
@@ -325,7 +325,7 @@ void vmm_init(multiboot_info_t *multiboot) {
     // create the kernel address space
     term_print("[vmm_init] Creating kernel address space\n");
     kernel_address_space = pmm_allocate(1);
-    memset(kernel_address_space, 0, 4096);
+    memset(kernel_address_space, 0, KB(4));
 
     // Map the free page to 0 and the pte to the pte
     uint64_t *pdp = get_or_create_page(kernel_address_space, PAGING_PML4_OFFSET(free_page), PAGE_ATTR_WRITE);
@@ -337,7 +337,7 @@ void vmm_init(multiboot_info_t *multiboot) {
 
     // identity map the kernel now
     term_print("[vmm_init] \tIdentity mapping kernel\n");
-    for (uintptr_t addr = ALIGN_DOWN(KERNEL_START, 4096u); addr < ALIGN_UP(end_of_kernel, 4096u); addr += 4096) {
+    for (uintptr_t addr = ALIGN_DOWN(KERNEL_START, KB(4)); addr < ALIGN_UP(end_of_kernel, KB(4)); addr += KB(4)) {
         // TODO: Parse the kernel elf file properly to setup the correct attributes
         early_map(kernel_address_space, addr, addr, PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE);
     }
@@ -365,8 +365,8 @@ address_space_t vmm_create_address_space() {
     // allocate the address space
     address_space_t address_space = pmm_allocate(1);
     map_to_free_page(address_space);
-    memset(free_page, 0, 4096u);
-    
+    memset(free_page, 0, KB(4));
+
     // Map the free page to 0 and the pte to the pte
     uint64_t *pdp = get_or_create_page(address_space, PAGING_PML4_OFFSET(free_page), PAGE_ATTR_WRITE);
     uint64_t *pd = get_or_create_page(pdp, PAGING_PDPE_OFFSET(free_page), PAGE_ATTR_WRITE);
@@ -375,7 +375,7 @@ address_space_t vmm_create_address_space() {
     vmm_map(address_space, (uintptr_t) free_page, 0, PAGE_ATTR_WRITE);
 
     // identity map the kernel
-    for (uintptr_t addr = ALIGN_DOWN(KERNEL_START, 4096u); addr < ALIGN_UP(end_of_kernel, 4096u); addr += 4096) {
+    for (uintptr_t addr = ALIGN_DOWN(KERNEL_START, KB(4)); addr < ALIGN_UP(end_of_kernel, KB(4)); addr += KB(4)) {
         // TODO: Parse the kernel elf file properly to setup the correct attributes
         vmm_map(address_space, (void *) addr, (void *) addr, PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE);
     }

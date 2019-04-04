@@ -27,4 +27,12 @@
 
 #define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
 
+#define KB(x) ((x) * 1024u)
+
+#define MB(x) ((x) * KB(1024))
+
+#define GB(x) ((x) * MB(1024))
+
+#define TB(x) ((x) * GB(1024))
+
 #endif
