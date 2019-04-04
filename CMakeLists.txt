@@ -79,14 +79,14 @@ set(KERNEL_SOURCE_FILES
         kernel/process/scheduler.h
 
         kernel/multiboot.asm
-        kernel/kernel.c)
+        kernel/kernel.c kernel/process/rflags.h)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
 add_custom_command(
         TARGET TomatKernel
-        COMMAND mkdir -p ${CMAKE_BINARY_DIR}iso/boot/grub
-        COMMAND cp ${CMAKE_BINARY_DIR}/TomatKernel ${CMAKE_BINARY_DIR}iso/boot/TomatKernel
-        COMMAND cp ${CMAKE_SOURCE_DIR}/grub.cfg ${CMAKE_BINARY_DIR}iso/boot/grub/grub.cfg
-        COMMAND grub-mkrescue -o ${CMAKE_BINARY_DIR}/tomatos.iso ${CMAKE_BINARY_DIR}/iso
+        COMMAND mkdir -p ${CMAKE_BINARY_DIR}/iso/boot/grub
+        COMMAND cp ${CMAKE_BINARY_DIR}/TomatKernel ${CMAKE_BINARY_DIR}/iso/boot/TomatKernel
+        COMMAND cp ${CMAKE_SOURCE_DIR}/grub.cfg ${CMAKE_BINARY_DIR}/iso/boot/grub/grub.cfg
+        COMMAND grub-mkrescue -o ${CMAKE_SOURCE_DIR}/tomatos.iso ${CMAKE_BINARY_DIR}/iso
 )
