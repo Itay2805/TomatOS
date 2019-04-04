@@ -1,5 +1,6 @@
 #include <graphics/term.h>
 #include <common/stdbool.h>
+#include <memory/vmm.h>
 #include "isr.h"
 
 #include "idt.h"
@@ -58,6 +59,7 @@ static const char* ISR_NAMES[] = {
 extern uint64_t get_cr2();
 
 void isr_common(registers_t regs) {
+    vmm_set(kernel_address_space);
     term_set_background_color(COLOR_BLACK);
     term_set_text_color(COLOR_WHITE);
     term_clear();
@@ -105,25 +107,21 @@ void isr_common(registers_t regs) {
         case ISR_SEGMENT_NOT_PRESENTED:
         case ISR_STACK_SEGMENT_FAULT:
         case ISR_GENERAL_PROTECTION_FAULT:
-            if(regs.error_code != 0) {
-                term_print("Selector(processor=%s, table=%s, index=%d)\n",
-                           PROCESSOR_NAME[regs.error_code & 0b1],
-                           TABLE_NAME[(regs.error_code >> 1) & 0b11],
-                           (int) ((regs.error_code >> 3) & 0xFFF8));
-            }
+            term_print("Selector(processor=%s, table=%s, index=%d)\n",
+                       PROCESSOR_NAME[regs.error_code & 0b1],
+                       TABLE_NAME[(regs.error_code >> 1) & 0b11],
+                       (int) ((regs.error_code >> 3) & 0xFFF8));
             break;
         case ISR_PAGE_FAULT:
-            if(regs.error_code != 0) {
-                term_print("Reason: %s\n", PRESENT_NAMES[regs.error_code & 1]);
-                term_print("Address: 0x%p\n", (void *)get_cr2());
-                term_print("Mode: %s\n", USER_NAME[(regs.error_code >> 2) & 1]);
-                if(((regs.error_code >> 4) & 1) != 0) {
-                    term_print("Operation: Instruction Fetch\n");
-                }else if(((regs.error_code >> 3) & 1) != 0) {
-                    term_write("Operation: Reserved write\n");
-                }else {
-                    term_print("Operation: %s\n", OPERATION_NAME[(regs.error_code >> 1) & 1]);
-                }
+            term_print("Reason: %s\n", PRESENT_NAMES[regs.error_code & 1]);
+            term_print("Address: 0x%p\n", (void *)get_cr2());
+            term_print("Mode: %s\n", USER_NAME[(regs.error_code >> 2) & 1]);
+            if(((regs.error_code >> 4) & 1) != 0) {
+                term_print("Operation: Instruction Fetch\n");
+            }else if(((regs.error_code >> 3) & 1) != 0) {
+                term_write("Operation: Reserved write\n");
+            }else {
+                term_print("Operation: %s\n", OPERATION_NAME[(regs.error_code >> 1) & 1]);
             }
             break;
         default:
