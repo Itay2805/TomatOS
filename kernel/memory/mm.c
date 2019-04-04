@@ -265,7 +265,6 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     context->first->prev = context->first;
     context->first->next = context->first;
     context->first->allocated = false;
-
 }
 
 void* mm_allocate(mm_context_t* context, size_t size) {

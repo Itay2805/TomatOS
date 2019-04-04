@@ -12,7 +12,7 @@
 
 #define PAGING_PRESENT_BIT (1ul << 0ul)
 #define PAGING_READ_WRITE_BIT (1ul << 1ul)
-#define PAGING_USER_SUPREVISOR_BIT (1ul << 2ul)
+#define PAGING_USER_BIT (1ul << 2ul)
 #define PAGING_ACCESSED_BIT (1ul << 5ul)
 #define PAGING_DIRTY_BIT (1ul << 6ul)
 #define PAGING_PAGE_SIZE_BIT (1ul << 7ul)
@@ -66,29 +66,29 @@ address_space_t kernel_address_space;
  * This bitmap is used to check what physical pages have been allocated by the vmm
  * and which have been just mapped
  */
-uint64_t *bitmap;
+static uint64_t *bitmap;
 
 /**
  * The size of the bitmap
  */
-size_t bitmap_size;
+static size_t bitmap_size;
 
 
 /**
  * This is mapped to the pte that contains the free page inside it,
  */
-uint64_t *pte_for_free_page;
+static uint64_t *pte_for_free_page;
 
 /**
  * This is a free page we know we can always map to something else
  */
-char *free_page;
+static char *free_page;
 
 /**
  * Has the same virtual address as the free page, but is of an array type
  * just for ease of use
  */
-uint64_t* free_table;
+static uint64_t* free_table;
 
 /**
  * Will set the physical address as allocated by us
@@ -162,8 +162,8 @@ void set_attributes(uint64_t *entry, int attrs) {
     if ((*entry & PAGING_READ_WRITE_BIT) == 0 && (attrs & PAGE_ATTR_WRITE) != 0) {
         *entry |= PAGING_READ_WRITE_BIT;
     }
-    if ((*entry & PAGING_USER_SUPREVISOR_BIT) == 0 && (attrs & PAGE_ATTR_USER) != 0) {
-        *entry |= PAGING_USER_SUPREVISOR_BIT;
+    if ((*entry & PAGING_USER_BIT) == 0 && (attrs & PAGE_ATTR_USER) != 0) {
+        *entry |= PAGING_USER_BIT;
     }
     if ((*entry & PAGING_NO_EXECUTE_BIT) != 0 && (attrs & PAGE_ATTR_EXECUTE) != 0) {
         *entry &= ~(PAGING_NO_EXECUTE_BIT);
@@ -233,7 +233,7 @@ void early_map(address_space_t address_space, uintptr_t virtual_addr, uintptr_t 
         pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_READ_WRITE_BIT;
     }
     if ((attrs & PAGE_ATTR_USER) != 0) {
-        pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_SUPREVISOR_BIT;
+        pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_BIT;
     }
     if ((attrs & PAGE_ATTR_EXECUTE) != 0) {
         pt[PAGING_PTE_OFFSET(virtual_addr)] &= ~(PAGING_NO_EXECUTE_BIT);
@@ -368,17 +368,23 @@ address_space_t vmm_create_address_space() {
     memset(free_page, 0, KB(4));
 
     // Map the free page to 0 and the pte to the pte
-    uint64_t *pdp = get_or_create_page(address_space, PAGING_PML4_OFFSET(free_page), PAGE_ATTR_WRITE);
-    uint64_t *pd = get_or_create_page(pdp, PAGING_PDPE_OFFSET(free_page), PAGE_ATTR_WRITE);
-    uint64_t *pt = get_or_create_page(pd, PAGING_PDE_OFFSET(free_page), PAGE_ATTR_WRITE);
-    vmm_map(address_space, (uintptr_t) pte_for_free_page, (uintptr_t) pt, PAGE_ATTR_WRITE);
-    vmm_map(address_space, (uintptr_t) free_page, 0, PAGE_ATTR_WRITE);
+    uint64_t *pdp = get_or_create_page((uint64_t *) free_page, PAGING_PML4_OFFSET(free_page), PAGE_ATTR_WRITE);
+    map_to_free_page(pdp);
+    uint64_t *pd = get_or_create_page((uint64_t *) free_page, PAGING_PDPE_OFFSET(free_page), PAGE_ATTR_WRITE);
+    map_to_free_page(pd);
+    uint64_t *pt = get_or_create_page((uint64_t *) free_page, PAGING_PDE_OFFSET(free_page), PAGE_ATTR_WRITE);
+    map_to_free_page(pt);
+    vmm_map(address_space, pte_for_free_page, pt, PAGE_ATTR_WRITE);
+    vmm_map(address_space, free_page, 0, PAGE_ATTR_WRITE);
 
     // identity map the kernel
     for (uintptr_t addr = ALIGN_DOWN(KERNEL_START, KB(4)); addr < ALIGN_UP(end_of_kernel, KB(4)); addr += KB(4)) {
         // TODO: Parse the kernel elf file properly to setup the correct attributes
         vmm_map(address_space, (void *) addr, (void *) addr, PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE);
     }
+
+    // map the terminal
+
 
     return address_space;
 }
@@ -473,7 +479,7 @@ void vmm_map(address_space_t address_space, void *virtual_addr, void *physical_a
         free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_READ_WRITE_BIT;
     }
     if ((attributes & PAGE_ATTR_USER) != 0) {
-        free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_SUPREVISOR_BIT;
+        free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_BIT;
     }
     if ((attributes & PAGE_ATTR_EXECUTE) != 0) {
         free_table[PAGING_PTE_OFFSET(virtual_addr)] &= ~(PAGING_NO_EXECUTE_BIT);
@@ -515,7 +521,7 @@ void vmm_allocate(address_space_t address_space, void *virtual_addr, int attribu
         free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_READ_WRITE_BIT;
     }
     if ((attributes & PAGE_ATTR_USER) != 0) {
-        free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_SUPREVISOR_BIT;
+        free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_BIT;
     }
     if ((attributes & PAGE_ATTR_EXECUTE) != 0) {
         free_table[PAGING_PTE_OFFSET(virtual_addr)] &= ~(PAGING_NO_EXECUTE_BIT);
