@@ -21,6 +21,7 @@
  * The idle process, runs when there is nothing else to run
  */
 static process_t idle_process = {};
+static void* idle_process_stack = NULL;
 
 /**
  * just hlt in a loop cause why not
@@ -34,28 +35,30 @@ static void idle_thread(void* arg) {
 
 /**
  * Initialize the idle process with a thread per cpu
- *
- * TODO: Make it actually create a thread per cpu
  */
 static void idle_process_init() {
     idle_process.address_space = kernel_address_space;
     idle_process.pid = 0;
     idle_process.next_tid = 1;
 
+    idle_process_stack = mm_allocate(&kernel_memory_manager, KB(1));
+
+    // create an idle thread
+    // TODO: Make this per cpu
     buf_push(idle_process.threads, (thread_t) {
         .state = THREAD_NORMAL,
-        .stack = mm_allocate(&kernel_memory_manager, KB(1)),
         .parent = &idle_process,
         .tid = 1,
         .start = idle_thread,
     });
 
+    // setup the cpu state of the idle thread
     idle_process.threads[0].cpu_state.cs = 8;
     idle_process.threads[0].cpu_state.ds = 16;
     idle_process.threads[0].cpu_state.ss = 16;
     idle_process.threads[0].cpu_state.rflags = RFLAGS_DEFAULT;
-    idle_process.threads[0].cpu_state.rsp = (uint64_t) (idle_process.threads[0].stack + KB(1));
-    idle_process.threads[0].cpu_state.rbp = (uint64_t) (idle_process.threads[0].stack + KB(1));
+    idle_process.threads[0].cpu_state.rsp = (uint64_t) (idle_process_stack + KB(1));
+    idle_process.threads[0].cpu_state.rbp = (uint64_t) (idle_process_stack + KB(1));
     idle_process.threads[0].cpu_state.rip = (uint64_t) idle_thread;
 }
 
