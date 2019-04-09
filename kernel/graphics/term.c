@@ -15,6 +15,9 @@ static uint32_t bg_color = COLOR_BLACK, fg_color = COLOR_WHITE;
  * TODO: Maybe add some scaling to make it easier to view
  */
 static void draw_char(int chr) {
+    if(chr < 0 || chr >= 128) {
+        return;
+    }
     char* letter = font_basic[chr];
     int scrn_y, scrn_x;
     int index;
@@ -25,7 +28,7 @@ static void draw_char(int chr) {
             scrn_y = y + cur_y * 8;
             scrn_x = x + cur_x * 8;
             index = x + y * 8;
-            if(chr <= 128 && (letter[index / 8] & (1 << index % 8)) != 0) {
+            if((letter[index / 8] & (1 << index % 8)) != 0) {
                 vram[scrn_x + scrn_y * width * 8] = fg_color;
             }else {
                 vram[scrn_x + scrn_y * width * 8] = bg_color;
