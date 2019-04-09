@@ -53,7 +53,7 @@ inline static uint64_t interval_to_divisor(uint64_t interval) {
 void pit_set_interval(uint64_t i) {
     interval = i;
 
-    outb(PIT_COMMAND, OP_TRIGGER_ON_TERMINAL | CHANNEL_IRQ | ACCESS_SHORT);
+    outb(PIT_COMMAND, OP_RATE_GEN | CHANNEL_IRQ | ACCESS_SHORT);
 
     // TODO: Check the divisor is not too big
     uint16_t divisor = (uint16_t) interval_to_divisor(interval);
