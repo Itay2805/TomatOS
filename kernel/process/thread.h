@@ -62,11 +62,6 @@ typedef struct thread {
     registers_t cpu_state;
 
     /**
-     * pointer to the start of the stack
-     */
-    void* stack;
-
-    /**
      * The thread start function, this is where the thread will start running from
      */
     thread_start_f start;

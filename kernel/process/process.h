@@ -8,6 +8,13 @@
 
 #define DEAD_PROCESS_PID 0
 
+/*
+ * TODO:    the process should be attached with a loader, which will handle the loading and unloading \
+ *          of the process from a resource, it will be called on the thread creation and destruction as
+ *          well as the process creation and destruction. it will mainly manange the memory mapping of the
+ *          process.
+ */
+
 /**
  * Represents a process context
  */
@@ -36,11 +43,6 @@ struct process {
      * Is this a kernel process
      */
     bool kernel;
-
-    /**
-     * Memory manager context, for dynamic memory management
-     */
-    mm_context_t mm_context;
 };
 
 typedef struct process process_t;

@@ -34,14 +34,13 @@ process_t* process_create(thread_start_f start, bool kernel) {
     proc->next_tid = 1;
     proc->kernel = kernel;
 
-    // initialize using a new address space
-    proc->address_space = vmm_create_address_space();
-
-    // initialize the memory manager
-    address_space_t temp = vmm_get();
-    vmm_set(proc->address_space);
-    mm_context_init(&proc->mm_context, TB(3));
-    vmm_set(temp);
+    if(kernel) {
+        // for a kernel process use the kernel address space
+        proc->address_space = kernel_address_space;
+    }else {
+        // initialize using a new address space
+        proc->address_space = vmm_create_address_space();
+    }
 
     buf_push(proc->threads, (thread_t) {
             .start = start,
@@ -91,7 +90,10 @@ void process_remove(process_t* process) {
         }
     }
 
-    vmm_free_address_space(process->address_space);
+    if(!process->kernel) {
+        // free the address space if not a kernel process
+        vmm_free_address_space(process->address_space);
+    }
 
     process->pid = DEAD_PROCESS_PID;
 }
