@@ -5,8 +5,6 @@ BITS 32
 ; ====================================
 ;
 ; This is a multiboot one header
-; The main reason we support this is
-; for easier booting in qemu
 ;
 ; ====================================
 
@@ -178,7 +176,6 @@ gdt64:
 
 ; ====================================
 ;   Paging (1GB identity mapping)
-; TODO: Do not actually include these in the binary
 ; ====================================
 SECTION .bss
 
@@ -196,6 +193,7 @@ resq 512
 ;   Stack
 ; ====================================
 SECTION .bss
+GLOBAL kernel_stack
 
 resb 2 * 1024 * 1024
 kernel_stack:
