@@ -113,10 +113,6 @@ static void schedule(registers_t* regs) {
             // increment the time
             thread->time += interval;
 
-            // if we choose to run the current thread we should not
-            // even bother to look at the other threads
-            if(thread_to_run != running_thread) continue;
-
             if(thread->state == THREAD_RUNNING) {
                 // this is the running thread,
                 // should it continue running?
@@ -133,8 +129,8 @@ static void schedule(registers_t* regs) {
     }
 
     // if we chose to run the current thread just continue
-    if(running_thread != NULL && thread_to_run == running_thread) {
-        term_write("[schedule] keeping the running process\n");
+    if(thread_to_run == running_thread || (thread_to_run == NULL && running_thread != NULL)) {
+        term_print("releasing at 0x%p\n", (void *) regs->rax);
         return;
     }
 
@@ -142,7 +138,6 @@ static void schedule(registers_t* regs) {
     if(thread_to_run == NULL) {
         // TODO: take the thread for the current cpu
         thread_to_run = &idle_process.threads[0];
-        term_write("[schedule] using default thread\n");
     }
 
     // save the state of the current running_thread thread
@@ -157,8 +152,6 @@ static void schedule(registers_t* regs) {
     thread_to_run->time = 0;
     *regs = thread_to_run->cpu_state;
     running_thread = thread_to_run;
-
-    term_write("[schedule] switched!\n");
 }
 
 void scheduler_init() {

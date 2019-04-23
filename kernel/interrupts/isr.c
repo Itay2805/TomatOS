@@ -179,10 +179,10 @@ static void default_exception_handler(registers_t* regs) {
     }
 }
 
-void isr_common(registers_t regs) {
+void isr_common(registers_t* regs) {
     // will simply set the stack so we will have a working space
     register void* rsp asm ("rsp");
     rsp = KERNEL_STACK;
     ((void)rsp);
-    default_exception_handler(&regs);
+    default_exception_handler(regs);
 }

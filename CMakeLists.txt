@@ -81,7 +81,7 @@ set(KERNEL_SOURCE_FILES
         kernel/process/scheduler.h
 
         kernel/multiboot.asm
-        kernel/kernel.c kernel/process/rflags.h)
+        kernel/kernel.c kernel/process/rflags.h kernel/process/spinlock.h)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")

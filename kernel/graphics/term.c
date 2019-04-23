@@ -1,4 +1,5 @@
 #include <common/mini-printf.h>
+#include <process/spinlock.h>
 #include "term.h"
 
 #include "font.h"
@@ -81,8 +82,8 @@ void term_write(const char* text) {
 size_t term_print(const char* fmt, ...) {
     va_list list;
     va_start(list, fmt);
-    char buffer[width * height];
-    int printed = mini_vsnprintf(buffer, (unsigned int)width * height, fmt, list);
+    char buffer[1024];
+    int printed = mini_vsnprintf(buffer, 1024u, fmt, list);
     term_write(buffer);
     va_end(list);
     return (size_t) printed;

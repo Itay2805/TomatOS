@@ -47,6 +47,7 @@ irq_common_stub:
     mov fs, ax
     mov gs, ax
 
+    mov rdi, rsp
     call irq_common
 
     ; restore ds
