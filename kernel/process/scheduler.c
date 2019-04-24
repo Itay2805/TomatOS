@@ -130,7 +130,6 @@ static void schedule(registers_t* regs) {
 
     // if we chose to run the current thread just continue
     if(thread_to_run == running_thread || (thread_to_run == NULL && running_thread != NULL)) {
-        term_print("releasing at 0x%p\n", (void *) regs->rax);
         return;
     }
 

@@ -17,18 +17,23 @@
 extern void* boot_pdpe;
 
 mm_context_t kernel_memory_manager;
+static spinlock_t spinlock;
 
 static void thread_a(void* arg) {
     ((void)arg);
     while(true) {
-        term_write("A\n");
+        spinlock_lock(&spinlock);
+        term_write("A");
+        spinlock_unlock(&spinlock);
     }
 }
 
 static void thread_b(void* arg) {
     ((void)arg);
     while(true) {
+        spinlock_lock(&spinlock);
         term_write("B");
+        spinlock_unlock(&spinlock);
     }
 }
 
@@ -64,6 +69,8 @@ void kernel_main(multiboot_info_t* info) {
     sti();
 
     while(true) {
-        hlt();
+        term_write("C");
     }
+
+
 }

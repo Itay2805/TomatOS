@@ -96,6 +96,7 @@ BITS 64
     extern kernel_main
     multiboot_64bit:
         mov rsp, kernel_stack
+        mov rbp, kernel_stack
         mov rdi, rbx
         call kernel_main
 
