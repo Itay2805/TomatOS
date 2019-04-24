@@ -22,18 +22,14 @@ static spinlock_t spinlock = {0};
 static void thread_a(void* arg) {
     ((void)arg);
     while(true) {
-        spinlock_lock(&spinlock);
         term_write("A");
-        spinlock_unlock(&spinlock);
     }
 }
 
 static void thread_b(void* arg) {
     ((void)arg);
     while(true) {
-        spinlock_lock(&spinlock);
         term_write("B");
-        spinlock_unlock(&spinlock);
     }
 }
 

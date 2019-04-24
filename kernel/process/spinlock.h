@@ -7,22 +7,20 @@
 
 #include <common/stdbool.h>
 
-typedef struct spinlock {
-    int locked;
-} spinlock_t;
+typedef volatile int spinlock_t;
 
 #ifdef __GNUC__
 
-    static inline void spinlock_lock(spinlock_t* spinlock) {
-        int cmp = 0;
-        int xchng = 1;
-        while(!__atomic_compare_exchange(&spinlock->locked, &cmp, &xchng, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
+    static inline void spinlock_lock(volatile spinlock_t* spinlock) {
+        while (__sync_val_compare_and_swap(spinlock, 0, 1));
+        asm volatile("lfence" ::: "memory");
     }
 
-    static inline void spinlock_unlock(spinlock_t* spinlock) {
-        __atomic_store_n(&spinlock->locked, 0, __ATOMIC_SEQ_CST);
+    static inline void spinlock_unlock(volatile spinlock_t* spinlock) {
+        *spinlock = 0;
+        asm volatile("sfence" ::: "memory");
     }
-    
+
 #else
     #error Spinlock requires gnuc for atomic operations
 #endif
