@@ -2,6 +2,7 @@
 #include <common/kernel_info.h>
 #include <graphics/term.h>
 #include <common/string.h>
+#include <cpu/control.h>
 #include "vmm.h"
 
 #include "pmm.h"
@@ -57,7 +58,9 @@
 /**
  * Invalidate a page
  */
-extern void invlpg(uintptr_t addr);
+static inline void invlpg(uintptr_t addr) {
+    asm volatile ( "invlpg (%0)" : : "b"(addr) : "memory" );
+}
 
 address_space_t boot_address_space;
 address_space_t kernel_address_space;
@@ -322,6 +325,12 @@ void vmm_init(multiboot_info_t *multiboot) {
     // the other bitmap first
     pmm_map_kernel();
 
+    term_write("[vmm_init] Enabling features\n");
+    term_write("[vmm_init] \tPage Global Enable\n");
+    set_cr4(get_cr4() | CR4_PAGE_GLOBAL_ENABLED);
+    term_write("[vmm_init] \tPCID\n");
+    set_cr4(get_cr4() | CR4_PCID_ENABLED);
+
     // create the kernel address space
     term_print("[vmm_init] Creating kernel address space\n");
     kernel_address_space = pmm_allocate(1);
@@ -359,6 +368,14 @@ void vmm_init(multiboot_info_t *multiboot) {
 
     vmm_set(kernel_address_space);
     term_print("[vmm_init] Now using kernel address space\n");
+}
+
+void vmm_set(address_space_t addrspace) {
+    set_cr3((get_cr3() & ~CR3_PML4_MASK) | (uint64_t)addrspace);
+}
+
+address_space_t vmm_get() {
+    return (address_space_t) (get_cr3() & CR3_PML4_MASK);
 }
 
 address_space_t vmm_create_address_space() {

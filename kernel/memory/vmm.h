@@ -63,13 +63,13 @@ void vmm_init(multiboot_info_t* info);
  * Will set the current address space
  * @param addrspace the address space
  */
-extern void vmm_set(address_space_t addrspace);
+void vmm_set(address_space_t addrspace);
 
 /**
  * Will get the current address space
  * @return The current address space
  */
-extern address_space_t vmm_get();
+address_space_t vmm_get();
 
 /**
  * Will create a new address space from the current address space.

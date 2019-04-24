@@ -10,6 +10,7 @@
 #include <process/process.h>
 #include <common/common.h>
 #include <process/spinlock.h>
+#include <cpu/cpuid.h>
 
 
 #include "graphics/term.h"
@@ -22,14 +23,14 @@ static spinlock_t spinlock = {0};
 static void thread_a(void* arg) {
     ((void)arg);
     while(true) {
-        term_write("A");
+        // term_write("A");
     }
 }
 
 static void thread_b(void* arg) {
     ((void)arg);
     while(true) {
-        term_write("B");
+        // term_write("B");
     }
 }
 
@@ -38,6 +39,11 @@ void kernel_main(multiboot_info_t* info) {
 
     term_init(info);
     term_print("[kernel_main] successfully loaded the kernel (bootloader='%s', cmdline='%s')\n", (char *)(uintptr_t)info->boot_loader_name, (char *)(uintptr_t)info->cmdline);
+
+    int vendor;
+    char name[13] = {0};
+    get_cpu_vendor(&vendor, name);
+    term_print("[kernel_main] cpu vendor='%s'\n", name);
 
     pmm_init(info);
     vmm_init(info);
@@ -65,8 +71,6 @@ void kernel_main(multiboot_info_t* info) {
     sti();
 
     while(true) {
-        term_write("C");
+        hlt();
     }
-
-
 }

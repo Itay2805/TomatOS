@@ -2,7 +2,7 @@
 #include <common/stdbool.h>
 #include <memory/vmm.h>
 #include <common/kernel_info.h>
-#include <process/rflags.h>
+#include <cpu/rflags.h>
 #include "isr.h"
 
 #include "idt.h"

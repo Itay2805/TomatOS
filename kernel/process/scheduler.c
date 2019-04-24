@@ -11,7 +11,7 @@
 #include "scheduler.h"
 #include "thread.h"
 #include "process.h"
-#include "rflags.h"
+#include "cpu/rflags.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Idle process

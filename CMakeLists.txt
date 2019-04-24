@@ -50,7 +50,6 @@ set(KERNEL_SOURCE_FILES
         kernel/memory/pmm.c
         kernel/memory/pmm.h
         kernel/memory/vmm.c
-        kernel/memory/vmm.asm
         kernel/memory/vmm.h
         kernel/memory/mm.c
         kernel/memory/mm.h
@@ -81,7 +80,13 @@ set(KERNEL_SOURCE_FILES
         kernel/process/scheduler.c
         kernel/process/scheduler.h
         kernel/process/spinlock.h
-        kernel/process/rflags.h
+        kernel/process/syscall.c
+        kernel/process/syscall.h
+
+        kernel/cpu/rflags.h
+        kernel/cpu/msr.h
+        kernel/cpu/cpuid.h
+        kernel/cpu/control.h
 
         kernel/multiboot.asm
         kernel/kernel.c)

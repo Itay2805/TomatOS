@@ -8,7 +8,7 @@
 #include <memory/gdt.h>
 #include "thread.h"
 #include "process.h"
-#include "rflags.h"
+#include "cpu/rflags.h"
 
 void thread_init(thread_t* thread) {
     thread->tid = thread->parent->next_tid++;
