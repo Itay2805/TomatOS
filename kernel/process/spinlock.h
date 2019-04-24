@@ -12,6 +12,7 @@ typedef struct spinlock {
 } spinlock_t;
 
 #ifdef __GNUC__
+
     static inline void spinlock_lock(spinlock_t* spinlock) {
         int cmp = 0;
         int xchng = 1;
@@ -21,6 +22,7 @@ typedef struct spinlock {
     static inline void spinlock_unlock(spinlock_t* spinlock) {
         __atomic_store_n(&spinlock->locked, 0, __ATOMIC_SEQ_CST);
     }
+    
 #else
     #error Spinlock requires gnuc for atomic operations
 #endif

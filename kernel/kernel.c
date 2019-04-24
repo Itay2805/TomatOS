@@ -17,7 +17,7 @@
 extern void* boot_pdpe;
 
 mm_context_t kernel_memory_manager;
-static spinlock_t spinlock;
+static spinlock_t spinlock = {0};
 
 static void thread_a(void* arg) {
     ((void)arg);
