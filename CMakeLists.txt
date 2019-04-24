@@ -54,6 +54,7 @@ set(KERNEL_SOURCE_FILES
         kernel/memory/vmm.h
         kernel/memory/mm.c
         kernel/memory/mm.h
+        kernel/memory/gdt.h
 
         kernel/interrupts/irq.c
         kernel/interrupts/irq.asm
@@ -79,9 +80,11 @@ set(KERNEL_SOURCE_FILES
         kernel/process/process.h
         kernel/process/scheduler.c
         kernel/process/scheduler.h
+        kernel/process/spinlock.h
+        kernel/process/rflags.h
 
         kernel/multiboot.asm
-        kernel/kernel.c kernel/process/rflags.h kernel/process/spinlock.h)
+        kernel/kernel.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")

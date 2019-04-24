@@ -17,15 +17,15 @@ void thread_init(thread_t* thread) {
     if(thread->parent->kernel) {
         // will have the ring set to 0
         thread->cpu_state.rflags = RFLAGS_DEFAULT;
-        thread->cpu_state.ss = 16;
-        thread->cpu_state.ds = 16;
-        thread->cpu_state.cs = 8;
+        thread->cpu_state.ss = GDT_KERNEL_DATA;
+        thread->cpu_state.ds = GDT_KERNEL_DATA;
+        thread->cpu_state.cs = GDT_KERNEL_CODE;
     }else {
         // will have the ring set to 3
         thread->cpu_state.rflags = RFLAGS_DEFAULT_USER;
-        thread->cpu_state.ss = 32;
-        thread->cpu_state.ds = 32;
-        thread->cpu_state.cs = 24;
+        thread->cpu_state.ss = GDT_USER_DATA;
+        thread->cpu_state.ds = GDT_USER_DATA;
+        thread->cpu_state.cs = GDT_USER_CODE;
     }
 
     thread->cpu_state.rip = (uint64_t) thread->start;
