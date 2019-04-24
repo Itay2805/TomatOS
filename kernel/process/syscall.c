@@ -1,5 +1,6 @@
 #include <memory/gdt.h>
 #include <graphics/term.h>
+#include <cpu/control.h>
 #include "syscall.h"
 #include "cpu/msr.h"
 #include "cpu/rflags.h"
@@ -16,6 +17,7 @@ void syscall_init() {
     wrmsr(MSR_CSTAR, (uint64_t) syscall_handler_stub);
     wrmsr(MSR_SFMASK, FLAGS_INTERRUPT_ENABLE);
 
-    term_write("[syscall_init] enabling the syscall feature\n");
+    term_write("[syscall_init] \tenabling the syscall feature\n");
+    wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_SYSCALL);
 
 }

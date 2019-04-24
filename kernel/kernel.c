@@ -11,6 +11,7 @@
 #include <common/common.h>
 #include <process/spinlock.h>
 #include <cpu/cpuid.h>
+#include <process/syscall.h>
 
 
 #include "graphics/term.h"
@@ -23,14 +24,14 @@ static spinlock_t spinlock = {0};
 static void thread_a(void* arg) {
     ((void)arg);
     while(true) {
-        // term_write("A");
+        term_write("A");
     }
 }
 
 static void thread_b(void* arg) {
     ((void)arg);
     while(true) {
-        // term_write("B");
+        term_write("B");
     }
 }
 
@@ -58,6 +59,7 @@ void kernel_main(multiboot_info_t* info) {
 
     mm_context_init(&kernel_memory_manager, 0xFFFFFFFF00000000);
 
+    syscall_init();
     scheduler_init();
 
     process_t* pa = process_create(thread_a, true);

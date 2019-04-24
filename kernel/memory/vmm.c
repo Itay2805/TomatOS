@@ -3,6 +3,7 @@
 #include <graphics/term.h>
 #include <common/string.h>
 #include <cpu/control.h>
+#include <cpu/msr.h>
 #include "vmm.h"
 
 #include "pmm.h"
@@ -238,8 +239,8 @@ void early_map(address_space_t address_space, uintptr_t virtual_addr, uintptr_t 
     if ((attrs & PAGE_ATTR_USER) != 0) {
         pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_BIT;
     }
-    if ((attrs & PAGE_ATTR_EXECUTE) != 0) {
-        pt[PAGING_PTE_OFFSET(virtual_addr)] &= ~(PAGING_NO_EXECUTE_BIT);
+    if ((attrs & PAGE_ATTR_EXECUTE) == 0) {
+        pt[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_NO_EXECUTE_BIT;
     }
 }
 
@@ -326,10 +327,12 @@ void vmm_init(multiboot_info_t *multiboot) {
     pmm_map_kernel();
 
     term_write("[vmm_init] Enabling features\n");
-    term_write("[vmm_init] \tPage Global Enable\n");
+    term_write("[vmm_init] \t* Page Global Enable\n");
     set_cr4(get_cr4() | CR4_PAGE_GLOBAL_ENABLED);
-    term_write("[vmm_init] \tPCID\n");
+    term_write("[vmm_init] \t* PCID\n");
     set_cr4(get_cr4() | CR4_PCID_ENABLED);
+    term_write("[vmm_init] \t* No execute\n");
+    wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_NO_EXECUTE_ENABLE);
 
     // create the kernel address space
     term_print("[vmm_init] Creating kernel address space\n");
@@ -498,8 +501,8 @@ void vmm_map(address_space_t address_space, void *virtual_addr, void *physical_a
     if ((attributes & PAGE_ATTR_USER) != 0) {
         free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_BIT;
     }
-    if ((attributes & PAGE_ATTR_EXECUTE) != 0) {
-        free_table[PAGING_PTE_OFFSET(virtual_addr)] &= ~(PAGING_NO_EXECUTE_BIT);
+    if ((attributes & PAGE_ATTR_EXECUTE) == 0) {
+        free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_NO_EXECUTE_BIT;
     }
 }
 
@@ -540,8 +543,8 @@ void vmm_allocate(address_space_t address_space, void *virtual_addr, int attribu
     if ((attributes & PAGE_ATTR_USER) != 0) {
         free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_USER_BIT;
     }
-    if ((attributes & PAGE_ATTR_EXECUTE) != 0) {
-        free_table[PAGING_PTE_OFFSET(virtual_addr)] &= ~(PAGING_NO_EXECUTE_BIT);
+    if ((attributes & PAGE_ATTR_EXECUTE) == 0) {
+        free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_NO_EXECUTE_BIT;
     }
 }
 
