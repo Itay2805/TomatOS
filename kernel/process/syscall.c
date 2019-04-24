@@ -1,13 +1,28 @@
 #include <memory/gdt.h>
 #include <graphics/term.h>
 #include <cpu/control.h>
+#include <common/stdarg.h>
+#include <memory/vmm.h>
 #include "syscall.h"
 #include "cpu/msr.h"
 #include "cpu/rflags.h"
 
-static void syscall_handler_stub() {}
+extern void syscall_handler_stub();
 
-void syscall_handler() {
+void syscall_handler(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
+    register uint64_t syscall asm("rax") = 0;
+
+    ((void)a);
+    ((void)b);
+    ((void)c);
+    ((void)d);
+    ((void)e);
+    ((void)f);
+
+    address_space_t addr = vmm_get();
+    vmm_set(kernel_address_space);
+    term_print("[syscall_handler] got syscall %x", (unsigned int) syscall);
+    vmm_set(addr);
 }
 
 void syscall_init() {

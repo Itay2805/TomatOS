@@ -3,6 +3,7 @@
 #include <memory/vmm.h>
 #include <common/kernel_info.h>
 #include <cpu/rflags.h>
+#include <cpu/control.h>
 #include "isr.h"
 
 #include "idt.h"
@@ -57,8 +58,6 @@ static const char* ISR_NAMES[] = {
         [ISR_VIRTUALIZATION_EXCEPTION] = "Virtualization Exception",
         [ISR_SECURITY_EXCEPTION] = "Security Exception",
 };
-
-extern uint64_t get_cr2();
 
 static void default_exception_handler(registers_t* regs) {
     // set a valid address space

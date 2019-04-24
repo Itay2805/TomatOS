@@ -80,6 +80,7 @@ set(KERNEL_SOURCE_FILES
         kernel/process/scheduler.c
         kernel/process/scheduler.h
         kernel/process/spinlock.h
+        kernel/process/syscall.asm
         kernel/process/syscall.c
         kernel/process/syscall.h
 

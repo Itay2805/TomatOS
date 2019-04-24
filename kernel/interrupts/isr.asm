@@ -1,10 +1,5 @@
 BITS 64
 
-GLOBAL get_cr2
-get_cr2:
-    mov rax, cr2
-    ret
-
 EXTERN isr_common
 
 GLOBAL isr_divide_by_zero
@@ -29,7 +24,6 @@ GLOBAL isr_page_fault
 GLOBAL isr_alignment_check
 GLOBAL isr_security_exception
 
-GLOBAL isr_common
 isr_common_stub:
      push rax
      push rbx

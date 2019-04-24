@@ -87,6 +87,10 @@ static void schedule(registers_t* regs) {
     uint64_t most_watied_time = 0;
     uint64_t time_slice = 0;
 
+    address_space_t addr = vmm_get();
+    if(addr != kernel_address_space)
+        vmm_set(kernel_address_space);
+
     // get the thread count
     // TODO: have this cached somewhere and controller by the thread start or something
     for(process_t* process = processes; process < buf_end(processes); process++) {
@@ -130,6 +134,8 @@ static void schedule(registers_t* regs) {
 
     // if we chose to run the current thread just continue
     if(thread_to_run == running_thread || (thread_to_run == NULL && running_thread != NULL)) {
+        if(addr != kernel_address_space)
+            vmm_set(addr);
         return;
     }
 
@@ -151,6 +157,8 @@ static void schedule(registers_t* regs) {
     thread_to_run->time = 0;
     *regs = thread_to_run->cpu_state;
     running_thread = thread_to_run;
+
+    vmm_set(thread_to_run->parent->address_space);
 }
 
 void scheduler_init() {
