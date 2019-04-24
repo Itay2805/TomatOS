@@ -5,6 +5,7 @@
 #include <memory/vmm.h>
 #include <memory/mm.h>
 #include <common/common.h>
+#include <memory/gdt.h>
 #include "thread.h"
 #include "process.h"
 #include "rflags.h"

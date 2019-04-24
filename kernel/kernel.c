@@ -21,16 +21,16 @@ mm_context_t kernel_memory_manager;
 static void thread_a(void* arg) {
     ((void)arg);
     while(true) {
-        term_write("Hello there\n");
+        term_write("A\n");
     }
 }
 
-/*static void thread_b(void* arg) {
+static void thread_b(void* arg) {
     ((void)arg);
     while(true) {
-        // term_write("B");
+        term_write("B");
     }
-}*/
+}
 
 void kernel_main(multiboot_info_t* info) {
     vmm_early_init();
@@ -57,9 +57,9 @@ void kernel_main(multiboot_info_t* info) {
     pa->threads[0].cpu_state.rbp = (uint64_t) mm_allocate(&kernel_memory_manager, MB(4));
     pa->threads[0].cpu_state.rsp = pa->threads[0].cpu_state.rbp;
 
-    //process_t* pb = process_create(thread_b, true);
-    //pb->threads[0].cpu_state.rbp = (uint64_t) mm_allocate(&kernel_memory_manager, MB(4));
-    //pb->threads[0].cpu_state.rsp = pa->threads[0].cpu_state.rbp;
+    process_t* pb = process_create(thread_b, true);
+    pb->threads[0].cpu_state.rbp = (uint64_t) mm_allocate(&kernel_memory_manager, MB(4));
+    pb->threads[0].cpu_state.rsp = pb->threads[0].cpu_state.rbp;
 
     sti();
 

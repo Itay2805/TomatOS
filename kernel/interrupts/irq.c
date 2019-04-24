@@ -50,16 +50,16 @@ static const char* IRQ_NAMES[] = {
         "Secondary ATA",
 };
 
-void irq_common(registers_t* registers) {
-    if(irq_handlers[registers->int_num - IRQ_BASE]) {
-        irq_handlers[registers->int_num - IRQ_BASE](registers);
+void irq_common(registers_t registers) {
+    if(irq_handlers[registers.int_num - IRQ_BASE]) {
+        irq_handlers[registers.int_num - IRQ_BASE](&registers);
     }else {
-        if(registers->int_num - IRQ_BASE < sizeof(IRQ_NAMES) / sizeof(char*)) {
-            term_print("[irq_common] Unhandled interrupt (%s)\n", IRQ_NAMES[registers->int_num - IRQ_BASE]);
+        if(registers.int_num - IRQ_BASE < sizeof(IRQ_NAMES) / sizeof(char*)) {
+            term_print("[irq_common] Unhandled interrupt (%s)\n", IRQ_NAMES[registers.int_num - IRQ_BASE]);
         }else {
-            term_print("[irq_common] Unhandled interrupt (irq=%d, int=%d)\n", (int) registers->int_num - IRQ_BASE, (int) registers->int_num);
+            term_print("[irq_common] Unhandled interrupt (irq=%d, int=%d)\n", (int) registers.int_num - IRQ_BASE, (int) registers.int_num);
         }
     }
 
-    pic_send_eoi((uint8_t)registers->int_num);
+    pic_send_eoi((uint8_t)registers.int_num);
 }

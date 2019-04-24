@@ -57,7 +57,6 @@ isr_common_stub:
      mov fs, ax
      mov gs, ax
 
-    mov rdi, rsp
     call isr_common
 
     ; restore ds

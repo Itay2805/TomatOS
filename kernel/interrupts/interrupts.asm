@@ -19,3 +19,8 @@ GLOBAL hlt
 hlt:
     hlt
     ret
+
+GLOBAL breakpoint
+breakpoint:
+    int 3
+    ret

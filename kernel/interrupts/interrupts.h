@@ -88,4 +88,9 @@ extern void hlt();
  */
 extern void lidt(idt_t* idt);
 
+/**
+ * Will cause a breakpoint interrupt (int 3)
+ */
+extern void breakpoint();
+
 #endif
