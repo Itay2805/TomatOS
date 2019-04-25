@@ -29,7 +29,7 @@ static void* idle_process_stack = NULL;
 static void idle_thread(void* arg) {
     ((void)arg);
     while(true) {
-        term_write("Hey rares!\n");
+        hlt();
     }
 }
 
