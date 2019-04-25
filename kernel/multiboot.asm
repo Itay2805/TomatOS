@@ -62,6 +62,21 @@ multiboot_main:
     ; PRESENT | READ_WRITE | LARGE_PAGE
 	mov dword [boot_pdpe], 0x83
 
+    ; setup the TSS entry in the gdt
+    mov eax, tss64_end - tss64_start
+    mov edx, tss64_start
+    mov word [gdt64_start.tss], ax
+    sar eax, 16
+    and eax, 0xF
+    or byte [gdt64_start.tss + 6], al
+    mov eax, edx
+    mov word [gdt64_start.tss + 2], dx
+    sar eax, 16
+    shr edx, 24
+    mov byte [gdt64_start.tss + 4], al
+    mov byte [gdt64_start.tss + 7], dl
+
+    ; set the pml4
     mov eax, boot_pml4
     mov cr3, eax
 
@@ -83,6 +98,9 @@ multiboot_main:
 
     ; Jump to the kernel using real long mode (64bit)
     lgdt [gdt64]
+
+    mov ax, 40
+    ltr ax
 
     mov ax, 16
     mov ds, ax
@@ -126,7 +144,7 @@ gdt64_start:
     db 0x00
 
     ; --------------------------------
-    ; Code segment (ring 0)
+    ; Kernel code segment (8)
     ; --------------------------------
     dw 0x0000
     dw 0x0000
@@ -136,7 +154,7 @@ gdt64_start:
     db 0x00
 
     ; --------------------------------
-    ; Data segment (ring 0)
+    ; Kernel data segment (16)
     ; --------------------------------
     dw 0x0000
     dw 0x0000
@@ -146,7 +164,7 @@ gdt64_start:
     db 0x00
 
     ; --------------------------------
-    ; Data segment (ring 3)
+    ; User data segment (24)
     ; --------------------------------
     dw 0x0000
     dw 0x0000
@@ -156,7 +174,7 @@ gdt64_start:
     db 0x00
 
     ; --------------------------------
-    ; Code segment (ring 3)
+    ; User code segment (32)
     ; --------------------------------
     dw 0x0000
     dw 0x0000
@@ -164,6 +182,26 @@ gdt64_start:
     db 11111010b
     db 00100000b
     db 0x00
+
+    ; --------------------------------
+    ; TSS (40)
+    ; --------------------------------
+    ;dw (tss64_end - tss64) & 0xFFFF
+    ;dw tss64 
+    ;db (tss64 >> 16) & 0xFF
+    ;db 10001001b
+    ;db 11000000b | (((tss64_end - tss64) >> 16) & 0xF)
+    ;db (tss64 >> 24) & 0xFF
+    .tss:
+    dw 0
+    dw 0
+    db 0
+    db 10001001b
+    db 11000000b
+    db 0
+    dd 0
+    dd 0
+
 
 gdt64_end:
 
@@ -174,6 +212,32 @@ global gdt64
 gdt64:
     dw gdt64_end - gdt64_start - 1
     dq gdt64_start
+
+; ====================================
+;   TSS 
+; ====================================
+
+tss64_start:
+    dd 0
+    ; Ring 0 RSP
+    dq kernel_stack
+    ; Ring 1 RSP
+    dq kernel_stack
+    ; Ring 2 RSP
+    dq kernel_stack
+    dq 0
+    ; IST1-7
+    dq 0x0000000000000000
+    dq 0x0000000000000000
+    dq 0x0000000000000000
+    dq 0x0000000000000000
+    dq 0x0000000000000000
+    dq 0x0000000000000000
+    dq 0x0000000000000000
+    dq 0
+    ; IOPB
+    dd (tss64_end - tss64_start) << 16
+tss64_end:
 
 ; ====================================
 ;   Paging (1GB identity mapping)

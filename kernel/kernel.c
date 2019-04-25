@@ -62,9 +62,8 @@ void kernel_main(multiboot_info_t* info) {
     mm_context_init(&kernel_memory_manager, 0xFFFFFFFF00000000);
 
     syscall_init();
+    
     scheduler_init();
-
-
 
 
 
