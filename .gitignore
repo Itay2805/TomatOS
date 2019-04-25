@@ -1,4 +1,8 @@
-cmake-build-debug
+iso
+cmake*
+CMake*
+Makefile
+TomatKernel
 
 *.iso
 
