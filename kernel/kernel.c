@@ -11,6 +11,7 @@
 #include <common/common.h>
 #include <process/spinlock.h>
 #include <cpu/cpuid.h>
+#include <cpu/msr.h>
 #include <process/syscall.h>
 #include <memory/gdt.h>
 
@@ -20,7 +21,7 @@
 extern void* boot_pdpe;
 
 mm_context_t kernel_memory_manager;
-/*
+
 static void thread_a(void* arg) {
     ((void)arg);
     while(true) {
@@ -36,7 +37,7 @@ static void thread_b(void* arg) {
     }
 }
 static void thread_b_end() {}
-*/
+
 void kernel_main(multiboot_info_t* info) {
     vmm_early_init();
 
@@ -62,40 +63,38 @@ void kernel_main(multiboot_info_t* info) {
     mm_context_init(&kernel_memory_manager, 0xFFFFFFFF00000000);
 
     syscall_init();
-    
+
     scheduler_init();
 
-
-
-    //process_t* pa = process_create(NULL, false);
-    //pa->threads[0].cpu_state.rbp = GB(4);
-    //pa->threads[0].cpu_state.rsp = GB(4);
-    //pa->threads[0].cpu_state.rip = GB(1);
-    //pa->threads[0].start = (thread_start_f) GB(1);
-    //for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_a_end - (uint64_t)thread_a, KB(4)); i += KB(4)) {
-    //    vmm_allocate(pa->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
-    //}
-    //vmm_allocate(pa->address_space, (void *) GB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
-    //vmm_set(pa->address_space);
-    //memcpy((void *) GB(1), thread_a, (uint64_t)thread_a_end - (uint64_t)thread_a);
-    //vmm_set(kernel_address_space);
+    process_t* pa = process_create(NULL, false);
+    pa->threads[0].cpu_state.rbp = GB(4);
+    pa->threads[0].cpu_state.rsp = GB(4);
+    pa->threads[0].cpu_state.rip = GB(1);
+    pa->threads[0].start = (thread_start_f) GB(1);
+    for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_a_end - (uint64_t)thread_a, KB(4)); i += KB(4)) {
+        vmm_allocate(pa->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+    }
+    vmm_allocate(pa->address_space, (void *) GB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+    vmm_set(pa->address_space);
+    memcpy((void *) GB(1), thread_a, (uint64_t)thread_a_end - (uint64_t)thread_a);
+    vmm_set(kernel_address_space);
 
 
 
 
 
-    //process_t* pb = process_create(NULL, false);
-    //pb->threads[0].cpu_state.rbp = GB(4);
-    //pb->threads[0].cpu_state.rsp = GB(4);
-    //pb->threads[0].cpu_state.rip = GB(1);
-    //pb->threads[0].start = (thread_start_f) GB(1);
-    //for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)); i += KB(4)) {
-    //    vmm_allocate(pb->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
-    //}
-    //vmm_allocate(pb->address_space, (void *) GB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
-    //vmm_set(pb->address_space);
-    //memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
-    //vmm_set(kernel_address_space);
+    process_t* pb = process_create(NULL, false);
+    pb->threads[0].cpu_state.rbp = GB(4);
+    pb->threads[0].cpu_state.rsp = GB(4);
+    pb->threads[0].cpu_state.rip = GB(1);
+    pb->threads[0].start = (thread_start_f) GB(1);
+    for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)); i += KB(4)) {
+        vmm_allocate(pb->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+    }
+    vmm_allocate(pb->address_space, (void *) GB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+    vmm_set(pb->address_space);
+    memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
+    vmm_set(kernel_address_space);
 
     sti();
 

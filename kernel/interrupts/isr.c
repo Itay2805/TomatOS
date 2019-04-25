@@ -144,6 +144,9 @@ static void default_exception_handler(registers_t* regs) {
     term_print("r8 =0x%p r9 =0x%p r10=0x%p r11=0x%p\n", (void *)regs->r8, (void *)regs->r9, (void *)regs->r10, (void *)regs->r11);
     term_print("r12=0x%p r13=0x%p r14=0x%p r15=0x%p\n", (void *)regs->r12, (void *)regs->r13, (void *)regs->r14, (void *)regs->r15);
 
+    term_print("\ncs=0x%x ss=0x%x ds=0x%x\n", (int)regs->cs, (int)regs->ss, (int)regs->ds);
+    
+
     // print flags
     // for extended information look:
     // https://en.wikipedia.org/wiki/FLAGS_register

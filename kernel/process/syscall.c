@@ -20,9 +20,9 @@ void syscall_handler(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e,
     ((void)f);
 
     address_space_t addr = vmm_get();
-    vmm_set(kernel_address_space);
+    if(addr != kernel_address_space) vmm_set(kernel_address_space);
     term_print("[syscall_handler] got syscall %x", (unsigned int) syscall);
-    vmm_set(addr);
+    if(addr != kernel_address_space) vmm_set(addr);
 }
 
 void syscall_init() {

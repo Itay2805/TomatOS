@@ -76,7 +76,6 @@ irq_common_stub:
 
     iretq
 
-
 irq_pit:
     push qword 0
     push qword 32
