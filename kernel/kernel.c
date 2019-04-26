@@ -74,7 +74,7 @@ void kernel_main(multiboot_info_t* info) {
     for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_a_end - (uint64_t)thread_a, KB(4)); i += KB(4)) {
         vmm_allocate(pa->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
     }
-    vmm_allocate(pa->address_space, (void *) GB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+    vmm_allocate(pa->address_space, (void *) GB(4) - KB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
     vmm_set(pa->address_space);
     memcpy((void *) GB(1), thread_a, (uint64_t)thread_a_end - (uint64_t)thread_a);
     vmm_set(kernel_address_space);
@@ -91,7 +91,7 @@ void kernel_main(multiboot_info_t* info) {
     for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)); i += KB(4)) {
         vmm_allocate(pb->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
     }
-    vmm_allocate(pb->address_space, (void *) GB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+    vmm_allocate(pb->address_space, (void *) GB(4) - KB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
     vmm_set(pb->address_space);
     memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
     vmm_set(kernel_address_space);
