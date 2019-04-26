@@ -65,10 +65,13 @@ static void default_exception_handler(registers_t* regs) {
     vmm_set(kernel_address_space);
 
     // clear screen
-    term_set_background_color(COLOR_BLACK);
-    term_set_text_color(COLOR_WHITE);
-    term_clear();
-    term_set_cursor_pos(0, 0);
+    //term_set_background_color(COLOR_BLACK);
+    //term_set_text_color(COLOR_WHITE);
+    //term_clear();
+    //term_set_cursor_pos(0, 0);
+    if(term_get_cursor_x() != 0) {
+        term_write("\n");
+    }
     term_set_background_color(COLOR_RED);
     term_set_text_color(COLOR_WHITE);
 
@@ -118,10 +121,12 @@ static void default_exception_handler(registers_t* regs) {
         case ISR_SEGMENT_NOT_PRESENTED:
         case ISR_STACK_SEGMENT_FAULT:
         case ISR_GENERAL_PROTECTION_FAULT:
-            term_print("Selector(processor=%s, table=%s, index=%d)\n",
-                       PROCESSOR_NAME[regs->error_code & 0b1],
-                       TABLE_NAME[(regs->error_code >> 1) & 0b11],
-                       (int) ((regs->error_code >> 3) & 0xFFF8));
+            if(regs->error_code != 0) {
+                term_print("Selector(processor=%s, table=%s, index=%d)\n",
+                        PROCESSOR_NAME[regs->error_code & 0b1],
+                        TABLE_NAME[(regs->error_code >> 1) & 0b11],
+                        (int) (regs->error_code & 0xFFF8));
+            }
             break;
         case ISR_PAGE_FAULT:
             term_print("Reason: %s\n", PRESENT_NAMES[regs->error_code & 1]);

@@ -49,6 +49,7 @@ isr_common_stub:
      mov es, ax
      mov gs, ax
      mov fs, ax
+     mov ss, ax
 
     call isr_common
 

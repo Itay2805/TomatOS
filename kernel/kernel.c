@@ -24,16 +24,16 @@ mm_context_t kernel_memory_manager;
 
 static void thread_a(void* arg) {
     ((void)arg);
+    asm volatile ("syscall" : : "a"(0xBABE) : "rcx", "r11", "memory");
     while(true) {
-        // asm volatile ("syscall" : : "a"(0xBABE) : "rcx", "r11", "memory");
     }
 }
 static void thread_a_end() {}
 
 static void thread_b(void* arg) {
     ((void)arg);
+    asm volatile ("syscall" : : "a"(0xCAFE) : "rcx", "r11", "memory");
     while(true) {
-        asm volatile ("syscall" : : "a"(0xCAFE) : "rcx", "r11", "memory");
     }
 }
 static void thread_b_end() {}
@@ -98,6 +98,7 @@ void kernel_main(multiboot_info_t* info) {
     memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
     vmm_set(kernel_address_space);
 
+    term_write("[kernel_main] Enabling interrupts\n");
     sti();
 
     while(true) {
