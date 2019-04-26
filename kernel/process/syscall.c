@@ -8,23 +8,24 @@
 #include "cpu/msr.h"
 #include "cpu/rflags.h"
 
+syscall_handler_f syscalls[SYSCALL_COUNT];
+
 extern void syscall_handler_stub();
 
-void syscall_handler(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
+uint64_t syscall_handler(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
     register uint64_t rax asm("rax");
     uint64_t syscall = rax;
 
-    ((void)a);
-    ((void)b);
-    ((void)c);
-    ((void)d);
-    ((void)e);
-    ((void)f);
+    if(syscall < SYSCALL_COUNT && syscalls[syscall] != 0) {
+        return syscalls[syscall](a, b, c, d, e, f);
+    }
 
     address_space_t addr = vmm_get();
     if(addr != kernel_address_space) vmm_set(kernel_address_space);
-    term_print("[syscall_handler] got syscall 0x%x\n", (unsigned int) syscall);
+    term_print("[syscall_handler] got unknown syscall 0x%x\n", (unsigned int) syscall);
     if(addr != kernel_address_space) vmm_set(addr);
+
+    return (uint64_t)-1;
 }
 
 void syscall_init() {
