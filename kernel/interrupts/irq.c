@@ -1,4 +1,5 @@
 #include <graphics/term.h>
+#include <memory/vmm.h>
 #include <drivers/pic.h>
 #include "irq.h"
 #include "idt.h"
@@ -54,11 +55,14 @@ void irq_common(registers_t registers) {
     if(irq_handlers[registers.int_num - IRQ_BASE]) {
         irq_handlers[registers.int_num - IRQ_BASE](&registers);
     }else {
+        address_space_t addr = vmm_get();
+        if(addr != kernel_address_space) vmm_set(kernel_address_space);
         if(registers.int_num - IRQ_BASE < sizeof(IRQ_NAMES) / sizeof(char*)) {
             term_print("[irq_common] Unhandled interrupt (%s)\n", IRQ_NAMES[registers.int_num - IRQ_BASE]);
         }else {
             term_print("[irq_common] Unhandled interrupt (irq=%d, int=%d)\n", (int) registers.int_num - IRQ_BASE, (int) registers.int_num);
         }
+        if(addr != kernel_address_space) vmm_set(addr);
     }
 
     pic_send_eoi((uint8_t)registers.int_num);

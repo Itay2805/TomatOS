@@ -125,7 +125,7 @@ static void default_exception_handler(registers_t* regs) {
                 term_print("Selector(processor=%s, table=%s, index=%d)\n",
                         PROCESSOR_NAME[regs->error_code & 0b1],
                         TABLE_NAME[(regs->error_code >> 1) & 0b11],
-                        (int) (regs->error_code & 0xFFF8));
+                        (int) (regs->error_code & 0xFFF8) / 16);
             }
             break;
         case ISR_PAGE_FAULT:

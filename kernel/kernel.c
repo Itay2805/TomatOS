@@ -24,16 +24,16 @@ mm_context_t kernel_memory_manager;
 
 static void thread_a(void* arg) {
     ((void)arg);
-    asm volatile ("syscall" : : "a"(0xBABE) : "rcx", "r11", "memory");
     while(true) {
+        asm volatile ("int $0x80" : : "a"(0xBABE) : "rcx", "r11", "memory");
     }
 }
 static void thread_a_end() {}
 
 static void thread_b(void* arg) {
     ((void)arg);
-    asm volatile ("syscall" : : "a"(0xCAFE) : "rcx", "r11", "memory");
     while(true) {
+        asm volatile ("int $0x80" : : "a"(0xCAFE) : "rcx", "r11", "memory");
     }
 }
 static void thread_b_end() {}

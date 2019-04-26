@@ -11,12 +11,6 @@ static int cur_x = 0, cur_y = 0;
 static uint32_t bg_color = COLOR_BLACK, fg_color = COLOR_WHITE;
 
 /**
- * This is the lock on the vram write access
- * put this whenever writing to vram
- */
-static spinlock_t vram_lock = 0;
-
-/**
  * Used to draw a single character
  *
  * TODO: Maybe add some scaling to make it easier to view
@@ -30,7 +24,6 @@ static void draw_char(int chr) {
 
     letter = font_basic[chr];
 
-    spinlock_lock(&vram_lock);
     for(int y = 0; y < 8; y++) {
         for(int x = 0; x < 8; x++) {
             int scrn_y = y + cur_y * 8;
@@ -43,7 +36,6 @@ static void draw_char(int chr) {
             }
         }
     }
-    spinlock_unlock(&vram_lock);
 }
 
 void term_init(multiboot_info_t* multiboot) {
@@ -98,23 +90,17 @@ size_t term_print(const char* fmt, ...) {
 }
 
 void term_clear() {
-    spinlock_lock(&vram_lock);
     for(int i = 0; i < width * height * 8 * 8; i++) {
         vram[i] = bg_color;
     }
-    spinlock_unlock(&vram_lock);
 }
 
 void term_set_text_color(uint32_t color) {
-    spinlock_lock(&vram_lock);
     fg_color = color;
-    spinlock_unlock(&vram_lock);
 }
 
 void term_set_background_color(uint32_t color) {
-    spinlock_lock(&vram_lock);
     bg_color = color;
-    spinlock_unlock(&vram_lock);
 }
 
 uint32_t term_get_text_color() {
@@ -127,10 +113,8 @@ uint32_t term_get_background_color() {
 
 void term_set_cursor_pos(uint32_t x, uint32_t y) {
     // TODO: Bound checking
-    spinlock_lock(&vram_lock);
     cur_x = x;
     cur_y = y;
-    spinlock_unlock(&vram_lock);
 }
 
 uint32_t term_get_cursor_x() {
@@ -150,22 +134,18 @@ uint32_t term_get_height() {
 }
 
 void term_scroll(uint32_t n) {
-    spinlock_lock(&vram_lock);
     for(size_t i = 0; i <  (height - n) * width * 8 * 8; i++) {
         vram[i] = vram[i + (n * width * 8 * 8)];
     }
     for(int i = (height - n) * width * 8 * 8; i <  width * height * 8 * 8; i++) {
         vram[i] = bg_color;
     }
-    spinlock_unlock(&vram_lock);
 }
 
 void term_clear_line(uint32_t n) {
-    spinlock_lock(&vram_lock);
     for(size_t y = n; y < n + 8; y++) {
         for(int x = 0; x < width * 8; x++) {
             vram[x + y * width] = bg_color;
         }
     }
-    spinlock_unlock(&vram_lock);
 }
