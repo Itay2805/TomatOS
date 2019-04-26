@@ -25,7 +25,7 @@ mm_context_t kernel_memory_manager;
 static void thread_a(void* arg) {
     ((void)arg);
     while(true) {
-        // syscall(0xBABE);
+        // asm volatile ("syscall" : : "a"(0xBABE) : "rcx", "r11", "memory");
     }
 }
 static void thread_a_end() {}
@@ -33,7 +33,7 @@ static void thread_a_end() {}
 static void thread_b(void* arg) {
     ((void)arg);
     while(true) {
-        // syscall(0xCAFE);
+        asm volatile ("syscall" : : "a"(0xCAFE) : "rcx", "r11", "memory");
     }
 }
 static void thread_b_end() {}
@@ -76,6 +76,7 @@ void kernel_main(multiboot_info_t* info) {
     }
     vmm_allocate(pa->address_space, (void *) GB(4) - KB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
     vmm_set(pa->address_space);
+    memset((void *) GB(1), 0xCC, ALIGN_UP((uint64_t)thread_a_end - (uint64_t)thread_a, KB(4)));
     memcpy((void *) GB(1), thread_a, (uint64_t)thread_a_end - (uint64_t)thread_a);
     vmm_set(kernel_address_space);
 
@@ -93,6 +94,7 @@ void kernel_main(multiboot_info_t* info) {
     }
     vmm_allocate(pb->address_space, (void *) GB(4) - KB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
     vmm_set(pb->address_space);
+    memset((void *) GB(1), 0xCC, ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)));
     memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
     vmm_set(kernel_address_space);
 
