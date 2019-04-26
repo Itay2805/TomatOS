@@ -73,7 +73,10 @@ static void default_exception_handler(registers_t* regs) {
     term_set_text_color(COLOR_WHITE);
 
     // print error name
-    const char* name = ISR_NAMES[regs->int_num];
+    const char* name = 0;
+    if(regs->int_num <= sizeof(ISR_NAMES) / sizeof(char*)) {
+        name = ISR_NAMES[regs->int_num];
+    }
     if(name == 0) {
         term_print("Exception occurred: %p\n\n", (void *)regs->int_num);
     }else {
@@ -183,8 +186,5 @@ static void default_exception_handler(registers_t* regs) {
 
 void isr_common(registers_t regs) {
     // will simply set the stack so we will have a working space
-    register void* rsp asm ("rsp");
-    rsp = KERNEL_STACK;
-    ((void)rsp);
     default_exception_handler(&regs);
 }
