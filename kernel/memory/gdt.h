@@ -14,7 +14,7 @@
 
 #define GDT_KERNEL_CODE 8
 #define GDT_KERNEL_DATA 16
-#define GDT_USER_DATA 24
-#define GDT_USER_CODE 32
+#define GDT_USER_DATA (24 | 3u)
+#define GDT_USER_CODE (32 | 3u)
 
 #endif //TOMATKERNEL_GDT_H

@@ -25,7 +25,7 @@ mm_context_t kernel_memory_manager;
 static void thread_a(void* arg) {
     ((void)arg);
     while(true) {
-        syscall(0xBABE);
+        // syscall(0xBABE);
     }
 }
 static void thread_a_end() {}
@@ -33,7 +33,7 @@ static void thread_a_end() {}
 static void thread_b(void* arg) {
     ((void)arg);
     while(true) {
-        syscall(0xCAFE);
+        // syscall(0xCAFE);
     }
 }
 static void thread_b_end() {}

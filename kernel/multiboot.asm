@@ -99,7 +99,7 @@ multiboot_main:
     ; Jump to the kernel using real long mode (64bit)
     lgdt [gdt64]
 
-    mov ax, 40
+    mov ax, 0x2b
     ltr ax
 
     mov ax, 16
@@ -227,17 +227,23 @@ tss64_start:
     dq kernel_stack
     dq 0
     ; IST1-7
-    dq 0x0000000000000000
-    dq 0x0000000000000000
-    dq 0x0000000000000000
-    dq 0x0000000000000000
-    dq 0x0000000000000000
-    dq 0x0000000000000000
-    dq 0x0000000000000000
+    dq kernel_stack
+    dq kernel_stack
+    dq kernel_stack
+    dq kernel_stack
+    dq kernel_stack
+    dq kernel_stack
+    dq kernel_stack
     dq 0
-    ; IOPB
-    dd (tss64_end - tss64_start) << 16
+    ; IOPB offset
+    dd (tss64_iopb - tss64_start) << 16
 tss64_end:
+
+; --------------------------------
+; The IOPB of the TSS, just have it empty
+; --------------------------------
+tss64_iopb:
+    resb 8092
 
 ; ====================================
 ;   Paging (1GB identity mapping)

@@ -29,4 +29,5 @@ void idt_set_entry(int num, idt_handler_f handler, int type) {
     idt_entries[num].handler_high = ((uintptr_t)handler >> 16) & 0xFFFFFFFFFFFF;
     idt_entries[num].gate_type = (uint64_t) type;
     idt_entries[num].selector = 8;
+    idt_entries[num].ring = 3;
 }
