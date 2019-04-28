@@ -41,6 +41,8 @@ set(KERNEL_SOURCE_FILES
 
         kernel/common/mini-printf.c
         kernel/common/mini-printf.h
+        kernel/common/except.c
+        kernel/common/except.h
 
         kernel/graphics/font.c
         kernel/graphics/font.h
