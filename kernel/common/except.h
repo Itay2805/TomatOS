@@ -40,6 +40,8 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
 #define ERROR_ALREADY_FREED     ((error_t)4u)
 #define ERROR_OUT_OF_MEMORY     ((error_t)5u)
 
+#define IS_ERROR(err) (err & 0xFFFFu)
+
 #define CHECK_ERROR(condition, error) \
     do { \
         if(!(condition)) { \
@@ -58,15 +60,13 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
 #define CHECK_AND_RETHROW_LABEL(error, label)  \
     do { \
         err = (error); \
-        if(err != NO_ERROR) { \
+        if(IS_ERROR(err) != NO_ERROR) { \
             ERROR_PUSH_FRAME(error); \
             goto label; \
         } \
     } while(0)
 
 #define CHECK_AND_RETHROW(error) CHECK_AND_RETHROW_LABEL(error, cleanup)
-
-#define IS_ERROR(err) (err & 0xFFFFu)
 
 extern const char* except_strings[];
 

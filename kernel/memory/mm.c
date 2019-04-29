@@ -175,6 +175,8 @@ static error_t update_free(mm_context_t* context, bool tried_join, bool tried_ex
         first = false;
     }
 
+    context->free = current;
+
 cleanup:
     if(IS_ERROR(err) == ERROR_OUT_OF_MEMORY) {
         if(!tried_join) {
@@ -185,7 +187,7 @@ cleanup:
             CHECK_AND_RETHROW_LABEL(update_free(context, true, true), cleanup_failed);
         }
     }
-    cleanup_failed:
+cleanup_failed:
     return err;
 }
 
@@ -247,6 +249,7 @@ static error_t allocate_internal(mm_context_t* context, size_t size, size_t alig
             current->allocated = true;
             context->used_size += current->size;
             allocated = current->data + get_padding(current, alignment);
+            break;
         }
 
         first = false;
