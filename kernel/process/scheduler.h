@@ -16,6 +16,6 @@
  *
  * the scheduler will only start once interrupts are enabled
  */
-void scheduler_init();
+error_t scheduler_init();
 
 #endif

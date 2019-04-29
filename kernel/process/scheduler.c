@@ -36,12 +36,13 @@ static void idle_thread(void* arg) {
 /**
  * Initialize the idle process with a thread per cpu
  */
-static void idle_process_init() {
+static error_t idle_process_init() {
+    error_t err = NO_ERROR;
     idle_process.address_space = kernel_address_space;
     idle_process.pid = 0;
     idle_process.next_tid = 1;
 
-    idle_process_stack = mm_allocate(&kernel_memory_manager, KB(1));
+    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, KB(1), &idle_process_stack));
 
     // create an idle thread
     // TODO: Make this per cpu
@@ -60,6 +61,9 @@ static void idle_process_init() {
     idle_process.threads[0].cpu_state.rsp = (uint64_t) (idle_process_stack + KB(1));
     idle_process.threads[0].cpu_state.rbp = (uint64_t) (idle_process_stack + KB(1));
     idle_process.threads[0].cpu_state.rip = (uint64_t) idle_thread;
+
+cleanup:
+    return err;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -161,7 +165,8 @@ static void schedule(registers_t* regs) {
     vmm_set(thread_to_run->parent->address_space);
 }
 
-void scheduler_init() {
+error_t scheduler_init() {
+    error_t err = NO_ERROR;
     term_print("[scheduler_init] configuring PIT to run at 100Hz (10ms)\n");
     pit_set_interval(10);
 
@@ -169,6 +174,9 @@ void scheduler_init() {
     term_write("[scheduler_init] setting PIT interrupt handler\n");
     irq_handlers[IRQ_PIT] = schedule;
 
-    idle_process_init();
+    CHECK_AND_RETHROW(idle_process_init());
+
+cleanup:
+    return err;
 }
 

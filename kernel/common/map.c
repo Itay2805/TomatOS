@@ -52,9 +52,13 @@ uint64_t map_get_uint64_from_uint64(Map *map, uint64_t key) {
 
 void map_grow(Map *map, size_t new_cap) {
     new_cap = CLAMP_MIN(new_cap, 16);
+    void* keys = NULL, *values = NULL;
+    // TODO: Handle out of memory
+    mm_allocate(&kernel_memory_manager, new_cap * sizeof(uint64_t), &keys);
+    mm_allocate(&kernel_memory_manager, new_cap * sizeof(uint64_t), &values);
     Map new_map = {
-            mm_allocate(&kernel_memory_manager, new_cap * sizeof(uint64_t)),
-            mm_allocate(&kernel_memory_manager, new_cap * sizeof(uint64_t)),
+            keys,
+            values,
             0,
             new_cap,
     };

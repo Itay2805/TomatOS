@@ -39,6 +39,8 @@ static void thread_b(void* arg) {
 static void thread_b_end() {}
 
 void kernel_main(multiboot_info_t* info) {
+    error_t err = NO_ERROR;
+
     vmm_early_init();
 
     term_init(info);
@@ -64,7 +66,7 @@ void kernel_main(multiboot_info_t* info) {
 
     syscall_init();
 
-    scheduler_init();
+    CHECK_AND_RETHROW(scheduler_init());
 
     process_t* pa = process_create(NULL, false);
     pa->threads[0].cpu_state.rbp = GB(4);
@@ -104,4 +106,7 @@ void kernel_main(multiboot_info_t* info) {
     while(true) {
         hlt();
     }
+
+cleanup:
+    KERNEL_PANIC();
 }

@@ -243,7 +243,7 @@ tss64_end:
 ; The IOPB of the TSS, just have it empty
 ; --------------------------------
 tss64_iopb:
-    resb 8092
+    dq 0
 
 ; ====================================
 ;   Paging (1GB identity mapping)

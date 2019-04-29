@@ -11,8 +11,14 @@
 
 /**
  * Will expand the heap
+ *
+ * @param context   [IN/OUT] The context
+ * @param min       [IN]     The minimum size we need to expand to
+ *
+ * @remark
+ * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
-static void expand(mm_context_t* context, size_t min) {
+static error_t expand(mm_context_t* context, size_t min) {
     // allocate all the required pages
     int attrs = PAGE_ATTR_WRITE;
     if(vmm_get() != kernel_address_space) {
@@ -52,14 +58,19 @@ static void expand(mm_context_t* context, size_t min) {
         // last is not allocated, join with it
         context->last->size += min;
     }
-
+    return NO_ERROR;
 }
 
 
 /**
  * Will iterate the blocks and attempt to join free blocks that are next to each other
+ *
+ * @param context [IN/OUT]  The context
+ *
+ * @remark
+ * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
-static void join(mm_context_t* context) {
+static error_t join(mm_context_t* context) {
     mm_block_t* current = context->first;
     while (current->next != NULL) {
         mm_block_t* next = current->next;
@@ -87,6 +98,7 @@ static void join(mm_context_t* context) {
             current = next;
         }
     }
+    return NO_ERROR;
 }
 
 /**
@@ -121,64 +133,85 @@ static bool can_split(mm_block_t* block, size_t size, size_t alignment) {
 
 /**
  * Will attempt to get the block from the ptr
+ *
+ * @param ptr       [IN]    The pointer to get the block for
+ * @param block     [OUT]   The pointer to the block
  */
-static mm_block_t* get_block_from_ptr(void* ptr) {
-    mm_block_t* block = ptr - sizeof(mm_block_t);
+static error_t get_block_from_ptr(void* ptr, mm_block_t** block) {
+    error_t err = NO_ERROR;
+    mm_block_t* assumed_block = ptr - sizeof(mm_block_t);
+
     int padding = 0;
-    while(block->magic != MM_MAGIC) {
-        block = (mm_block_t *) ((uintptr_t)block - 1);
+    while(assumed_block->magic != MM_MAGIC) {
+        assumed_block = (mm_block_t *) ((uintptr_t)assumed_block - 1);
         padding++;
     }
-    if(padding == get_padding(block, block->alignment)) {
-        return block;
-    }else {
-        return NULL;
-    }
+
+    CHECK_ERROR(padding == get_padding(assumed_block, assumed_block->alignment), ERROR_INVALID_POINTER);
+
+    *block = assumed_block;
+
+cleanup:
+    return err;
 }
 
 /**
- * Will update the free block
+ * Will search for a free block, expanding the buffer if needed
+ *
+ * @param tried_join    [IN]        Have we tried to join?
+ * @param tried_expand  [IN]        Have we tried to expand?
+ *
+ * @remark
+ * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
-static void update_free(mm_context_t* context, bool tried_join, bool tried_expand) {
+static error_t update_free(mm_context_t* context, bool tried_join, bool tried_expand) {
+    error_t err = NO_ERROR;
     mm_block_t* current = context->free;
     bool first = true;
+
     while(current->allocated) {
-        if(!first && current == context->free) {
-            // we went through a full loop
-            context->free = NULL;
-            break;
-        }
+        CHECK_ERROR(first || current != context->free, ERROR_OUT_OF_MEMORY);
         current = current->next;
         first = false;
     }
 
-    if(context->free == NULL) {
-        // join and expand if needed
+cleanup:
+    if(IS_ERROR(err) == ERROR_OUT_OF_MEMORY) {
         if(!tried_join) {
-            join(context);
-            update_free(context, true, false);
+            CHECK_AND_RETHROW_LABEL(join(context), cleanup_failed);
+            CHECK_AND_RETHROW_LABEL(update_free(context, true, false), cleanup_failed);
         }else if(!tried_expand) {
-            expand(context, sizeof(size_t) * 3);
-            update_free(context, true, true);
-        }else {
-            // TODO this is a major problem...
-            term_write("[update_free] could not find a free block even after join/expand!\n");
+            CHECK_AND_RETHROW_LABEL(expand(context, sizeof(size_t) * 3), cleanup_failed);
+            CHECK_AND_RETHROW_LABEL(update_free(context, true, true), cleanup_failed);
         }
     }
+    cleanup_failed:
+    return err;
 }
 
 /**
  * Handles the actual allocation, will also try to join/expand while allocating when an empty block
  * sufficient in size is not found
+ *
+ * @param context       [IN/OUT]    The context
+ * @param size          [IN]        The size of the allocation
+ * @param alignment     [IN]        The alignment of the allocation
+ * @param ptr           [OUT]       The final pointer if allocated
+ * @param tried_join    [IN]        Have we tried to join?
+ * @param tried_expand  [IN]        Have we tried to expand?
+ *
+ * @remark
+ * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
-static void* allocate_internal(mm_context_t* context, size_t size, size_t alignment, bool tried_join, bool tried_expand) {
+static error_t allocate_internal(mm_context_t* context, size_t size, size_t alignment, void** ptr, bool tried_join, bool tried_expand) {
+    error_t err = NO_ERROR;
     mm_block_t* current = context->free;
     bool first = true;
+    void* allocated = NULL;
+
     while(current != NULL) {
-        if(!first && current == context->free) {
-            // No free block found...
-            break;
-        }
+        CHECK_ERROR(first || current != context->free, ERROR_OUT_OF_MEMORY);
+
         if(!current->allocated && check_size_and_alignment(current, size, alignment)) {
             if(can_split(current, size, alignment)) {
                 size_t newsize = (size_t) get_size_with_padding(current, size, alignment);
@@ -207,40 +240,48 @@ static void* allocate_internal(mm_context_t* context, size_t size, size_t alignm
             }
 
             // update the free block pointer
-            update_free(context, tried_join, tried_expand);
+            CHECK_AND_RETHROW(update_free(context, tried_join, tried_expand));
 
             // set as allocated
             current->alignment = alignment;
             current->allocated = true;
             context->used_size += current->size;
-            return current->data + get_padding(current, alignment);
+            allocated = current->data + get_padding(current, alignment);
         }
 
         first = false;
         current = current->next;
     }
 
-    if(!tried_join) {
-        // first try joining empty blocks
-        join(context);
-        return allocate_internal(context, size, alignment, true, false);
-    }else if(!tried_expand) {
-        // joining didn't help, try to expand the heap
-        expand(context, size + alignment * 3);
-        return allocate_internal(context, size, alignment, true, true);
-    }else {
-        // We are really out of memory...
-        term_write("[allocate_internal] out of memory!\n");
-        return NULL;
+    *ptr = allocated;
+
+cleanup:
+    if(IS_ERROR(err) == ERROR_OUT_OF_MEMORY) {
+        if(!tried_join) {
+            CHECK_AND_RETHROW_LABEL(join(context), cleanup_failed);
+            CHECK_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, false), cleanup_failed);
+        }else if(!tried_expand) {
+            CHECK_AND_RETHROW_LABEL(expand(context, sizeof(size_t) * 3), cleanup_failed);
+            CHECK_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, true), cleanup_failed);
+        }
     }
+cleanup_failed:
+    return err;
 }
 
 /**
  * Actual implementation of free
+ *
+ * @param block [IN] The block to free
+ *
+ * @remark
+ * Will assume the block is valid
  */
-static void internal_free(mm_block_t* block) {
+static error_t internal_free(mm_block_t* block) {
     block->alignment = 0;
     block->allocated = false;
+
+    return NO_ERROR;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -248,11 +289,12 @@ static void internal_free(mm_block_t* block) {
 ////////////////////////////////////////////////////////////////////////////
 
 
-void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
+error_t mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     int attrs = PAGE_ATTR_WRITE;
     if(vmm_get() != kernel_address_space) {
         attrs |= PAGE_ATTR_USER;
     }
+
     vmm_allocate(vmm_get(), (void *) virtual_start, attrs);
     context->first = (mm_block_t*)virtual_start;
     context->last = context->first;
@@ -265,49 +307,77 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     context->first->prev = context->first;
     context->first->next = context->first;
     context->first->allocated = false;
+
+    return NO_ERROR;
 }
 
-void* mm_allocate(mm_context_t* context, size_t size) {
-    return mm_allocate_aligned(context, size, 8);
+error_t mm_allocate(mm_context_t* context, size_t size, void** ptr) {
+    error_t err = NO_ERROR;
+    CHECK_AND_RETHROW(mm_allocate_aligned(context, size, 8, ptr));
+cleanup:
+    return err;
 }
 
-void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) {
-    return allocate_internal(context, size, alignment, false, false);
+error_t mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment, void** ptr) {
+    error_t err = NO_ERROR;
+    CHECK_AND_RETHROW(allocate_internal(context, size, alignment, ptr, false, false));
+cleanup:
+    return err;
 }
 
-void mm_free(mm_context_t* context, void* ptr) {
-    if((void*)context->last <= ptr || (void*)context->first >= ptr) {
-        // outside of this context range
-        return;
-    }
+error_t mm_free(mm_context_t* context, void* ptr) {
+    error_t err = NO_ERROR;
+    mm_block_t* block = NULL;
 
-    mm_block_t* block = get_block_from_ptr(ptr);
-    if(block != NULL && block->allocated) {
-        internal_free(block);
-    }
-}
+    CHECK_ERROR(context, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(context, ERROR_INVALID_ARGUMENT);
 
-void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
-    if(ptr == NULL) {
-        return mm_allocate(context, size);
-    }
+    CHECK_ERROR((void*)context->last > ptr && (void*)context->first < ptr, ERROR_INVALID_POINTER);
 
-    mm_block_t* block = get_block_from_ptr(ptr);
-    if(block == NULL || !block->allocated) {
-        return mm_allocate(context, size);
-    }
-    if(block->size <= (ptrdiff_t)size) {
-        return ptr;
-    }
-    // allocate the new block
-    size_t s = (size_t) (block->size - get_padding(block, block->alignment));
-    void* new = mm_allocate_aligned(context, size, block->alignment);
+    CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
+    CHECK_ERROR(block->allocated, ERROR_INVALID_POINTER);
 
-    // copy the old memory and free the new one
-    memcpy(new, ptr, s);
-    memset(new + s, 0, size - s);
-
-    // free the block
     internal_free(block);
-    return new;
+
+cleanup:
+    return err;
+}
+
+error_t mm_reallocate(mm_context_t* context, void* ptr, size_t size, void** output) {
+    error_t err = NO_ERROR;
+    mm_block_t* block = NULL;
+    void* new = NULL;
+    size_t s = 0;
+
+    CHECK_ERROR(context, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(output, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
+
+    if(ptr == NULL) {
+        CHECK_AND_RETHROW(mm_allocate(context, size, &new));
+    }else {
+        CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
+        CHECK_ERROR(block->allocated, ERROR_ALREADY_FREED);
+
+        if(block->size > (ptrdiff_t)size) {
+            s = (size_t) (block->size - get_padding(block, block->alignment));
+            CHECK_AND_RETHROW(mm_allocate_aligned(context, size, block->alignment, &new));
+        }else {
+            new = ptr;
+        }
+    }
+
+    if(ptr != new) {
+        // copy the old memory and free the new one
+        memcpy(new, ptr, s);
+        memset(new + s, 0, size - s);
+
+        // free the block
+        CHECK_AND_RETHROW(internal_free(block));
+
+        *output = ptr;
+    }
+
+cleanup:
+    return err;
 }
