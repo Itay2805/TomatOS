@@ -19,7 +19,6 @@ GLOBAL irq_coprocessor
 GLOBAL irq_primary_ata
 GLOBAL irq_secondary_ata
 
-GLOBAL irq_common
 irq_common_stub:
     push rax
     push rbx
