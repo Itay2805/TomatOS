@@ -41,22 +41,27 @@ static void thread_b_end() {}
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
 
+    // early vmm initialization (maps the first 4gb)
     vmm_early_init();
 
+    // initialize the terminal so we can log stuff
     term_init(info);
     term_print("[kernel_main] successfully loaded the kernel (bootloader='%s', cmdline='%s')\n", (char *)(uintptr_t)info->boot_loader_name, (char *)(uintptr_t)info->cmdline);
 
+    // test cpuid
     int vendor;
     char name[13] = {0};
     get_cpu_vendor(&vendor, name);
     term_print("[kernel_main] cpu vendor='%s'\n", name);
 
+    // initialize isr (allows to catch exceptions)
+    // we will finish initializing interrupts later
+    isr_init();
+    idt_init();
+
+    // initialize memory stuff
     pmm_init(info);
     vmm_init(info);
-
-    isr_init();
-    irq_init();
-    idt_init();
 
     // kernel will be mapped to 0xffffffffffffffff - (MB(512) - GB(2) (ASLR of 1.5GB)
     // heap starts at 0xffffffff00000000 - (MB(512) - GB(2)) (ASLR of 1.5GB)
@@ -64,10 +69,15 @@ void kernel_main(multiboot_info_t* info) {
 
     mm_context_init(&kernel_memory_manager, 0xFFFFFFFF00000000);
 
+    // finish initializing the idt (now includes irq and syscall interrupt)
+    irq_init();
     syscall_init();
+    idt_init();
 
+    // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());
 
+    // create some test processes
     process_t* pa = process_create(NULL, false);
     pa->threads[0].cpu_state.rbp = GB(4);
     pa->threads[0].cpu_state.rsp = GB(4);
@@ -100,6 +110,7 @@ void kernel_main(multiboot_info_t* info) {
     memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
     vmm_set(kernel_address_space);
 
+    // kick start the system!
     term_write("[kernel_main] Enabling interrupts\n");
     sti();
 

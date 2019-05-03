@@ -49,6 +49,8 @@ multiboot_main:
 
     ; TODO: Check that we were loaded from multiboot
 
+    ; TODO: Check we have PSE & long mode support
+
     ; set the first pml4 entry
     ; sets the address of the pdpe
     ; and then set some flags
