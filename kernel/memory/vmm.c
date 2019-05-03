@@ -1,11 +1,12 @@
+#include "vmm.h"
+
 #include <common/common.h>
 #include <common/kernel_info.h>
 #include <graphics/term.h>
 #include <common/string.h>
 #include <cpu/control.h>
 #include <cpu/msr.h>
-#include "vmm.h"
-
+#include <kernel.h>
 #include "pmm.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -264,7 +265,7 @@ uint64_t* get_or_create_page_table(address_space_t address_space, void *virtual_
 /**
  * Will return the pointer to the page table
  */
-void *get_page_table(address_space_t address_space, void *virtual_addr) {
+void *get_page_table(address_space_t address_space, const void *virtual_addr) {
     uint64_t *pml4 = address_space;
     if (pml4 == NULL) {
         return NULL;
@@ -567,4 +568,63 @@ void vmm_free(address_space_t address_space, void *virtual_addr) {
         free_table[PAGING_PTE_OFFSET(virtual_addr)] = 0;
     }
 
+}
+
+error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr, void** physical_addr) {
+    error_t err = NO_ERROR;
+
+    uint64_t* pt = get_page_table(address_space, virtual_addr);
+    CHECK_ERROR(pt != NULL, ERROR_INVALID_POINTER);
+
+    map_to_free_page(pt);
+    uint64_t *phys = get_page(free_table, PAGING_PTE_OFFSET(virtual_addr));
+    CHECK_ERROR(phys != NULL, ERROR_INVALID_POINTER);
+
+    *physical_addr = phys;
+
+cleanup:
+    return err;
+}
+
+error_t vmm_copy_to_kernel(address_space_t addrspace, const char* from, char* to, size_t len) {
+    error_t err = NO_ERROR;
+    void* physical_addr = NULL;
+    char* tmp_page = NULL;
+    void* orig_tmp_page_phys = NULL;
+    char* ptr = NULL;
+    int padding;
+
+    // check arguments
+    CHECK_ERROR(addrspace != 0, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(from != NULL, ERROR_INVALID_ARGUMENT);
+    // if the len is 0 do nothing (maybe we want to return an error?)
+    if(len == 0) return 0;
+
+    // setup for the alignment in the first page
+    CHECK_AND_RETHROW(vmm_get_physical(addrspace, from, &physical_addr));
+    CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&tmp_page));
+    CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
+    vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
+    padding = ALIGN_DOWN((uintptr_t)from, KB(4)) - (uintptr_t)from;
+    ptr = tmp_page + padding;
+
+    while(len) {
+        if(to != NULL) *to = *ptr;
+        len--;
+        if(ptr >= tmp_page + KB(4)) {
+            // if we got the ptr to the end of the tmp page lets 
+            // put the ptr to the start and remap the tmp page
+            ptr = tmp_page;
+            from += KB(4);
+            CHECK_AND_RETHROW(vmm_get_physical(addrspace, from, &physical_addr));
+            vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
+        }
+    }
+
+cleanup:
+    // restore the original physical page and free the tmp page
+    vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
+    mm_free(&kernel_memory_manager, tmp_page);
+
+    return err;
 }

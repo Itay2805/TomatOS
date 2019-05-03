@@ -13,7 +13,7 @@
 #include <common/stdint.h>
 #include <common/multiboot.h>
 #include <common/stdbool.h>
-
+#include <common/except.h>
 
 ///-------------------------------------------------------------------------
 // Address spaces
@@ -113,5 +113,22 @@ void vmm_allocate(address_space_t address_space, void* virtual_addr, int attribu
  * Free the given virtual address, both unmapping it and freeing the underlying physical page
  */
 void vmm_free(address_space_t address_space, void* virtual_addr);
+
+///-------------------------------------------------------------------------
+// Resolving functions
+///-------------------------------------------------------------------------
+
+/**
+ * Get the physical address of a virtual address in the given address space
+ */
+error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr, void** physical_addr);
+
+/**
+ * Will copy len bytes from the given pointer in addrspace to the given pointer in kernel space
+ * 
+ * @remark
+ * This assumes the kernel memory manager is initialized
+ */
+error_t vmm_copy_to_kernel(address_space_t address_space, const char* from, char* to, size_t len);
 
 #endif
