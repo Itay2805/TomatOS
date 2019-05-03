@@ -1,13 +1,17 @@
 #ifndef TOMATKERNEL_EXCEPT_H
 #define TOMATKERNEL_EXCEPT_H
 
-#include <memory/vmm.h>
 #include <graphics/term.h>
 #include <interrupts/interrupts.h>
 #include "stdint.h"
 
 #ifndef EXCEPT_MAX_FRAMES
     #define EXCEPT_MAX_FRAMES 128u
+#endif
+
+#ifndef __FILENAME__
+    #warning __FILENAME__ was not defined, defaulting to unknown
+    #define __FILENAME__ "unknown file"
 #endif
 
 #if EXCEPT_MAX_FRAMES >= 0xffffu || EXCEPT_MAX_FRAMES < 0u
