@@ -166,3 +166,17 @@ close(timer_res);
 The way this is going to be implemented is that the syscall will basically delegate itself to the correct handler by copying the whole resolved descriptor to the kernel, creating a new thread that will handle the syscall in the provider's process, and suspending the caller (if blocking). eventually the provider will finish the thing, and will tell the kernel (will happen automatically with a small trampoline injected to the process that calls a syscall in the end), the kernel will then copy the result to the caller, kill the handling thread, and set the caller as ready to run.
 
 This allows processes to have a global context, which is available to them at all times.
+
+
+## Syscall path
+
+A syscall starts when a requesting process calls one of the queueing syscalls (open, close, etc..)
+
+We are now in kernel context, in here we set the thread to suspended, and set the resource it is waiting on to the given resource. after doing this we will create a new thread on the provider process, that thread is going to start at a trampoline. This trampoline is going to save the pid, the tid and call the actual handler (the reason we do this will be explained later). Afterwards we will simply call the scheduler to schedule a new thread to run (will most probably be the one we just created since it has the least amount of time).
+
+Lets say we are now in the provider's thread context. as said it will push the pid, tid and call the actual handler with the correct parameters. once it returns we are going to call a special syscall that will tell the kernel we finished with the handling, it will be given the pid, tid and the resource we finished on.
+
+now we are back in kernel space, this time we are going to find the thread that waited, pass the result to it, and set it to normal state, now it is ready to run again, now that the resource handling is over.
+
+### The problem with this system
+As much as I like this system because it allows to make any process into a provider technically (for starters we are only going to allow kernel processes to do that), it requires alot of context switches, and even if we don't do full ones if it is for drivers (which are in kernel space so the actual address space is not switched) it still means creating threads, running them and then resuming the process thread. it does mean we don't block too much in the kernel, we only do the dispatching.
