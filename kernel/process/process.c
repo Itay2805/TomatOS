@@ -4,6 +4,7 @@
 
 #include <common/buf.h>
 #include <common/string.h>
+#include <resource/resource.h>
 #include "process.h"
 
 process_t* processes = NULL;
@@ -31,6 +32,7 @@ process_t* process_create(thread_start_f start, bool kernel) {
     }
 
     proc->pid = next_pid++;
+    proc->next_resource = 1;
     proc->next_tid = 1;
     proc->kernel = kernel;
 
@@ -87,6 +89,12 @@ void process_remove(process_t* process) {
     for(thread_t* it = process->threads; it < buf_end(process->threads); it++) {
         if(it->state != THREAD_DEAD) {
             thread_kill(it);
+        }
+    }
+
+    for(resource_t* it = process->resources; it < buf_end(process->threads); it++) {
+        if(*it != 0) {
+            resource_queue_close(process, *it);
         }
     }
 

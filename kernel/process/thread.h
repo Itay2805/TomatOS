@@ -2,6 +2,7 @@
 #define PROCESS_THREAD_H
 
 #include <common/stdint.h>
+#include <resource/resource.h>
 #include <interrupts/interrupts.h>
 
 #define DEFAULT_STACK_SIZE MB(4)
@@ -70,6 +71,11 @@ typedef struct thread {
      * The time that the thread been waiting to run/running
      */
     uint64_t time;
+
+    /**
+     * the resource the thread is waiting on
+     */
+    resource_t waiting;
 } thread_t;
 
 /**

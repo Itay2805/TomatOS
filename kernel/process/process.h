@@ -4,6 +4,7 @@
 #include <common/map.h>
 #include <memory/vmm.h>
 #include <memory/mm.h>
+#include <resource/resource.h>
 #include "thread.h"
 
 #define DEAD_PROCESS_PID 0
@@ -43,6 +44,16 @@ struct process {
      * Is this a kernel process
      */
     bool kernel;
+
+    /**
+     * resources the process owns
+     */
+    resource_t* resources;
+
+    /**
+     * the next resource id
+     */
+    resource_t next_resource;
 };
 
 typedef struct process process_t;

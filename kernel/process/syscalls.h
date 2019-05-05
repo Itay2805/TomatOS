@@ -9,10 +9,14 @@ typedef enum syscalls {
     SYSCALL_WRITE,
     SYSCALL_SELECT,
     SYSCALL_POLL,
+    SYSCALL_WAIT,
     
     // process related syscalls
     SYSCALL_THREAD_CREATE,
     SYSCALL_THREAD_KILL,
+
+    // resource provider related
+    SYSCALL_PROVIDER_HANDLER_FINISHED,
 
     SYSCALL_COUNT,
 } syscalls_t;
