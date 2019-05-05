@@ -18,8 +18,12 @@ struct process;
 
 error_t resource_create(process_t* process, resource_t* resource);
 
-error_t resource_queue_open(struct process* proc, resource_descriptor_t* descriptor, resource_t* res);
+// These functions are meant to be called from the kernel processes
+// basically allows to call the (they can not be called from kernel
+// context)
 
-error_t resource_queue_close(struct process* proc, resource_t resource);
+error_t open(struct process* proc, resource_descriptor_t* descriptor, resource_t* res);
+
+error_t close(struct process* proc, resource_t resource);
 
 #endif

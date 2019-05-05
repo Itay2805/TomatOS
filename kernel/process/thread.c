@@ -2,9 +2,11 @@
 // Created by Itay on 24/03/2019.
 //
 
+#include <common/common.h>
+#include <common/string.h>
+#include <common/buf.h>
 #include <memory/vmm.h>
 #include <memory/mm.h>
-#include <common/common.h>
 #include <memory/gdt.h>
 #include "thread.h"
 #include "process.h"
@@ -30,6 +32,27 @@ void thread_init(thread_t* thread) {
     }
 
     thread->cpu_state.rip = (uint64_t) thread->start;
+}
+
+error_t thread_find(struct process* process, int tid, thread_t** thread) {
+    error_t err = NO_ERROR;
+    thread_t* th = NULL;
+
+    CHECK_ERROR(process, ERROR_INVALID_ARGUMENT);
+
+    for(thread_t* it = process->threads; it < buf_end(process->threads); it++) {
+        if(it->state != THREAD_DEAD && it->tid == tid) {
+            th = it;
+            break;
+        }
+    }
+
+    CHECK_ERROR(th != NULL, ERROR_NOT_FOUND);
+    
+    if(thread != NULL) *thread = th;
+
+cleanup:
+    return err;
 }
 
 void thread_kill(thread_t* thread) {

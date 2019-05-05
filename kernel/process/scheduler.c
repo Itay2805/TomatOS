@@ -73,7 +73,7 @@ cleanup:
 /**
  * The currently running thread
  */
-static thread_t* running_thread = NULL;
+thread_t* running_thread = NULL;
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -84,9 +84,12 @@ static thread_t* running_thread = NULL;
  * the timer handler, will basically do the scheduling
  * and thread rollup
  */
-static void schedule(registers_t* regs) {
+static void handle_timer_interrupt(registers_t* regs) {
+    schedule(regs, pit_get_interval());
+}
+
+void schedule(registers_t* regs, int interval) {
     thread_t* thread_to_run = NULL;
-    uint64_t interval = pit_get_interval();
     uint64_t thread_count = 0;
     uint64_t most_watied_time = 0;
     uint64_t time_slice = 0;
@@ -172,7 +175,7 @@ error_t scheduler_init() {
 
     // TODO: Instead of using the interrupt directly we should create a timer wrapper handler or something
     term_write("[scheduler_init] setting PIT interrupt handler\n");
-    irq_handlers[IRQ_PIT] = schedule;
+    irq_handlers[IRQ_PIT] = handle_timer_interrupt;
 
     CHECK_AND_RETHROW(idle_process_init());
 

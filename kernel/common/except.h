@@ -44,6 +44,8 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
 #define ERROR_ALREADY_FREED     ((error_t)4u)
 #define ERROR_OUT_OF_MEMORY     ((error_t)5u)
 #define ERROR_INVALID_SCHEME    ((error_t)6u)
+#define ERROR_NOT_FOUND         ((error_t)7u)
+#define ERROR_INVALID_SYSCALL   ((error_t)8u)
 
 #define IS_ERROR(err) (err & 0xFFFFu)
 
@@ -75,19 +77,24 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
 
 extern const char* except_strings[];
 
-#define KERNEL_PANIC() \
+#define KERNEL_STACK_TRACE() \
     do { \
-        cli(); \
         vmm_set(kernel_address_space); \
         term_set_background_color(COLOR_RED); \
         term_set_text_color(COLOR_WHITE); \
-        term_print("[%s] Error %s (%d):\n", __FUNCTION__, except_strings[IS_ERROR(err)], IS_ERROR(err)); \
+        term_print("\n\n[%s] Error %s (%d):\n", __FUNCTION__, except_strings[IS_ERROR(err)], IS_ERROR(err)); \
         term_set_background_color(COLOR_BLACK); \
         term_set_text_color(COLOR_WHITE); \
         for (size_t i = ((err) >> 16u) - 1; i >= 1; i--) { \
             term_print("[%s] \trethrown at '%s' (%s:%d)\n", __FUNCTION__, error_frames[i].function, error_frames[i].file, error_frames[i].line); \
         } \
         term_print("[%s] \tthrown at '%s' (%s:%d)\n", __FUNCTION__, error_frames[0].function, error_frames[0].file, error_frames[0].line); \
+    }while(0)
+
+#define KERNEL_PANIC() \
+    do { \
+        cli(); \
+        KERNEL_STACK_TRACE(); \
         while (true) hlt(); \
     }while(0)
 

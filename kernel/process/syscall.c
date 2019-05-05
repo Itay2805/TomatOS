@@ -12,20 +12,29 @@ syscall_handler_f syscalls[SYSCALL_COUNT];
 
 extern void syscall_handler_stub();
 
-uint64_t syscall_handler(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
-    register uint64_t rax asm("rax");
-    uint64_t syscall = rax;
+void syscall_handler(registers_t regs) {
+    error_t err = NO_ERROR;
+    int syscall = (int)regs.rax;
 
-    if(syscall < SYSCALL_COUNT && syscalls[syscall] != 0) {
-        return syscalls[syscall](a, b, c, d, e, f);
+    if(syscall >= 0 && syscall < SYSCALL_COUNT && syscalls[syscall] != 0) {
+        CHECK_AND_RETHROW(syscalls[syscall](&regs));
+    }else {
+        address_space_t before = vmm_get();
+        if(before != kernel_address_space) {
+            vmm_set(kernel_address_space);
+        }
+        term_print("[syscall_handler] Invalid syscall %d\n", syscall);
+        if(before != kernel_address_space) {
+            vmm_set(before);
+        }
+        regs.rax = -ERROR_INVALID_SYSCALL;
     }
 
-    address_space_t addr = vmm_get();
-    if(addr != kernel_address_space) vmm_set(kernel_address_space);
-    term_print("[syscall_handler] got unknown syscall 0x%x\n", (unsigned int) syscall);
-    if(addr != kernel_address_space) vmm_set(addr);
-
-    return (uint64_t)-1;
+cleanup:
+    // on error print the stack trace
+    if(IS_ERROR(err)) {
+        KERNEL_STACK_TRACE();
+    }
 }
 
 void syscall_init() {

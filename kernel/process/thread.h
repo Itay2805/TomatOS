@@ -71,11 +71,6 @@ typedef struct thread {
      * The time that the thread been waiting to run/running
      */
     uint64_t time;
-
-    /**
-     * the resource the thread is waiting on
-     */
-    resource_t waiting;
 } thread_t;
 
 /**
@@ -88,6 +83,8 @@ typedef struct thread {
 *           2.  This function needs to do an address space switch to create the stack!
  */
 void thread_init(thread_t* thread);
+
+error_t thread_find(struct process* process, int tid, thread_t** thread);
 
 /**
  * Kill a thread

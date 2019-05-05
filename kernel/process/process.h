@@ -76,7 +76,7 @@ process_t* process_create(thread_start_f start, bool kernel);
 /**
  * find a process by it's PID
  */
-process_t* process_find(size_t pid);
+error_t process_find(size_t pid, process_t** process);
 
 /**
  * Create a new thread for the process

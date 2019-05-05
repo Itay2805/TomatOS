@@ -15,8 +15,8 @@ error_t resource_manager_init();
 
 error_t resource_manager_register_provider(resource_provider_t* provider);
 
-error_t resource_manager_get_provider_by_scheme(const char* scheme);
+error_t resource_manager_get_provider_by_scheme(const char* scheme, resource_provider_t** provider);
 
-error_t resource_manager_get_provider_by_pid(int pid);
+error_t resource_manager_get_provider_by_pid(int pid, resource_provider_t** provider);
 
 #endif

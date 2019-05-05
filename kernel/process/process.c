@@ -54,12 +54,26 @@ process_t* process_create(thread_start_f start, bool kernel) {
     return proc;
 }
 
-process_t* process_find(size_t pid) {
+error_t process_find(size_t pid, process_t** process) {
+    error_t err = NO_ERROR;
+    process_t* proc = NULL;
+
     for(process_t* it = processes; it < buf_end(processes); it++) {
         if(it->pid == pid) {
-            return it;
+            process = it;
+            break;
         }
     }
+    
+    CHECK_ERROR(proc != NULL, ERROR_NOT_FOUND);
+    
+    if(process != NULL) *process = proc;
+
+cleanup:
+    return err;
+}
+
+process_t* process_find(size_t pid) {
     return NULL;
 }
 

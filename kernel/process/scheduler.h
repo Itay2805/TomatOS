@@ -11,11 +11,15 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+thread_t* running_thread = NULL;
+
 /**
  * Initialize the scheduler
  *
  * the scheduler will only start once interrupts are enabled
  */
 error_t scheduler_init();
+
+void schedule(registers_t* new_state, int delta);
 
 #endif
