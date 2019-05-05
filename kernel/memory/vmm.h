@@ -131,4 +131,18 @@ error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr
  */
 error_t vmm_copy_to_kernel(address_space_t address_space, const char* from, char* to, size_t len);
 
+
+/**
+ * Will copy len bytes from the given pointer in addrspace to the given pointer in kernel space
+ * 
+ * @param address_space [IN] The address space to copy from
+ * @param from          [IN] Buffer in the given address space to copy from
+ * @param to            [OUT] Buffer in the kernel to copy to
+ * @param length        [IN/OUT] Takes the length of to, outputs the actual length of the string
+ * 
+ * @remark
+ * This assumes the kernel memory manager is initialized
+ */
+error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* from, char* to, size_t* length);
+
 #endif

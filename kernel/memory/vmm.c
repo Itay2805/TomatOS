@@ -628,3 +628,50 @@ cleanup:
 
     return err;
 }
+
+error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* from, char* to, size_t* length) {
+    error_t err = NO_ERROR;
+    void* physical_addr = NULL;
+    char* tmp_page = NULL;
+    void* orig_tmp_page_phys = NULL;
+    char* ptr = NULL;
+    int padding;
+
+    // check arguments
+    CHECK_ERROR(address_space != 0, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(from != NULL, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(length != NULL, ERROR_INVALID_ARGUMENT);
+
+    // setup for the alignment in the first page
+    CHECK_AND_RETHROW(vmm_get_physical(address_space, from, &physical_addr));
+    CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&tmp_page));
+    CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
+    vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
+    padding = ALIGN_DOWN((uintptr_t)from, KB(4)) - (uintptr_t)from;
+    ptr = tmp_page + padding;
+
+    size_t len = 0;
+    while(*ptr) {
+        // only copy if the to is not null and we are not exceeding the buffer
+        if(to != NULL && len < *length) *to = *ptr;
+        len++;
+        if(ptr >= tmp_page + KB(4)) {
+            // if we got the ptr to the end of the tmp page lets 
+            // put the ptr to the start and remap the tmp page
+            ptr = tmp_page;
+            from += KB(4);
+            CHECK_AND_RETHROW(vmm_get_physical(address_space, from, &physical_addr));
+            vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
+        }
+    }
+
+    // out the actual string length
+    *length = len;
+
+cleanup:
+    // restore the original physical page and free the tmp page
+    vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
+    mm_free(&kernel_memory_manager, tmp_page);
+
+    return err;
+}
