@@ -129,7 +129,7 @@ error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr
  * @remark
  * This assumes the kernel memory manager is initialized
  */
-error_t vmm_copy_to_kernel(address_space_t address_space, const char* from, char* to, size_t len);
+error_t vmm_copy_to_kernel(address_space_t address_space, const void* from, void* to, size_t len);
 
 
 /**
@@ -144,5 +144,7 @@ error_t vmm_copy_to_kernel(address_space_t address_space, const char* from, char
  * This assumes the kernel memory manager is initialized
  */
 error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* from, char* to, size_t* length);
+
+// TODO: vmm_copy_to_user
 
 #endif

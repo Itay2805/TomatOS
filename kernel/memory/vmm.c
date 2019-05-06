@@ -586,12 +586,14 @@ cleanup:
     return err;
 }
 
-error_t vmm_copy_to_kernel(address_space_t addrspace, const char* from, char* to, size_t len) {
+error_t vmm_copy_to_kernel(address_space_t addrspace, const void* _from, void* _to, size_t len) {
     error_t err = NO_ERROR;
     void* physical_addr = NULL;
     char* tmp_page = NULL;
     void* orig_tmp_page_phys = NULL;
     char* ptr = NULL;
+    const char* from = _from;
+    char* to = _to;
     int padding;
 
     // check arguments

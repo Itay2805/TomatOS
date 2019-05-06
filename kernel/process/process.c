@@ -60,7 +60,7 @@ error_t process_find(size_t pid, process_t** process) {
 
     for(process_t* it = processes; it < buf_end(processes); it++) {
         if(it->pid == pid) {
-            process = it;
+            proc = it;
             break;
         }
     }
@@ -71,10 +71,6 @@ error_t process_find(size_t pid, process_t** process) {
 
 cleanup:
     return err;
-}
-
-process_t* process_find(size_t pid) {
-    return NULL;
 }
 
 thread_t* process_start_thread(process_t* process, thread_start_f start) {
@@ -106,9 +102,11 @@ void process_remove(process_t* process) {
         }
     }
 
-    for(resource_t* it = process->resources; it < buf_end(process->threads); it++) {
+    for(resource_t* it = process->resources; it < buf_end(process->resources); it++) {
         if(*it != 0) {
-            resource_queue_close(process, *it);
+            (void)it;
+            // TODO: We need to find a way to actually do this closing of the resource
+            // close(process, *it);
         }
     }
 

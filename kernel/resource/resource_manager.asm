@@ -1,6 +1,6 @@
 
-GLOBAL syscall_queue_trampoline
-syscall_queue_trampoline:
+GLOBAL dispatch_resource_call_trampoline
+dispatch_resource_call_trampoline:
     push r10 ; pid
     push r11 ; tid
 

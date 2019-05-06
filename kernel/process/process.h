@@ -1,10 +1,14 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <resource/resource_manager.h>
+#include <resource/resource.h>
+
 #include <common/map.h>
+
 #include <memory/vmm.h>
 #include <memory/mm.h>
-#include <resource/resource.h>
+
 #include "thread.h"
 
 #define DEAD_PROCESS_PID 0
@@ -49,6 +53,11 @@ struct process {
      * resources the process owns
      */
     resource_t* resources;
+
+    /**
+     * Each of these correspong to the provider of the resource at the same index
+     */
+    resource_provider_t** providers;
 
     /**
      * the next resource id

@@ -11,7 +11,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-thread_t* running_thread = NULL;
+#include <common/string.h>
+
+#include <process/thread.h>
+
+extern thread_t* running_thread;
 
 /**
  * Initialize the scheduler

@@ -4,14 +4,18 @@
 
 #include <interrupts/interrupts.h>
 #include <interrupts/irq.h>
-#include <common/string.h>
-#include <drivers/pit.h>
+
 #include <graphics/term.h>
+
+#include <common/string.h>
 #include <common/buf.h>
+
+#include <drivers/pit.h>
+
+#include <cpu/rflags.h>
+
 #include "scheduler.h"
-#include "thread.h"
 #include "process.h"
-#include "cpu/rflags.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Idle process

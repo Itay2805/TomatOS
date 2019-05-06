@@ -91,10 +91,10 @@ set(KERNEL_SOURCE_FILES
         kernel/cpu/cpuid.h
         kernel/cpu/control.h
 
-        kernel/process/resource_manager.c
-        kernel/process/resource_manager.h
-        kernel/process/resource.c
-        kernel/process/resource.h
+        kernel/resource/resource_manager.c
+        kernel/resource/resource_manager.h
+        kernel/resource/resource.c
+        kernel/resource/resource.h
 
         kernel/multiboot.asm
         kernel/kernel.c)
