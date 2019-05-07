@@ -20,11 +20,10 @@ extern void dispatch_resource_call_trampoline();
 
 static error_t syscall_provider_handler_finished(registers_t* regs) {
     error_t err = NO_ERROR;
-    process_t* process = NULL;
+    process_t* process = (process_t*)regs->rdi;
     thread_t* thread = NULL;
 
     // check the arguments
-    CHECK_AND_RETHROW(process_find(regs->rdi, &process));
     CHECK_AND_RETHROW(thread_find(process, regs->rsi, &thread));
 
     // only providers can call the provider handler finished
@@ -60,8 +59,6 @@ static error_t dispatch_resource_call(registers_t* regs) {
     resource_provider_t* provider = NULL;
     char* stack = NULL;
     char* scheme = NULL;
-
-    running_thread->state = THREAD_SUSPENDED;
 
     switch(regs->rax) {
         case SYSCALL_OPEN: {
@@ -149,13 +146,19 @@ static error_t dispatch_resource_call(registers_t* regs) {
         default:
             CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
     }
-    provider_thread->cpu_state.rdi = regs->rdi;
+    provider_thread->cpu_state.rdi = (uint64_t) running_process;
+    provider_thread->cpu_state.rsi = running_thread->tid;
 
     // we are going to allocate a small stack
     CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&stack));
     provider_thread->cpu_state.rbp = (uintptr_t)stack + KB(4);
     provider_thread->cpu_state.rsp = (uintptr_t)stack + KB(4);
 
+    // save the state of the thread
+    running_thread->state = THREAD_SUSPENDED;
+
+    // reschedule, because we suspended the running thread it
+    // should make the scheduler save our state and choose another thread
     schedule(regs, 0);
 cleanup:
     if(IS_ERROR(err)) {

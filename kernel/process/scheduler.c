@@ -102,6 +102,14 @@ void schedule(registers_t* regs, int interval) {
     if(addr != kernel_address_space)
         vmm_set(kernel_address_space);
 
+    // the current thread was suspended
+    // save it's state and set that there is no running thread
+    if(running_thread != NULL && running_thread->state == THREAD_SUSPENDED) {
+        running_thread->cpu_state = *regs;
+        running_thread->time = 0;
+        running_thread = NULL;
+    }
+
     // get the thread count
     // TODO: have this cached somewhere and controller by the thread start or something
     for(process_t** process = processes; process < buf_end(processes); process++) {

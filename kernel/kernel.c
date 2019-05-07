@@ -14,6 +14,7 @@
 #include <cpu/msr.h>
 #include <process/syscall.h>
 #include <memory/gdt.h>
+#include <providers/zero/zero_provider.h>
 
 
 #include "graphics/term.h"
@@ -115,6 +116,7 @@ void kernel_main(multiboot_info_t* info) {
     idt_init();
 
     CHECK_AND_RETHROW(resource_manager_init());
+    CHECK_AND_RETHROW(zero_provider_init());
 
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());
