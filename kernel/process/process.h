@@ -27,7 +27,7 @@ struct process {
     /**
      * The process PID
      */
-    size_t pid;
+    int pid;
 
     /**
      * The next thread tid for that process

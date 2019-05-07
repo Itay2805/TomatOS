@@ -14,7 +14,7 @@
 
 #include "resource.h"
 
-resource_provider_t* providers = NULL;
+resource_provider_t** providers = NULL;
 
 extern void dispatch_resource_call_trampoline();
 
@@ -94,49 +94,54 @@ static error_t dispatch_resource_call(registers_t* regs) {
     // find the provider process and create a new thread on it
     CHECK_AND_RETHROW(process_find(provider->pid, &provider_process));
     provider_thread = process_start_thread(provider_process, dispatch_resource_call_trampoline);
-    provider_thread->cpu_state.r10 = provider_process->pid;
-    provider_thread->cpu_state.r11 = provider_thread->tid;
 
     switch(regs->rax) {
         case SYSCALL_OPEN:
+            CHECK_ERROR((uint64_t)provider->open != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->open;
-            provider_thread->cpu_state.rdi = regs->rdi; // resource_description_t* description
-            provider_thread->cpu_state.rsi = regs->rsi; // resource_t* out_resource
+            provider_thread->cpu_state.rdx = regs->rdx; // resource_description_t* description
+            provider_thread->cpu_state.rcx = regs->rcx; // resource_t* out_resource
             break;
 
         case SYSCALL_CLOSE:
+            CHECK_ERROR((uint64_t)provider->close != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->close;
-            provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
             break;
 
         case SYSCALL_READ:
+            CHECK_ERROR((uint64_t)provider->read != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->read;
-            provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
-            provider_thread->cpu_state.rsi = regs->rsi; // char* buffer
-            provider_thread->cpu_state.rdx = regs->rdx; // size_t len
+            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rcx; // char* buffer
+            provider_thread->cpu_state.r8 = regs->r8; // size_t len
             break;
 
         case SYSCALL_WRITE:
+            CHECK_ERROR((uint64_t)provider->write != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->write;
-            provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
-            provider_thread->cpu_state.rsi = regs->rsi; // char* buffer
-            provider_thread->cpu_state.rdx = regs->rdx; // size_t len
+            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rcx; // char* buffer
+            provider_thread->cpu_state.r8 = regs->r8; // size_t len
             break;
 
         case SYSCALL_TELL:
+            CHECK_ERROR((uint64_t)provider->tell != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->tell;
-            provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
-            provider_thread->cpu_state.rsi = regs->rsi; // seek_t relative_to
-            provider_thread->cpu_state.rdx = regs->rdx; // size_t pos
+            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rcx; // seek_t relative_to
+            provider_thread->cpu_state.r8 = regs->r8; // size_t pos
             break;
 
         case SYSCALL_SEEK:
+            CHECK_ERROR((uint64_t)provider->seek != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->seek;
-            provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
-            provider_thread->cpu_state.rsi = regs->rsi; // size_t* pos
+            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rcx; // size_t* pos
             break;
 
         case SYSCALL_POLL:
+            CHECK_ERROR((uint64_t)provider->poll != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->poll;
             // TODO: Implement this
             CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
@@ -182,7 +187,7 @@ error_t resource_manager_init() {
 
 error_t resource_manager_register_provider(resource_provider_t* provider) {
     term_print("[resource_manager_register] registered provider for '%s' (pid=%d)", provider->scheme, provider->pid);
-    buf_push(providers, *provider);
+    buf_push(providers, provider);
     return NO_ERROR;
 }
 
@@ -217,9 +222,9 @@ error_t resource_manager_get_provider_by_scheme(const char* scheme, resource_pro
     error_t err = NO_ERROR;
     resource_provider_t* found_provider = NULL;
 
-    for(resource_provider_t* it = providers; it < buf_end(providers); it++) {
-        if(strcmp(it->scheme, scheme) == 0) {
-            found_provider = it;
+    for(resource_provider_t** it = providers; it < buf_end(providers); it++) {
+        if(strcmp((*it)->scheme, scheme) == 0) {
+            found_provider = *it;
             break;
         }
     }
@@ -231,13 +236,13 @@ cleanup:
     return err;
 }
 
-error_t resource_manager_get_provider_by_pid(size_t pid, resource_provider_t** provider) {
+error_t resource_manager_get_provider_by_pid(int pid, resource_provider_t** provider) {
     error_t err = NO_ERROR;
     resource_provider_t* found_provider = NULL;
 
-    for(resource_provider_t* it = providers; it < buf_end(providers); it++) {
-        if(it->pid == pid) {
-            found_provider = it;
+    for(resource_provider_t** it = providers; it < buf_end(providers); it++) {
+        if((*it)->pid == pid) {
+            found_provider = *it;
             break;
         }
     }

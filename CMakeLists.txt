@@ -98,7 +98,7 @@ set(KERNEL_SOURCE_FILES
         kernel/resource/resource.h
 
         kernel/multiboot.asm
-        kernel/kernel.c)
+        kernel/kernel.c kernel/providers/zero/zero_provider.c kernel/providers/zero/zero_provider.h)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
