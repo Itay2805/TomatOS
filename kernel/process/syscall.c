@@ -16,21 +16,23 @@ void syscall_handler(registers_t regs) {
     error_t err = NO_ERROR;
     int syscall = (int)regs.rax;
 
+    address_space_t before = vmm_get();
+    if(before != kernel_address_space) {
+        vmm_set(kernel_address_space);
+    }
+
     if(syscall >= 0 && syscall < SYSCALL_COUNT && syscalls[syscall] != 0) {
         CHECK_AND_RETHROW(syscalls[syscall](&regs));
     }else {
-        address_space_t before = vmm_get();
-        if(before != kernel_address_space) {
-            vmm_set(kernel_address_space);
-        }
         term_print("[syscall_handler] Invalid syscall %d\n", syscall);
-        if(before != kernel_address_space) {
-            vmm_set(before);
-        }
-        regs.rax = -ERROR_INVALID_SYSCALL;
+        regs.rax = (uint64_t) -ERROR_INVALID_SYSCALL;
     }
 
 cleanup:
+    if(before != kernel_address_space) {
+        vmm_set(before);
+    }
+
     // on error print the stack trace
     if(IS_ERROR(err)) {
         KERNEL_STACK_TRACE();
