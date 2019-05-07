@@ -600,19 +600,19 @@ error_t vmm_copy_to_kernel(address_space_t addrspace, const void* _from, void* _
     CHECK_ERROR(from != NULL, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(to != NULL, ERROR_INVALID_ARGUMENT);
 
-    // if the len is 0 do nothing (maybe we want to return an error?)
-    if(len == 0) return 0;
-
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(addrspace, from, &physical_addr));
     CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&tmp_page));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t)from - ALIGN_DOWN((uintptr_t)from, KB(4)));
+
+    // align everything
+    from = (const char *) ALIGN_DOWN((uintptr_t)from, KB(4));
     ptr = tmp_page + padding;
 
     while(len) {
-        *to = *ptr;
+        *to++ = *ptr++;
         len--;
         if(ptr >= tmp_page + KB(4)) {
             // if we got the ptr to the end of the tmp page lets 
@@ -626,8 +626,10 @@ error_t vmm_copy_to_kernel(address_space_t addrspace, const void* _from, void* _
 
 cleanup:
     // restore the original physical page and free the tmp page
-    vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
-    mm_free(&kernel_memory_manager, tmp_page);
+    if(tmp_page != NULL) {
+        vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
+        mm_free(&kernel_memory_manager, tmp_page);
+    }
 
     return err;
 }
@@ -651,12 +653,15 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t)from - ALIGN_DOWN((uintptr_t)from, KB(4)));
+
+    // align everything
+    from = (const char *) ALIGN_DOWN((uintptr_t)from, KB(4));
     ptr = tmp_page + padding;
 
     size_t len = 0;
     while(*ptr) {
         // only copy if the to is not null and we are not exceeding the buffer
-        if(to != NULL && len < *length) *to = *ptr;
+        if(to != NULL && len < *length) *to++ = *ptr++;
         len++;
         if(ptr >= tmp_page + KB(4)) {
             // if we got the ptr to the end of the tmp page lets 
@@ -705,10 +710,13 @@ error_t vmm_copy_to_user(address_space_t addrspace, const void *_from, void *_to
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
+
+    // align everything
+    from = (const char *) ALIGN_DOWN((uintptr_t)from, KB(4));
     ptr = tmp_page + padding;
 
     while (len) {
-        *ptr = *from;
+        *ptr++ = *from++;
         len--;
         if (ptr >= tmp_page + KB(4)) {
             // if we got the ptr to the end of the tmp page lets
@@ -722,8 +730,10 @@ error_t vmm_copy_to_user(address_space_t addrspace, const void *_from, void *_to
 
 cleanup:
     // restore the original physical page and free the tmp page
-    vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
-    mm_free(&kernel_memory_manager, tmp_page);
+    if(tmp_page != NULL) {
+        vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
+        mm_free(&kernel_memory_manager, tmp_page);
+    }
 
     return err;
 }
@@ -754,7 +764,7 @@ error_t vmm_clear_user(address_space_t addrspace, void *_to, size_t len) {
     ptr = tmp_page + padding;
 
     while (len) {
-        *ptr = 0;
+        *ptr++ = 0;
         len--;
         if (ptr >= tmp_page + KB(4)) {
             // if we got the ptr to the end of the tmp page lets
@@ -766,10 +776,12 @@ error_t vmm_clear_user(address_space_t addrspace, void *_to, size_t len) {
         }
     }
 
-    cleanup:
+cleanup:
     // restore the original physical page and free the tmp page
-    vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
-    mm_free(&kernel_memory_manager, tmp_page);
+    if(tmp_page != NULL) {
+        vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
+        mm_free(&kernel_memory_manager, tmp_page);
+    }
 
     return err;
 }

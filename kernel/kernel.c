@@ -70,7 +70,8 @@ static void thread_kernel(void* arg) {
     resource_t resource = 0;
     char buffer[12];
     resource_descriptor_t descriptor = {
-            .scheme = "zero"
+            .scheme = "zero",
+            .port = 0xBABE
     };
     syscall2(SYSCALL_OPEN, (long)&descriptor, (long)&resource);
     while(true) {

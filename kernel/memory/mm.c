@@ -129,7 +129,6 @@ static bool check_size_and_alignment(mm_block_t* block, size_t size, size_t alig
  */
 static bool can_split(mm_block_t* block, size_t size, size_t alignment) {
     ptrdiff_t size_left = block->size - sizeof(mm_block_t) - get_size_with_padding(block, size, alignment) - sizeof(size_t) * 3;
-    term_print("[can_split] size_left=%d\n", (int)size_left);
     return (bool) ((size_left) > 0);
 }
 

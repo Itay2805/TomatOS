@@ -69,7 +69,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
             size_t len = 0;
 
             // first copy the descriptor
-            CHECK_AND_RETHROW(vmm_copy_to_kernel(running_process->address_space, (void*)regs->rdi, &descriptor, sizeof(descriptor)));
+            CHECK_AND_RETHROW(vmm_copy_to_kernel(running_process->address_space, (void*)regs->rdi, &descriptor, sizeof(resource_descriptor_t)));
             // get the scheme name length, allocate a buffer to store it, and read the scheme
             CHECK_AND_RETHROW(vmm_copy_string_to_kernel(running_process->address_space, descriptor.scheme, NULL, &len));
             CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, len, (void**)&scheme));
