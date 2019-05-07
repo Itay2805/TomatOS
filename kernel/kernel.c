@@ -26,12 +26,20 @@ static void thread_a(void* arg) {
     ((void)arg);
     resource_t volatile resource = 0;
     char buffer[10];
+    char name_buffer[5];
+    name_buffer[0] = 'z';
+    name_buffer[1] = 'e';
+    name_buffer[2] = 'r';
+    name_buffer[3] = 'o';
+    name_buffer[4] = 0;
     resource_descriptor_t descriptor = {
-        .scheme = "zero"
+        .scheme = name_buffer
     };
     asm ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"(buffer), "c"(sizeof(buffer)));
+        if(resource != 0) {
+            asm ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"(buffer), "c"(sizeof(buffer)));
+        }
     }
 }
 static void thread_a_end() {}
@@ -40,15 +48,37 @@ static void thread_b(void* arg) {
     ((void)arg);
     resource_t resource = 0;
     char buffer[10];
+    char name_buffer[5];
+    name_buffer[0] = 'z';
+    name_buffer[1] = 'e';
+    name_buffer[2] = 'r';
+    name_buffer[3] = 'o';
+    name_buffer[4] = 0;
     resource_descriptor_t descriptor = {
-            .scheme = "zero"
+            .scheme = name_buffer
     };
     asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"(buffer), "c"(sizeof(buffer)));
+        if(resource != 0) {
+            asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"(buffer), "c"(sizeof(buffer)));
+        }
     }
 }
 static void thread_b_end() {}
+
+static void thread_kernel(void* arg) {
+    resource_t resource = 0;
+    char buffer[12];
+    resource_descriptor_t descriptor = {
+            .scheme = "zero"
+    };
+    syscall2(SYSCALL_OPEN, (long)&descriptor, (long)&resource);
+    while(true) {
+        if(resource != 0) {
+            syscall3(SYSCALL_READ, (long)resource, (long)buffer, sizeof(buffer));
+        }
+    }
+}
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -92,7 +122,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(scheduler_init());
 
     // create some test processes
-    process_t* pa = process_create(NULL, false);
+    /*process_t* pa = process_create(NULL, false);
     pa->threads[0].cpu_state.rbp = GB(4);
     pa->threads[0].cpu_state.rsp = GB(4);
     pa->threads[0].cpu_state.rip = GB(1);
@@ -122,7 +152,13 @@ void kernel_main(multiboot_info_t* info) {
     vmm_set(pb->address_space);
     memset((void *) GB(1), 0xCC, ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)));
     memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
-    vmm_set(kernel_address_space);
+    vmm_set(kernel_address_space);*/
+
+    process_t* pk = process_create(thread_kernel, true);
+    char* kstack = 0;
+    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, KB(1), (void**)&kstack));
+    pk->threads[0].cpu_state.rbp = (uint64_t)kstack + KB(1);
+    pk->threads[0].cpu_state.rsp = (uint64_t)kstack + KB(1);
 
     // kick start the system!
     term_write("[kernel_main] Enabling interrupts\n");

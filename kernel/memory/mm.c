@@ -128,7 +128,9 @@ static bool check_size_and_alignment(mm_block_t* block, size_t size, size_t alig
  * Will check if we have enough space in this block to split it to two blocks
  */
 static bool can_split(mm_block_t* block, size_t size, size_t alignment) {
-    return (bool) ((ptrdiff_t)block->size - sizeof(mm_block_t) - get_size_with_padding(block, size, alignment) - sizeof(size_t) * 3 > 0);
+    ptrdiff_t size_left = block->size - sizeof(mm_block_t) - get_size_with_padding(block, size, alignment) - sizeof(size_t) * 3;
+    term_print("[can_split] size_left=%d\n", (int)size_left);
+    return (bool) ((size_left) > 0);
 }
 
 /**
@@ -335,7 +337,7 @@ error_t mm_free(mm_context_t* context, void* ptr) {
     CHECK_ERROR(context, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(context, ERROR_INVALID_ARGUMENT);
 
-    CHECK_ERROR((void*)context->last > ptr && (void*)context->first < ptr, ERROR_INVALID_POINTER);
+    CHECK_ERROR((void*)context->last + context->last->size > ptr && (void*)context->first < ptr, ERROR_INVALID_POINTER);
 
     CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
     CHECK_ERROR(block->allocated, ERROR_INVALID_POINTER);

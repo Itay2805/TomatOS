@@ -10,8 +10,8 @@
 #endif
 
 #ifndef __FILENAME__
-    #warning __FILENAME__ was not defined, defaulting to unknown
-    #define __FILENAME__ "unknown file"
+    #warning __FILENAME__ was not defined, defaulting to __FILE__
+    #define __FILENAME__ __FILE__
 #endif
 
 #if EXCEPT_MAX_FRAMES >= 0xffffu || EXCEPT_MAX_FRAMES < 0u
@@ -24,11 +24,24 @@ typedef struct error_frame {
     unsigned int line;
 } error_frame_t;
 
-#define ERROR_PUSH_FRAME(expression) \
+// TODO: Fix this cause this doesn't really work
+
+// term_print("error %s (level=%d) at %s:%d - %s\n", except_strings[error_code], error_frames_length, __FILENAME__, __LINE__, __FUNCTION__);
+
+#define ERROR_PUSH_FRAME \
     do { \
-        if(((err >> 16u) & 0xFFFFu) < EXCEPT_MAX_FRAMES) { \
-            error_frames[(err >> 16u) & 0xFFFFu] = (error_frame_t){ __FILENAME__, __FUNCTION__, __LINE__ }; \
-            err = ((((err >> 16u) & 0xFFFFu) + 1u) << 16u) | (err & 0xFFFFu); \
+        int error_frames_length = (err >> 16u) & 0xFFFFu; \
+        int error_code = err & 0xFFFFu; \
+        term_set_background_color(COLOR_RED); \
+        term_set_text_color(COLOR_WHITE); \
+        term_set_background_color(COLOR_BLACK); \
+        term_set_text_color(COLOR_WHITE); \
+        if(error_frames_length < EXCEPT_MAX_FRAMES) { \
+            error_frames[error_frames_length].file = __FILENAME__; \
+            error_frames[error_frames_length].function = __FUNCTION__; \
+            error_frames[error_frames_length].line = __LINE__; \
+            error_frames_length++; \
+            err = ((error_frames_length & 0xFFFFu) << 16u) | (error_code); \
         } \
     } while(0)
 
@@ -43,9 +56,9 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
 #define ERROR_INVALID_POINTER   ((error_t)3u)
 #define ERROR_ALREADY_FREED     ((error_t)4u)
 #define ERROR_OUT_OF_MEMORY     ((error_t)5u)
-#define ERROR_NOT_FOUND         ((error_t)7u)
-#define ERROR_INVALID_SYSCALL   ((error_t)8u)
-#define ERROR_NOT_IMPLEMENTED   ((error_t)9u)
+#define ERROR_NOT_FOUND         ((error_t)6u)
+#define ERROR_INVALID_SYSCALL   ((error_t)7u)
+#define ERROR_NOT_IMPLEMENTED   ((error_t)8u)
 
 #define IS_ERROR(err) (err & 0xFFFFu)
 
@@ -53,7 +66,7 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
     do { \
         if(!(condition)) { \
             err = (error); \
-            ERROR_PUSH_FRAME(condition); \
+            ERROR_PUSH_FRAME; \
             goto cleanup; \
         } \
     } while(0)
@@ -68,7 +81,7 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
     do { \
         err = (error); \
         if(IS_ERROR(err) != NO_ERROR) { \
-            ERROR_PUSH_FRAME(error); \
+            ERROR_PUSH_FRAME; \
             goto label; \
         } \
     } while(0)

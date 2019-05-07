@@ -673,8 +673,10 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
 
 cleanup:
     // restore the original physical page and free the tmp page
-    vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
-    mm_free(&kernel_memory_manager, tmp_page);
+    if(tmp_page != NULL) {
+        vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
+        mm_free(&kernel_memory_manager, tmp_page);
+    }
 
     return err;
 }
@@ -718,7 +720,7 @@ error_t vmm_copy_to_user(address_space_t addrspace, const void *_from, void *_to
         }
     }
 
-    cleanup:
+cleanup:
     // restore the original physical page and free the tmp page
     vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
     mm_free(&kernel_memory_manager, tmp_page);

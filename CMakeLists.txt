@@ -14,7 +14,7 @@ set(CMAKE_ASM_COMPILER /usr/bin/nasm)
 set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <SOURCE> <FLAGS> -o <OBJECT>")
 
 # Setup compilation flags
-set(CMAKE_C_FLAGS "-z max-page-size=4096 -fPIC -Wall -Werror -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
+set(CMAKE_C_FLAGS "-z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
 set(CMAKE_ASM_FLAGS "-f elf64")
 set(CMAKE_EXE_LINKER_FLAGS "-z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${KERNEL_PATH}/linker.ld")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
@@ -97,8 +97,11 @@ set(KERNEL_SOURCE_FILES
         kernel/resource/resource.c
         kernel/resource/resource.h
 
+        kernel/providers/zero/zero_provider.h
+        kernel/providers/zero/zero_provider.c
+
         kernel/multiboot.asm
-        kernel/kernel.c kernel/providers/zero/zero_provider.c kernel/providers/zero/zero_provider.h)
+        kernel/kernel.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")

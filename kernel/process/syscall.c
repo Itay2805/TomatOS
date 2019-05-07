@@ -15,8 +15,8 @@ extern void syscall_handler_stub();
 void syscall_handler(registers_t regs) {
     error_t err = NO_ERROR;
     int syscall = (int)regs.rax;
-
     address_space_t before = vmm_get();
+
     if(before != kernel_address_space) {
         vmm_set(kernel_address_space);
     }
@@ -24,8 +24,7 @@ void syscall_handler(registers_t regs) {
     if(syscall >= 0 && syscall < SYSCALL_COUNT && syscalls[syscall] != 0) {
         CHECK_AND_RETHROW(syscalls[syscall](&regs));
     }else {
-        term_print("[syscall_handler] Invalid syscall %d\n", syscall);
-        regs.rax = (uint64_t) -ERROR_INVALID_SYSCALL;
+        CHECK_FAIL_ERROR(ERROR_INVALID_SYSCALL);
     }
 
 cleanup:
