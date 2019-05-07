@@ -567,7 +567,6 @@ void vmm_free(address_space_t address_space, void *virtual_addr) {
         invlpg((uintptr_t)virtual_addr);
         free_table[PAGING_PTE_OFFSET(virtual_addr)] = 0;
     }
-
 }
 
 error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr, void** physical_addr) {
@@ -607,7 +606,7 @@ error_t vmm_copy_to_kernel(address_space_t addrspace, const void* _from, void* _
     CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&tmp_page));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
-    padding = ALIGN_DOWN((uintptr_t)from, KB(4)) - (uintptr_t)from;
+    padding = (int) (ALIGN_DOWN((uintptr_t)from, KB(4)) - (uintptr_t)from);
     ptr = tmp_page + padding;
 
     while(len) {
@@ -649,7 +648,7 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
     CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&tmp_page));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
-    padding = ALIGN_DOWN((uintptr_t)from, KB(4)) - (uintptr_t)from;
+    padding = (int) (ALIGN_DOWN((uintptr_t)from, KB(4)) - (uintptr_t)from);
     ptr = tmp_page + padding;
 
     size_t len = 0;

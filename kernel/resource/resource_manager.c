@@ -10,6 +10,8 @@
 #include <common/string.h>
 #include <common/buf.h>
 
+#include <memory/gdt.h>
+
 #include "resource.h"
 
 resource_provider_t* providers = NULL;
@@ -52,6 +54,8 @@ static error_t dispatch_resource_call(registers_t* regs) {
     char* stack = NULL;
     char* scheme = NULL;
 
+    CHECK_ERROR(regs->cs != GDT_KERNEL_CODE, ERROR_INVALID_SYSCALL);
+
     running_thread->state = THREAD_SUSPENDED;
 
     switch(regs->rax) {
@@ -61,9 +65,9 @@ static error_t dispatch_resource_call(registers_t* regs) {
 
             // first copy the descriptor
             CHECK_AND_RETHROW(vmm_copy_to_kernel(running_process->address_space, (void*)regs->rdi, &descriptor, sizeof(descriptor)));
-            // get the scheme name length
+            // get the scheme name length, allocate a buffer to store it, and read the scheme
             CHECK_AND_RETHROW(vmm_copy_string_to_kernel(running_process->address_space, descriptor.scheme, NULL, &len));
-            // get the scheme
+            CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, len, (void**)&scheme));
             CHECK_AND_RETHROW(vmm_copy_string_to_kernel(running_process->address_space, descriptor.scheme, scheme, &len));
 
             // get the actual provider
@@ -72,46 +76,68 @@ static error_t dispatch_resource_call(registers_t* regs) {
 
         case SYSCALL_READ:
         case SYSCALL_WRITE:
+        case SYSCALL_SEEK:
+        case SYSCALL_TELL:
         case SYSCALL_POLL:
             CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(running_process, regs->rdi, &provider));
             break;
 
         default:
-            CHECK_FAIL_ERROR(ERROR_INVALID_SYSCALL);
+            CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
     }
 
+    // find the provider process and create a new thread on it
     CHECK_AND_RETHROW(process_find(provider->pid, &provider_process));
+    provider_thread = process_start_thread(provider_process, dispatch_resource_call_trampoline);
+    provider_thread->cpu_state.r10 = provider_process->pid;
+    provider_thread->cpu_state.r11 = provider_thread->tid;
+
     switch(regs->rax) {
         case SYSCALL_OPEN:
-            provider_thread = process_start_thread(provider_process, provider->open);
+            provider_thread->cpu_state.rax = (uint64_t)provider->open;
             provider_thread->cpu_state.rdi = regs->rdi; // resource_description_t* description
             provider_thread->cpu_state.rsi = regs->rsi; // resource_t* out_resource
             break;
 
         case SYSCALL_CLOSE:
-            provider_thread = process_start_thread(provider_process, provider->close);
+            provider_thread->cpu_state.rax = (uint64_t)provider->close;
             provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
             break;
 
         case SYSCALL_READ:
-            provider_thread = process_start_thread(provider_process, provider->read);
+            provider_thread->cpu_state.rax = (uint64_t)provider->read;
             provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rsi = regs->rsi; // char* buffer
             provider_thread->cpu_state.rdx = regs->rdx; // size_t len
             break;
 
         case SYSCALL_WRITE:
-            provider_thread = process_start_thread(provider_process, provider->write);
+            provider_thread->cpu_state.rax = (uint64_t)provider->write;
             provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rsi = regs->rsi; // char* buffer
             provider_thread->cpu_state.rdx = regs->rdx; // size_t len
             break;
 
-        case SYSCALL_POLL:
+        case SYSCALL_TELL:
+            provider_thread->cpu_state.rax = (uint64_t)provider->tell;
+            provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rsi = regs->rsi; // seek_t relative_to
+            provider_thread->cpu_state.rdx = regs->rdx; // size_t pos
+            break;
 
-        // TODO: Implement the rest
+        case SYSCALL_SEEK:
+            provider_thread->cpu_state.rax = (uint64_t)provider->seek;
+            provider_thread->cpu_state.rdi = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rsi = regs->rsi; // size_t* pos
+            break;
+
+        case SYSCALL_POLL:
+            provider_thread->cpu_state.rax = (uint64_t)provider->poll;
+            // TODO: Implement this
+            CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
+
         default:
-            CHECK_FAIL_ERROR(ERROR_INVALID_SYSCALL);
+            CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
     }
     provider_thread->cpu_state.rdi = regs->rdi;
 
@@ -123,7 +149,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
     schedule(regs, 0);
 cleanup:
     if(IS_ERROR(err)) {
-        regs->rax = -err;
+        regs->rax = (uint64_t) -err;
         if(provider_thread != NULL) thread_kill(provider_thread);
         if(stack != NULL) mm_free(&kernel_memory_manager, stack);
     }

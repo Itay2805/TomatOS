@@ -120,12 +120,24 @@ void vmm_free(address_space_t address_space, void* virtual_addr);
 
 /**
  * Get the physical address of a virtual address in the given address space
+ *
+ * @param address_space [IN] The address space the virtual space is in
+ * @param virtual_addr  [IN] The virtual address to get the physical address for
+ * @param physical_addr [OUT] The out physical address of the virtual address
+ *
+ * @remark
+ * This assumes the vmm is inited
  */
 error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr, void** physical_addr);
 
 /**
  * Will copy len bytes from the given pointer in addrspace to the given pointer in kernel space
- * 
+ *
+ * @param address_space [IN] the address space to read from
+ * @param from          [IN] the buffer to read from
+ * @param to            [OUT] the buffer to write to
+ * @param len           [IN] the length of the to buffer
+ *
  * @remark
  * This assumes the kernel memory manager is initialized
  */

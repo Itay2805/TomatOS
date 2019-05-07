@@ -43,9 +43,9 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
 #define ERROR_INVALID_POINTER   ((error_t)3u)
 #define ERROR_ALREADY_FREED     ((error_t)4u)
 #define ERROR_OUT_OF_MEMORY     ((error_t)5u)
-#define ERROR_INVALID_SCHEME    ((error_t)6u)
 #define ERROR_NOT_FOUND         ((error_t)7u)
 #define ERROR_INVALID_SYSCALL   ((error_t)8u)
+#define ERROR_NOT_IMPLEMENTED   ((error_t)9u)
 
 #define IS_ERROR(err) (err & 0xFFFFu)
 
