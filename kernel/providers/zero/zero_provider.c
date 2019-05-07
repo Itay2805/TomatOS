@@ -39,6 +39,9 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &created_resource, resource, sizeof(resource_t)));
 
 cleanup:
+    if(IS_ERROR(err) != NO_ERROR) {
+        // TODO: Close the resource cause we had an error
+    }
     return err;
 }
 
@@ -57,8 +60,6 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
 
     UNUSED(tid);
     UNUSED(resource);
-
-    term_print("zero on pid=%d\n", process->pid);
 
     CHECK_AND_RETHROW(vmm_clear_user(process->address_space, buffer, len));
 
@@ -124,7 +125,7 @@ error_t zero_provider_init() {
     zero_provider.tell = handle_tell;
     zero_provider.seek = handle_seek;
 
-    term_write("[zero_provider_init] Registering zero provider");
+    term_write("[zero_provider_init] Registering zero provider\n");
     resource_manager_register_provider(&zero_provider);
 
 cleanup:

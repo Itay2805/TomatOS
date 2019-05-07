@@ -39,7 +39,7 @@ static void thread_a(void* arg) {
     asm ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
         asm ("int $0x80" : : "a"(0xBABE));
-        asm ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"(buffer), "c"(sizeof(buffer)));
+        asm ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"(buffer), "d"(sizeof(buffer)));
     }
 }
 static void thread_a_end() {}
@@ -60,7 +60,7 @@ static void thread_b(void* arg) {
     asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
         asm ("int $0x80" : : "a"(0xCAFE));
-        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"(buffer), "c"(sizeof(buffer)));
+        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"(buffer), "d"(sizeof(buffer)));
     }
 }
 static void thread_b_end() {}
@@ -72,10 +72,9 @@ static void thread_kernel(void* arg) {
             .scheme = "zero",
             .port = 0xBABE
     };
-    syscall2(SYSCALL_OPEN, (long)&descriptor, (long)&resource);
+    asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        syscall(0xBEEF);
-        syscall3(SYSCALL_READ, (long)resource, (long)buffer, sizeof(buffer));
+        asm volatile ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"(buffer), "d"(sizeof(buffer)));
     }
 }
 

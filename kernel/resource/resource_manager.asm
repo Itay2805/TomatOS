@@ -14,7 +14,7 @@ dispatch_resource_call_trampoline:
     mov rcx, rax
 
     ; call SYSCALL_PROVIDER_HANDLER_FINISHED
-    mov rax, 8
+    mov rax, 10
     int 0x80
 
     .sleep:

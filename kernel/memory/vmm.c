@@ -713,7 +713,7 @@ error_t vmm_copy_to_user(address_space_t addrspace, const void *_from, void *_to
     padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
 
     // align everything
-    from = (const char *) ALIGN_DOWN((uintptr_t)from, KB(4));
+    to = (char *) ALIGN_DOWN((uintptr_t)to, KB(4));
     ptr = tmp_page + padding;
 
     while (len) {

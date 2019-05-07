@@ -53,12 +53,16 @@ cleanup:
 //       by itself, same with writing back to the user
 static error_t dispatch_resource_call(registers_t* regs) {
     error_t err = NO_ERROR;
-    process_t* running_process = running_thread->parent;
+    process_t* running_process = NULL;
     process_t* provider_process = NULL;
     thread_t* provider_thread = NULL;
     resource_provider_t* provider = NULL;
     char* stack = NULL;
     char* scheme = NULL;
+
+    // get the running process
+    CHECK(running_thread != NULL);
+    running_process = running_thread->parent;
 
     switch(regs->rax) {
         case SYSCALL_OPEN: {
@@ -96,45 +100,45 @@ static error_t dispatch_resource_call(registers_t* regs) {
         case SYSCALL_OPEN:
             CHECK_ERROR((uint64_t)provider->open != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->open;
-            provider_thread->cpu_state.rdx = regs->rdx; // resource_description_t* description
-            provider_thread->cpu_state.rcx = regs->rcx; // resource_t* out_resource
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_description_t* description
+            provider_thread->cpu_state.rcx = regs->rsi; // resource_t* out_resource
             break;
 
         case SYSCALL_CLOSE:
             CHECK_ERROR((uint64_t)provider->close != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->close;
-            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             break;
 
         case SYSCALL_READ:
             CHECK_ERROR((uint64_t)provider->read != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->read;
-            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
-            provider_thread->cpu_state.rcx = regs->rcx; // char* buffer
-            provider_thread->cpu_state.r8 = regs->r8; // size_t len
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rsi; // char* buffer
+            provider_thread->cpu_state.r8 = regs->rdx; // size_t len
             break;
 
         case SYSCALL_WRITE:
             CHECK_ERROR((uint64_t)provider->write != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->write;
-            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
-            provider_thread->cpu_state.rcx = regs->rcx; // char* buffer
-            provider_thread->cpu_state.r8 = regs->r8; // size_t len
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rsi; // char* buffer
+            provider_thread->cpu_state.r8 = regs->rdx; // size_t len
             break;
 
         case SYSCALL_TELL:
             CHECK_ERROR((uint64_t)provider->tell != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->tell;
-            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
-            provider_thread->cpu_state.rcx = regs->rcx; // seek_t relative_to
-            provider_thread->cpu_state.r8 = regs->r8; // size_t pos
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rsi; // seek_t relative_to
+            provider_thread->cpu_state.r8 = regs->rdx; // size_t pos
             break;
 
         case SYSCALL_SEEK:
             CHECK_ERROR((uint64_t)provider->seek != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->seek;
-            provider_thread->cpu_state.rdx = regs->rdx; // resource_t resource
-            provider_thread->cpu_state.rcx = regs->rcx; // size_t* pos
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rsi; // size_t* pos
             break;
 
         case SYSCALL_POLL:
@@ -189,7 +193,7 @@ error_t resource_manager_init() {
 }
 
 error_t resource_manager_register_provider(resource_provider_t* provider) {
-    term_print("[resource_manager_register] registered provider for '%s' (pid=%d)", provider->scheme, provider->pid);
+    term_print("[resource_manager_register] registered provider for '%s' (pid=%d)\n", provider->scheme, provider->pid);
     buf_push(providers, provider);
     return NO_ERROR;
 }
