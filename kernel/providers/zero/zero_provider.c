@@ -56,6 +56,8 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
     UNUSED(tid);
     UNUSED(resource);
 
+    term_print("zero on pid=%d\n", process->pid);
+
     CHECK_AND_RETHROW(vmm_clear_user(process->address_space, buffer, len));
 
 cleanup:

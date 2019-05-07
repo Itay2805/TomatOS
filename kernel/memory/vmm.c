@@ -661,7 +661,8 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
     size_t len = 0;
     while(*ptr) {
         // only copy if the to is not null and we are not exceeding the buffer
-        if(to != NULL && len < *length) *to++ = *ptr++;
+        if(to != NULL && len < *length) *to++ = *ptr;
+        ptr++;
         len++;
         if(ptr >= tmp_page + KB(4)) {
             // if we got the ptr to the end of the tmp page lets 
@@ -674,7 +675,7 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
     }
 
     // out the actual string length
-    *length = len;
+    *length = len + 1;
 
 cleanup:
     // restore the original physical page and free the tmp page
