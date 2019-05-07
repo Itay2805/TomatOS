@@ -69,9 +69,9 @@ static void default_exception_handler(registers_t* regs) {
     //term_set_text_color(COLOR_WHITE);
     //term_clear();
     //term_set_cursor_pos(0, 0);
-    if(term_get_cursor_x() != 0) {
-        term_write("\n");
-    }
+
+    term_write("\n\n");
+
     term_set_background_color(COLOR_RED);
     term_set_text_color(COLOR_WHITE);
 

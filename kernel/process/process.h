@@ -34,6 +34,7 @@ struct process {
      */
     size_t next_tid;
 
+    // TODO: Make so the thread_t struct will not change, just like we did for the process struct
     /**
      * The thread list of this process (this is a stretchy buffer)
      */
@@ -72,7 +73,7 @@ typedef struct process process_t;
  *
  * contains all the processes
  */
-extern process_t* processes;
+extern process_t** processes;
 
 /**
  * Create a new process

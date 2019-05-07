@@ -24,16 +24,28 @@ mm_context_t kernel_memory_manager;
 
 static void thread_a(void* arg) {
     ((void)arg);
+    resource_t volatile resource = 0;
+    char buffer[10];
+    resource_descriptor_t descriptor = {
+        .scheme = "zero"
+    };
+    asm ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm volatile ("int $0x80" : : "a"(0xBABE) : "rcx", "r11", "memory");
+        asm ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"(buffer), "c"(sizeof(buffer)));
     }
 }
 static void thread_a_end() {}
 
 static void thread_b(void* arg) {
     ((void)arg);
+    resource_t resource = 0;
+    char buffer[10];
+    resource_descriptor_t descriptor = {
+            .scheme = "zero"
+    };
+    asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm volatile ("int $0x80" : : "a"(0xCAFE) : "rcx", "r11", "memory");
+        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"(buffer), "c"(sizeof(buffer)));
     }
 }
 static void thread_b_end() {}

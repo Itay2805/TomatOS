@@ -9,6 +9,7 @@
 
 #include <graphics/term.h>
 #include <common/common.h>
+#include <kernel.h>
 
 #include "zero_provider.h"
 
@@ -22,41 +23,76 @@ static void start() {
     // Nothing to initialize
 }
 
-static error_t handle_open(int pid, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
+static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
+    resource_t created_resource = 0;
 
-    // TODO: how can we handle the problem that there might be a context switch which could cause another process to be created
-    //       while we have this pointer...
-    process_t* process = NULL;
+    UNUSED(tid);
+    UNUSED(descriptor);
 
-    CHECK_AND_RETHROW(process_find(pid, &process));
-    CHECK_AND_RETHROW(resource_create(process, &zero_provider, resource));
+    // create the resource
+    CHECK_AND_RETHROW(resource_create(process, &zero_provider, &created_resource));
+
+    // copy the resource to user space
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &created_resource, resource, sizeof(resource_t)));
 
 cleanup:
     return err;
 }
 
-static error_t handle_close(int pid, int tid, resource_t resource) {
+static error_t handle_close(process_t* process, int tid, resource_t resource) {
     // TODO: Add a remove resource function, memory leaking until that is fixed
+
+    UNUSED(process);
+    UNUSED(tid);
+    UNUSED(resource);
+
     return NO_ERROR;
 }
 
-static error_t handle_read(int pid, int tid, resource_t resource, char* buffer, size_t len) {
+static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len) {
+    error_t err = NO_ERROR;
 
+    UNUSED(tid);
+    UNUSED(resource);
+
+    CHECK_AND_RETHROW(vmm_clear_user(process->address_space, buffer, len));
+
+cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_write(int pid, int tid, resource_t resource, char* buffer, size_t len) {
-    vmm_copy
+static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len) {
+
+    UNUSED(process);
+    UNUSED(tid);
+    UNUSED(resource);
+    UNUSED(buffer);
+    UNUSED(len);
+
+    // Does nothing
     return NO_ERROR;
 }
 
-static error_t handle_tell(ATTR_UNUSED int pid, ATTR_UNUSED int tid, resource_t ATTR_UNUSED resource, size_t* ATTR_UNUSED pos) {
-    // TODO: Make so this will put zero in the pos
-    return NO_ERROR;
+static error_t handle_tell(process_t* process, int tid, resource_t resource, size_t* pos) {
+    error_t err = NO_ERROR;
+    size_t zero = 0;
+
+    UNUSED(tid);
+    UNUSED(resource);
+
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &zero, pos, sizeof(size_t)));
+
+cleanup:
+    return err;
 }
 
-static error_t handle_seek(ATTR_UNUSED int pid, ATTR_UNUSED int tid, ATTR_UNUSED resource_t resource, ATTR_UNUSED int type, ATTR_UNUSED size_t* pos) {
+static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, size_t* pos) {
+    UNUSED(process);
+    UNUSED(tid);
+    UNUSED(resource);
+    UNUSED(type);
+    UNUSED(pos);
     // Does nothing
     return NO_ERROR;
 }
@@ -78,5 +114,6 @@ error_t zero_provider_init() {
     zero_provider.seek = handle_seek;
 
     term_write("[zero_provider_init] Registering zero provider");
+    resource_manager_register_provider(&zero_provider);
     return NO_ERROR;
 }

@@ -35,8 +35,6 @@
 
 #define TB(x) (((uint64_t)x) * GB(1024))
 
-#define ATTR_UNUSED __attribute__((unused))
-
-#define ATTR_PACKED __attribute__((packed))
+#define UNUSED(x) ((void)x)
 
 #endif

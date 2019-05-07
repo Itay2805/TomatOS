@@ -124,9 +124,6 @@ void vmm_free(address_space_t address_space, void* virtual_addr);
  * @param address_space [IN] The address space the virtual space is in
  * @param virtual_addr  [IN] The virtual address to get the physical address for
  * @param physical_addr [OUT] The out physical address of the virtual address
- *
- * @remark
- * This assumes the vmm is inited
  */
 error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr, void** physical_addr);
 
@@ -137,9 +134,6 @@ error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr
  * @param from          [IN] the buffer to read from
  * @param to            [OUT] the buffer to write to
  * @param len           [IN] the length of the to buffer
- *
- * @remark
- * This assumes the kernel memory manager is initialized
  */
 error_t vmm_copy_to_kernel(address_space_t address_space, const void* from, void* to, size_t len);
 
@@ -151,12 +145,26 @@ error_t vmm_copy_to_kernel(address_space_t address_space, const void* from, void
  * @param from          [IN] Buffer in the given address space to copy from
  * @param to            [OUT] Buffer in the kernel to copy to
  * @param length        [IN/OUT] Takes the length of to, outputs the actual length of the string
- * 
- * @remark
- * This assumes the kernel memory manager is initialized
  */
 error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* from, char* to, size_t* length);
 
-// TODO: vmm_copy_to_user
+/**
+ * Will copy len bytes from the given pointer in the kernel to the given pointer in addrspace
+ *
+ * @param address_space [IN] the address space to read from
+ * @param from          [IN] the buffer to read from
+ * @param to            [OUT] the buffer to write to
+ * @param len           [IN] the length of the to buffer
+ */
+error_t vmm_copy_to_user(address_space_t addrspace, const void* from, void* to, size_t len);
+
+/**
+ * Will clear (set to 0) the bytes in the target buffer at the addrspace
+ *
+ * @param address_space [IN] the address space to read from
+ * @param target        [IN] the buffer to clear
+ * @param len           [IN] the length of the to buffer
+ */
+error_t vmm_clear_user(address_space_t addrspace, void* target, size_t len);
 
 #endif

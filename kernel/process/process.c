@@ -7,29 +7,36 @@
 #include <resource/resource.h>
 #include "process.h"
 
-process_t* processes = NULL;
+process_t** processes = NULL;
 
 static size_t alive_processes = 0;
 
-static size_t next_pid = 1;
+static int next_pid = 1;
 
 process_t* process_create(thread_start_f start, bool kernel) {
+    // TODO: Proper error handling
+    error_t err = NO_ERROR;
+    process_t** proc_slot = NULL;
     process_t* proc = NULL;
 
     // should we even search
     if(alive_processes < buf_len(processes)) {
-        for(process_t* it = processes; it < buf_end(processes); it++) {
-            if(it->pid == DEAD_PROCESS_PID) {
-                proc = it;
+        for(process_t** it = processes; it < buf_end(processes); it++) {
+            if(*it == NULL) {
+                proc_slot = it;
                 break;
             }
         }
     }
-    if(proc == NULL) {
+    if(proc_slot == NULL) {
         // add a new one
-        buf_push(processes, (process_t){0});
-        proc = &processes[buf_len(processes) - 1];
+        buf_push(processes, 0);
+        proc_slot = &processes[buf_len(processes) - 1];
     }
+
+    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, sizeof(process_t), (void**)&proc));
+    memset(proc, 0, sizeof(process_t));
+    *proc_slot = proc;
 
     proc->pid = next_pid++;
     proc->next_resource = 1;
@@ -51,6 +58,10 @@ process_t* process_create(thread_start_f start, bool kernel) {
 
     thread_init(&proc->threads[0]);
 
+cleanup:
+    if(IS_ERROR(err)) {
+        proc = NULL;
+    }
     return proc;
 }
 
@@ -58,9 +69,9 @@ error_t process_find(size_t pid, process_t** process) {
     error_t err = NO_ERROR;
     process_t* proc = NULL;
 
-    for(process_t* it = processes; it < buf_end(processes); it++) {
-        if(it->pid == pid) {
-            proc = it;
+    for(process_t** it = processes; it < buf_end(processes); it++) {
+        if(*it != NULL && (*it)->pid == pid) {
+            proc = *it;
             break;
         }
     }
@@ -105,7 +116,7 @@ void process_remove(process_t* process) {
     for(resource_t* it = process->resources; it < buf_end(process->resources); it++) {
         if(*it != 0) {
             (void)it;
-            // TODO: We need to find a way to actually do this closing of the resource
+            // TODO: Implement resource closing, right now a process has to close all of it's resources or there will be a leak
             // close(process, *it);
         }
     }
@@ -115,5 +126,12 @@ void process_remove(process_t* process) {
         vmm_free_address_space(process->address_space);
     }
 
-    process->pid = DEAD_PROCESS_PID;
+    // free the process itself and set the slot as empty
+    for(process_t** it = processes; it < buf_end(processes); it++) {
+        if(*it == process) {
+            *it = NULL;
+            mm_free(&kernel_memory_manager, process);
+            break;
+        }
+    }
 }

@@ -104,19 +104,22 @@ void schedule(registers_t* regs, int interval) {
 
     // get the thread count
     // TODO: have this cached somewhere and controller by the thread start or something
-    for(process_t* process = processes; process < buf_end(processes); process++) {
-        if (process->pid == DEAD_PROCESS_PID) {
+    for(process_t** process = processes; process < buf_end(processes); process++) {
+        if (*process == NULL) {
             continue;
         }
-        thread_count += buf_len(process->threads);
+        thread_count += buf_len((*process)->threads);
     }
 
     // calculate the timeslice
-    time_slice = MAX(10, thread_count / 1000);
+    // TODO: Doesn't work from some reason
+    // time_slice = MAX(interval, 1000 / thread_count);
+    time_slice = (uint64_t) interval;
 
     // increment the times and choose a thread to run
-    for(process_t* process = processes; process < buf_end(processes); process++) {
-        if(process->pid == DEAD_PROCESS_PID) continue;
+    for(process_t** it = processes; it < buf_end(processes); it++) {
+        if(*it == NULL) continue;
+        process_t* process = *it;
 
         for(thread_t* thread = process->threads; thread < buf_end(process->threads); thread++) {
             // ignore dead threads
@@ -133,6 +136,7 @@ void schedule(registers_t* regs, int interval) {
                 // should it continue running?
                 if(thread->time <= time_slice) {
                     thread_to_run = thread;
+                    break;
                 }
             }else {
                 // check if this waited the most time
