@@ -26,15 +26,13 @@ typedef struct resource_descriptor {
 // forward declare
 struct process;
 
-// TODO: Maybe move to the resource manager
+/**
+ * Will create a new resource for the provider
+ *
+ * @param process   [IN]    The process to add the resource to
+ * @param provider  [IN]    The provider that needs the resource
+ * @param resource  [OUT]   The resource created
+ */
 error_t resource_create(struct process* process, resource_provider_t* provider, resource_t* resource);
-
-// These functions are meant to be called from the kernel processes
-// basically allows to call the (they can not be called from interrupt
-// context)
-
-error_t open(struct process* proc, resource_descriptor_t* descriptor, resource_t* res);
-
-error_t close(struct process* proc, resource_t resource);
 
 #endif

@@ -27,6 +27,13 @@ static error_t syscall_provider_handler_finished(registers_t* regs) {
     CHECK_AND_RETHROW(process_find(regs->rdi, &process));
     CHECK_AND_RETHROW(thread_find(process, regs->rsi, &thread));
 
+    // only providers can call the provider handler finished
+    // because only kernel processes can be providers we first filter by kernel processes
+    // and if it is a kernel process we check if it is a provider
+    CHECK_ERROR(running_thread->parent->kernel, ERROR_INVALID_SYSCALL);
+    CHECK_ERROR(!IS_ERROR(resource_manager_get_provider_by_pid(running_thread->parent->pid, NULL)), ERROR_INVALID_SYSCALL);
+
+
     // resume the thread that was waiting
     thread->cpu_state.rax = regs->rcx;
     thread->state = THREAD_NORMAL;
@@ -53,8 +60,6 @@ static error_t dispatch_resource_call(registers_t* regs) {
     resource_provider_t* provider = NULL;
     char* stack = NULL;
     char* scheme = NULL;
-
-    CHECK_ERROR(regs->cs != GDT_KERNEL_CODE, ERROR_INVALID_SYSCALL);
 
     running_thread->state = THREAD_SUSPENDED;
 
@@ -188,7 +193,6 @@ error_t resource_manager_get_provider_by_resource(process_t* process, resource_t
 
     // Check argiments
     CHECK_ERROR(process != NULL, ERROR_INVALID_ARGUMENT);
-    CHECK_ERROR(provider != NULL, ERROR_INVALID_ARGUMENT);
 
     // Search for the resource of the same value and get it's corresponding provider
     for(resource_t* it = process->resources; it < buf_end(process->resources); it++, i++) {
@@ -200,6 +204,7 @@ error_t resource_manager_get_provider_by_resource(process_t* process, resource_t
 
     // Throw error if not found
     CHECK_ERROR(found_provider != NULL, ERROR_NOT_FOUND);
+    if(provider != NULL) *provider = found_provider;
 
     // Set the output parameter
     *provider = found_provider;
@@ -210,33 +215,35 @@ cleanup:
 
 error_t resource_manager_get_provider_by_scheme(const char* scheme, resource_provider_t** provider) {
     error_t err = NO_ERROR;
-    resource_provider_t* found = NULL;
+    resource_provider_t* found_provider = NULL;
 
     for(resource_provider_t* it = providers; it < buf_end(providers); it++) {
         if(strcmp(it->scheme, scheme) == 0) {
-            found = it;
+            found_provider = it;
             break;
         }
     }
 
-    CHECK_ERROR(found != NULL, ERROR_NOT_FOUND);
+    CHECK_ERROR(found_provider != NULL, ERROR_NOT_FOUND);
+    if(provider != NULL) *provider = found_provider;
 
 cleanup:
     return err;
 }
 
-error_t resource_manager_get_provider_by_pid(int pid, resource_provider_t** provider) {
+error_t resource_manager_get_provider_by_pid(size_t pid, resource_provider_t** provider) {
     error_t err = NO_ERROR;
-    resource_provider_t* found = NULL;
+    resource_provider_t* found_provider = NULL;
 
     for(resource_provider_t* it = providers; it < buf_end(providers); it++) {
         if(it->pid == pid) {
-            found = it;
+            found_provider = it;
             break;
         }
     }
 
-    CHECK_ERROR(found != NULL, ERROR_NOT_FOUND);
+    CHECK_ERROR(found_provider != NULL, ERROR_NOT_FOUND);
+    if(provider != NULL) *provider = found_provider;
 
 cleanup:
     return err;

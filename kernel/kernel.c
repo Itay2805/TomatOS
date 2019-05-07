@@ -74,6 +74,8 @@ void kernel_main(multiboot_info_t* info) {
     syscall_init();
     idt_init();
 
+    CHECK_AND_RETHROW(resource_manager_init());
+
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());
 
