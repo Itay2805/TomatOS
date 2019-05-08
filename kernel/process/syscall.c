@@ -1,12 +1,20 @@
 #include <common/stdarg.h>
+
 #include <interrupts/idt.h>
+
 #include <graphics/term.h>
-#include <cpu/control.h>
+
+#include <process/process.h>
+
 #include <memory/vmm.h>
 #include <memory/gdt.h>
+
+#include <cpu/control.h>
+#include <cpu/rflags.h>
+#include <cpu/msr.h>
+
+#include "scheduler.h"
 #include "syscall.h"
-#include "cpu/msr.h"
-#include "cpu/rflags.h"
 
 syscall_handler_f syscalls[SYSCALL_COUNT];
 
@@ -28,6 +36,7 @@ void syscall_handler(registers_t regs) {
     }
 
 cleanup:
+    before = running_thread->parent->address_space;
     if(before != kernel_address_space) {
         vmm_set(before);
     }

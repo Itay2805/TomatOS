@@ -86,7 +86,7 @@ static error_t handle_tell(process_t* process, int tid, resource_t resource, siz
     UNUSED(tid);
     UNUSED(resource);
 
-    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &zero, pos, sizeof(size_t)));
+    //CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &zero, pos, sizeof(size_t)));
 
 cleanup:
     return err;

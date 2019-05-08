@@ -4,6 +4,8 @@
 #include <common/kernel_info.h>
 #include <cpu/rflags.h>
 #include <cpu/control.h>
+#include <common/string.h>
+#include <common/common.h>
 #include "isr.h"
 
 #include "idt.h"
@@ -61,7 +63,7 @@ static const char* ISR_NAMES[] = {
 
 static void default_exception_handler(registers_t* regs) {
     // set a valid address space
-    // address_space_t curr = vmm_get();
+    address_space_t curr = vmm_get();
     vmm_set(kernel_address_space);
 
     // clear screen
@@ -181,6 +183,18 @@ static void default_exception_handler(registers_t* regs) {
     if((regs->rflags & EFLAGS_CPUID) != 0) term_print("ID ");
 
     term_print("\n\nRFLAGS:\n");
+
+    if(curr == kernel_address_space || regs->rsp >= (uint64_t) KERNEL_STACK) {
+        term_write("\n\nStack:\n");
+        uint64_t* rsp = (uint64_t *) regs->rsp;
+        for(int y = 0; y < 7; y++) {
+            term_print("%p: ", (void *) (uint64_t)&rsp[y * 7]);
+            for(int x = 0; x < 6; x++) {
+                term_print("%p ", (void *) rsp[x + y * 7]);
+            }
+            term_write("\n");
+        }
+    }
 
     term_write("\n\nhalting...");
     cli();

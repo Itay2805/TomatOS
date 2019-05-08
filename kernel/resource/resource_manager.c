@@ -32,11 +32,13 @@ static error_t syscall_provider_handler_finished(registers_t* regs) {
     CHECK_ERROR(running_thread->parent->kernel, ERROR_INVALID_SYSCALL);
     CHECK_ERROR(!IS_ERROR(resource_manager_get_provider_by_pid(running_thread->parent->pid, NULL)), ERROR_INVALID_SYSCALL);
 
-
     // resume the thread that was waiting
     thread->cpu_state.rax = regs->rcx;
     thread->state = THREAD_NORMAL;
     thread->time = 0;
+
+    // free the stack
+    mm_free(&kernel_memory_manager, (void *) regs->rsp);
 
 cleanup:
     // kill the thread and reschedule even if we failed
@@ -154,7 +156,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
     provider_thread->cpu_state.rsi = running_thread->tid;
 
     // we are going to allocate a small stack
-    CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&stack));
+    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, KB(4), (void**)&stack));
     provider_thread->cpu_state.rbp = (uintptr_t)stack + KB(4);
     provider_thread->cpu_state.rsp = (uintptr_t)stack + KB(4);
 

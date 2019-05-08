@@ -32,10 +32,6 @@ typedef struct error_frame {
     do { \
         int error_frames_length = (err >> 16u) & 0xFFFFu; \
         int error_code = err & 0xFFFFu; \
-        term_set_background_color(COLOR_RED); \
-        term_set_text_color(COLOR_WHITE); \
-        term_set_background_color(COLOR_BLACK); \
-        term_set_text_color(COLOR_WHITE); \
         if(error_frames_length < EXCEPT_MAX_FRAMES) { \
             error_frames[error_frames_length].file = __FILENAME__; \
             error_frames[error_frames_length].function = __FUNCTION__; \
