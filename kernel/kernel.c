@@ -13,8 +13,9 @@
 #include <cpu/msr.h>
 #include <process/syscall.h>
 #include <memory/gdt.h>
-#include <providers/zero/zero_provider.h>
 
+#include <providers/zero/zero_provider.h>
+#include <providers/term/term_provider.h>
 
 #include "graphics/term.h"
 
@@ -24,21 +25,19 @@ mm_context_t kernel_memory_manager;
 
 static void thread_a(void* arg) {
     ((void)arg);
-    resource_t volatile resource = 0;
-    char buffer[10];
+    resource_t resource = 0;
     char name_buffer[5];
-    name_buffer[0] = 'z';
+    name_buffer[0] = 't';
     name_buffer[1] = 'e';
     name_buffer[2] = 'r';
-    name_buffer[3] = 'o';
+    name_buffer[3] = 'm';
     name_buffer[4] = 0;
     resource_descriptor_t descriptor = {
         .scheme = name_buffer
     };
     asm ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm ("int $0x80" : : "a"(0xBABE));
-        asm ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"(buffer), "d"(sizeof(buffer)));
+        asm ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"("A"), "d"(1));
     }
 }
 static void thread_a_end() {}
@@ -46,34 +45,30 @@ static void thread_a_end() {}
 static void thread_b(void* arg) {
     ((void)arg);
     resource_t resource = 0;
-    char buffer[10];
     char name_buffer[5];
-    name_buffer[0] = 'z';
+    name_buffer[0] = 't';
     name_buffer[1] = 'e';
     name_buffer[2] = 'r';
-    name_buffer[3] = 'o';
+    name_buffer[3] = 'm';
     name_buffer[4] = 0;
     resource_descriptor_t descriptor = {
             .scheme = name_buffer
     };
     asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm ("int $0x80" : : "a"(0xCAFE));
-        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"(buffer), "d"(sizeof(buffer)));
+        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"("B"), "d"(1));
     }
 }
 static void thread_b_end() {}
 
 static void thread_kernel(void* arg) {
     resource_t resource = 0;
-    char buffer[12];
     resource_descriptor_t descriptor = {
-            .scheme = "zero",
-            .port = 0xBABE
+            .scheme = "term",
     };
     asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm volatile ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"(buffer), "d"(sizeof(buffer)));
+        asm volatile ("int $0x80" : : "a"(SYSCALL_READ), "D"(resource), "S"("C"), "d"(1));
     }
 }
 
@@ -113,14 +108,17 @@ void kernel_main(multiboot_info_t* info) {
     syscall_init();
     idt_init();
 
+    /// ONLY USE ERRORS FROM HERE
+
     CHECK_AND_RETHROW(resource_manager_init());
     CHECK_AND_RETHROW(zero_provider_init());
+    CHECK_AND_RETHROW(term_provider_init());
 
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());
 
     // create some test processes
-    /*process_t* pa = process_create(NULL, false);
+    process_t* pa = process_create(NULL, false);
     pa->threads[0].cpu_state.rbp = GB(4);
     pa->threads[0].cpu_state.rsp = GB(4);
     pa->threads[0].cpu_state.rip = GB(1);
@@ -134,10 +132,6 @@ void kernel_main(multiboot_info_t* info) {
     memcpy((void *) GB(1), thread_a, (uint64_t)thread_a_end - (uint64_t)thread_a);
     vmm_set(kernel_address_space);
 
-
-
-
-
     process_t* pb = process_create(NULL, false);
     pb->threads[0].cpu_state.rbp = GB(4);
     pb->threads[0].cpu_state.rsp = GB(4);
@@ -150,7 +144,7 @@ void kernel_main(multiboot_info_t* info) {
     vmm_set(pb->address_space);
     memset((void *) GB(1), 0xCC, ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)));
     memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
-    vmm_set(kernel_address_space);*/
+    vmm_set(kernel_address_space);
 
     process_t* pk = process_create(thread_kernel, true);
     char* kstack = 0;

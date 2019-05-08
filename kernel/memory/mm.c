@@ -299,6 +299,8 @@ static global_error_t internal_free(mm_block_t* block) {
 
 
 void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
+    spinlock_lock(&context->lock);
+
     int attrs = PAGE_ATTR_WRITE;
     if(vmm_get() != kernel_address_space) {
         attrs |= PAGE_ATTR_USER;
@@ -316,6 +318,8 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     context->first->prev = context->first;
     context->first->next = context->first;
     context->first->allocated = false;
+
+    spinlock_unlock(&context->lock);
 }
 
 void* mm_allocate(mm_context_t* context, size_t size) {
@@ -325,17 +329,26 @@ void* mm_allocate(mm_context_t* context, size_t size) {
 void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) {
     global_error_t err = NO_ERROR;
     void* ptr = NULL;
+
+    spinlock_lock(&context->lock);
+
     CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, (void**)&ptr, false, false));
+
 cleanup:
     if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
         KERNEL_GLOBAL_PANIC();
     }
+
+    spinlock_unlock(&context->lock);
+
     return ptr;
 }
 
 void mm_free(mm_context_t* context, void* ptr) {
     global_error_t err = NO_ERROR;
     mm_block_t* block = NULL;
+
+    spinlock_lock(&context->lock);
 
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
@@ -352,6 +365,8 @@ cleanup:
     if(IS_GLOBAL_ERROR(err) != NO_ERROR && IS_GLOBAL_ERROR(err) != ERROR_INVALID_POINTER) {
         KERNEL_GLOBAL_PANIC();
     }
+
+    spinlock_unlock(&context->lock);
 }
 
 void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
@@ -359,6 +374,8 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
     mm_block_t* block = NULL;
     void* new = NULL;
     size_t s = 0;
+
+    spinlock_lock(&context->lock);
 
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
     CHECK_GLOBAL_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
@@ -390,5 +407,8 @@ cleanup:
     if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
         KERNEL_GLOBAL_PANIC();
     }
+
+    spinlock_unlock(&context->lock);
+
     return ptr;
 }

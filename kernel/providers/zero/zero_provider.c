@@ -124,7 +124,6 @@ error_t zero_provider_init() {
     zero_provider.tell = handle_tell;
     zero_provider.seek = handle_seek;
 
-    term_write("[zero_provider_init] Registering zero provider\n");
     resource_manager_register_provider(&zero_provider);
 
     mm_free(&kernel_memory_manager, stack);

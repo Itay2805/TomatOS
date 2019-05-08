@@ -18,6 +18,7 @@
 
 #include <common/stdint.h>
 #include <common/stdbool.h>
+#include <locks/spinlock.h>
 
 /**
  * Am allocated memory block
@@ -41,6 +42,7 @@ typedef struct mm_context {
     mm_block_t* free;
     size_t total_size;
     size_t used_size;
+    spinlock_t lock;
 } mm_context_t;
 
 /**

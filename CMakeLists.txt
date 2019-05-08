@@ -36,11 +36,11 @@ set(KERNEL_SOURCE_FILES
         kernel/common/string.h
         kernel/common/buf.c
         kernel/common/buf.h
-
-        kernel/common/mini-printf.c
-        kernel/common/mini-printf.h
+        kernel/common/global_except.h
         kernel/common/except.c
         kernel/common/except.h
+        kernel/common/mini-printf.c
+        kernel/common/mini-printf.h
 
         kernel/graphics/font.c
         kernel/graphics/font.h
@@ -100,9 +100,11 @@ set(KERNEL_SOURCE_FILES
 
         kernel/providers/zero/zero_provider.h
         kernel/providers/zero/zero_provider.c
+        kernel/providers/term/term_provider.h
+        kernel/providers/term/term_provider.c
 
         kernel/multiboot.asm
-        kernel/kernel.c kernel/providers/term/term_provider.c kernel/providers/term/term_provider.h kernel/common/global_except.h)
+        kernel/kernel.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
