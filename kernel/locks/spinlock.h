@@ -1,7 +1,3 @@
-//
-// Created by Itay on 23/04/2019.
-//
-
 #ifndef TOMATKERNEL_SPINLOCK_H
 #define TOMATKERNEL_SPINLOCK_H
 

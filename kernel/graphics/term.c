@@ -1,5 +1,4 @@
 #include <common/mini-printf.h>
-#include <process/spinlock.h>
 #include "term.h"
 
 #include "font.h"

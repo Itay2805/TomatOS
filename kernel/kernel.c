@@ -9,7 +9,6 @@
 #include <process/scheduler.h>
 #include <process/process.h>
 #include <common/common.h>
-#include <process/spinlock.h>
 #include <cpu/cpuid.h>
 #include <cpu/msr.h>
 #include <process/syscall.h>

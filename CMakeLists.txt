@@ -81,10 +81,13 @@ set(KERNEL_SOURCE_FILES
         kernel/process/process.h
         kernel/process/scheduler.c
         kernel/process/scheduler.h
-        kernel/process/spinlock.h
         kernel/process/syscall.asm
         kernel/process/syscall.c
         kernel/process/syscall.h
+
+        kernel/locks/spinlock.h
+        kernel/locks/rwlock.h
+
 
         kernel/cpu/rflags.h
         kernel/cpu/msr.h
