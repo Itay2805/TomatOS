@@ -126,33 +126,33 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(scheduler_init());
 
     // create some test processes
-    process_t* pa = process_create(NULL, false);
-    pa->threads[0].cpu_state.rbp = GB(4);
-    pa->threads[0].cpu_state.rsp = GB(4);
-    pa->threads[0].cpu_state.rip = GB(1);
-    pa->threads[0].start = (thread_start_f) GB(1);
-    for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_a_end - (uint64_t)thread_a, KB(4)); i += KB(4)) {
-        vmm_allocate(pa->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
-    }
-    vmm_allocate(pa->address_space, (void *) GB(4) - KB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
-    vmm_set(pa->address_space);
-    memset((void *) GB(1), 0xCC, ALIGN_UP((uint64_t)thread_a_end - (uint64_t)thread_a, KB(4)));
-    memcpy((void *) GB(1), thread_a, (uint64_t)thread_a_end - (uint64_t)thread_a);
-    vmm_set(kernel_address_space);
-
-//    process_t* pb = process_create(NULL, false);
-//    pb->threads[0].cpu_state.rbp = GB(4);
-//    pb->threads[0].cpu_state.rsp = GB(4);
-//    pb->threads[0].cpu_state.rip = GB(1);
-//    pb->threads[0].start = (thread_start_f) GB(1);
-//    for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)); i += KB(4)) {
-//        vmm_allocate(pb->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+//    process_t* pa = process_create(NULL, false);
+//    pa->threads[0].cpu_state.rbp = GB(4);
+//    pa->threads[0].cpu_state.rsp = GB(4);
+//    pa->threads[0].cpu_state.rip = GB(1);
+//    pa->threads[0].start = (thread_start_f) GB(1);
+//    for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_a_end - (uint64_t)thread_a, KB(4)); i += KB(4)) {
+//        vmm_allocate(pa->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
 //    }
-//    vmm_allocate(pb->address_space, (void *) GB(4) - KB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
-//    vmm_set(pb->address_space);
-//    memset((void *) GB(1), 0xCC, ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)));
-//    memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
+//    vmm_allocate(pa->address_space, (void *) GB(4) - KB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+//    vmm_set(pa->address_space);
+//    memset((void *) GB(1), 0xCC, ALIGN_UP((uint64_t)thread_a_end - (uint64_t)thread_a, KB(4)));
+//    memcpy((void *) GB(1), thread_a, (uint64_t)thread_a_end - (uint64_t)thread_a);
 //    vmm_set(kernel_address_space);
+
+    process_t* pb = process_create(NULL, false);
+    pb->threads[0].cpu_state.rbp = GB(4);
+    pb->threads[0].cpu_state.rsp = GB(4);
+    pb->threads[0].cpu_state.rip = GB(1);
+    pb->threads[0].start = (thread_start_f) GB(1);
+    for(uint64_t i = 0; i <= ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)); i += KB(4)) {
+        vmm_allocate(pb->address_space, (void *) GB(1) + i, PAGE_ATTR_EXECUTE | PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+    }
+    vmm_allocate(pb->address_space, (void *) GB(4) - KB(4), PAGE_ATTR_USER | PAGE_ATTR_WRITE);
+    vmm_set(pb->address_space);
+    memset((void *) GB(1), 0xCC, ALIGN_UP((uint64_t)thread_b_end - (uint64_t)thread_b, KB(4)));
+    memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
+    vmm_set(kernel_address_space);
 
     process_t* pk = process_create(thread_kernel, true);
     char* kstack = 0;

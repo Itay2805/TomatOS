@@ -29,6 +29,11 @@ static global_error_t expand(mm_context_t* context, size_t min) {
     if(vmm_get() != kernel_address_space) {
         attrs |= PAGE_ATTR_USER;
     }
+
+    if(context->last->allocated) {
+        min += sizeof(mm_block_t);
+    }
+
     min = ALIGN_UP(min, 4096u);
     size_t page_count = min / 4096u;
     char* start = (void *) ((uintptr_t)context->last + sizeof(mm_block_t) + context->last->size);
@@ -270,7 +275,13 @@ cleanup:
             CHECK_GLOBAL_AND_RETHROW_LABEL(join(context), cleanup_failed);
             CHECK_GLOBAL_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, false), cleanup_failed);
         }else if(!tried_expand) {
-            CHECK_GLOBAL_AND_RETHROW_LABEL(expand(context, sizeof(size_t) * 3), cleanup_failed);
+            size_t min;
+            if(size > alignment) {
+                min = size + alignment * 2;
+            }else {
+                min = alignment * 3;
+            }
+            CHECK_GLOBAL_AND_RETHROW_LABEL(expand(context, min), cleanup_failed);
             CHECK_GLOBAL_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, true), cleanup_failed);
         }
     }
