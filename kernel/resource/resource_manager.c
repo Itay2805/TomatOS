@@ -166,19 +166,23 @@ static error_t dispatch_resource_call(registers_t* regs) {
 
     // save the state of the thread
     running_thread->state = THREAD_SUSPENDED;
-
-    // reschedule, because we suspended the running thread it
-    // should make the scheduler save our state and choose another thread
-    schedule(regs, 0);
 cleanup:
+    if(scheme != NULL) {
+        mm_free(&kernel_memory_manager, scheme);
+    }
+
     if(IS_ERROR(err)) {
         regs->rax = (uint64_t) err;
         if(provider_thread != NULL) thread_kill(provider_thread);
         if(stack != NULL) mm_free(&kernel_memory_manager, stack);
-    }
+    }else {
+        // The reason we put this here is because the schedule will change our address space
+        // and otherwise this could cause a problem when trying to free the scheme (since the kernel)
+        // heap is no loger visible
 
-    if(scheme != NULL) {
-        mm_free(&kernel_memory_manager, scheme);
+        // reschedule, because we suspended the running thread it
+        // should make the scheduler save our state and choose another thread
+        schedule(regs, 0);
     }
 
     return err;

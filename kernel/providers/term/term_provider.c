@@ -59,7 +59,7 @@ static error_t handle_write(process_t* process, int tid, resource_t resource, ch
 
     kbuffer = mm_allocate(&kernel_memory_manager, len + 1);
     kbuffer[len] = 0;
-    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, buffer, kbuffer, len));
+    CHECK_AND_RETHROW(vmm_copy_to_kernel(process->address_space, buffer, kbuffer, len));
 
     term_write(kbuffer);
 
