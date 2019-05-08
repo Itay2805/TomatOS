@@ -154,7 +154,7 @@ void kernel_main(multiboot_info_t* info) {
 
     process_t* pk = process_create(thread_kernel, true);
     char* kstack = 0;
-    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, KB(1), (void**)&kstack));
+    kstack = mm_allocate(&kernel_memory_manager, KB(1));
     pk->threads[0].cpu_state.rbp = (uint64_t)kstack + KB(1);
     pk->threads[0].cpu_state.rsp = (uint64_t)kstack + KB(1);
 

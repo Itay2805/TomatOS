@@ -4,8 +4,6 @@
 #include <resource/resource_manager.h>
 #include <resource/resource.h>
 
-#include <common/map.h>
-
 #include <memory/vmm.h>
 #include <memory/mm.h>
 
@@ -103,5 +101,11 @@ thread_t* process_start_thread(process_t* process, thread_start_f start);
  *          so we can request a process to just exit
  */
 void process_remove(process_t* process);
+
+/**
+ * Initialize process syscalls
+ * @return
+ */
+error_t process_init();
 
 #endif

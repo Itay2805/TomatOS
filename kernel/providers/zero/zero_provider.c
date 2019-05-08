@@ -86,7 +86,7 @@ static error_t handle_tell(process_t* process, int tid, resource_t resource, siz
     UNUSED(tid);
     UNUSED(resource);
 
-    //CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &zero, pos, sizeof(size_t)));
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &zero, pos, sizeof(size_t)));
 
 cleanup:
     return err;
@@ -107,11 +107,10 @@ static error_t handle_seek(process_t* process, int tid, resource_t resource, int
 ////////////////////////////////////////////////////////////////////////////
 
 error_t zero_provider_init() {
-    error_t err = NO_ERROR;
     process_t* process = process_create(start, true);
     char* stack = NULL;
 
-    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, 256, (void**)&stack));
+    stack = mm_allocate(&kernel_memory_manager, 256);
 
     process->threads[0].cpu_state.rsp = (uint64_t) (stack + 256);
     process->threads[0].cpu_state.rbp = (uint64_t) (stack + 256);
@@ -128,11 +127,6 @@ error_t zero_provider_init() {
     term_write("[zero_provider_init] Registering zero provider\n");
     resource_manager_register_provider(&zero_provider);
 
-cleanup:
-    if(IS_ERROR(err)) {
-        if(stack != NULL) {
-            mm_free(&kernel_memory_manager, stack);
-        }
-    }
-    return err;
+    mm_free(&kernel_memory_manager, stack);
+    return NO_ERROR;
 }

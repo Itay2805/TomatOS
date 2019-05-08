@@ -1,68 +1,47 @@
 #ifndef TOMATKERNEL_EXCEPT_H
 #define TOMATKERNEL_EXCEPT_H
 
-#include <graphics/term.h>
 #include <interrupts/interrupts.h>
-#include "stdint.h"
+#include <graphics/term.h>
+#include <kernel.h>
 
-#ifndef EXCEPT_MAX_FRAMES
-    #define EXCEPT_MAX_FRAMES 128u
-#endif
+#include "global_except.h"
+#include "buf.h"
 
-#ifndef __FILENAME__
-    #warning __FILENAME__ was not defined, defaulting to __FILE__
-    #define __FILENAME__ __FILE__
-#endif
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Common stuff
+//
+// These are common stuff for both global and error handling
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#if EXCEPT_MAX_FRAMES >= 0xffffu || EXCEPT_MAX_FRAMES < 0u
-    #error EXCEPT_MAX_FRAMES must be a positive 16bit value
-#endif
+/**
+ * Error struct that contains everything needed for the error
+ */
+typedef struct error_info {
+    error_frame_t* error_frames;
+    int code;
+} error_info_t;
 
-typedef struct error_frame {
-    const char* file;
-    const char* function;
-    unsigned int line;
-} error_frame_t;
+typedef error_info_t* error_t;
 
-// TODO: Fix this cause this doesn't really work
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Error handling
+//
+// This is for most of the error handling once the memory manager is available for the kernel
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// term_print("error %s (level=%d) at %s:%d - %s\n", except_strings[error_code], error_frames_length, __FILENAME__, __LINE__, __FUNCTION__);
-
-#define ERROR_PUSH_FRAME \
-    do { \
-        int error_frames_length = (err >> 16u) & 0xFFFFu; \
-        int error_code = err & 0xFFFFu; \
-        if(error_frames_length < EXCEPT_MAX_FRAMES) { \
-            error_frames[error_frames_length].file = __FILENAME__; \
-            error_frames[error_frames_length].function = __FUNCTION__; \
-            error_frames[error_frames_length].line = __LINE__; \
-            error_frames_length++; \
-            err = ((error_frames_length & 0xFFFFu) << 16u) | (error_code); \
-        } \
-    } while(0)
-
-typedef uint32_t error_t;
-
-// TODO: Make per-CPU
-extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
-
-#define NO_ERROR                ((error_t)0u)
-#define ERROR_CHECK_FAILED      ((error_t)1u)
-#define ERROR_INVALID_ARGUMENT  ((error_t)2u)
-#define ERROR_INVALID_POINTER   ((error_t)3u)
-#define ERROR_ALREADY_FREED     ((error_t)4u)
-#define ERROR_OUT_OF_MEMORY     ((error_t)5u)
-#define ERROR_NOT_FOUND         ((error_t)6u)
-#define ERROR_INVALID_SYSCALL   ((error_t)7u)
-#define ERROR_NOT_IMPLEMENTED   ((error_t)8u)
-
-#define IS_ERROR(err) (err & 0xFFFFu)
+#define IS_ERROR(err) ((err) == NULL ? 0 : (err)->code)
 
 #define CHECK_ERROR(condition, error) \
     do { \
         if(!(condition)) { \
-            err = (error); \
-            ERROR_PUSH_FRAME; \
+            if(err != NULL) { \
+                mm_free(&kernel_memory_manager, err); \
+                err = NULL; \
+            } \
+            err = mm_allocate(&kernel_memory_manager, sizeof(error_info_t)); \
+            err->code = (error); \
+            buf_push(err->error_frames, (error_frame_t){ __FILENAME__, __FUNCTION__, __LINE__ }); \
             goto cleanup; \
         } \
     } while(0)
@@ -77,14 +56,12 @@ extern error_frame_t error_frames[EXCEPT_MAX_FRAMES];
     do { \
         err = (error); \
         if(IS_ERROR(err) != NO_ERROR) { \
-            ERROR_PUSH_FRAME; \
+            buf_push(err->error_frames, (error_frame_t){ __FILENAME__, __FUNCTION__, __LINE__ }); \
             goto label; \
         } \
     } while(0)
 
 #define CHECK_AND_RETHROW(error) CHECK_AND_RETHROW_LABEL(error, cleanup)
-
-extern const char* except_strings[];
 
 #define KERNEL_STACK_TRACE() \
     do { \
@@ -94,10 +71,10 @@ extern const char* except_strings[];
         term_print("\n\n[%s] Error %s (%d):\n", __FUNCTION__, except_strings[IS_ERROR(err)], IS_ERROR(err)); \
         term_set_background_color(COLOR_BLACK); \
         term_set_text_color(COLOR_WHITE); \
-        for (size_t i = ((err) >> 16u) - 1; i >= 1; i--) { \
-            term_print("[%s] \trethrown at '%s' (%s:%d)\n", __FUNCTION__, error_frames[i].function, error_frames[i].file, error_frames[i].line); \
+        for (size_t i = (buf_len(err)) - 1; i >= 1; i--) { \
+            term_print("[%s] \trethrown at '%s' (%s:%d)\n", __FUNCTION__, err->error_frames[i].function, err->error_frames[i].file, err->error_frames[i].line); \
         } \
-        term_print("[%s] \tthrown at '%s' (%s:%d)\n", __FUNCTION__, error_frames[0].function, error_frames[0].file, error_frames[0].line); \
+        term_print("[%s] \tthrown at '%s' (%s:%d)\n", __FUNCTION__, err->error_frames[0].function, err->error_frames[0].file, err->error_frames[0].line); \
     }while(0)
 
 #define KERNEL_PANIC() \
@@ -106,5 +83,6 @@ extern const char* except_strings[];
         KERNEL_STACK_TRACE(); \
         while (true) hlt(); \
     }while(0)
+
 
 #endif

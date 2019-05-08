@@ -1,7 +1,12 @@
+#include "mm.h"
+
+#include <common/global_except.h>
 #include <common/string.h>
 #include <common/common.h>
+
 #include <graphics/term.h>
-#include "mm.h"
+
+#include "vmm.h"
 
 #define MM_MAGIC (void*)0xCAFEBABE
 
@@ -18,7 +23,7 @@
  * @remark
  * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
-static error_t expand(mm_context_t* context, size_t min) {
+static global_error_t expand(mm_context_t* context, size_t min) {
     // allocate all the required pages
     int attrs = PAGE_ATTR_WRITE;
     if(vmm_get() != kernel_address_space) {
@@ -70,7 +75,7 @@ static error_t expand(mm_context_t* context, size_t min) {
  * @remark
  * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
-static error_t join(mm_context_t* context) {
+static global_error_t join(mm_context_t* context) {
     mm_block_t* current = context->first;
     while (current->next != NULL) {
         mm_block_t* next = current->next;
@@ -138,8 +143,8 @@ static bool can_split(mm_block_t* block, size_t size, size_t alignment) {
  * @param ptr       [IN]    The pointer to get the block for
  * @param block     [OUT]   The pointer to the block
  */
-static error_t get_block_from_ptr(void* ptr, mm_block_t** block) {
-    error_t err = NO_ERROR;
+static global_error_t get_block_from_ptr(void* ptr, mm_block_t** block) {
+    global_error_t err = NO_ERROR;
     mm_block_t* assumed_block = ptr - sizeof(mm_block_t);
 
     int padding = 0;
@@ -148,7 +153,7 @@ static error_t get_block_from_ptr(void* ptr, mm_block_t** block) {
         padding++;
     }
 
-    CHECK_ERROR(padding == get_padding(assumed_block, assumed_block->alignment), ERROR_INVALID_POINTER);
+    CHECK_GLOBAL_ERROR(padding == get_padding(assumed_block, assumed_block->alignment), ERROR_INVALID_POINTER);
 
     *block = assumed_block;
 
@@ -165,13 +170,13 @@ cleanup:
  * @remark
  * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
-static error_t update_free(mm_context_t* context, bool tried_join, bool tried_expand) {
-    error_t err = NO_ERROR;
+static global_error_t update_free(mm_context_t* context, bool tried_join, bool tried_expand) {
+    global_error_t err = NO_ERROR;
     mm_block_t* current = context->free;
     bool first = true;
 
     while(current->allocated) {
-        CHECK_ERROR(first || current != context->free, ERROR_OUT_OF_MEMORY);
+        CHECK_GLOBAL_ERROR(first || current != context->free, ERROR_OUT_OF_MEMORY);
         current = current->next;
         first = false;
     }
@@ -179,13 +184,13 @@ static error_t update_free(mm_context_t* context, bool tried_join, bool tried_ex
     context->free = current;
 
 cleanup:
-    if(IS_ERROR(err) == ERROR_OUT_OF_MEMORY) {
+    if(IS_GLOBAL_ERROR(err) == ERROR_OUT_OF_MEMORY) {
         if(!tried_join) {
-            CHECK_AND_RETHROW_LABEL(join(context), cleanup_failed);
-            CHECK_AND_RETHROW_LABEL(update_free(context, true, false), cleanup_failed);
+            CHECK_GLOBAL_AND_RETHROW_LABEL(join(context), cleanup_failed);
+            CHECK_GLOBAL_AND_RETHROW_LABEL(update_free(context, true, false), cleanup_failed);
         }else if(!tried_expand) {
-            CHECK_AND_RETHROW_LABEL(expand(context, sizeof(size_t) * 3), cleanup_failed);
-            CHECK_AND_RETHROW_LABEL(update_free(context, true, true), cleanup_failed);
+            CHECK_GLOBAL_AND_RETHROW_LABEL(expand(context, sizeof(size_t) * 3), cleanup_failed);
+            CHECK_GLOBAL_AND_RETHROW_LABEL(update_free(context, true, true), cleanup_failed);
         }
     }
 cleanup_failed:
@@ -206,14 +211,14 @@ cleanup_failed:
  * @remark
  * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
-static error_t allocate_internal(mm_context_t* context, size_t size, size_t alignment, void** ptr, bool tried_join, bool tried_expand) {
-    error_t err = NO_ERROR;
+static global_error_t allocate_internal(mm_context_t* context, size_t size, size_t alignment, void** ptr, bool tried_join, bool tried_expand) {
+    global_error_t err = NO_ERROR;
     mm_block_t* current = context->free;
     bool first = true;
     void* allocated = NULL;
 
     while(current != NULL) {
-        CHECK_ERROR(first || current != context->free, ERROR_OUT_OF_MEMORY);
+        CHECK_GLOBAL_ERROR(first || current != context->free, ERROR_OUT_OF_MEMORY);
 
         if(!current->allocated && check_size_and_alignment(current, size, alignment)) {
             if(can_split(current, size, alignment)) {
@@ -243,7 +248,7 @@ static error_t allocate_internal(mm_context_t* context, size_t size, size_t alig
             }
 
             // update the free block pointer
-            CHECK_AND_RETHROW(update_free(context, tried_join, tried_expand));
+            CHECK_GLOBAL_AND_RETHROW(update_free(context, tried_join, tried_expand));
 
             // set as allocated
             current->alignment = alignment;
@@ -260,13 +265,13 @@ static error_t allocate_internal(mm_context_t* context, size_t size, size_t alig
     *ptr = allocated;
 
 cleanup:
-    if(IS_ERROR(err) == ERROR_OUT_OF_MEMORY) {
+    if(IS_GLOBAL_ERROR(err) == ERROR_OUT_OF_MEMORY) {
         if(!tried_join) {
-            CHECK_AND_RETHROW_LABEL(join(context), cleanup_failed);
-            CHECK_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, false), cleanup_failed);
+            CHECK_GLOBAL_AND_RETHROW_LABEL(join(context), cleanup_failed);
+            CHECK_GLOBAL_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, false), cleanup_failed);
         }else if(!tried_expand) {
-            CHECK_AND_RETHROW_LABEL(expand(context, sizeof(size_t) * 3), cleanup_failed);
-            CHECK_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, true), cleanup_failed);
+            CHECK_GLOBAL_AND_RETHROW_LABEL(expand(context, sizeof(size_t) * 3), cleanup_failed);
+            CHECK_GLOBAL_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, true), cleanup_failed);
         }
     }
 cleanup_failed:
@@ -281,7 +286,7 @@ cleanup_failed:
  * @remark
  * Will assume the block is valid
  */
-static error_t internal_free(mm_block_t* block) {
+static global_error_t internal_free(mm_block_t* block) {
     block->alignment = 0;
     block->allocated = false;
 
@@ -293,7 +298,7 @@ static error_t internal_free(mm_block_t* block) {
 ////////////////////////////////////////////////////////////////////////////
 
 
-error_t mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
+void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     int attrs = PAGE_ATTR_WRITE;
     if(vmm_get() != kernel_address_space) {
         attrs |= PAGE_ATTR_USER;
@@ -311,61 +316,62 @@ error_t mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     context->first->prev = context->first;
     context->first->next = context->first;
     context->first->allocated = false;
-
-    return NO_ERROR;
 }
 
-error_t mm_allocate(mm_context_t* context, size_t size, void** ptr) {
-    error_t err = NO_ERROR;
-    CHECK_AND_RETHROW(mm_allocate_aligned(context, size, 8, ptr));
+void* mm_allocate(mm_context_t* context, size_t size) {
+    return mm_allocate_aligned(context, size, 8);
+}
+
+void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) {
+    global_error_t err = NO_ERROR;
+    void* ptr = NULL;
+    CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, (void**)&ptr, false, false));
 cleanup:
-    return err;
+    if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
+        KERNEL_GLOBAL_PANIC();
+    }
+    return ptr;
 }
 
-error_t mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment, void** ptr) {
-    error_t err = NO_ERROR;
-    CHECK_AND_RETHROW(allocate_internal(context, size, alignment, ptr, false, false));
-cleanup:
-    return err;
-}
-
-error_t mm_free(mm_context_t* context, void* ptr) {
-    error_t err = NO_ERROR;
+void mm_free(mm_context_t* context, void* ptr) {
+    global_error_t err = NO_ERROR;
     mm_block_t* block = NULL;
 
-    CHECK_ERROR(context, ERROR_INVALID_ARGUMENT);
-    CHECK_ERROR(context, ERROR_INVALID_ARGUMENT);
+    CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
+    CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
 
-    CHECK_ERROR((void*)context->last + context->last->size > ptr && (void*)context->first < ptr, ERROR_INVALID_POINTER);
+    CHECK_GLOBAL_ERROR((void*)context->last + context->last->size > ptr && (void*)context->first < ptr, ERROR_INVALID_POINTER);
 
-    CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
-    CHECK_ERROR(block->allocated, ERROR_INVALID_POINTER);
+    CHECK_GLOBAL_AND_RETHROW(get_block_from_ptr(ptr, &block));
+    CHECK_GLOBAL_ERROR(block->allocated, ERROR_INVALID_POINTER);
 
-    internal_free(block);
+    CHECK_GLOBAL_AND_RETHROW(internal_free(block));
 
 cleanup:
-    return err;
+    // we ignore invalid pointer in the free
+    if(IS_GLOBAL_ERROR(err) != NO_ERROR && IS_GLOBAL_ERROR(err) != ERROR_INVALID_POINTER) {
+        KERNEL_GLOBAL_PANIC();
+    }
 }
 
-error_t mm_reallocate(mm_context_t* context, void* ptr, size_t size, void** output) {
-    error_t err = NO_ERROR;
+void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
+    global_error_t err = NO_ERROR;
     mm_block_t* block = NULL;
     void* new = NULL;
     size_t s = 0;
 
-    CHECK_ERROR(context, ERROR_INVALID_ARGUMENT);
-    CHECK_ERROR(output, ERROR_INVALID_ARGUMENT);
-    CHECK_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
+    CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
+    CHECK_GLOBAL_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
 
     if(ptr == NULL) {
-        CHECK_AND_RETHROW(mm_allocate(context, size, &new));
+        new = mm_allocate(context, size);
     }else {
-        CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
-        CHECK_ERROR(block->allocated, ERROR_ALREADY_FREED);
+        CHECK_GLOBAL_AND_RETHROW(get_block_from_ptr(ptr, &block));
+        CHECK_GLOBAL_ERROR(block->allocated, ERROR_ALREADY_FREED);
 
         if(block->size > (ptrdiff_t)size) {
             s = (size_t) (block->size - get_padding(block, block->alignment));
-            CHECK_AND_RETHROW(mm_allocate_aligned(context, size, block->alignment, &new));
+            CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, block->alignment, (void**)new, false, false));
         }else {
             new = ptr;
         }
@@ -377,11 +383,12 @@ error_t mm_reallocate(mm_context_t* context, void* ptr, size_t size, void** outp
         memset(new + s, 0, size - s);
 
         // free the block
-        CHECK_AND_RETHROW(internal_free(block));
-
-        *output = ptr;
+        CHECK_GLOBAL_AND_RETHROW(internal_free(block));
     }
 
 cleanup:
-    return err;
+    if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
+        KERNEL_GLOBAL_PANIC();
+    }
+    return ptr;
 }

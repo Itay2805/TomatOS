@@ -1,6 +1,6 @@
 #include "except.h"
 
-error_frame_t error_frames[EXCEPT_MAX_FRAMES];
+error_frame_t global_error_frames[EXCEPT_MAX_FRAMES];
 
 const char* except_strings[] = {
         [NO_ERROR] = "No error",

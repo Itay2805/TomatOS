@@ -75,7 +75,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
             CHECK_AND_RETHROW(vmm_copy_to_kernel(running_process->address_space, (void*)regs->rdi, &descriptor, sizeof(resource_descriptor_t)));
             // get the scheme name length, allocate a buffer to store it, and read the scheme
             CHECK_AND_RETHROW(vmm_copy_string_to_kernel(running_process->address_space, descriptor.scheme, NULL, &len));
-            CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, len, (void**)&scheme));
+            scheme = mm_allocate(&kernel_memory_manager, len);
             CHECK_AND_RETHROW(vmm_copy_string_to_kernel(running_process->address_space, descriptor.scheme, scheme, &len));
 
             // get the actual provider
@@ -156,7 +156,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
     provider_thread->cpu_state.rsi = running_thread->tid;
 
     // we are going to allocate a small stack
-    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, KB(4), (void**)&stack));
+    stack = mm_allocate(&kernel_memory_manager, KB(4));
     provider_thread->cpu_state.rbp = (uintptr_t)stack + KB(4);
     provider_thread->cpu_state.rsp = (uintptr_t)stack + KB(4);
 
@@ -168,7 +168,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
     schedule(regs, 0);
 cleanup:
     if(IS_ERROR(err)) {
-        regs->rax = (uint64_t) -err;
+        regs->rax = (uint64_t) err;
         if(provider_thread != NULL) thread_kill(provider_thread);
         if(stack != NULL) mm_free(&kernel_memory_manager, stack);
     }

@@ -6,6 +6,9 @@
 #include <common/string.h>
 #include <resource/resource.h>
 #include "process.h"
+#include "syscalls.h"
+#include "syscall.h"
+#include "scheduler.h"
 
 process_t** processes = NULL;
 
@@ -15,7 +18,6 @@ static int next_pid = 1;
 
 process_t* process_create(thread_start_f start, bool kernel) {
     // TODO: Proper error handling
-    error_t err = NO_ERROR;
     process_t** proc_slot = NULL;
     process_t* proc = NULL;
 
@@ -34,7 +36,7 @@ process_t* process_create(thread_start_f start, bool kernel) {
         proc_slot = &processes[buf_len(processes) - 1];
     }
 
-    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, sizeof(process_t), (void**)&proc));
+    proc = mm_allocate(&kernel_memory_manager, sizeof(process_t));
     memset(proc, 0, sizeof(process_t));
     *proc_slot = proc;
 
@@ -58,10 +60,6 @@ process_t* process_create(thread_start_f start, bool kernel) {
 
     thread_init(&proc->threads[0]);
 
-cleanup:
-    if(IS_ERROR(err)) {
-        proc = NULL;
-    }
     return proc;
 }
 
@@ -134,4 +132,26 @@ void process_remove(process_t* process) {
             break;
         }
     }
+}
+
+static error_t syscall_thread_kill(registers_t* regs) {
+    error_t err = NO_ERROR;
+
+    if(regs->rdi == 0 || regs->rdi == running_thread->tid) {
+        thread_kill(running_thread);
+        running_thread = NULL;
+        schedule(regs, 0);
+    }else {
+        thread_t* thread = NULL;
+        CHECK_AND_RETHROW(thread_find(running_thread->parent, regs->rdi, &thread));
+        thread_kill(thread);
+    }
+
+cleanup:
+    return err;
+}
+
+error_t process_init() {
+    syscalls[SYSCALL_THREAD_KILL] = syscall_thread_kill;
+    return NO_ERROR;
 }

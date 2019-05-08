@@ -46,7 +46,7 @@ static error_t idle_process_init() {
     idle_process.pid = 0;
     idle_process.next_tid = 1;
 
-    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, KB(1), &idle_process_stack));
+    idle_process_stack = mm_allocate(&kernel_memory_manager, KB(1));
 
     // create an idle thread
     // TODO: Make this per cpu

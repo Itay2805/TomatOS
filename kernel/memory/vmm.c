@@ -602,7 +602,7 @@ error_t vmm_copy_to_kernel(address_space_t addrspace, const void* _from, void* _
 
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(addrspace, from, &physical_addr));
-    CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&tmp_page));
+    tmp_page = mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t)from - ALIGN_DOWN((uintptr_t)from, KB(4)));
@@ -649,7 +649,7 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
 
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(address_space, from, &physical_addr));
-    CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void**)&tmp_page));
+    tmp_page = mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t)from - ALIGN_DOWN((uintptr_t)from, KB(4)));
@@ -707,7 +707,7 @@ error_t vmm_copy_to_user(address_space_t addrspace, const void *_from, void *_to
 
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(addrspace, to, &physical_addr));
-    CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void **) &tmp_page));
+    tmp_page = mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
@@ -758,7 +758,7 @@ error_t vmm_clear_user(address_space_t addrspace, void *_to, size_t len) {
 
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(addrspace, to, &physical_addr));
-    CHECK_AND_RETHROW(mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4), (void **) &tmp_page));
+    tmp_page = mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
