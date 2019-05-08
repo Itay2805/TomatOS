@@ -89,7 +89,7 @@ thread_t* running_thread = NULL;
  * and thread rollup
  */
 static void handle_timer_interrupt(registers_t* regs) {
-    schedule(regs, pit_get_interval());
+    schedule(regs, (int) pit_get_interval());
 }
 
 void schedule(registers_t* regs, int interval) {
@@ -104,7 +104,7 @@ void schedule(registers_t* regs, int interval) {
 
     // the current thread was suspended
     // save it's state and set that there is no running thread
-    if(running_thread != NULL && running_thread->state == THREAD_SUSPENDED) {
+    if(running_thread != NULL && (running_thread->state == THREAD_SUSPENDED || running_thread->state == THREAD_DEAD)) {
         running_thread->cpu_state = *regs;
         running_thread->time = 0;
         running_thread = NULL;
@@ -131,10 +131,7 @@ void schedule(registers_t* regs, int interval) {
 
         for(thread_t* thread = process->threads; thread < buf_end(process->threads); thread++) {
             // ignore dead threads
-            if(thread->state == THREAD_DEAD) continue;
-
-            // if the thread is suspended no need to actually check times
-            if(thread->state == THREAD_SUSPENDED) continue;
+            if(thread->state == THREAD_DEAD || thread->state == THREAD_SUSPENDED) continue;
 
             // increment the time
             thread->time += interval;
@@ -156,7 +153,7 @@ void schedule(registers_t* regs, int interval) {
     }
 
     // if we chose to run the current thread just continue
-    if(thread_to_run == running_thread || (thread_to_run == NULL && running_thread != NULL)) {
+    if(running_thread != NULL && (thread_to_run == running_thread || thread_to_run == NULL)) {
         if(addr != kernel_address_space)
             vmm_set(addr);
         return;

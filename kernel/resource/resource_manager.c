@@ -33,15 +33,19 @@ static error_t syscall_provider_handler_finished(registers_t* regs) {
     CHECK_ERROR(!IS_ERROR(resource_manager_get_provider_by_pid(running_thread->parent->pid, NULL)), ERROR_INVALID_SYSCALL);
 
     // resume the thread that was waiting
-    thread->cpu_state.rax = regs->rcx;
+    thread->cpu_state.rax = regs->rcx == NULL ? false : true;
     thread->state = THREAD_NORMAL;
     thread->time = 0;
 
-    // free the stack
-    mm_free(&kernel_memory_manager, (void *) regs->rsp);
+    if(IS_ERROR((error_t)regs->rcx)) {
+        err = (error_t)regs->rcx;
+        KERNEL_STACK_TRACE();
+        err = NULL;
+    }
 
 cleanup:
     // kill the thread and reschedule even if we failed
+    mm_free(&kernel_memory_manager, (void *) regs->rsp - KB(4));
     thread_kill(running_thread);
     schedule(regs, 0);
 

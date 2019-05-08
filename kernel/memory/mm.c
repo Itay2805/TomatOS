@@ -33,7 +33,7 @@ static global_error_t expand(mm_context_t* context, size_t min) {
     size_t page_count = min / 4096u;
     char* start = (void *) ((uintptr_t)context->last + sizeof(mm_block_t) + context->last->size);
     for(size_t i = 0; i < page_count; i++) {
-        vmm_allocate(vmm_get(), start + i * 4096, attrs);
+        vmm_allocate(vmm_get(), start + i * KB(4), attrs);
     }
 
     // update sizes
@@ -286,9 +286,10 @@ cleanup_failed:
  * @remark
  * Will assume the block is valid
  */
-static global_error_t internal_free(mm_block_t* block) {
+static global_error_t internal_free(mm_context_t* context, mm_block_t* block) {
     block->alignment = 0;
     block->allocated = false;
+    context->used_size -= block->size;
 
     return NO_ERROR;
 }
@@ -351,18 +352,17 @@ void mm_free(mm_context_t* context, void* ptr) {
     spinlock_lock(&context->lock);
 
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
-    CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
 
-    CHECK_GLOBAL_ERROR((void*)context->last + context->last->size > ptr && (void*)context->first < ptr, ERROR_INVALID_POINTER);
+    CHECK_GLOBAL_ERROR((void*)(context->last + context->last->size) > ptr && (void*)context->first < ptr, ERROR_INVALID_POINTER);
 
     CHECK_GLOBAL_AND_RETHROW(get_block_from_ptr(ptr, &block));
     CHECK_GLOBAL_ERROR(block->allocated, ERROR_INVALID_POINTER);
 
-    CHECK_GLOBAL_AND_RETHROW(internal_free(block));
+    CHECK_GLOBAL_AND_RETHROW(internal_free(context, block));
 
 cleanup:
     // we ignore invalid pointer in the free
-    if(IS_GLOBAL_ERROR(err) != NO_ERROR && IS_GLOBAL_ERROR(err) != ERROR_INVALID_POINTER) {
+    if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
         KERNEL_GLOBAL_PANIC();
     }
 
@@ -400,7 +400,7 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
         memset(new + s, 0, size - s);
 
         // free the block
-        CHECK_GLOBAL_AND_RETHROW(internal_free(block));
+        CHECK_GLOBAL_AND_RETHROW(internal_free(context, block));
     }
 
 cleanup:

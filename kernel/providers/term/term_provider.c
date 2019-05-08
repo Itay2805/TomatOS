@@ -52,12 +52,13 @@ static error_t handle_close(process_t* process, int tid, resource_t resource) {
 
 static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len) {
     error_t err = NO_ERROR;
-    void* kbuffer = NULL;
+    char* kbuffer = NULL;
 
     UNUSED(tid);
     UNUSED(resource);
 
-    kbuffer = mm_allocate(&kernel_memory_manager, len);
+    kbuffer = mm_allocate(&kernel_memory_manager, len + 1);
+    kbuffer[len] = 0;
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, buffer, kbuffer, len));
 
     term_write(kbuffer);

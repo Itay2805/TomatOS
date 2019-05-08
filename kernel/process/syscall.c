@@ -36,8 +36,7 @@ void syscall_handler(registers_t regs) {
     }
 
 cleanup:
-    before = running_thread->parent->address_space;
-    if(before != kernel_address_space) {
+    if(vmm_get() != kernel_address_space && before != kernel_address_space) {
         vmm_set(before);
     }
 

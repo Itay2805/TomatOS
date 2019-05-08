@@ -126,6 +126,7 @@ extern const char* except_strings[];
     do { \
         cli(); \
         KERNEL_GLOBAL_STACK_TRACE(); \
+        term_write("\n:(\n"); \
         while (true) hlt(); \
     }while(0)
 

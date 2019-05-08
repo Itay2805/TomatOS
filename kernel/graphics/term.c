@@ -1,4 +1,5 @@
 #include <common/mini-printf.h>
+#include <locks/spinlock.h>
 #include "term.h"
 
 #include "font.h"
@@ -8,6 +9,7 @@ static int width;
 static int height;
 static int cur_x = 0, cur_y = 0;
 static uint32_t bg_color = COLOR_BLACK, fg_color = COLOR_WHITE;
+static spinlock_t lock = {0};
 
 /**
  * Used to draw a single character
@@ -50,6 +52,7 @@ void term_init(multiboot_info_t* multiboot) {
 }
 
 void term_write(const char* text) {
+    spinlock_lock(&lock);
     while(*text) {
         char chr = *text++;
         switch(chr) {
@@ -76,6 +79,7 @@ void term_write(const char* text) {
             cur_y = height - 1;
         }
     }
+    spinlock_unlock(&lock);
 }
 
 size_t term_print(const char* fmt, ...) {
