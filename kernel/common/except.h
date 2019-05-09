@@ -64,7 +64,7 @@ typedef error_info_t* error_t;
 
 #define CHECK_AND_RETHROW(error) CHECK_AND_RETHROW_LABEL(error, cleanup)
 
-#define KERNEL_STACK_TRACE() \
+#define KERNEL_STACK_TRACE(err) \
     do { \
         vmm_set(kernel_address_space); \
         term_set_background_color(COLOR_RED); \
@@ -72,18 +72,25 @@ typedef error_info_t* error_t;
         term_print("\n\n[%s] Error %s (%d):\n", __FUNCTION__, except_strings[IS_ERROR(err)], IS_ERROR(err)); \
         term_set_background_color(COLOR_BLACK); \
         term_set_text_color(COLOR_WHITE); \
-        for (size_t i = (buf_len(err->error_frames)) - 1; i >= 1; i--) { \
-            term_print("[%s] \trethrown at '%s' (%s:%d)\n", __FUNCTION__, err->error_frames[i].function, err->error_frames[i].file, err->error_frames[i].line); \
+        for (size_t i = (buf_len((err)->error_frames)) - 1; i >= 1; i--) { \
+            term_print("[%s] \trethrown at '%s' (%s:%d)\n", __FUNCTION__, (err)->error_frames[i].function, (err)->error_frames[i].file, (err)->error_frames[i].line); \
         } \
-        term_print("[%s] \tthrown at '%s' (%s:%d)\n", __FUNCTION__, err->error_frames[0].function, err->error_frames[0].file, err->error_frames[0].line); \
+        term_print("[%s] \tthrown at '%s' (%s:%d)\n", __FUNCTION__, (err)->error_frames[0].function, (err)->error_frames[0].file, (err)->error_frames[0].line); \
     }while(0)
 
-#define KERNEL_PANIC() \
+#define KERNEL_PANIC(err) \
     do { \
         cli(); \
-        KERNEL_STACK_TRACE(); \
+        KERNEL_STACK_TRACE(err); \
         while (true) hlt(); \
     }while(0)
+
+#define ERROR_FREE(err) \
+    do { \
+        buf_free((err)->error_frames); \
+        mm_free(&kernel_memory_manager, (err)); \
+        (err) = NULL; \
+    } while(0)
 
 
 #endif

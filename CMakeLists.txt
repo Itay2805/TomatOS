@@ -85,7 +85,7 @@ set(KERNEL_SOURCE_FILES
 
         kernel/locks/spinlock.h
         kernel/locks/rwlock.h
-
+        kernel/locks/critical_section.h
 
         kernel/cpu/rflags.h
         kernel/cpu/msr.h
@@ -104,7 +104,7 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/term/term_provider.c
 
         kernel/multiboot.asm
-        kernel/kernel.c kernel/locks/critical_section.h)
+        kernel/kernel.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")

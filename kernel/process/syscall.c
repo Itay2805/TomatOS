@@ -40,9 +40,10 @@ cleanup:
     }
 
     // on error print the stack trace
+    // and free the error
     if(IS_ERROR(err)) {
-        // TODO: How to print without blocking
-        // KERNEL_STACK_TRACE();
+        KERNEL_STACK_TRACE(err);
+        ERROR_FREE(err);
     }
 }
 

@@ -601,7 +601,7 @@ error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr
 
 cleanup:
     if(IS_ERROR(err)) {
-        KERNEL_PANIC();
+        KERNEL_PANIC(err);
     }
 
     critical_section_end(cs);

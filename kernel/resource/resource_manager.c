@@ -38,9 +38,11 @@ static error_t syscall_provider_handler_finished(registers_t* regs) {
     thread->time = 0;
 
     if(IS_ERROR((error_t)regs->rcx)) {
-        err = (error_t)regs->rcx;
-        KERNEL_STACK_TRACE();
-        err = NULL;
+        error_t tmp_err = (error_t)regs->rcx;
+        // print the stack and free the error
+        // tbh we should probably just throw it onwards
+        KERNEL_STACK_TRACE(tmp_err);
+        ERROR_FREE(tmp_err);
     }
 
 cleanup:

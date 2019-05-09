@@ -185,5 +185,5 @@ void kernel_main(multiboot_info_t* info) {
     }
 
 cleanup:
-    KERNEL_PANIC();
+    KERNEL_PANIC(err);
 }
