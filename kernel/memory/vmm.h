@@ -97,22 +97,22 @@ void vmm_free_address_space(address_space_t address_space);
 /**
  * Map a virtual address to the physical address with the given page attributes
  */
-void vmm_map(address_space_t address_space, void* virtual_addr, void* physical_addr, int attributes);
+void vmm_map(address_space_t address_space, volatile void* virtual_addr, void* physical_addr, int attributes);
 
 /**
  * Will unmap the given virtual address, keeping the underlying physical page allocated
  */
-void vmm_unmap(address_space_t address_space, void* virtual_addr);
+void vmm_unmap(address_space_t address_space, volatile void* virtual_addr);
 
 /**
  * Will allocate a page for the virtual address with the given attributes
  */
-void vmm_allocate(address_space_t address_space, void* virtual_addr, int attributes);
+void vmm_allocate(address_space_t address_space, volatile void* virtual_addr, int attributes);
 
 /**
  * Free the given virtual address, both unmapping it and freeing the underlying physical page
  */
-void vmm_free(address_space_t address_space, void* virtual_addr);
+void vmm_free(address_space_t address_space, volatile void* virtual_addr);
 
 ///-------------------------------------------------------------------------
 // Resolving functions

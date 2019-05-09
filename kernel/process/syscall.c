@@ -42,7 +42,8 @@ cleanup:
 
     // on error print the stack trace
     if(IS_ERROR(err)) {
-        KERNEL_STACK_TRACE();
+        // TODO: How to print without blocking
+        // KERNEL_STACK_TRACE();
     }
 }
 
