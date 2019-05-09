@@ -15,12 +15,6 @@
 
 static resource_provider_t term_provider = {0};
 
-static void start() {
-    // Kill self
-    tkill(0);
-    while(true);
-}
-
 static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
     resource_t created_resource = 0;
@@ -75,13 +69,8 @@ cleanup:
 ////////////////////////////////////////////////////////////////////////////
 
 error_t term_provider_init() {
-    process_t* process = process_create(start, true);
-    char* stack = NULL;
-
-    stack = mm_allocate(&kernel_memory_manager, 256);
-
-    process->threads[0].cpu_state.rsp = (uint64_t) (stack + 256);
-    process->threads[0].cpu_state.rbp = (uint64_t) (stack + 256);
+    process_t* process = process_create(NULL, true);
+    thread_kill(&process->threads[0]);
 
     term_provider.scheme = "term";
     term_provider.pid = process->pid;
@@ -91,6 +80,5 @@ error_t term_provider_init() {
 
     resource_manager_register_provider(&term_provider);
 
-    mm_free(&kernel_memory_manager, stack);
     return NO_ERROR;
 }

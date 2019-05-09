@@ -108,8 +108,6 @@ set(KERNEL_SOURCE_FILES
 
         kernel/providers/ata/ata_provider.c
         kernel/providers/ata/ata_provider.h
-        kernel/providers/ata/context_manager.h
-        kernel/providers/ata/context_manager.c
         kernel/providers/ata/ata.h
         kernel/providers/ata/ata.c
 

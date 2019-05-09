@@ -19,16 +19,7 @@ typedef struct resource_context {
 
 static map_t resource_context_map = {0};
 
-static uint64_t hash_resource(int pid, int tid, resource_t resource) {
-    uint64_t values[] = {(uint64_t) pid, (uint64_t) tid, (uint64_t) resource };
-    return hash_bytes(&values, sizeof(values));
-}
-
 static error_t handle_close(process_t* process, int tid, resource_t resource);
-
-static void start() {
-    tkill(0);
-}
 
 static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
@@ -52,7 +43,7 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
 
     // allocate the context
     resource_context_t* context = mm_allocate(&kernel_memory_manager, sizeof(resource_context_t));
-    map_put_from_uint64(&resource_context_map, hash_resource(process->pid, tid, created_resource), context);
+    map_put_from_uint64(&resource_context_map, hash_resource(process->pid, created_resource), context);
     context->base = sub_resource;
     context->ptr = 0;
 
@@ -74,7 +65,7 @@ static error_t handle_close(process_t* process, int tid, resource_t resource) {
     error_t err = NO_ERROR;
 
     // get the context
-    resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, tid, resource));
+    resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
     CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
 
     // close the sub resource
@@ -82,7 +73,7 @@ static error_t handle_close(process_t* process, int tid, resource_t resource) {
 
     // remove the context
     mm_free(&kernel_memory_manager, context);
-    map_put_from_uint64(&resource_context_map, hash_resource(process->pid, tid, resource), NULL);
+    map_put_from_uint64(&resource_context_map, hash_resource(process->pid, resource), NULL);
 
     // TODO: Remove the resource from the kernel
 
@@ -118,7 +109,7 @@ cleanup:
 ////////////////////////////////////////////////////////////////////////////
 
 error_t echfs_provider_init() {
-    process_t* process = process_create(start, true);
+    process_t* process = process_create(NULL, true);
     thread_kill(&process->threads[0]);
 
     echfs_provider.scheme = "echfs";

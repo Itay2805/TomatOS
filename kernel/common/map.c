@@ -64,8 +64,8 @@ void map_grow(map_t *map, size_t new_cap) {
             map_put_uint64_from_uint64(&new_map, map->keys[i], map->vals[i]);
         }
     }
-    mm_free(&kernel_memory_manager, (void *)map->keys);
-    mm_free(&kernel_memory_manager, map->vals);
+    if(map->keys != NULL) mm_free(&kernel_memory_manager, map->keys);
+    if(map->vals != NULL) mm_free(&kernel_memory_manager, map->vals);
     *map = new_map;
 }
 

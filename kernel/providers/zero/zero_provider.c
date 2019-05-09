@@ -20,13 +20,6 @@
 
 static resource_provider_t zero_provider = {0};
 
-static void start() {
-    // Nothing to initialize, but we do not want to exit the thread so just have a while true,
-    // will probably want to kill it tbh
-    tkill(0);
-    while(true);
-}
-
 static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
     resource_t created_resource = 0;
@@ -113,13 +106,8 @@ static error_t handle_seek(process_t* process, int tid, resource_t resource, int
 ////////////////////////////////////////////////////////////////////////////
 
 error_t zero_provider_init() {
-    process_t* process = process_create(start, true);
-    char* stack = NULL;
-
-    stack = mm_allocate(&kernel_memory_manager, 256);
-
-    process->threads[0].cpu_state.rsp = (uint64_t) (stack + 256);
-    process->threads[0].cpu_state.rbp = (uint64_t) (stack + 256);
+    process_t* process = process_create(NULL, true);
+    thread_kill(&process->threads[0]);
 
     zero_provider.scheme = "zero";
     zero_provider.pid = process->pid;
@@ -131,7 +119,5 @@ error_t zero_provider_init() {
     zero_provider.seek = handle_seek;
 
     resource_manager_register_provider(&zero_provider);
-
-    mm_free(&kernel_memory_manager, stack);
     return NO_ERROR;
 }

@@ -5,8 +5,14 @@
 #include <common/stdbool.h>
 #include <common/string.h>
 #include <common/buf.h>
+#include <common/map.h>
 
 #include "resource_manager.h"
+
+uint64_t hash_resource(int pid, resource_t resource) {
+    uint64_t values[] = {(uint64_t) pid, (uint64_t) resource };
+    return hash_bytes(&values, sizeof(values));
+}
 
 error_t resource_create(process_t* process, resource_provider_t* provider, resource_t* resource) {
     error_t err = NO_ERROR;

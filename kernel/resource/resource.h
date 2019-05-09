@@ -36,6 +36,13 @@ struct process;
 error_t resource_create(struct process* process, resource_provider_t* provider, resource_t* resource);
 
 /**
+ * Will hash the pid and resource to give out a unique hash
+ *
+ * this is for using in maps
+ */
+uint64_t hash_resource(int pid, resource_t resource);
+
+/**
  * Will fully copy the descriptor to the kernel
  *
  * @param original_process  [IN]    The original process the descriptor is from

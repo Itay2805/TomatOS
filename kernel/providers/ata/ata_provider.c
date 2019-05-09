@@ -11,14 +11,21 @@
 #include <common/common.h>
 #include <common/klib.h>
 #include <kernel.h>
+#include <common/map.h>
 
 #include "ata_provider.h"
-#include "context_manager.h"
 #include "ata.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // The process functions
 ////////////////////////////////////////////////////////////////////////////
+
+typedef struct ata_resource_context {
+    ata_entry_t* entry;
+    size_t ptr;
+} ata_resource_context_t;
+
+map_t resource_context_map = {0};
 
 static resource_provider_t ata_provider = {0};
 
@@ -31,12 +38,7 @@ static ata_entry_t* find_entry(int domain, int port) {
     return &ide_entries[domain * 2 + port];
 }
 
-static void start() {
-    // Nothing to initialize, but we do not want to exit the thread so just have a while true,
-    // will probably want to kill it tbh
-    tkill(0);
-    while(true);
-}
+static error_t handle_close(process_t* process, int tid, resource_t resource);
 
 static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
@@ -73,15 +75,14 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     // create the resource and add the context to it
     CHECK_AND_RETHROW(resource_create(process, &ata_provider, &created_resource));
     ata_resource_context_t* context = mm_allocate(&kernel_memory_manager, sizeof(ata_resource_context_t));
-    context->resource = created_resource;
     context->entry = entry;
     context->ptr = 0;
-    ata_context_add(context);
+    map_put_from_uint64(&resource_context_map, hash_resource(process->pid, created_resource), context);
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &created_resource, resource, sizeof(resource_t)));
 
 cleanup:
-    if(IS_ERROR(err) != NO_ERROR) {
-        // TODO: Close the resource cause we had an error
+    if(IS_ERROR(err)) {
+        handle_close(process, tid, created_resource);
     }
     if(domain_str != NULL) {
         mm_free(&kernel_memory_manager, domain_str);
@@ -90,13 +91,18 @@ cleanup:
 }
 
 static error_t handle_close(process_t* process, int tid, resource_t resource) {
-    // TODO: Add a remove resource function, memory leaking until that is fixed
     error_t err = NO_ERROR;
 
-    UNUSED(process);
-    UNUSED(tid);
+    // get the context
+    ata_resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
 
-    CHECK_AND_RETHROW(ata_context_remove(resource));
+    // remove the context
+    mm_free(&kernel_memory_manager, context);
+    map_put_from_uint64(&resource_context_map, hash_resource(process->pid, resource), NULL);
+
+    // TODO: Remove the resource from the kernel
+
 
 cleanup:
     return NO_ERROR;
@@ -112,7 +118,8 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
     CHECK_ERROR(buffer != NULL, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(len > 0, ERROR_INVALID_ARGUMENT);
 
-    CHECK_AND_RETHROW(ata_context_get(resource, &context));
+    context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
 
     // calculate the padding and allocate a buffer
     size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
@@ -155,7 +162,8 @@ static error_t handle_write(process_t* process, int tid, resource_t resource, ch
     CHECK_ERROR(len > 0, ERROR_INVALID_ARGUMENT);
 
     // get the context
-    CHECK_AND_RETHROW(ata_context_get(resource, &context));
+    context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
 
     // calculate padding at start and end
     size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
@@ -194,14 +202,17 @@ cleanup:
 
 static error_t handle_tell(process_t* process, int tid, resource_t resource, size_t* pos) {
     error_t err = NO_ERROR;
-    ata_resource_context_t* context = NULL;
+    ata_resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
 
     UNUSED(tid);
 
     CHECK_ERROR(pos != NULL, ERROR_INVALID_ARGUMENT);
 
     // get the context
-    CHECK_AND_RETHROW(ata_context_get(resource, &context));
+    context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
+
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &context->ptr, pos, sizeof(size_t)));
 
 cleanup:
@@ -211,10 +222,8 @@ cleanup:
 // TODO: Range checking
 static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, ptrdiff_t pos) {
     error_t err = NO_ERROR;
-    ata_resource_context_t* context = NULL;
-
-    // get the context
-    CHECK_AND_RETHROW(ata_context_get(resource, &context));
+    ata_resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
 
     switch(type) {
         case SEEK_CUR:
@@ -271,13 +280,8 @@ static void print_identify(const char* drive, ata_identify_t* identify) {
 }
 
 error_t ata_provider_init() {
-    process_t* process = process_create(start, true);
-    char* stack = NULL;
-
-    stack = mm_allocate(&kernel_memory_manager, 256);
-
-    process->threads[0].cpu_state.rsp = (uint64_t) (stack + 256);
-    process->threads[0].cpu_state.rbp = (uint64_t) (stack + 256);
+    process_t* process = process_create(NULL, true);
+    thread_kill(&process->threads[0]);
 
     ata_provider.scheme = "ata";
     ata_provider.pid = process->pid;
@@ -334,6 +338,5 @@ error_t ata_provider_init() {
         term_print("[ata_provider_init] ata://secondary:1/ not found\n");
     }
 
-    mm_free(&kernel_memory_manager, stack);
     return NO_ERROR;
 }
