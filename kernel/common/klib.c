@@ -23,7 +23,7 @@ bool write(resource_t res, char* buffer, int size, int* outSize) {
     return result;
 }
 
-bool seek(resource_t res, int relative, int offset) {
+bool seek(resource_t res, int relative, ptrdiff_t offset) {
     bool result;
     asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_SEEK), "D"(res), "S"(relative), "d"(offset));
     return result;

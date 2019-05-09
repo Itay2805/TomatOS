@@ -1,95 +1,111 @@
 #include <drivers/portio.h>
+#include <common/except.h>
+#include <common/string.h>
+
 #include "ata.h"
 
-#define MASTER	0xE0
-#define SLAVE	0xF0
-
-#define MASTER_IDENTIFIER	0xA0
-#define SLAVE_IDENTIFIER	0xB0
-
-#define CURRENT_IDENTIFIER	MASTER_IDENTIFIER
-#define CURRENT				MASTER
-
-#define PRIMARY_ATA_PORT_BASE	(uint8_t)0x1F0
-#define SECONDARY_ATA_PORT_BASE     (uint8_t)0x170
-
-#define DATA_PORT				(uint16_t)0
-#define ERROR_PORT				(uint16_t)1
-#define SECTOR_COUNT_PORT		(uint16_t)2
-#define LBA_LOW_PORT			(uint16_t)3
-#define LBA_MID_PORT			(uint16_t)4
-#define LBA_HI_PORT				(uint16_t)5
-#define DEVICE_PORT				(uint16_t)6
-#define COMMAND_PORT			(uint16_t)7
-#define CONTROL_PORT			(uint16_t)518
-
 static uint8_t port_to_device_port[] = {
-    [0] = MASTER_IDENTIFIER,
-    [1] = SLAVE_IDENTIFIER
+    [0] = 0xA0,
+    [1] = 0xB0
 };
 
 static uint8_t  cintrooler_to_device_controller[] = {
-    [0] = MASTER,
-    [1] = SLAVE
+    [0] = 0xE0,
+    [1] = 0xF0
 };
 
 static uint16_t portiop[] = {
-    [0] = PRIMARY_ATA_PORT_BASE,
-    [1] = SECONDARY_ATA_PORT_BASE
+    [0] = 0x1F0,
+    [1] = 0x170
 };
 
-bool ata_identify(int drive, int port, ata_identify_t* identify) {
+error_t ata_identify(int drive, int port, ata_identify_t* identify) {
+    error_t err = NO_ERROR;
     uint16_t iobase = portiop[drive];
 
+    CHECK_ERROR(identify != NULL, ERROR_INVALID_ARGUMENT);
+
     // set the drive
-    outb(iobase + DEVICE_PORT, port_to_device_port[port]);
-    outb(iobase + CONTROL_PORT, 0);
-    outb(iobase + DEVICE_PORT, port_to_device_port[port]);
+    outb(iobase + ATA_REG_HARD_DRIVE_DEVICE_SELECT, port_to_device_port[port]);
+    outb(iobase + ATA_REG_SECTOR_COUNT_0, 0);
+    outb(iobase + ATA_REG_LBA0, 0);
+    outb(iobase + ATA_REG_LBA1, 0);
+    outb(iobase + ATA_REG_LBA2, 0);
 
-    // get the status
-    uint8_t status = inb(iobase + COMMAND_PORT);
-    if(status == 0xFF) {
-        return false;
+    // identify
+    outb(iobase + ATA_REG_COMMAND, ATA_COMMAND_IDENTIFY);
+    CHECK_ERROR(inb(iobase + ATA_REG_STATUS) != 0, ERROR_NOT_FOUND);
+    while(inb(iobase + ATA_REG_STATUS) & 0x80);
+
+    // check if an ata drive
+    CHECK_ERROR(inb(iobase + ATA_REG_LBA1) == 0 && inb(iobase + ATA_REG_LBA2) == 0, ERROR_NOT_FOUND);
+
+    while(true) {
+        uint8_t status = inb(iobase + ATA_REG_STATUS);
+        if(status & 8) break;
+        CHECK((status & 1) == 0);
     }
 
-    // send the identify command
-    outb(iobase + DEVICE_PORT, port_to_device_port[port]);
-    outb(iobase + SECTOR_COUNT_PORT, 0);
-    outb(iobase + LBA_LOW_PORT, 0);
-    outb(iobase + LBA_MID_PORT, 0);
-    outb(iobase + LBA_HI_PORT, 0);
-    outb(iobase + COMMAND_PORT, 0xEC);
-    status = inb(iobase + COMMAND_PORT);
-    if(status == 0) {
-        return false;
-    }
-
-    // wait for the drive to be ready
-    do {
-        status = inb(iobase + COMMAND_PORT);
-    } while (((status & 0x80) == 0x80) && (status & 0x1) != 0x01);
-
-    // check if we had an error
-    if(status & 0x1) {
-        return false;
-    }
-
+    // TODO: use insw
     uint16_t* buffer = (uint16_t*)identify;
     for(int i = 0; i < 256; i++) {
-        *buffer++ = inw(iobase + DATA_PORT);
+        *buffer++ = inw(iobase + ATA_REG_DATA);
     }
 
-    return true;
+cleanup:
+    return err;
 }
 
-void ata_write(int drive, int port, size_t sector, uintptr_t buffer, int count) {
+error_t ata_write_sector(int drive, int port, uint64_t lba, char* buffer) {
+    error_t err = NO_ERROR;
+    uint16_t iobase = portiop[drive];
 
+    // send the command and wait
+    outb(iobase + ATA_REG_FEATURES, 0x00);
+    outb(iobase + ATA_REG_SECTOR_COUNT_0, 1);
+    outb(iobase + ATA_REG_HARD_DRIVE_DEVICE_SELECT,
+            (uint8_t) (cintrooler_to_device_controller[drive] |
+            (port_to_device_port[port] << 4) |
+            ((lba & 0x0f000000) >> 24)));
+    outb(iobase + ATA_REG_LBA0, (uint8_t) ((lba & 0x000000ff) >> 0));
+    outb(iobase + ATA_REG_LBA1, (uint8_t) ((lba & 0x0000ff00) >> 8));
+    outb(iobase + ATA_REG_LBA2, (uint8_t) ((lba & 0x00ff0000) >> 16));
+    outb(iobase + ATA_REG_COMMAND, ATA_COMMAND_WRITE_PIO);
+    while(inb(iobase + ATA_REG_STATUS) & 0x80);
+
+    // write out the buffer
+    uint16_t* buf = (uint16_t *)buffer;
+    for(int i = 0; i < 256; i++) {
+        outw(iobase + ATA_REG_DATA, *buf++);
+    }
+    outb(iobase + ATA_REG_COMMAND, ATA_COMMAND_CACHE_FLUSH);
+
+cleanup:
+    return err;
 }
 
-void ata_read(int drive, int port, size_t sector, uintptr_t buffer, int count) {
+error_t ata_read_sector(int drive, int port, uint64_t lba, char* buffer) {
+    error_t err = NO_ERROR;
+    uint16_t iobase = portiop[drive];
 
-}
+    outb(iobase + ATA_REG_FEATURES, 0x00);
+    outb(iobase + ATA_REG_SECTOR_COUNT_0, 1);
+    outb(iobase + ATA_REG_HARD_DRIVE_DEVICE_SELECT,
+         (uint8_t) (cintrooler_to_device_controller[drive] |
+                    (port_to_device_port[port] << 4) |
+                    ((lba & 0x0f000000) >> 24)));
+    outb(iobase + ATA_REG_LBA0, (uint8_t) ((lba & 0x000000ff) >> 0));
+    outb(iobase + ATA_REG_LBA1, (uint8_t) ((lba & 0x0000ff00) >> 8));
+    outb(iobase + ATA_REG_LBA2, (uint8_t) ((lba & 0x00ff0000) >> 16));
+    outb(iobase + ATA_REG_COMMAND, ATA_COMMAND_READ_PIO);
 
-void ata_flush(int drive, int port) {
+    // write out the buffer
+    uint16_t* buf = (uint16_t *)buffer;
+    for(int i = 0; i < 256; i++) {
+        while(inb(iobase + ATA_REG_STATUS) & 0x80);
+        *buf++ = inw(iobase + ATA_REG_DATA);
+    }
 
+cleanup:
+    return err;
 }

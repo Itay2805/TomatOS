@@ -9,9 +9,8 @@
 
 #include <graphics/term.h>
 #include <common/common.h>
-#include <kernel.h>
-#include <locks/rwlock.h>
 #include <common/klib.h>
+#include <kernel.h>
 
 #include "ata_provider.h"
 #include "context_manager.h"
@@ -77,7 +76,6 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     context->resource = created_resource;
     context->entry = entry;
     context->ptr = 0;
-    context->rwlock = (rwlock_t){0};
     ata_context_add(context);
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &created_resource, resource, sizeof(resource_t)));
 
@@ -104,58 +102,167 @@ cleanup:
     return NO_ERROR;
 }
 
+// TODO: Range checking
 static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = NULL;
-
+    char* kbuffer = NULL;
     UNUSED(tid);
+
+    CHECK_ERROR(buffer != NULL, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(len > 0, ERROR_INVALID_ARGUMENT);
 
     CHECK_AND_RETHROW(ata_context_get(resource, &context));
 
+    // calculate the padding and allocate a buffer
+    size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
+    size_t upper_lba = (size_t) ((ALIGN_UP(context->ptr + len, 512)) / 512);
+    size_t start_padding = context->ptr - lower_lba;
+    size_t end_padding = upper_lba - (start_padding + context->ptr + len);
+    kbuffer = mm_allocate(&kernel_memory_manager, start_padding + len + end_padding);
 
+    // lock the disk and read from it
+    spinlock_lock(&context->entry->lock);
+    for(int i = 0; i < upper_lba - 1 - lower_lba; i++) {
+        ata_read_sector(context->entry->controller, context->entry->port, i + lower_lba, kbuffer + i * 512);
+    }
+    spinlock_unlock(&context->entry->lock);
+
+    // copy the buffer to the user
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, kbuffer + start_padding, buffer, len));
+    if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, read_size, sizeof(size_t)));
 
 cleanup:
+    // don't forget to free the buffer
+    if(kbuffer != NULL) {
+        mm_free(&kernel_memory_manager, kbuffer);
+    }
     return NO_ERROR;
 }
 
+// TODO: Range checking
 static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* write_size) {
+    error_t err = NO_ERROR;
+    ata_resource_context_t* context = NULL;
+    char* kbuffer = NULL;
 
-    UNUSED(process);
     UNUSED(tid);
-    UNUSED(resource);
-    UNUSED(buffer);
-    UNUSED(len);
 
-    // Does nothing
+    CHECK_ERROR(buffer != NULL, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(len > 0, ERROR_INVALID_ARGUMENT);
+
+    // get the context
+    CHECK_AND_RETHROW(ata_context_get(resource, &context));
+
+    // calculate padding at start and end
+    size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
+    size_t upper_lba = (size_t) ((ALIGN_UP(context->ptr + len, 512)) / 512);
+    size_t start_padding = context->ptr - lower_lba;
+    size_t end_padding = upper_lba - (start_padding + context->ptr + len);
+
+    // allocate the buffer and read the paddings
+    kbuffer = mm_allocate(&kernel_memory_manager, start_padding + len + end_padding);
+    if(start_padding != 0) ata_read_sector(context->entry->controller, context->entry->port, lower_lba, kbuffer);
+    if(end_padding != 0 && lower_lba != upper_lba - 1) ata_read_sector(context->entry->controller, context->entry->port, upper_lba - 1, kbuffer + start_padding + len);
+
+    // read the buffer from the user
+    CHECK_AND_RETHROW(vmm_copy_to_kernel(process->address_space, buffer, kbuffer + start_padding, len));
+
+    // write it all to the disk
+    spinlock_lock(&context->entry->lock);
+    for(int i = 0; i < upper_lba - 1 - lower_lba; i++) {
+        ata_write_sector(context->entry->controller, context->entry->port, i + lower_lba, kbuffer + i * 512);
+    }
+    spinlock_unlock(&context->entry->lock);
+
+    // write out the size we wrote
+    if(write_size != 0) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, write_size, sizeof(size_t)));
+
+cleanup:
+    // don't forget to free the buffer
+    if(kbuffer != NULL) {
+        mm_free(&kernel_memory_manager, kbuffer);
+    }
     return NO_ERROR;
 }
 
 static error_t handle_tell(process_t* process, int tid, resource_t resource, size_t* pos) {
     error_t err = NO_ERROR;
-    size_t zero = 0;
+    ata_resource_context_t* context = NULL;
 
     UNUSED(tid);
-    UNUSED(resource);
 
-    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &zero, pos, sizeof(size_t)));
+    CHECK_ERROR(pos != NULL, ERROR_INVALID_ARGUMENT);
 
-    cleanup:
+    // get the context
+    CHECK_AND_RETHROW(ata_context_get(resource, &context));
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &context->ptr, pos, sizeof(size_t)));
+
+cleanup:
     return err;
 }
 
-static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, size_t* pos) {
-    UNUSED(process);
-    UNUSED(tid);
-    UNUSED(resource);
-    UNUSED(type);
-    UNUSED(pos);
-    // Does nothing
-    return NO_ERROR;
+// TODO: Range checking
+static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, ptrdiff_t pos) {
+    error_t err = NO_ERROR;
+    ata_resource_context_t* context = NULL;
+
+    // get the context
+    CHECK_AND_RETHROW(ata_context_get(resource, &context));
+
+    switch(type) {
+        case SEEK_CUR:
+            context->ptr += pos;
+            break;
+
+        case SEEK_END:
+            context->ptr = context->entry->size_in_bytes - pos;
+            break;
+
+        case SEEK_START:
+            context->ptr = (size_t) pos;
+            break;
+
+        default:
+            CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
+    }
+
+cleanup:
+    return err;
 }
 
 ////////////////////////////////////////////////////////////////////////////
 // Kernel initialization
 ////////////////////////////////////////////////////////////////////////////
+
+static void print_identify(const char* drive, ata_identify_t* identify) {
+    char buffer[41];
+
+    term_print("[ata_provider_init] found drive in %s:\n", drive);
+
+    memcpy(buffer, identify->model_number, sizeof(identify->model_number));
+    buffer[sizeof(identify->model_number)] = 0;
+    term_print("[ata_provider_init] \tmodel=%s\n", buffer);
+
+    memcpy(buffer, identify->firmware_revision, sizeof(identify->firmware_revision));
+    buffer[sizeof(identify->firmware_revision)] = 0;
+    term_print("[ata_provider_init] \trev=%s\n", buffer);
+
+    memcpy(buffer, identify->serial_number, sizeof(identify->serial_number));
+    buffer[sizeof(identify->serial_number)] = 0;
+    term_print("[ata_provider_init] \tserial=%s\n", buffer);
+
+    size_t cap = identify->current_capacity_in_sectors * identify->buffer_size * 512;
+    if(cap / GB(1) > 0) {
+        term_print("[ata_provider_init] \tcapacity=%dGB (%d sectors)\n", (int) (cap / GB(1)), identify->current_capacity_in_sectors);
+    }else if(cap / MB(1) > 0) {
+        term_print("[ata_provider_init] \tcapacity=%dMB (%d sectors)\n", (int) (cap / MB(1)), identify->current_capacity_in_sectors);
+    }else if(cap / KB(1) > 0) {
+        term_print("[ata_provider_init] \tcapacity=%dKB (%d sectors)\n", (int) (cap / KB(1)), identify->current_capacity_in_sectors);
+    }else {
+        term_print("[ata_provider_init] \tcapacity=%dB (%d sectors)\n", (int) cap, identify->current_capacity_in_sectors);
+    }
+}
 
 error_t ata_provider_init() {
     process_t* process = process_create(start, true);
@@ -181,40 +288,44 @@ error_t ata_provider_init() {
     ata_identify_t identify;
 
     // master:0
-    if(ata_identify(0, 0, &identify)) {
-        term_print("[ata_provider_init] found drive in ata://primary:0/ (model=%s, rev=%s)\n", identify.model_number, identify.firmware_revision);
+    if(!IS_ERROR(ata_identify(0, 0, &identify))) {
+        print_identify("ata://primary:0/", &identify);
         ide_entries[0].present = true;
         ide_entries[0].controller = 0;
         ide_entries[0].port = 1;
+        ide_entries[0].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
-        term_print("[ata_provider_init] ata://primary:0/ is empty\n");
+        term_print("[ata_provider_init] ata://primary:0/ not found\n");
     }
 
-    if(ata_identify(0, 1, &identify)) {
-        term_print("[ata_provider_init] found drive in ata://primary:1/ (model=%s, rev=%s)\n", identify.model_number, identify.firmware_revision);
+    if(!IS_ERROR(ata_identify(0, 1, &identify))) {
+        print_identify("ata://primary:1/", &identify);
         ide_entries[1].present = true;
         ide_entries[1].controller = 0;
         ide_entries[1].port = 1;
+        ide_entries[1].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
-        term_print("[ata_provider_init] ata://primary:1/ is empty\n");
+        term_print("[ata_provider_init] ata://primary:1/ not found\n");
     }
 
-    if(ata_identify(1, 0, &identify)) {
-        term_print("[ata_provider_init] found drive in ata://secondary:0/ (model=%s, rev=%s)\n", identify.model_number, identify.firmware_revision);
+    if(!IS_ERROR(ata_identify(1, 0, &identify))) {
+        print_identify("ata://secondary:0/", &identify);
         ide_entries[2].present = true;
         ide_entries[2].controller = 0;
         ide_entries[2].port = 1;
+        ide_entries[2].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
-        term_print("[ata_provider_init] ata://secondary:0/ is empty\n");
+        term_print("[ata_provider_init] ata://secondary:0/ not found\n");
     }
 
-    if(ata_identify(1, 1, &identify)) {
-        term_print("[ata_provider_init] found drive in ata://secondary:1/ (model=%s, rev=%s)\n", identify.model_number, identify.firmware_revision);
+    if(!IS_ERROR(ata_identify(1, 1, &identify))) {
+        print_identify("ata://secondary:1/", &identify);
         ide_entries[3].present = true;
         ide_entries[3].controller = 0;
         ide_entries[3].port = 1;
+        ide_entries[3].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
-        term_print("[ata_provider_init] ata://secondary:1/ is empty\n");
+        term_print("[ata_provider_init] ata://secondary:1/ not found\n");
     }
 
     mm_free(&kernel_memory_manager, stack);

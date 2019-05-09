@@ -10,8 +10,6 @@
 #include <common/string.h>
 #include <common/except.h>
 
-#include <locks/rwlock.h>
-
 #include "ata_provider.h"
 
 /**
@@ -28,16 +26,11 @@ typedef struct ata_resource_context {
      */
     ata_entry_t* entry;
 
-    /**
-     * Read/Write, so only one can read and one can write
-     */
-    rwlock_t rwlock;
-
     // TODO: Different pointer for read and write
     /**
      * The pointer used for reading/writing
      */
-    int ptr;
+    size_t ptr;
 } ata_resource_context_t;
 
 extern ata_resource_context_t** ata_contexts;

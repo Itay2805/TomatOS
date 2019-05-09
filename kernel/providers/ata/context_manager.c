@@ -13,7 +13,7 @@ error_t ata_context_get(resource_t res, ata_resource_context_t **context) {
         }
     }
 
-    CHECK_ERROR(found != NULL, ERROR_NOT_FOUND);
+    CHECK_ERROR(found != NULL, ERROR_INVALID_RESOURCE);
 
     *context = found;
 
@@ -32,7 +32,7 @@ error_t ata_context_remove(resource_t res) {
         }
     }
 
-    CHECK_ERROR(found != NULL, ERROR_NOT_FOUND);
+    CHECK_ERROR(found != NULL, ERROR_INVALID_RESOURCE);
 
     // delete the context
     mm_free(&kernel_memory_manager, *found);

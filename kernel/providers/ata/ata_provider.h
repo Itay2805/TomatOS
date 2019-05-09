@@ -8,6 +8,7 @@ typedef struct ata_entry {
     bool present;
     int controller;
     int port;
+    size_t size_in_bytes;
     spinlock_t lock;
 } ata_entry_t;
 
