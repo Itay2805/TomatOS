@@ -29,12 +29,13 @@ providers are basically drivers in TomatOS, they provider with function to do st
 
 these are things that I am going to actively work on
 
+* implementing the wait and poll functions
 * ELF loading
-* write support for echfs
 
 ### Planned in the near future
 
 these are things that I plan to implement after I finish working on what I worked till now
 
+* write support for echfs
 * Simple Shell (just allows to run programs)
 * Text editing program
