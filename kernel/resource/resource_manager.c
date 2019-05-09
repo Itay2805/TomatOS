@@ -33,7 +33,7 @@ static error_t syscall_provider_handler_finished(registers_t* regs) {
     CHECK_ERROR(!IS_ERROR(resource_manager_get_provider_by_pid(running_thread->parent->pid, NULL)), ERROR_INVALID_SYSCALL);
 
     // resume the thread that was waiting
-    thread->cpu_state.rax = regs->rcx == NULL ? false : true;
+    thread->cpu_state.rax = regs->rcx == NULL ? true : false;
     thread->state = THREAD_NORMAL;
     thread->time = 0;
 

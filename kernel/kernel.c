@@ -43,7 +43,9 @@ static void thread_kernel(void* arg) {
         char buffer[513];
         buffer[512] = 0;
         read(ata, buffer, 512, NULL);
+        write(stdout, "=============\n", sizeof("=============\n"), NULL);
         write(stdout, buffer, 512, NULL);
+        write(stdout, "\n=============\n", sizeof("\n=============\n"), NULL);
     }else {
         write(stdout, "Failed to open ata://primary:0/\n", sizeof("Failed to open ata://primary:0/\n"), NULL);
     }

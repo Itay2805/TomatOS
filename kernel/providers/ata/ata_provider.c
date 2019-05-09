@@ -117,13 +117,13 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
     // calculate the padding and allocate a buffer
     size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
     size_t upper_lba = (size_t) ((ALIGN_UP(context->ptr + len, 512)) / 512);
-    size_t start_padding = context->ptr - lower_lba;
-    size_t end_padding = upper_lba - (start_padding + context->ptr + len);
+    size_t start_padding = context->ptr - lower_lba * 512;
+    size_t end_padding = upper_lba * 512 - (start_padding + context->ptr + len);
     kbuffer = mm_allocate(&kernel_memory_manager, start_padding + len + end_padding);
 
     // lock the disk and read from it
     spinlock_lock(&context->entry->lock);
-    for(int i = 0; i < upper_lba - 1 - lower_lba; i++) {
+    for(int i = 0; i < upper_lba - lower_lba; i++) {
         ata_read_sector(context->entry->controller, context->entry->port, i + lower_lba, kbuffer + i * 512);
     }
     spinlock_unlock(&context->entry->lock);
@@ -131,6 +131,9 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
     // copy the buffer to the user
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, kbuffer + start_padding, buffer, len));
     if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, read_size, sizeof(size_t)));
+
+    // update the read pointers
+    context->ptr += len;
 
 cleanup:
     // don't forget to free the buffer
@@ -157,8 +160,8 @@ static error_t handle_write(process_t* process, int tid, resource_t resource, ch
     // calculate padding at start and end
     size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
     size_t upper_lba = (size_t) ((ALIGN_UP(context->ptr + len, 512)) / 512);
-    size_t start_padding = context->ptr - lower_lba;
-    size_t end_padding = upper_lba - (start_padding + context->ptr + len);
+    size_t start_padding = context->ptr - lower_lba * 512;
+    size_t end_padding = upper_lba * 512 - (start_padding + context->ptr + len);
 
     // allocate the buffer and read the paddings
     kbuffer = mm_allocate(&kernel_memory_manager, start_padding + len + end_padding);
@@ -170,13 +173,16 @@ static error_t handle_write(process_t* process, int tid, resource_t resource, ch
 
     // write it all to the disk
     spinlock_lock(&context->entry->lock);
-    for(int i = 0; i < upper_lba - 1 - lower_lba; i++) {
+    for(int i = 0; i < upper_lba - lower_lba; i++) {
         ata_write_sector(context->entry->controller, context->entry->port, i + lower_lba, kbuffer + i * 512);
     }
     spinlock_unlock(&context->entry->lock);
 
     // write out the size we wrote
     if(write_size != 0) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, write_size, sizeof(size_t)));
+
+    // update the write pointers
+    context->ptr += len;
 
 cleanup:
     // don't forget to free the buffer
