@@ -1,31 +1,50 @@
 #include <common/stdarg.h>
+
 #include <interrupts/idt.h>
+
 #include <graphics/term.h>
-#include <cpu/control.h>
+
+#include <process/process.h>
+
 #include <memory/vmm.h>
 #include <memory/gdt.h>
+
+#include <cpu/control.h>
+#include <cpu/rflags.h>
+#include <cpu/msr.h>
+
+#include "scheduler.h"
 #include "syscall.h"
-#include "cpu/msr.h"
-#include "cpu/rflags.h"
 
 syscall_handler_f syscalls[SYSCALL_COUNT];
 
 extern void syscall_handler_stub();
 
-uint64_t syscall_handler(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f) {
-    register uint64_t rax asm("rax");
-    uint64_t syscall = rax;
+void syscall_handler(registers_t regs) {
+    error_t err = NO_ERROR;
+    int syscall = (int)regs.rax;
 
-    if(syscall < SYSCALL_COUNT && syscalls[syscall] != 0) {
-        return syscalls[syscall](a, b, c, d, e, f);
+    if(vmm_get() != kernel_address_space) {
+        vmm_set(kernel_address_space);
     }
 
-    address_space_t addr = vmm_get();
-    if(addr != kernel_address_space) vmm_set(kernel_address_space);
-    term_print("[syscall_handler] got unknown syscall 0x%x\n", (unsigned int) syscall);
-    if(addr != kernel_address_space) vmm_set(addr);
+    if(syscall >= 0 && syscall < SYSCALL_COUNT && syscalls[syscall] != 0) {
+        CHECK_AND_RETHROW(syscalls[syscall](&regs));
+    }else {
+        CHECK_FAIL_ERROR(ERROR_INVALID_SYSCALL);
+    }
 
-    return (uint64_t)-1;
+cleanup:
+    if(vmm_get() == kernel_address_space && running_thread->parent->address_space != kernel_address_space) {
+        vmm_set(running_thread->parent->address_space);
+    }
+
+    // on error print the stack trace
+    // and free the error
+    if(IS_ERROR(err)) {
+        KERNEL_STACK_TRACE(err);
+        ERROR_FREE(err);
+    }
 }
 
 void syscall_init() {

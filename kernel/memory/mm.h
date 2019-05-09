@@ -18,8 +18,7 @@
 
 #include <common/stdint.h>
 #include <common/stdbool.h>
-#include <common/except.h>
-#include "vmm.h"
+#include <locks/spinlock.h>
 
 /**
  * Am allocated memory block
@@ -54,29 +53,26 @@ typedef struct mm_context {
  * @remark
  * Right now this will not stop growing up
  * TODO: Should probably add a size limit
- *
- * @return
- * NO_ERROR
  */
-error_t mm_context_init(mm_context_t* context, uintptr_t virtual_start);
+void mm_context_init(mm_context_t* context, uintptr_t virtual_start);
 
 /**
  * Allocate memory of the given size
  *
  * @param context   [IN/OUT]    The context of the memory manager
  * @param size      [IN]        The amount of bytes to allocate
- * @param ptr       [OUT]       Pointer for the allocated pointer
  *
  * @remark
  * Internally this will simply call mm_allocate_aligned with an alignment of 8bytes
  *
  * @return
+ *  Pointer for the allocated buffer
  *
  * @see
  * mm_allocate_aligned
  *
  */
-error_t mm_allocate(mm_context_t* context, size_t size, void** ptr);
+void* mm_allocate(mm_context_t* context, size_t size);
 
 /**
  * Allocate memory of the given size, but have it aligned to the alignment
@@ -84,44 +80,33 @@ error_t mm_allocate(mm_context_t* context, size_t size, void** ptr);
  * @param context   [IN/OUT]    The context of the memory manager
  * @param size      [IN]        The amount of bytes to allocate
  * @param alignment [IN]        The alignment, in bytes, of the starting address
- * @param ptr       [OUT]       Pointer for the allocated pointer
  *
  * @return
+ * Pointer for the allocated pointer
  */
-error_t mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment, void** ptr);
+void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment);
 
 /**
  * Free an allocated buffer
  *
  * @param context   [IN/OUT]    The context of the memory manager
  * @param ptr       [IN]        The pointer to free
- *
- * @return
- * NO_ERROR or the error on error:
- * <ol>
- *  <li>ERROR_INVALID_ARGUMENT - if one of the arguments was invalid</li>
- *  <li>ERROR_INVALID_POINTER - if the pointer is not pointing to a buffer allocated by this memory manager</li>
- * </ol>
  */
-error_t mm_free(mm_context_t* context, void* ptr);
+void mm_free(mm_context_t* context, void* ptr);
 
 /**
  * Reallocate a given buffer, will allocate a new buffer if ptr is null
  *
  * @param context   [IN/OUT]    The context of the memory manager
- * @param ptr       [IN/OUT]    The pointer to reallocate
+ * @param ptr       [IN]        The pointer to reallocate
  * @param size      [IN]        The new size of the buffer
  *
  * @remark
  * If the pointer was NULL will simply allocate a buffer
  *
  * @return
- * NO_ERROR or the error on error:
- * <ol>
- *  <li>ERROR_INVALID_ARGUMENT - if one of the arguments was invalid</li>
- *  <li>ERROR_INVALID_POINTER - if the pointer is not pointing to a buffer allocated by this memory manager</li>
- * </ol>
+ * The new allocated buffer
  */
-error_t mm_reallocate(mm_context_t* context, void* ptr, size_t size, void** output);
+void* mm_reallocate(mm_context_t* context, void* ptr, size_t size);
 
 #endif

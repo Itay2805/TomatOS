@@ -4,6 +4,10 @@
 #include <common/kernel_info.h>
 #include <cpu/rflags.h>
 #include <cpu/control.h>
+#include <common/string.h>
+#include <common/common.h>
+#include <process/scheduler.h>
+#include <process/process.h>
 #include "isr.h"
 
 #include "idt.h"
@@ -61,7 +65,7 @@ static const char* ISR_NAMES[] = {
 
 static void default_exception_handler(registers_t* regs) {
     // set a valid address space
-    // address_space_t curr = vmm_get();
+    address_space_t curr = vmm_get();
     vmm_set(kernel_address_space);
 
     // clear screen
@@ -69,9 +73,9 @@ static void default_exception_handler(registers_t* regs) {
     //term_set_text_color(COLOR_WHITE);
     //term_clear();
     //term_set_cursor_pos(0, 0);
-    if(term_get_cursor_x() != 0) {
-        term_write("\n");
-    }
+
+    term_write("\n\n");
+
     term_set_background_color(COLOR_RED);
     term_set_text_color(COLOR_WHITE);
 
@@ -145,6 +149,15 @@ static void default_exception_handler(registers_t* regs) {
     }
     term_write("\n");
 
+    // print process stuff
+    if(running_thread == NULL) {
+        term_print("pid=%d\n", running_thread->parent->pid);
+        term_print("tid=%d\n", (int) running_thread->tid);
+    }else {
+        term_write("pid=N/A\ntid=N/A\n");
+    }
+    term_write("\n");
+
     // print registers
     term_print("rip=0x%p rsp=0x%p rbp=0x%p\n", (void *)regs->rip, (void *)regs->rsp, (void *)regs->rbp);
     term_print("rdi=0x%p rsi=0x%p\n", (void *)regs->rdi, (void *)regs->rsi);
@@ -181,6 +194,30 @@ static void default_exception_handler(registers_t* regs) {
     if((regs->rflags & EFLAGS_CPUID) != 0) term_print("ID ");
 
     term_print("\n\nRFLAGS:\n");
+
+
+    term_write("\n\nStack:\n");
+    if(curr == kernel_address_space) {
+        uint64_t* rsp = (uint64_t *) regs->rsp;
+        for(int y = 0; y < 7; y++) {
+            for(int x = 0; x < 7; x++) {
+                term_print("%p ", (void *)*rsp);
+                rsp++;
+            }
+            term_write("\n");
+        }
+    }else {
+        uint64_t current = 0;
+        uint64_t* rsp = (uint64_t *) regs->rsp;
+        for(int y = 0; y < 7; y++) {
+            for(int x = 0; x < 7; x++) {
+                vmm_copy_to_kernel(curr, rsp, &current, sizeof(uint64_t));
+                rsp++;
+                term_print("%p ", (void *) current);
+            }
+            term_write("\n");
+        }
+    }
 
     term_write("\n\nhalting...");
     cli();

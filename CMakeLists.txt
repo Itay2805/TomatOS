@@ -14,7 +14,7 @@ set(CMAKE_ASM_COMPILER /usr/bin/nasm)
 set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <SOURCE> <FLAGS> -o <OBJECT>")
 
 # Setup compilation flags
-set(CMAKE_C_FLAGS "-z max-page-size=4096 -fPIC -Wall -Werror -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
+set(CMAKE_C_FLAGS "-z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
 set(CMAKE_ASM_FLAGS "-f elf64")
 set(CMAKE_EXE_LINKER_FLAGS "-z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${KERNEL_PATH}/linker.ld")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
@@ -36,13 +36,11 @@ set(KERNEL_SOURCE_FILES
         kernel/common/string.h
         kernel/common/buf.c
         kernel/common/buf.h
-        kernel/common/map.c
-        kernel/common/map.h
-
-        kernel/common/mini-printf.c
-        kernel/common/mini-printf.h
+        kernel/common/global_except.h
         kernel/common/except.c
         kernel/common/except.h
+        kernel/common/mini-printf.c
+        kernel/common/mini-printf.h
 
         kernel/graphics/font.c
         kernel/graphics/font.h
@@ -81,15 +79,29 @@ set(KERNEL_SOURCE_FILES
         kernel/process/process.h
         kernel/process/scheduler.c
         kernel/process/scheduler.h
-        kernel/process/spinlock.h
         kernel/process/syscall.asm
         kernel/process/syscall.c
         kernel/process/syscall.h
+
+        kernel/locks/spinlock.h
+        kernel/locks/rwlock.h
+        kernel/locks/critical_section.h
 
         kernel/cpu/rflags.h
         kernel/cpu/msr.h
         kernel/cpu/cpuid.h
         kernel/cpu/control.h
+
+        kernel/resource/resource_manager.asm
+        kernel/resource/resource_manager.c
+        kernel/resource/resource_manager.h
+        kernel/resource/resource.c
+        kernel/resource/resource.h
+
+        kernel/providers/zero/zero_provider.h
+        kernel/providers/zero/zero_provider.c
+        kernel/providers/term/term_provider.h
+        kernel/providers/term/term_provider.c
 
         kernel/multiboot.asm
         kernel/kernel.c)

@@ -1,5 +1,6 @@
 #include <common/mini-printf.h>
-#include <process/spinlock.h>
+#include <locks/spinlock.h>
+#include <locks/critical_section.h>
 #include "term.h"
 
 #include "font.h"
@@ -51,6 +52,7 @@ void term_init(multiboot_info_t* multiboot) {
 }
 
 void term_write(const char* text) {
+    critical_section_t cs = critical_section_start();
     while(*text) {
         char chr = *text++;
         switch(chr) {
@@ -77,6 +79,7 @@ void term_write(const char* text) {
             cur_y = height - 1;
         }
     }
+    critical_section_end(cs);
 }
 
 size_t term_print(const char* fmt, ...) {

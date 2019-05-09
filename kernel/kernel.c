@@ -9,34 +9,82 @@
 #include <process/scheduler.h>
 #include <process/process.h>
 #include <common/common.h>
-#include <process/spinlock.h>
 #include <cpu/cpuid.h>
 #include <cpu/msr.h>
 #include <process/syscall.h>
 #include <memory/gdt.h>
 
+#include <providers/zero/zero_provider.h>
+#include <providers/term/term_provider.h>
 
 #include "graphics/term.h"
 
 extern void* boot_pdpe;
-
 mm_context_t kernel_memory_manager;
 
 static void thread_a(void* arg) {
     ((void)arg);
+    resource_t volatile resource = 0;
+    char buffer[1];
+    buffer[0] = '3';
+    char name_buffer[5];
+    name_buffer[0] = 't';
+    name_buffer[1] = 'e';
+    name_buffer[2] = 'r';
+    name_buffer[3] = 'm';
+    name_buffer[4] = 0;
+    resource_descriptor_t descriptor = {
+            .scheme = name_buffer
+    };
+    asm ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm volatile ("int $0x80" : : "a"(0xBABE) : "rcx", "r11", "memory");
+        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"(buffer), "d"(sizeof(buffer)));
     }
 }
 static void thread_a_end() {}
 
 static void thread_b(void* arg) {
     ((void)arg);
+    resource_t resource = 0;
+    char buffer[1];
+    buffer[0] = '4';
+    char name_buffer[5];
+    name_buffer[0] = 't';
+    name_buffer[1] = 'e';
+    name_buffer[2] = 'r';
+    name_buffer[3] = 'm';
+    name_buffer[4] = 0;
+    resource_descriptor_t descriptor = {
+            .scheme = name_buffer
+    };
+    asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
     while(true) {
-        asm volatile ("int $0x80" : : "a"(0xCAFE) : "rcx", "r11", "memory");
+        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"(buffer), "d"(sizeof(buffer)));
     }
 }
 static void thread_b_end() {}
+
+static void thread_kernel_1(void* arg) {
+    resource_t resource = 0;
+    resource_descriptor_t descriptor = {
+        .scheme = "term",
+    };
+    asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
+    while(true) {
+        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"("1"), "d"(1));
+    }
+}
+
+static void thread_kernel_2(void* arg) {
+    resource_t resource = 0;
+    resource_descriptor_t descriptor = {
+            .scheme = "term",
+    };
+    asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
+    while(true) {
+        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"("2"), "d"(1));
+    }
+}
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -74,6 +122,16 @@ void kernel_main(multiboot_info_t* info) {
     syscall_init();
     idt_init();
 
+    /// ONLY USE ERRORS FROM HERE
+
+    // initialize processes
+    CHECK_AND_RETHROW(process_init());
+
+    // initialize resource related stuff
+    CHECK_AND_RETHROW(resource_manager_init());
+    CHECK_AND_RETHROW(zero_provider_init());
+    CHECK_AND_RETHROW(term_provider_init());
+
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());
 
@@ -92,10 +150,6 @@ void kernel_main(multiboot_info_t* info) {
     memcpy((void *) GB(1), thread_a, (uint64_t)thread_a_end - (uint64_t)thread_a);
     vmm_set(kernel_address_space);
 
-
-
-
-
     process_t* pb = process_create(NULL, false);
     pb->threads[0].cpu_state.rbp = GB(4);
     pb->threads[0].cpu_state.rsp = GB(4);
@@ -110,6 +164,18 @@ void kernel_main(multiboot_info_t* info) {
     memcpy((void *) GB(1), thread_b, (uint64_t)thread_b_end - (uint64_t)thread_b);
     vmm_set(kernel_address_space);
 
+    process_t* pk1 = process_create(thread_kernel_1, true);
+    char* kstack1 = 0;
+    kstack1 = mm_allocate(&kernel_memory_manager, KB(1));
+    pk1->threads[0].cpu_state.rbp = (uint64_t)kstack1 + KB(1);
+    pk1->threads[0].cpu_state.rsp = (uint64_t)kstack1 + KB(1);
+
+    process_t* pk2 = process_create(thread_kernel_2, true);
+    char* kstack2 = 0;
+    kstack2 = mm_allocate(&kernel_memory_manager, KB(1));
+    pk2->threads[0].cpu_state.rbp = (uint64_t)kstack2 + KB(1);
+    pk2->threads[0].cpu_state.rsp = (uint64_t)kstack2 + KB(1);
+
     // kick start the system!
     term_write("[kernel_main] Enabling interrupts\n");
     sti();
@@ -119,5 +185,5 @@ void kernel_main(multiboot_info_t* info) {
     }
 
 cleanup:
-    KERNEL_PANIC();
+    KERNEL_PANIC(err);
 }

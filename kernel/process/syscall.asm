@@ -7,6 +7,11 @@ SECTION .text
 
 GLOBAL syscall_handler_stub
 syscall_handler_stub:
+
+    ; int num and error code, we just set these to 0 since these are not used in this handler
+    push qword 0
+    push qword 0
+
     push rax
     push rbx
     push rcx
@@ -59,6 +64,9 @@ syscall_handler_stub:
     pop rcx
     pop rbx
     pop rax
+
+    ; remove the int num and error code
+    add rsp, 16
 
     iretq
 

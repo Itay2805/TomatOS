@@ -14,6 +14,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include <common/stdint.h>
+#include <common/stdbool.h>
 #include "idt.h"
 
 /**
@@ -87,6 +88,14 @@ extern void hlt();
  * Load the idt
  */
 extern void lidt(idt_t* idt);
+
+static inline bool are_interrupts_enabled() {
+    unsigned long flags;
+    asm volatile ( "pushf\n\t"
+                   "pop %0"
+    : "=g"(flags) );
+    return (bool) (flags & (1 << 9));
+}
 
 /**
  * Will cause a breakpoint interrupt (int 3)

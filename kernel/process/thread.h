@@ -2,6 +2,7 @@
 #define PROCESS_THREAD_H
 
 #include <common/stdint.h>
+#include <resource/resource.h>
 #include <interrupts/interrupts.h>
 
 #define DEFAULT_STACK_SIZE MB(4)
@@ -82,6 +83,8 @@ typedef struct thread {
 *           2.  This function needs to do an address space switch to create the stack!
  */
 void thread_init(thread_t* thread);
+
+error_t thread_find(struct process* process, int tid, thread_t** thread);
 
 /**
  * Kill a thread

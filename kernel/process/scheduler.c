@@ -4,14 +4,18 @@
 
 #include <interrupts/interrupts.h>
 #include <interrupts/irq.h>
-#include <common/string.h>
-#include <drivers/pit.h>
+
 #include <graphics/term.h>
+
+#include <common/string.h>
 #include <common/buf.h>
+
+#include <drivers/pit.h>
+
+#include <cpu/rflags.h>
+
 #include "scheduler.h"
-#include "thread.h"
 #include "process.h"
-#include "cpu/rflags.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // Idle process
@@ -37,12 +41,11 @@ static void idle_thread(void* arg) {
  * Initialize the idle process with a thread per cpu
  */
 static error_t idle_process_init() {
-    error_t err = NO_ERROR;
     idle_process.address_space = kernel_address_space;
     idle_process.pid = 0;
     idle_process.next_tid = 1;
 
-    CHECK_AND_RETHROW(mm_allocate(&kernel_memory_manager, KB(1), &idle_process_stack));
+    idle_process_stack = mm_allocate(&kernel_memory_manager, KB(1));
 
     // create an idle thread
     // TODO: Make this per cpu
@@ -62,8 +65,7 @@ static error_t idle_process_init() {
     idle_process.threads[0].cpu_state.rbp = (uint64_t) (idle_process_stack + KB(1));
     idle_process.threads[0].cpu_state.rip = (uint64_t) idle_thread;
 
-cleanup:
-    return err;
+    return NO_ERROR;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -73,7 +75,7 @@ cleanup:
 /**
  * The currently running thread
  */
-static thread_t* running_thread = NULL;
+thread_t* running_thread = NULL;
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -84,9 +86,12 @@ static thread_t* running_thread = NULL;
  * the timer handler, will basically do the scheduling
  * and thread rollup
  */
-static void schedule(registers_t* regs) {
+static void handle_timer_interrupt(registers_t* regs) {
+    schedule(regs, (int) pit_get_interval());
+}
+
+void schedule(registers_t* regs, int interval) {
     thread_t* thread_to_run = NULL;
-    uint64_t interval = pit_get_interval();
     uint64_t thread_count = 0;
     uint64_t most_watied_time = 0;
     uint64_t time_slice = 0;
@@ -95,28 +100,36 @@ static void schedule(registers_t* regs) {
     if(addr != kernel_address_space)
         vmm_set(kernel_address_space);
 
+    // the current thread was suspended
+    // save it's state and set that there is no running thread
+    if(running_thread != NULL && (running_thread->state == THREAD_SUSPENDED || running_thread->state == THREAD_DEAD)) {
+        running_thread->cpu_state = *regs;
+        running_thread->time = 0;
+        running_thread = NULL;
+    }
+
     // get the thread count
     // TODO: have this cached somewhere and controller by the thread start or something
-    for(process_t* process = processes; process < buf_end(processes); process++) {
-        if (process->pid == DEAD_PROCESS_PID) {
+    for(process_t** process = processes; process < buf_end(processes); process++) {
+        if (*process == NULL) {
             continue;
         }
-        thread_count += buf_len(process->threads);
+        thread_count += buf_len((*process)->threads);
     }
 
     // calculate the timeslice
-    time_slice = MAX(10, thread_count / 1000);
+    // TODO: Doesn't work from some reason
+    // time_slice = MAX(interval, 1000 / thread_count);
+    time_slice = (uint64_t) interval;
 
     // increment the times and choose a thread to run
-    for(process_t* process = processes; process < buf_end(processes); process++) {
-        if(process->pid == DEAD_PROCESS_PID) continue;
+    for(process_t** it = processes; it < buf_end(processes); it++) {
+        if(*it == NULL) continue;
+        process_t* process = *it;
 
         for(thread_t* thread = process->threads; thread < buf_end(process->threads); thread++) {
             // ignore dead threads
-            if(thread->state == THREAD_DEAD) continue;
-
-            // if the thread is suspended no need to actually check times
-            if(thread->state == THREAD_SUSPENDED) continue;
+            if(thread->state == THREAD_DEAD || thread->state == THREAD_SUSPENDED) continue;
 
             // increment the time
             thread->time += interval;
@@ -126,6 +139,7 @@ static void schedule(registers_t* regs) {
                 // should it continue running?
                 if(thread->time <= time_slice) {
                     thread_to_run = thread;
+                    break;
                 }
             }else {
                 // check if this waited the most time
@@ -137,7 +151,7 @@ static void schedule(registers_t* regs) {
     }
 
     // if we chose to run the current thread just continue
-    if(thread_to_run == running_thread || (thread_to_run == NULL && running_thread != NULL)) {
+    if(running_thread != NULL && (thread_to_run == running_thread || thread_to_run == NULL)) {
         if(addr != kernel_address_space)
             vmm_set(addr);
         return;
@@ -172,7 +186,7 @@ error_t scheduler_init() {
 
     // TODO: Instead of using the interrupt directly we should create a timer wrapper handler or something
     term_write("[scheduler_init] setting PIT interrupt handler\n");
-    irq_handlers[IRQ_PIT] = schedule;
+    irq_handlers[IRQ_PIT] = handle_timer_interrupt;
 
     CHECK_AND_RETHROW(idle_process_init());
 

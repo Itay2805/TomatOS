@@ -1,9 +1,12 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <common/map.h>
+#include <resource/resource_manager.h>
+#include <resource/resource.h>
+
 #include <memory/vmm.h>
 #include <memory/mm.h>
+
 #include "thread.h"
 
 #define DEAD_PROCESS_PID 0
@@ -22,13 +25,14 @@ struct process {
     /**
      * The process PID
      */
-    size_t pid;
+    int pid;
 
     /**
      * The next thread tid for that process
      */
     size_t next_tid;
 
+    // TODO: Make so the thread_t struct will not change, just like we did for the process struct
     /**
      * The thread list of this process (this is a stretchy buffer)
      */
@@ -43,6 +47,21 @@ struct process {
      * Is this a kernel process
      */
     bool kernel;
+
+    /**
+     * resources the process owns
+     */
+    resource_t* resources;
+
+    /**
+     * Each of these correspong to the provider of the resource at the same index
+     */
+    resource_provider_t** providers;
+
+    /**
+     * the next resource id
+     */
+    resource_t next_resource;
 };
 
 typedef struct process process_t;
@@ -52,7 +71,7 @@ typedef struct process process_t;
  *
  * contains all the processes
  */
-extern process_t* processes;
+extern process_t** processes;
 
 /**
  * Create a new process
@@ -65,7 +84,7 @@ process_t* process_create(thread_start_f start, bool kernel);
 /**
  * find a process by it's PID
  */
-process_t* process_find(size_t pid);
+error_t process_find(size_t pid, process_t** process);
 
 /**
  * Create a new thread for the process
@@ -82,5 +101,11 @@ thread_t* process_start_thread(process_t* process, thread_start_f start);
  *          so we can request a process to just exit
  */
 void process_remove(process_t* process);
+
+/**
+ * Initialize process syscalls
+ * @return
+ */
+error_t process_init();
 
 #endif

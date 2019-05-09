@@ -35,4 +35,6 @@
 
 #define TB(x) (((uint64_t)x) * GB(1024))
 
+#define UNUSED(x) ((void)x)
+
 #endif

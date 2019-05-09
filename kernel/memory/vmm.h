@@ -97,22 +97,22 @@ void vmm_free_address_space(address_space_t address_space);
 /**
  * Map a virtual address to the physical address with the given page attributes
  */
-void vmm_map(address_space_t address_space, void* virtual_addr, void* physical_addr, int attributes);
+void vmm_map(address_space_t address_space, volatile void* virtual_addr, void* physical_addr, int attributes);
 
 /**
  * Will unmap the given virtual address, keeping the underlying physical page allocated
  */
-void vmm_unmap(address_space_t address_space, void* virtual_addr);
+void vmm_unmap(address_space_t address_space, volatile void* virtual_addr);
 
 /**
  * Will allocate a page for the virtual address with the given attributes
  */
-void vmm_allocate(address_space_t address_space, void* virtual_addr, int attributes);
+void vmm_allocate(address_space_t address_space, volatile void* virtual_addr, int attributes);
 
 /**
  * Free the given virtual address, both unmapping it and freeing the underlying physical page
  */
-void vmm_free(address_space_t address_space, void* virtual_addr);
+void vmm_free(address_space_t address_space, volatile void* virtual_addr);
 
 ///-------------------------------------------------------------------------
 // Resolving functions
@@ -120,16 +120,22 @@ void vmm_free(address_space_t address_space, void* virtual_addr);
 
 /**
  * Get the physical address of a virtual address in the given address space
+ *
+ * @param address_space [IN] The address space the virtual space is in
+ * @param virtual_addr  [IN] The virtual address to get the physical address for
+ * @param physical_addr [OUT] The out physical address of the virtual address
  */
 error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr, void** physical_addr);
 
 /**
  * Will copy len bytes from the given pointer in addrspace to the given pointer in kernel space
- * 
- * @remark
- * This assumes the kernel memory manager is initialized
+ *
+ * @param address_space [IN] the address space to read from
+ * @param from          [IN] the buffer to read from
+ * @param to            [OUT] the buffer to write to
+ * @param len           [IN] the length of the to buffer
  */
-error_t vmm_copy_to_kernel(address_space_t address_space, const char* from, char* to, size_t len);
+error_t vmm_copy_to_kernel(address_space_t address_space, const void* from, void* to, size_t len);
 
 
 /**
@@ -139,10 +145,26 @@ error_t vmm_copy_to_kernel(address_space_t address_space, const char* from, char
  * @param from          [IN] Buffer in the given address space to copy from
  * @param to            [OUT] Buffer in the kernel to copy to
  * @param length        [IN/OUT] Takes the length of to, outputs the actual length of the string
- * 
- * @remark
- * This assumes the kernel memory manager is initialized
  */
 error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* from, char* to, size_t* length);
+
+/**
+ * Will copy len bytes from the given pointer in the kernel to the given pointer in addrspace
+ *
+ * @param address_space [IN] the address space to read from
+ * @param from          [IN] the buffer to read from
+ * @param to            [OUT] the buffer to write to
+ * @param len           [IN] the length of the to buffer
+ */
+error_t vmm_copy_to_user(address_space_t addrspace, const void* from, void* to, size_t len);
+
+/**
+ * Will clear (set to 0) the bytes in the target buffer at the addrspace
+ *
+ * @param address_space [IN] the address space to read from
+ * @param target        [IN] the buffer to clear
+ * @param len           [IN] the length of the to buffer
+ */
+error_t vmm_clear_user(address_space_t addrspace, void* target, size_t len);
 
 #endif

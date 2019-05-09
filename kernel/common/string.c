@@ -90,7 +90,7 @@ char* strncat(char* dest, const char* src, size_t num) {
 
 int strcmp(const char* str1, const char* str2) {
     while(*str1++ == *str2++ && *str1 != 0);
-    return *str1 - *str2;
+    return *(str1 - 1) - *(str2 - 1);
 }
 
 int strncmp(const char* str1, const char* str2, size_t num) {
