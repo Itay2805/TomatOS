@@ -112,7 +112,7 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/ata/ata.c
 
         kernel/multiboot.asm
-        kernel/kernel.c kernel/providers/echfs/echfs_provider.c kernel/providers/echfs/echfs_provider.h kernel/providers/echfs/echfs.h kernel/common/map.c kernel/common/map.h)
+        kernel/kernel.c kernel/providers/echfs/echfs_provider.c kernel/providers/echfs/echfs_provider.h kernel/providers/echfs/echfs.h kernel/common/map.c kernel/common/map.h kernel/providers/echfs/echfs.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")

@@ -4,6 +4,8 @@
 #include <process/process.h>
 #include <common/string.h>
 #include <common/map.h>
+
+#include "echfs.h"
 #include "echfs_provider.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -13,6 +15,7 @@
 static resource_provider_t echfs_provider = {0};
 
 typedef struct resource_context {
+    echfs_directory_entry_t entry;
     resource_t base;
     int ptr;
 } resource_context_t;
@@ -35,9 +38,6 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     CHECK_ERROR(desc->sub != NULL, ERROR_INVALID_ARGUMENT);
     CHECK(open(desc->sub, &sub_resource));
 
-    // resolve the path
-    // TODO
-
     // create the resource
     CHECK_AND_RETHROW(resource_create(process, &echfs_provider, &created_resource));
 
@@ -46,6 +46,9 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     map_put_from_uint64(&resource_context_map, hash_resource(process->pid, created_resource), context);
     context->base = sub_resource;
     context->ptr = 0;
+
+    // resolve the path
+    CHECK_AND_RETHROW(echfs_resolve_path(sub_resource, desc->domain, &context->entry));
 
     // copy to user
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &created_resource, resource, sizeof(resource_t)));

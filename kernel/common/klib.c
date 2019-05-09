@@ -11,13 +11,13 @@ bool open(resource_descriptor_t* desc, resource_t* resource) {
     return result;
 }
 
-bool read(resource_t res, char* buffer, int size, int* outSize) {
+bool read(resource_t res, void* buffer, int size, int* outSize) {
     bool result;
     asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_READ), "D"(res), "S"(buffer), "d"(size), "c"(outSize));
     return result;
 }
 
-bool write(resource_t res, char* buffer, int size, int* outSize) {
+bool write(resource_t res, void* buffer, int size, int* outSize) {
     bool result;
     asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_WRITE), "D"(res), "S"(buffer), "d"(size), "c"(outSize));
     return result;

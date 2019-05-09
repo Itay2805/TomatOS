@@ -9,8 +9,8 @@
 #define SEEK_END 2
 
 bool open(resource_descriptor_t* desc, resource_t* resource);
-bool read(resource_t res, char* buffer, int size, int* outSize);
-bool write(resource_t res, char* buffer, int size, int* outSize);
+bool read(resource_t res, void* buffer, int size, int* outSize);
+bool write(resource_t res, const void* buffer, int size, int* outSize);
 bool seek(resource_t res, int relative, ptrdiff_t offset);
 bool tell(resource_t res, int* offset);
 bool close(resource_t res);
