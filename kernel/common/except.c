@@ -11,5 +11,7 @@ const char* except_strings[] = {
         [ERROR_OUT_OF_MEMORY] = "Out of memory",
         [ERROR_NOT_FOUND] = "Not found",
         [ERROR_INVALID_SYSCALL] = "Invalid syscall",
-        [ERROR_NOT_IMPLEMENTED] = "Not implemented"
+        [ERROR_NOT_IMPLEMENTED] = "Not implemented",
+        [ERROR_INVALID_DOMAIN] = "Invalid Domain",
+        [ERROR_INVALID_PORT] = "Invalid port"
 };

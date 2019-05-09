@@ -59,6 +59,8 @@ extern const char* except_strings[];
 #define ERROR_NOT_FOUND         6u
 #define ERROR_INVALID_SYSCALL   7u
 #define ERROR_NOT_IMPLEMENTED   8u
+#define ERROR_INVALID_DOMAIN    9u
+#define ERROR_INVALID_PORT      10u
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Global error handling

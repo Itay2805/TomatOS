@@ -16,6 +16,8 @@
 
 #include <providers/zero/zero_provider.h>
 #include <providers/term/term_provider.h>
+#include <providers/ata/ata_provider.h>
+#include <common/klib.h>
 
 #include "graphics/term.h"
 
@@ -67,11 +69,12 @@ static void thread_b_end() {}
 static void thread_kernel_1(void* arg) {
     resource_t resource = 0;
     resource_descriptor_t descriptor = {
-        .scheme = "term",
+            .scheme = "term",
     };
-    asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
+    open(&descriptor, &resource);
+    char ch = '1';
     while(true) {
-        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"("1"), "d"(1));
+        write(resource, &ch, 1, NULL);
     }
 }
 
@@ -80,9 +83,10 @@ static void thread_kernel_2(void* arg) {
     resource_descriptor_t descriptor = {
             .scheme = "term",
     };
-    asm volatile ("int $0x80" : : "a"(SYSCALL_OPEN), "D"(&descriptor), "S"(&resource));
+    open(&descriptor, &resource);
+    char ch = '2';
     while(true) {
-        asm volatile ("int $0x80" : : "a"(SYSCALL_WRITE), "D"(resource), "S"("2"), "d"(1));
+        write(resource, &ch, 1, NULL);
     }
 }
 
@@ -131,6 +135,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(resource_manager_init());
     CHECK_AND_RETHROW(zero_provider_init());
     CHECK_AND_RETHROW(term_provider_init());
+    CHECK_AND_RETHROW(ata_provider_init());
 
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());

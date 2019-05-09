@@ -5,6 +5,7 @@
 #include <process/process.h>
 #include <common/string.h>
 #include <process/syscalls.h>
+#include <common/klib.h>
 
 #include "term_provider.h"
 
@@ -16,7 +17,7 @@ static resource_provider_t term_provider = {0};
 
 static void start() {
     // Kill self
-    asm("int $0x80" : : "a"(SYSCALL_THREAD_KILL), "D"(0));
+    tkill(0);
     while(true);
 }
 

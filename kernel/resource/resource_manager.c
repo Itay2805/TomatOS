@@ -124,6 +124,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rcx = regs->rsi; // char* buffer
             provider_thread->cpu_state.r8 = regs->rdx; // size_t len
+            provider_thread->cpu_state.r9 = regs->rcx; // size_t* read_size
             break;
 
         case SYSCALL_WRITE:
@@ -132,19 +133,20 @@ static error_t dispatch_resource_call(registers_t* regs) {
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rcx = regs->rsi; // char* buffer
             provider_thread->cpu_state.r8 = regs->rdx; // size_t len
-            break;
-
-        case SYSCALL_TELL:
-            CHECK_ERROR((uint64_t)provider->tell != NULL, ERROR_NOT_IMPLEMENTED);
-            provider_thread->cpu_state.rax = (uint64_t)provider->tell;
-            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
-            provider_thread->cpu_state.rcx = regs->rsi; // seek_t relative_to
-            provider_thread->cpu_state.r8 = regs->rdx; // size_t pos
+            provider_thread->cpu_state.r9 = regs->rcx; // size_t* write_size
             break;
 
         case SYSCALL_SEEK:
             CHECK_ERROR((uint64_t)provider->seek != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->seek;
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rsi; // seek_t relative_to
+            provider_thread->cpu_state.r8 = regs->rdx; // size_t pos
+            break;
+
+        case SYSCALL_TELL:
+            CHECK_ERROR((uint64_t)provider->tell != NULL, ERROR_NOT_IMPLEMENTED);
+            provider_thread->cpu_state.rax = (uint64_t)provider->tell;
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rcx = regs->rsi; // size_t* pos
             break;

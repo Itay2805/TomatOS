@@ -10,6 +10,7 @@
 #include <graphics/term.h>
 #include <common/common.h>
 #include <kernel.h>
+#include <common/klib.h>
 
 #include "zero_provider.h"
 
@@ -22,6 +23,7 @@ static resource_provider_t zero_provider = {0};
 static void start() {
     // Nothing to initialize, but we do not want to exit the thread so just have a while true,
     // will probably want to kill it tbh
+    tkill(0);
     while(true);
 }
 
@@ -55,27 +57,31 @@ static error_t handle_close(process_t* process, int tid, resource_t resource) {
     return NO_ERROR;
 }
 
-static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len) {
+static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
-
     UNUSED(tid);
     UNUSED(resource);
 
     CHECK_AND_RETHROW(vmm_clear_user(process->address_space, buffer, len));
+    if(read_size != NULL) {
+        CHECK_AND_RETHROW(vmm_clear_user(process->address_space, read_size, len));
+    }
 
 cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len) {
-
-    UNUSED(process);
+static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* write_size) {
+    error_t err = NO_ERROR;
     UNUSED(tid);
     UNUSED(resource);
     UNUSED(buffer);
-    UNUSED(len);
 
-    // Does nothing
+    if(write_size != NULL) {
+        CHECK_AND_RETHROW(vmm_clear_user(process->address_space, write_size, len));
+    }
+
+cleanup:
     return NO_ERROR;
 }
 
@@ -92,7 +98,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, size_t* pos) {
+static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, size_t pos) {
     UNUSED(process);
     UNUSED(tid);
     UNUSED(resource);

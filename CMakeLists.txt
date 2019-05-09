@@ -41,6 +41,8 @@ set(KERNEL_SOURCE_FILES
         kernel/common/except.h
         kernel/common/mini-printf.c
         kernel/common/mini-printf.h
+        kernel/common/klib.c
+        kernel/common/klib.h
 
         kernel/graphics/font.c
         kernel/graphics/font.h
@@ -100,8 +102,16 @@ set(KERNEL_SOURCE_FILES
 
         kernel/providers/zero/zero_provider.h
         kernel/providers/zero/zero_provider.c
+
         kernel/providers/term/term_provider.h
         kernel/providers/term/term_provider.c
+
+        kernel/providers/ata/ata_provider.c
+        kernel/providers/ata/ata_provider.h
+        kernel/providers/ata/context_manager.h
+        kernel/providers/ata/context_manager.c
+        kernel/providers/ata/ata.h
+        kernel/providers/ata/ata.c
 
         kernel/multiboot.asm
         kernel/kernel.c)
