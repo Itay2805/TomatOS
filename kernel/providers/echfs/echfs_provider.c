@@ -17,7 +17,7 @@ static resource_provider_t echfs_provider = {0};
 typedef struct resource_context {
     echfs_directory_entry_t entry;
     resource_t base;
-    int ptr;
+    uint64_t ptr;
 } resource_context_t;
 
 static map_t resource_context_map = {0};
@@ -48,7 +48,13 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     context->ptr = 0;
 
     // resolve the path
-    CHECK_AND_RETHROW(echfs_resolve_path(sub_resource, desc->domain, &context->entry));
+    if(strlen(desc->path) == 0) {
+        context->entry.parent_id = ECHFS_DIR_ID_END_OF_DIR;
+        context->entry.type = ECHFS_OBJECT_TYPE_DIR;
+        context->entry.payload = ECHFS_DIR_ID_ROOT;
+    }else {
+        CHECK_AND_RETHROW(echfs_resolve_path(sub_resource, desc->path, &context->entry));
+    }
 
     // copy to user
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &created_resource, resource, sizeof(resource_t)));
@@ -87,12 +93,24 @@ cleanup:
 static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
 
+    // get the context
+    resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
+
+    CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_FILE, ERROR_NOT_READABLE);
+
 cleanup:
     return err;
 }
 
 static error_t handle_tell(process_t* process, int tid, resource_t resource, size_t* pos) {
     error_t err = NO_ERROR;
+
+    // get the context
+    resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
+
+    CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_FILE, ERROR_NOT_SEEKABLE);
 
 cleanup:
     return err;
@@ -101,7 +119,34 @@ cleanup:
 static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, ptrdiff_t pos) {
     error_t err = NO_ERROR;
 
+    // get the context
+    resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
 
+    CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_FILE, ERROR_NOT_SEEKABLE);
+
+cleanup:
+    return err;
+}
+
+static error_t handle_invoke(process_t* process, int tid, resource_t resource, int cmd, void* arg) {
+    error_t err = NO_ERROR;
+    echfs_directory_entry_t entry;
+
+    // get the context
+    resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
+    CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
+
+    switch(cmd) {
+        case ECHFS_READ_DIR:
+            CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_DIR, ERROR_NOT_IMPLEMENTED);
+            CHECK_AND_RETHROW(echfs_read_dir(context->base, context->entry.payload, &context->ptr, &entry));
+            CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &entry, arg, sizeof(echfs_directory_entry_t)));
+            break;
+
+        default:
+            CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
+    }
 
 cleanup:
     return err;
@@ -112,16 +157,23 @@ cleanup:
 ////////////////////////////////////////////////////////////////////////////
 
 error_t echfs_provider_init() {
+    error_t err = NO_ERROR;
+
     process_t* process = process_create(NULL, true);
     thread_kill(&process->threads[0]);
 
     echfs_provider.scheme = "echfs";
+    echfs_provider.pid = process->pid;
     echfs_provider.open = handle_open;
     echfs_provider.close = handle_close;
     echfs_provider.read = handle_read;
     // TODO Write support
     echfs_provider.seek = handle_seek;
     echfs_provider.tell = handle_tell;
+    echfs_provider.invoke = handle_invoke;
 
-    return NO_ERROR;
+    CHECK_AND_RETHROW(resource_manager_register_provider(&echfs_provider));
+
+cleanup:
+    return err;
 }

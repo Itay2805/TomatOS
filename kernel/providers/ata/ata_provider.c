@@ -113,6 +113,7 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
     error_t err = NO_ERROR;
     ata_resource_context_t* context = NULL;
     char* kbuffer = NULL;
+    size_t read = 0;
     UNUSED(tid);
 
     CHECK_ERROR(buffer != NULL, ERROR_INVALID_ARGUMENT);
@@ -125,22 +126,30 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
     size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
     size_t upper_lba = (size_t) ((ALIGN_UP(context->ptr + len, 512)) / 512);
     size_t start_padding = context->ptr - lower_lba * 512;
-    size_t end_padding = upper_lba * 512 - (start_padding + context->ptr + len);
+    size_t end_padding = upper_lba * 512 - (context->ptr + len);
     kbuffer = mm_allocate(&kernel_memory_manager, start_padding + len + end_padding);
 
     // lock the disk and read from it
     spinlock_lock(&context->entry->lock);
     for(int i = 0; i < upper_lba - lower_lba; i++) {
+        if((lower_lba + i) * 512 >= context->entry->size_in_bytes) {
+            break;
+        }
+        read += 512;
         ata_read_sector(context->entry->controller, context->entry->port, i + lower_lba, kbuffer + i * 512);
     }
     spinlock_unlock(&context->entry->lock);
+    read -= start_padding;
+    if(read > len) {
+        read -= end_padding;
+    }
 
     // copy the buffer to the user
-    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, kbuffer + start_padding, buffer, len));
-    if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, read_size, sizeof(size_t)));
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, kbuffer + start_padding, buffer, read));
+    if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &read, read_size, sizeof(size_t)));
 
     // update the read pointers
-    context->ptr += len;
+    context->ptr += read;
 
 cleanup:
     // don't forget to free the buffer
@@ -242,7 +251,12 @@ static error_t handle_seek(process_t* process, int tid, resource_t resource, int
             CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
     }
 
+    CHECK_ERROR(context->ptr < context->entry->size_in_bytes, ERROR_OUT_OF_RANGE);
+
 cleanup:
+    if(IS_ERROR(err)) {
+        context->ptr = context->entry->size_in_bytes;
+    }
     return err;
 }
 
@@ -280,6 +294,8 @@ static void print_identify(const char* drive, ata_identify_t* identify) {
 }
 
 error_t ata_provider_init() {
+    error_t err = NO_ERROR;
+
     process_t* process = process_create(NULL, true);
     thread_kill(&process->threads[0]);
 
@@ -292,7 +308,7 @@ error_t ata_provider_init() {
     ata_provider.tell = handle_tell;
     ata_provider.seek = handle_seek;
 
-    resource_manager_register_provider(&ata_provider);
+    CHECK_AND_RETHROW(resource_manager_register_provider(&ata_provider));
 
     // check for drives
     ata_identify_t identify;
@@ -302,7 +318,7 @@ error_t ata_provider_init() {
         print_identify("ata://primary:0/", &identify);
         ide_entries[0].present = true;
         ide_entries[0].controller = 0;
-        ide_entries[0].port = 1;
+        ide_entries[0].port = 0;
         ide_entries[0].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
         term_print("[ata_provider_init] ata://primary:0/ not found\n");
@@ -321,8 +337,8 @@ error_t ata_provider_init() {
     if(!IS_ERROR(ata_identify(1, 0, &identify))) {
         print_identify("ata://secondary:0/", &identify);
         ide_entries[2].present = true;
-        ide_entries[2].controller = 0;
-        ide_entries[2].port = 1;
+        ide_entries[2].controller = 1;
+        ide_entries[2].port = 0;
         ide_entries[2].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
         term_print("[ata_provider_init] ata://secondary:0/ not found\n");
@@ -331,12 +347,13 @@ error_t ata_provider_init() {
     if(!IS_ERROR(ata_identify(1, 1, &identify))) {
         print_identify("ata://secondary:1/", &identify);
         ide_entries[3].present = true;
-        ide_entries[3].controller = 0;
+        ide_entries[3].controller = 1;
         ide_entries[3].port = 1;
         ide_entries[3].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
         term_print("[ata_provider_init] ata://secondary:1/ not found\n");
     }
 
-    return NO_ERROR;
+cleanup:
+    return err;
 }

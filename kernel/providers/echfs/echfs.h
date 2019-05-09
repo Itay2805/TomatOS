@@ -49,6 +49,16 @@ typedef struct echfs_directory_entry {
  * @param path      [IN]    The path to resolve
  * @param base      [OUT]   The directory entry
  */
-error_t echfs_resolve_path(resource_t resource, const char* path, echfs_directory_entry_t* base);
+error_t echfs_resolve_path(resource_t resource, const char* path, echfs_directory_entry_t* entry);
+
+/**
+ * Will read the directory
+ *
+ * @param resource  [IN]        The resource to read from
+ * @param dir_id    [IN]        The parent id
+ * @param pointer   [IN/OUT]    The pointer to start from
+ * @param entry     [OUT]       The entry in the dir
+ */
+error_t echfs_read_dir(resource_t resource, uint64_t dir_id, uint64_t* pointer, echfs_directory_entry_t* entry);
 
 #endif //TOMATKERNEL_ECHFS_H

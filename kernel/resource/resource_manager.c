@@ -33,16 +33,18 @@ static error_t syscall_provider_handler_finished(registers_t* regs) {
     CHECK_ERROR(!IS_ERROR(resource_manager_get_provider_by_pid(running_thread->parent->pid, NULL)), ERROR_INVALID_SYSCALL);
 
     // resume the thread that was waiting
-    thread->cpu_state.rax = regs->rcx == NULL ? true : false;
+    thread->cpu_state.rax = regs->rdx == NULL ? true : false;
     thread->state = THREAD_NORMAL;
     thread->time = 0;
 
-    if(IS_ERROR((error_t)regs->rcx)) {
-        error_t tmp_err = (error_t)regs->rcx;
-        // print the stack and free the error
-        // tbh we should probably just throw it onwards
-        KERNEL_STACK_TRACE(tmp_err);
-        ERROR_FREE(tmp_err);
+    if(IS_ERROR((error_t)regs->rdx)) {
+        error_t tmp_err = (error_t)regs->rdx;
+        if(IS_ERROR(tmp_err) != ERROR_FINISHED) {
+            // print the stack and free the error
+            // tbh we should probably just throw it onwards
+            KERNEL_STACK_TRACE(tmp_err);
+            ERROR_FREE(tmp_err);
+        }
     }
 
 cleanup:
@@ -93,6 +95,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
         case SYSCALL_SEEK:
         case SYSCALL_TELL:
         case SYSCALL_POLL:
+        case SYSCALL_INVOKE:
             CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(running_process, regs->rdi, &provider));
             break;
 
@@ -119,7 +122,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
             break;
 
         case SYSCALL_READ:
-            CHECK_ERROR((uint64_t)provider->read != NULL, ERROR_NOT_IMPLEMENTED);
+            CHECK_ERROR((uint64_t)provider->read != NULL, ERROR_NOT_READABLE);
             provider_thread->cpu_state.rax = (uint64_t)provider->read;
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rcx = regs->rsi; // char* buffer
@@ -128,7 +131,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
             break;
 
         case SYSCALL_WRITE:
-            CHECK_ERROR((uint64_t)provider->write != NULL, ERROR_NOT_IMPLEMENTED);
+            CHECK_ERROR((uint64_t)provider->write != NULL, ERROR_NOT_WRITEABLE);
             provider_thread->cpu_state.rax = (uint64_t)provider->write;
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rcx = regs->rsi; // char* buffer
@@ -137,7 +140,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
             break;
 
         case SYSCALL_SEEK:
-            CHECK_ERROR((uint64_t)provider->seek != NULL, ERROR_NOT_IMPLEMENTED);
+            CHECK_ERROR((uint64_t)provider->seek != NULL, ERROR_NOT_SEEKABLE);
             provider_thread->cpu_state.rax = (uint64_t)provider->seek;
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rcx = regs->rsi; // seek_t relative_to
@@ -145,10 +148,18 @@ static error_t dispatch_resource_call(registers_t* regs) {
             break;
 
         case SYSCALL_TELL:
-            CHECK_ERROR((uint64_t)provider->tell != NULL, ERROR_NOT_IMPLEMENTED);
+            CHECK_ERROR((uint64_t)provider->tell != NULL, ERROR_NOT_SEEKABLE);
             provider_thread->cpu_state.rax = (uint64_t)provider->tell;
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             provider_thread->cpu_state.rcx = regs->rsi; // size_t* pos
+            break;
+
+        case SYSCALL_INVOKE:
+            CHECK_ERROR((uint64_t)provider->invoke != NULL, ERROR_NOT_IMPLEMENTED);
+            provider_thread->cpu_state.rax = (uint64_t)provider->invoke;
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rsi; // int cmd
+            provider_thread->cpu_state.r8 = regs->rdx; // void* arg
             break;
 
         case SYSCALL_POLL:
@@ -176,7 +187,7 @@ cleanup:
     }
 
     if(IS_ERROR(err)) {
-        regs->rax = (uint64_t) err;
+        regs->rax = false;
         if(provider_thread != NULL) thread_kill(provider_thread);
         if(stack != NULL) mm_free(&kernel_memory_manager, stack);
     }else {
@@ -195,21 +206,39 @@ cleanup:
 error_t resource_manager_init() {
     syscalls[SYSCALL_PROVIDER_HANDLER_FINISHED] = syscall_provider_handler_finished;
 
+
     syscalls[SYSCALL_OPEN] = dispatch_resource_call;
     syscalls[SYSCALL_CLOSE] = dispatch_resource_call;
     syscalls[SYSCALL_READ] = dispatch_resource_call;
     syscalls[SYSCALL_WRITE] = dispatch_resource_call;
-    syscalls[SYSCALL_SELECT] = NULL; // TODO
     syscalls[SYSCALL_POLL] = dispatch_resource_call;
+    syscalls[SYSCALL_SEEK] = dispatch_resource_call;
+    syscalls[SYSCALL_TELL] = dispatch_resource_call;
+    syscalls[SYSCALL_INVOKE] = dispatch_resource_call;
     syscalls[SYSCALL_WAIT] = NULL; // TODO
+    syscalls[SYSCALL_SELECT] = NULL; // TODO
 
     return NO_ERROR;
 }
 
 error_t resource_manager_register_provider(resource_provider_t* provider) {
+    error_t err = NO_ERROR;
+
+    // check the arguments
+    CHECK_ERROR(provider, ERROR_INVALID_ARGUMENT);
+
+    // check that the process is valid
+    CHECK_AND_RETHROW(process_find(provider->pid, NULL));
+
+    // check we have open and close
+    CHECK_ERROR(provider->open != NULL, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(provider->close != NULL, ERROR_INVALID_ARGUMENT);
+
     term_print("[resource_manager_register] registered provider for '%s' (pid=%d)\n", provider->scheme, provider->pid);
     buf_push(providers, provider);
-    return NO_ERROR;
+
+cleanup:
+    return err;
 }
 
 error_t resource_manager_get_provider_by_resource(process_t* process, resource_t resource, resource_provider_t** provider) {

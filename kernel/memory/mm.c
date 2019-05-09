@@ -111,6 +111,7 @@ static global_error_t join(mm_context_t* context) {
 
             if(next == context->last) {
                 context->last = current;
+                context->first->prev = context->last;
             }
 
             context->used_size -= sizeof(mm_block_t);
@@ -212,6 +213,28 @@ cleanup_failed:
     return err;
 }
 
+static global_error_t verify_integrity(mm_context_t* context) {
+    global_error_t err = NO_ERROR;
+    mm_block_t* current = context->first;
+
+    do {
+        // some basic checks
+        CHECK_GLOBAL(current != NULL);
+        CHECK_GLOBAL(current->magic == MM_MAGIC);
+        CHECK_GLOBAL(current->size != 0);
+
+        current = current->next;
+
+        // fully iterated
+        if (current == context->first) {
+            break;
+        }
+    } while(current != context->first);
+
+cleanup:
+    return err;
+}
+
 /**
  * Handles the actual allocation, will also try to join/expand while allocating when an empty block
  * sufficient in size is not found
@@ -234,7 +257,10 @@ static global_error_t allocate_internal(mm_context_t* context, size_t size, size
 
     if(current == NULL) {
         CHECK_GLOBAL_AND_RETHROW(update_free(context, tried_join, tried_expand));
+        current = context->free;
     }
+
+    CHECK_GLOBAL(current != NULL);
 
     while(current != NULL) {
         CHECK_GLOBAL_ERROR(first || current != context->free, ERROR_OUT_OF_MEMORY);
@@ -281,6 +307,7 @@ static global_error_t allocate_internal(mm_context_t* context, size_t size, size
         current = current->next;
     }
 
+    CHECK_GLOBAL_ERROR(allocated != NULL, ERROR_OUT_OF_MEMORY);
     *ptr = allocated;
 
 cleanup:
@@ -299,6 +326,7 @@ cleanup:
             CHECK_GLOBAL_AND_RETHROW_LABEL(allocate_internal(context, size, alignment, ptr, true, true), cleanup_failed);
         }
     }
+    CHECK_GLOBAL_AND_RETHROW_LABEL(verify_integrity(context), cleanup_failed);
 cleanup_failed:
     return err;
 }
@@ -358,6 +386,7 @@ void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) 
 
     critical_section_t cs = critical_section_start();
 
+    CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
     CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, (void**)&ptr, false, false));
     CHECK_GLOBAL(ptr != NULL);
 
@@ -381,6 +410,7 @@ void mm_free(mm_context_t* context, void* ptr) {
 
     CHECK_GLOBAL_ERROR((void*)(context->last + context->last->size) > ptr && (void*)context->first < ptr, ERROR_INVALID_POINTER);
 
+    CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
     CHECK_GLOBAL_AND_RETHROW(get_block_from_ptr(ptr, &block));
     CHECK_GLOBAL_ERROR(block->allocated, ERROR_INVALID_POINTER);
 
@@ -405,6 +435,8 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
 
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
     CHECK_GLOBAL_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
+
+    CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
 
     if(ptr == NULL) {
         new = mm_allocate(context, size);

@@ -17,7 +17,7 @@ bool read(resource_t res, void* buffer, int size, int* outSize) {
     return result;
 }
 
-bool write(resource_t res, void* buffer, int size, int* outSize) {
+bool write(resource_t res, const void* buffer, int size, int* outSize) {
     bool result;
     asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_WRITE), "D"(res), "S"(buffer), "d"(size), "c"(outSize));
     return result;
@@ -29,7 +29,7 @@ bool seek(resource_t res, int relative, ptrdiff_t offset) {
     return result;
 }
 
-bool tell(resource_t res, int* offset) {
+bool tell(resource_t res, uint64_t* offset) {
     bool result;
     asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_TELL), "D"(res), "S"(offset));
     return result;
@@ -41,8 +41,15 @@ bool close(resource_t res) {
     return result;
 }
 
+bool invoke(resource_t res, int command, void* arg) {
+    bool result;
+    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_INVOKE), "D"(res), "S"(command), "d"(arg));
+    return result;
+}
+
 bool tkill(int tid) {
     bool result;
     asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_THREAD_KILL), "D"(tid));
     return result;
 }
+

@@ -106,6 +106,7 @@ static error_t handle_seek(process_t* process, int tid, resource_t resource, int
 ////////////////////////////////////////////////////////////////////////////
 
 error_t zero_provider_init() {
+    error_t err = NO_ERROR;
     process_t* process = process_create(NULL, true);
     thread_kill(&process->threads[0]);
 
@@ -118,6 +119,8 @@ error_t zero_provider_init() {
     zero_provider.tell = handle_tell;
     zero_provider.seek = handle_seek;
 
-    resource_manager_register_provider(&zero_provider);
-    return NO_ERROR;
+    CHECK_AND_RETHROW(resource_manager_register_provider(&zero_provider));
+
+cleanup:
+    return err;
 }

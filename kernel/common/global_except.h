@@ -63,6 +63,11 @@ extern const char* except_strings[];
 #define ERROR_INVALID_PORT      10u
 #define ERROR_INVALID_RESOURCE  11u
 #define ERROR_INVALID_PATH      12u
+#define ERROR_NOT_READABLE      13u
+#define ERROR_NOT_WRITEABLE     14u
+#define ERROR_NOT_SEEKABLE      15u
+#define ERROR_OUT_OF_RANGE      16u
+#define ERROR_FINISHED          17u
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Global error handling

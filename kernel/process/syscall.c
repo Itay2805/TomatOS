@@ -31,6 +31,7 @@ void syscall_handler(registers_t regs) {
     if(syscall >= 0 && syscall < SYSCALL_COUNT && syscalls[syscall] != 0) {
         CHECK_AND_RETHROW(syscalls[syscall](&regs));
     }else {
+        regs.rax = false;
         CHECK_FAIL_ERROR(ERROR_INVALID_SYSCALL);
     }
 

@@ -11,10 +11,10 @@ dispatch_resource_call_trampoline:
     ; get the process and tid
     pop rsi
     pop rdi
-    mov rcx, rax
+    mov rdx, rax
 
     ; call SYSCALL_PROVIDER_HANDLER_FINISHED
-    mov rax, 10
+    mov rax, 11
     int 0x80
 
     .sleep:

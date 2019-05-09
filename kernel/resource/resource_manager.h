@@ -18,6 +18,7 @@ typedef struct resource_provider {
     void* tell;
     void* poll;
     void* close;
+    void* invoke;
 } resource_provider_t;
 
 /**

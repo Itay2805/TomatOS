@@ -17,7 +17,9 @@
 #include <providers/zero/zero_provider.h>
 #include <providers/term/term_provider.h>
 #include <providers/ata/ata_provider.h>
+#include <providers/echfs/echfs_provider.h>
 #include <common/klib.h>
+#include <providers/echfs/echfs.h>
 
 #include "graphics/term.h"
 
@@ -33,21 +35,32 @@ static void thread_kernel(void* arg) {
     open(&stdout_desc, &stdout);
     write(stdout, "In kernel thread\n", sizeof("In kernel thread\n"), NULL);
 
-    resource_t ata = 0;
+    resource_t echfs_root;
     resource_descriptor_t ata_desc = {
             .scheme = "ata",
             .domain = "primary",
             .port = 0
     };
-    if(open(&ata_desc, &ata)) {
-        char buffer[513];
-        buffer[512] = 0;
-        read(ata, buffer, 512, NULL);
-        write(stdout, "=============\n", sizeof("=============\n"), NULL);
-        write(stdout, buffer, 512, NULL);
-        write(stdout, "\n=============\n", sizeof("\n=============\n"), NULL);
+    resource_descriptor_t echfs_desc = {
+            .scheme = "echfs",
+            .path = "",
+            .sub = &ata_desc
+    };
+    if(open(&echfs_desc, &echfs_root)) {
+        echfs_directory_entry_t entry;
+        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        while(invoke(echfs_root, 1, &entry)) {
+            if(entry.type == ECHFS_OBJECT_TYPE_FILE) {
+                write(stdout, "F> ", 3, NULL);
+            }else {
+                write(stdout, "D> ", 3, NULL);
+            }
+            write(stdout, entry.name, 218, NULL);
+            write(stdout, "\n", 1, NULL);
+        }
+        write(stdout, "===========\n", sizeof("===========\n"), NULL);
     }else {
-        write(stdout, "Failed to open ata://primary:0/\n", sizeof("Failed to open ata://primary:0/\n"), NULL);
+        write(stdout, "Failed to open echfs://[ata://primary:0/]/\n", sizeof("Failed to open echfs://[ata://primary:0/]/\n"), NULL);
     }
 
     while(true);
@@ -99,6 +112,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(zero_provider_init());
     CHECK_AND_RETHROW(term_provider_init());
     CHECK_AND_RETHROW(ata_provider_init());
+    CHECK_AND_RETHROW(echfs_provider_init());
 
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());

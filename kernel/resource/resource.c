@@ -63,7 +63,7 @@ error_t copy_resource_descriptor_to_kernel(struct process* original_process, res
     if(copied_descriptor.scheme) {
         size_t len = 0;
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.scheme, NULL, &len));
-        copied_descriptor.scheme = mm_allocate(&kernel_memory_manager, len);
+        new_descriptor->scheme = mm_allocate(&kernel_memory_manager, len);
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.scheme, new_descriptor->scheme, &len));
     }
 
@@ -71,7 +71,7 @@ error_t copy_resource_descriptor_to_kernel(struct process* original_process, res
     if(copied_descriptor.domain) {
         size_t len = 0;
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.domain, NULL, &len));
-        copied_descriptor.domain = mm_allocate(&kernel_memory_manager, len);
+        new_descriptor->domain = mm_allocate(&kernel_memory_manager, len);
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.domain, new_descriptor->domain, &len));
     }
 
@@ -79,7 +79,7 @@ error_t copy_resource_descriptor_to_kernel(struct process* original_process, res
     if(copied_descriptor.path) {
         size_t len = 0;
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.path, NULL, &len));
-        copied_descriptor.path = mm_allocate(&kernel_memory_manager, len);
+        new_descriptor->path = mm_allocate(&kernel_memory_manager, len);
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.path, new_descriptor->path, &len));
     }
 

@@ -13,5 +13,12 @@ const char* except_strings[] = {
         [ERROR_INVALID_SYSCALL] = "Invalid syscall",
         [ERROR_NOT_IMPLEMENTED] = "Not implemented",
         [ERROR_INVALID_DOMAIN] = "Invalid Domain",
-        [ERROR_INVALID_PORT] = "Invalid port"
+        [ERROR_INVALID_PORT] = "Invalid port",
+        [ERROR_INVALID_RESOURCE] = "Invalid resource",
+        [ERROR_INVALID_PATH] = "Invalid path",
+        [ERROR_NOT_READABLE] = "Not readable",
+        [ERROR_NOT_WRITEABLE] = "Not writeable",
+        [ERROR_NOT_SEEKABLE] = "Not seekable",
+        [ERROR_OUT_OF_RANGE] = "Out of range",
+        [ERROR_FINISHED] = "Finished",
 };

@@ -69,6 +69,8 @@ cleanup:
 ////////////////////////////////////////////////////////////////////////////
 
 error_t term_provider_init() {
+    error_t err = NO_ERROR;
+
     process_t* process = process_create(NULL, true);
     thread_kill(&process->threads[0]);
 
@@ -78,7 +80,8 @@ error_t term_provider_init() {
     term_provider.close = handle_close;
     term_provider.write = handle_write;
 
-    resource_manager_register_provider(&term_provider);
+    CHECK_AND_RETHROW(resource_manager_register_provider(&term_provider));
 
-    return NO_ERROR;
+cleanup:
+    return err;
 }

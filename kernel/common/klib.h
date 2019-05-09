@@ -12,7 +12,8 @@ bool open(resource_descriptor_t* desc, resource_t* resource);
 bool read(resource_t res, void* buffer, int size, int* outSize);
 bool write(resource_t res, const void* buffer, int size, int* outSize);
 bool seek(resource_t res, int relative, ptrdiff_t offset);
-bool tell(resource_t res, int* offset);
+bool tell(resource_t res, uint64_t* offset);
+bool invoke(resource_t res, int command, void* arg);
 bool close(resource_t res);
 
 /**
@@ -21,7 +22,7 @@ bool close(resource_t res);
  * @param tid   [IN] The thread to kill
  *
  * @return
- * false on failure, 1 on success
+ * false on failure, true on success
  * (will not return if killing the current thread)
  */
 bool tkill(int tid);
