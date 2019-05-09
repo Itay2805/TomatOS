@@ -196,28 +196,28 @@ static void default_exception_handler(registers_t* regs) {
     term_print("\n\nRFLAGS:\n");
 
 
-//    term_write("\n\nStack:\n");
-//    if(curr == kernel_address_space) {
-//        uint64_t* rsp = (uint64_t *) regs->rsp;
-//        for(int y = 0; y < 7; y++) {
-//            for(int x = 0; x < 7; x++) {
-//                term_print("%p ", (void *)*rsp);
-//                rsp++;
-//            }
-//            term_write("\n");
-//        }
-//    }else {
-//        uint64_t current = 0;
-//        uint64_t* rsp = (uint64_t *) regs->rsp;
-//        for(int y = 0; y < 7; y++) {
-//            for(int x = 0; x < 7; x++) {
-//                vmm_copy_to_kernel(curr, rsp, &current, sizeof(uint64_t));
-//                rsp++;
-//                term_print("%p ", (void *) current);
-//            }
-//            term_write("\n");
-//        }
-//    }
+    term_write("\n\nStack:\n");
+    if(curr == kernel_address_space) {
+        uint64_t* rsp = (uint64_t *) regs->rsp;
+        for(int y = 0; y < 7; y++) {
+            for(int x = 0; x < 7; x++) {
+                term_print("%p ", (void *)*rsp);
+                rsp++;
+            }
+            term_write("\n");
+        }
+    }else {
+        uint64_t current = 0;
+        uint64_t* rsp = (uint64_t *) regs->rsp;
+        for(int y = 0; y < 7; y++) {
+            for(int x = 0; x < 7; x++) {
+                vmm_copy_to_kernel(curr, rsp, &current, sizeof(uint64_t));
+                rsp++;
+                term_print("%p ", (void *) current);
+            }
+            term_write("\n");
+        }
+    }
 
     term_write("\n\nhalting...");
     cli();

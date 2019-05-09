@@ -23,9 +23,8 @@ extern void syscall_handler_stub();
 void syscall_handler(registers_t regs) {
     error_t err = NO_ERROR;
     int syscall = (int)regs.rax;
-    address_space_t before = vmm_get();
 
-    if(before != kernel_address_space) {
+    if(vmm_get() != kernel_address_space) {
         vmm_set(kernel_address_space);
     }
 
@@ -36,8 +35,8 @@ void syscall_handler(registers_t regs) {
     }
 
 cleanup:
-    if(vmm_get() != kernel_address_space && before != kernel_address_space) {
-        vmm_set(before);
+    if(vmm_get() == kernel_address_space && running_thread->parent->address_space != kernel_address_space) {
+        vmm_set(running_thread->parent->address_space);
     }
 
     // on error print the stack trace

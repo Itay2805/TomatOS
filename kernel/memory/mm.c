@@ -104,6 +104,15 @@ static global_error_t join(mm_context_t* context) {
             next->next = 0;
             next->allocated = false;
 
+            // update context pointers if needed
+            if(next == context->free) {
+                context->free = current;
+            }
+
+            if(next == context->last) {
+                context->last = current;
+            }
+
             context->used_size -= sizeof(mm_block_t);
         }else {
             current = next;
@@ -222,6 +231,10 @@ static global_error_t allocate_internal(mm_context_t* context, size_t size, size
     mm_block_t* current = context->free;
     bool first = true;
     void* allocated = NULL;
+
+    if(current == NULL) {
+        CHECK_GLOBAL_AND_RETHROW(update_free(context, tried_join, tried_expand));
+    }
 
     while(current != NULL) {
         CHECK_GLOBAL_ERROR(first || current != context->free, ERROR_OUT_OF_MEMORY);
@@ -346,6 +359,7 @@ void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) 
     critical_section_t cs = critical_section_start();
 
     CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, (void**)&ptr, false, false));
+    CHECK_GLOBAL(ptr != NULL);
 
 cleanup:
     if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
