@@ -90,15 +90,11 @@ static void handle_timer_interrupt(registers_t* regs) {
     schedule(regs, (int) pit_get_interval());
 }
 
-static spinlock_t lock;
-
 void schedule(registers_t* regs, int interval) {
     thread_t* thread_to_run = NULL;
     uint64_t thread_count = 0;
     uint64_t most_watied_time = 0;
     uint64_t time_slice = 0;
-
-    spinlock_lock(&lock);
 
     address_space_t addr = vmm_get();
     if(addr != kernel_address_space)
@@ -158,7 +154,6 @@ void schedule(registers_t* regs, int interval) {
     if(running_thread != NULL && (thread_to_run == running_thread || thread_to_run == NULL)) {
         if(addr != kernel_address_space)
             vmm_set(addr);
-        spinlock_unlock(&lock);
         return;
     }
 
@@ -182,8 +177,6 @@ void schedule(registers_t* regs, int interval) {
     running_thread = thread_to_run;
 
     vmm_set(thread_to_run->parent->address_space);
-
-    spinlock_unlock(&lock);
 }
 
 error_t scheduler_init() {

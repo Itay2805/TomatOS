@@ -7,6 +7,7 @@
 #include <cpu/control.h>
 #include <cpu/msr.h>
 #include <kernel.h>
+#include <locks/critical_section.h>
 #include "pmm.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -480,6 +481,8 @@ void vmm_free_address_space(address_space_t address_space) {
 }
 
 void vmm_map(address_space_t address_space, volatile void *virtual_addr, void *physical_addr, int attributes) {
+    critical_section_t cs = critical_section_start();
+
     uint64_t* pt = get_or_create_page_table(address_space, virtual_addr, attributes);
     map_to_free_page(pt);
 
@@ -504,9 +507,13 @@ void vmm_map(address_space_t address_space, volatile void *virtual_addr, void *p
     if ((attributes & PAGE_ATTR_EXECUTE) == 0) {
         free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_NO_EXECUTE_BIT;
     }
+
+    critical_section_end(cs);
 }
 
 void vmm_unmap(address_space_t address_space, volatile void* virtual_addr) {
+    critical_section_t cs = critical_section_start();
+
     uint64_t *pt = get_page_table(address_space, virtual_addr);
     if (pt == NULL) {
         return;
@@ -519,9 +526,13 @@ void vmm_unmap(address_space_t address_space, volatile void* virtual_addr) {
         invlpg((uintptr_t)virtual_addr);
         free_table[PAGING_PTE_OFFSET(virtual_addr)] = 0;
     }
+
+    critical_section_end(cs);
 }
 
 void vmm_allocate(address_space_t address_space, volatile void* virtual_addr, int attributes) {
+    critical_section_t cs = critical_section_start();
+
     uint64_t *pt = get_or_create_page_table(address_space, virtual_addr, attributes);
     map_to_free_page(pt);
 
@@ -546,9 +557,13 @@ void vmm_allocate(address_space_t address_space, volatile void* virtual_addr, in
     if ((attributes & PAGE_ATTR_EXECUTE) == 0) {
         free_table[PAGING_PTE_OFFSET(virtual_addr)] |= PAGING_NO_EXECUTE_BIT;
     }
+
+    critical_section_end(cs);
 }
 
 void vmm_free(address_space_t address_space, volatile void* virtual_addr) {
+    critical_section_t cs = critical_section_start();
+
     uint64_t *pt = get_page_table(address_space, virtual_addr);
     if (pt == NULL) {
         return;
@@ -566,10 +581,14 @@ void vmm_free(address_space_t address_space, volatile void* virtual_addr) {
         invlpg((uintptr_t)virtual_addr);
         free_table[PAGING_PTE_OFFSET(virtual_addr)] = 0;
     }
+
+    critical_section_end(cs);
 }
 
 error_t vmm_get_physical(address_space_t address_space, const void* virtual_addr, void** physical_addr) {
     error_t err = NO_ERROR;
+
+    critical_section_t cs = critical_section_start();
 
     uint64_t* pt = get_page_table(address_space, virtual_addr);
     CHECK_ERROR(pt != NULL, ERROR_INVALID_POINTER);
@@ -584,6 +603,9 @@ cleanup:
     if(IS_ERROR(err)) {
         KERNEL_PANIC();
     }
+
+    critical_section_end(cs);
+
     return err;
 }
 
@@ -597,6 +619,8 @@ error_t vmm_copy_to_kernel(address_space_t addrspace, const void* _from, void* _
     char* to = _to;
     int padding;
 
+    critical_section_t cs = critical_section_start();
+
     // check arguments
     CHECK_ERROR(addrspace != 0, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(from != NULL, ERROR_INVALID_ARGUMENT);
@@ -604,7 +628,7 @@ error_t vmm_copy_to_kernel(address_space_t addrspace, const void* _from, void* _
 
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(addrspace, from, &physical_addr));
-    tmp_page = mm_allocate_aligned(get_current_memory_manager(), KB(4), KB(4));
+    tmp_page = mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t)from - ALIGN_DOWN((uintptr_t)from, KB(4)));
@@ -630,8 +654,10 @@ cleanup:
     // restore the original physical page and free the tmp page
     if(tmp_page != NULL) {
         vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
-        mm_free(get_current_memory_manager(), tmp_page);
+        mm_free(&kernel_memory_manager, tmp_page);
     }
+
+    critical_section_end(cs);
 
     return err;
 }
@@ -644,6 +670,8 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
     char* ptr = NULL;
     int padding;
 
+    critical_section_t cs = critical_section_start();
+
     // check arguments
     CHECK_ERROR(address_space != 0, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(from != NULL, ERROR_INVALID_ARGUMENT);
@@ -651,7 +679,7 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
 
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(address_space, from, &physical_addr));
-    tmp_page = mm_allocate_aligned(get_current_memory_manager(), KB(4), KB(4));
+    tmp_page = mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t)from - ALIGN_DOWN((uintptr_t)from, KB(4)));
@@ -683,8 +711,10 @@ cleanup:
     // restore the original physical page and free the tmp page
     if(tmp_page != NULL) {
         vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
-        mm_free(get_current_memory_manager(), tmp_page);
+        mm_free(&kernel_memory_manager, tmp_page);
     }
+
+    critical_section_end(cs);
 
     return err;
 }
@@ -699,6 +729,8 @@ error_t vmm_copy_to_user(address_space_t addrspace, const void *_from, void *_to
     char *to = _to;
     int padding;
 
+    critical_section_t cs = critical_section_start();
+
     // check arguments
     CHECK_ERROR(addrspace != 0, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(from != NULL, ERROR_INVALID_ARGUMENT);
@@ -709,7 +741,7 @@ error_t vmm_copy_to_user(address_space_t addrspace, const void *_from, void *_to
 
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(addrspace, to, &physical_addr));
-    tmp_page = mm_allocate_aligned(get_current_memory_manager(), KB(4), KB(4));
+    tmp_page = mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
@@ -735,8 +767,10 @@ cleanup:
     // restore the original physical page and free the tmp page
     if(tmp_page != NULL) {
         vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
-        mm_free(get_current_memory_manager(), tmp_page);
+        mm_free(&kernel_memory_manager, tmp_page);
     }
+
+    critical_section_end(cs);
 
     return err;
 }
@@ -751,6 +785,8 @@ error_t vmm_clear_user(address_space_t addrspace, void *_to, size_t len) {
     char *to = _to;
     int padding;
 
+    critical_section_t cs = critical_section_start();
+
     // check arguments
     CHECK_ERROR(addrspace != 0, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(to != NULL, ERROR_INVALID_ARGUMENT);
@@ -760,7 +796,7 @@ error_t vmm_clear_user(address_space_t addrspace, void *_to, size_t len) {
 
     // setup for the alignment in the first page
     CHECK_AND_RETHROW(vmm_get_physical(addrspace, to, &physical_addr));
-    tmp_page = mm_allocate_aligned(get_current_memory_manager(), KB(4), KB(4));
+    tmp_page = mm_allocate_aligned(&kernel_memory_manager, KB(4), KB(4));
     CHECK_AND_RETHROW(vmm_get_physical(kernel_address_space, tmp_page, &orig_tmp_page_phys));
     vmm_map(kernel_address_space, tmp_page, physical_addr, 0);
     padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
@@ -783,8 +819,10 @@ cleanup:
     // restore the original physical page and free the tmp page
     if(tmp_page != NULL) {
         vmm_map(kernel_address_space, tmp_page, orig_tmp_page_phys, 0);
-        mm_free(get_current_memory_manager(), tmp_page);
+        mm_free(&kernel_memory_manager, tmp_page);
     }
+
+    critical_section_end(cs);
 
     return err;
 }

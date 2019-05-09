@@ -5,6 +5,7 @@
 #include <common/common.h>
 
 #include <graphics/term.h>
+#include <locks/critical_section.h>
 
 #include "vmm.h"
 
@@ -311,7 +312,7 @@ static global_error_t internal_free(mm_context_t* context, mm_block_t* block) {
 
 
 void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
-    spinlock_lock(&context->lock);
+    critical_section_t cs = critical_section_start();
 
     int attrs = PAGE_ATTR_WRITE;
     if(vmm_get() != kernel_address_space) {
@@ -331,7 +332,7 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     context->first->next = context->first;
     context->first->allocated = false;
 
-    spinlock_unlock(&context->lock);
+    critical_section_end(cs);
 }
 
 void* mm_allocate(mm_context_t* context, size_t size) {
@@ -342,7 +343,7 @@ void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) 
     global_error_t err = NO_ERROR;
     void* ptr = NULL;
 
-    spinlock_lock(&context->lock);
+    critical_section_t cs = critical_section_start();
 
     CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, (void**)&ptr, false, false));
 
@@ -351,7 +352,7 @@ cleanup:
         KERNEL_GLOBAL_PANIC();
     }
 
-    spinlock_unlock(&context->lock);
+    critical_section_end(cs);
 
     return ptr;
 }
@@ -360,7 +361,7 @@ void mm_free(mm_context_t* context, void* ptr) {
     global_error_t err = NO_ERROR;
     mm_block_t* block = NULL;
 
-    spinlock_lock(&context->lock);
+    critical_section_t cs = critical_section_start();
 
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
 
@@ -377,7 +378,7 @@ cleanup:
         KERNEL_GLOBAL_PANIC();
     }
 
-    spinlock_unlock(&context->lock);
+    critical_section_end(cs);
 }
 
 void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
@@ -386,7 +387,7 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
     void* new = NULL;
     size_t s = 0;
 
-    spinlock_lock(&context->lock);
+    critical_section_t cs = critical_section_start();
 
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
     CHECK_GLOBAL_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
@@ -419,7 +420,7 @@ cleanup:
         KERNEL_GLOBAL_PANIC();
     }
 
-    spinlock_unlock(&context->lock);
+    critical_section_end(cs);
 
     return ptr;
 }

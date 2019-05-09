@@ -104,7 +104,7 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/term/term_provider.c
 
         kernel/multiboot.asm
-        kernel/kernel.c)
+        kernel/kernel.c kernel/locks/critical_section.h)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
