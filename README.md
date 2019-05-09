@@ -4,6 +4,8 @@ TomatOS is a 64bit operating systems (currently just the kernel part of the os b
 
 For specific information about the kernel you can go to the [kernel readme](kernel/README.md)
 
+![Screenshot](screenshot.png)
+
 ## Features
 
 * 64bit with all the basic stuff like pmm, vmm, mm...
