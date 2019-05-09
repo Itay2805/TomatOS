@@ -16,9 +16,9 @@
 typedef int resource_t;
 
 typedef struct resource_descriptor {
-    const char* scheme;
-    const char* domain;
-    const char* path;
+    char* scheme;
+    char* domain;
+    char* path;
     int port;
     struct resource_descriptor* sub;
 } resource_descriptor_t;
@@ -34,5 +34,24 @@ struct process;
  * @param resource  [OUT]   The resource created
  */
 error_t resource_create(struct process* process, resource_provider_t* provider, resource_t* resource);
+
+/**
+ * Will fully copy the descriptor to the kernel
+ *
+ * @param original_process  [IN]    The original process the descriptor is from
+ * @param descriptor        [IN]    The descriptor
+ * @param resource          [OUT]   The copied one
+ *
+ * @remark
+ * Don't forget to delete the resource descriptor with `delete_resource_descriptor`
+ */
+error_t copy_resource_descriptor_to_kernel(struct process* original_process, resource_descriptor_t* descriptor, resource_descriptor_t** resource);
+
+/**
+ * Will delete the descriptor from the kernel
+ *
+ * @param resource  [IN]    The descriptor to delete
+ */
+error_t delete_resource_descriptor(resource_descriptor_t* resource);
 
 #endif
