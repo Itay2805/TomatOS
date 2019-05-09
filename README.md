@@ -18,6 +18,8 @@ providers are basically drivers in TomatOS, they provider with function to do st
 
 * [`zero:///`](kernel/providers/zero/README.md)
 * [`term:///`](kernel/providers/term/README.md)
+* [`ata://<bus>:<port>/`](kernel/providers/ata/README.md)
+* [`echfs://[<sub>]/<path>`](kernel/providers/echfs/README.md)
 
 ## TODO
 
@@ -25,13 +27,12 @@ providers are basically drivers in TomatOS, they provider with function to do st
 
 these are things that I am going to actively work on
 
-* IDE provider (for disk support)
-* [EchFS](https://github.com/mintsuki/echfs) provider (a really simple filesystem)
+* ELF loading
+* write support for echfs
 
 ### Planned in the near future
 
 these are things that I plan to implement after I finish working on what I worked till now
 
-* ELF loading
 * Simple Shell (just allows to run programs)
 * Text editing program
