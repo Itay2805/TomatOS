@@ -38,9 +38,12 @@ typedef struct echfs_directory_entry {
     uint16_t owner;
     uint16_t group;
     uint64_t time;
-    uint64_t payload;
+    union {
+        uint64_t dir_id;
+        uint64_t data_start;
+    };
     uint64_t size;
-} echfs_directory_entry_t;
+} __attribute__((packed)) echfs_directory_entry_t;
 
 /**
  * Will resolve the path to return the directory entry
@@ -60,5 +63,7 @@ error_t echfs_resolve_path(resource_t resource, const char* path, echfs_director
  * @param entry     [OUT]       The entry in the dir
  */
 error_t echfs_read_dir(resource_t resource, uint64_t dir_id, uint64_t* pointer, echfs_directory_entry_t* entry);
+
+error_t echfs_read_from_chain(resource_t resource, uint64_t current_block, char* buffer, size_t offset, size_t len, size_t* outLen);
 
 #endif //TOMATKERNEL_ECHFS_H

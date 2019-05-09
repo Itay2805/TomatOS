@@ -90,6 +90,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
             CHECK_AND_RETHROW(resource_manager_get_provider_by_scheme(scheme, &provider));
         } break;
 
+        case SYSCALL_CLOSE:
         case SYSCALL_READ:
         case SYSCALL_WRITE:
         case SYSCALL_SEEK:

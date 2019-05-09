@@ -51,7 +51,7 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     if(strlen(desc->path) == 0) {
         context->entry.parent_id = ECHFS_DIR_ID_END_OF_DIR;
         context->entry.type = ECHFS_OBJECT_TYPE_DIR;
-        context->entry.payload = ECHFS_DIR_ID_ROOT;
+        context->entry.dir_id = ECHFS_DIR_ID_ROOT;
     }else {
         CHECK_AND_RETHROW(echfs_resolve_path(sub_resource, desc->path, &context->entry));
     }
@@ -90,16 +90,33 @@ cleanup:
     return err;
 }
 
+// TODO: Maybe store the closest chain so we can quickly get to the offset
 static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
+    size_t bytes_read = 0;
+    char* kbuffer = NULL;
 
     // get the context
     resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
     CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
 
+    // only read from files
     CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_FILE, ERROR_NOT_READABLE);
 
+    // get the min len we can read
+    len = MIN(context->entry.size, context->ptr + len);
+    kbuffer = mm_allocate(&kernel_memory_manager, len);
+    CHECK_AND_RETHROW(echfs_read_from_chain(context->base, context->entry.data_start, kbuffer, context->ptr, len, &bytes_read));
+
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, kbuffer, buffer, len));
+
+    context->ptr += bytes_read;
+    if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &bytes_read, read_size, sizeof(size_t)));
+
 cleanup:
+    if(kbuffer != NULL) {
+        mm_free(&kernel_memory_manager, kbuffer);
+    }
     return err;
 }
 
@@ -110,7 +127,11 @@ static error_t handle_tell(process_t* process, int tid, resource_t resource, siz
     resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
     CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
 
+    // only only tell on files
     CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_FILE, ERROR_NOT_SEEKABLE);
+
+    // copy offset to user
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &context->ptr, pos, sizeof(size_t)));
 
 cleanup:
     return err;
@@ -125,7 +146,29 @@ static error_t handle_seek(process_t* process, int tid, resource_t resource, int
 
     CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_FILE, ERROR_NOT_SEEKABLE);
 
+    switch(type) {
+        case SEEK_CUR:
+            context->ptr += pos;
+            break;
+
+        case SEEK_END:
+            context->ptr = context->entry.size - pos;
+            break;
+
+        case SEEK_START:
+            context->ptr = (size_t) pos;
+            break;
+
+        default:
+            CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
+    }
+
+    CHECK_ERROR(context->ptr <= context->entry.size, ERROR_OUT_OF_RANGE);
+
 cleanup:
+    if(IS_ERROR(err)) {
+        context->ptr = context->entry.size;
+    }
     return err;
 }
 
@@ -140,7 +183,7 @@ static error_t handle_invoke(process_t* process, int tid, resource_t resource, i
     switch(cmd) {
         case ECHFS_READ_DIR:
             CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_DIR, ERROR_NOT_IMPLEMENTED);
-            CHECK_AND_RETHROW(echfs_read_dir(context->base, context->entry.payload, &context->ptr, &entry));
+            CHECK_AND_RETHROW(echfs_read_dir(context->base, context->entry.dir_id, &context->ptr, &entry));
             CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &entry, arg, sizeof(echfs_directory_entry_t)));
             break;
 

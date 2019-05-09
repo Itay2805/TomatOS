@@ -151,10 +151,10 @@ static void default_exception_handler(registers_t* regs) {
 
     // print process stuff
     if(running_thread == NULL) {
+        term_write("pid=N/A\ntid=N/A\n");
+    }else {
         term_print("pid=%d\n", running_thread->parent->pid);
         term_print("tid=%d\n", (int) running_thread->tid);
-    }else {
-        term_write("pid=N/A\ntid=N/A\n");
     }
     term_write("\n");
 

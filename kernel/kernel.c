@@ -35,7 +35,7 @@ static void thread_kernel(void* arg) {
     open(&stdout_desc, &stdout);
     write(stdout, "In kernel thread\n", sizeof("In kernel thread\n"), NULL);
 
-    resource_t echfs_root;
+    resource_t echfs_file;
     resource_descriptor_t ata_desc = {
             .scheme = "ata",
             .domain = "primary",
@@ -46,10 +46,10 @@ static void thread_kernel(void* arg) {
             .path = "",
             .sub = &ata_desc
     };
-    if(open(&echfs_desc, &echfs_root)) {
+    if(open(&echfs_desc, &echfs_file)) {
         echfs_directory_entry_t entry;
         write(stdout, "===========\n", sizeof("===========\n"), NULL);
-        while(invoke(echfs_root, 1, &entry)) {
+        while(invoke(echfs_file, 1, &entry)) {
             if(entry.type == ECHFS_OBJECT_TYPE_FILE) {
                 write(stdout, "F> ", 3, NULL);
             }else {
@@ -59,8 +59,62 @@ static void thread_kernel(void* arg) {
             write(stdout, "\n", 1, NULL);
         }
         write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        close(echfs_file);
     }else {
         write(stdout, "Failed to open echfs://[ata://primary:0/]/\n", sizeof("Failed to open echfs://[ata://primary:0/]/\n"), NULL);
+    }
+
+    echfs_desc.path = "file.txt";
+    if(open(&echfs_desc, &echfs_file)) {
+        echfs_directory_entry_t entry;
+        write(stdout, "=file.txt==\n", sizeof("=file.txt==\n"), NULL);
+        size_t len;
+        seek(echfs_file, SEEK_END, 0);
+        tell(echfs_file, &len);
+        seek(echfs_file, SEEK_START, 0);
+        char buffer[len];
+        read(echfs_file, &buffer, (int) len, NULL);
+        write(stdout, buffer, (int) len, NULL);
+        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        close(echfs_file);
+    }else {
+        write(stdout, "Failed to open echfs://[ata://primary:0/]/file.txt\n", sizeof("Failed to open echfs://[ata://primary:0/]/file.txt\n"), NULL);
+    }
+
+    echfs_desc.path = "dir_uwu";
+    if(open(&echfs_desc, &echfs_file)) {
+        echfs_directory_entry_t entry;
+        write(stdout, "==dir_uwu==\n", sizeof("==dir_uwu==\n"), NULL);
+        while(invoke(echfs_file, 1, &entry)) {
+            if(entry.type == ECHFS_OBJECT_TYPE_FILE) {
+                write(stdout, "F> ", 3, NULL);
+            }else {
+                write(stdout, "D> ", 3, NULL);
+            }
+            write(stdout, entry.name, 218, NULL);
+            write(stdout, "\n", 1, NULL);
+        }
+        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        close(echfs_file);
+    }else {
+        write(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu\n", sizeof("Failed to open echfs://[ata://primary:0/]/dir_uwu\n"), NULL);
+    }
+
+    echfs_desc.path = "dir_uwu/owo.txt";
+    if(open(&echfs_desc, &echfs_file)) {
+        echfs_directory_entry_t entry;
+        write(stdout, "==owo.txt==\n", sizeof("==owo.txt==\n"), NULL);
+        size_t len;
+        seek(echfs_file, SEEK_END, 0);
+        tell(echfs_file, &len);
+        seek(echfs_file, SEEK_START, 0);
+        char buffer[len];
+        read(echfs_file, &buffer, (int) len, NULL);
+        write(stdout, buffer, (int) len, NULL);
+        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        close(echfs_file);
+    }else {
+        write(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu/owo.txt\n", sizeof("Failed to open echfs://[ata://primary:0/]/dir_uwu/owo.txt\n"), NULL);
     }
 
     while(true);

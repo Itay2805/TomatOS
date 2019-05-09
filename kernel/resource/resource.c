@@ -57,6 +57,7 @@ error_t copy_resource_descriptor_to_kernel(struct process* original_process, res
     CHECK_ERROR(resource != NULL, ERROR_INVALID_ARGUMENT);
 
     new_descriptor = mm_allocate(&kernel_memory_manager, sizeof(resource_descriptor_t));
+    memset(new_descriptor, 0, sizeof(resource_descriptor_t));
     CHECK_AND_RETHROW(vmm_copy_to_kernel(original_process->address_space, descriptor, &copied_descriptor, sizeof(resource_descriptor_t)));
 
     // copy scheme

@@ -389,6 +389,7 @@ void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) 
     CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
     CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, (void**)&ptr, false, false));
     CHECK_GLOBAL(ptr != NULL);
+    CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
 
 cleanup:
     if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
@@ -415,6 +416,7 @@ void mm_free(mm_context_t* context, void* ptr) {
     CHECK_GLOBAL_ERROR(block->allocated, ERROR_INVALID_POINTER);
 
     CHECK_GLOBAL_AND_RETHROW(internal_free(context, block));
+    CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
 
 cleanup:
     // we ignore invalid pointer in the free
@@ -460,6 +462,7 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
         // free the block
         CHECK_GLOBAL_AND_RETHROW(internal_free(context, block));
     }
+    CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
 
 cleanup:
     if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
