@@ -37,4 +37,8 @@
 
 #define UNUSED(x) ((void)x)
 
+static inline void pause() {
+    asm volatile ("pause" ::: "memory");
+}
+
 #endif
