@@ -2,6 +2,7 @@
 #define TOMATKERNEL_RESOURCE_MANAGER_H
 
 #include <common/except.h>
+#include <process/thread.h>
 
 struct process;
 
@@ -34,8 +35,7 @@ error_t resource_manager_init();
  * @param process   [IN] The process the resource belongs to
  * @param resource  [IN] The resource which is ready
  */
-error_t resource_manager_resource_ready(struct process* process, resource_t resource);
-
+error_t resource_manager_resource_ready(thread_t* thread, resource_t resource);
 /**
  * Will register a provider to the providers list
  *

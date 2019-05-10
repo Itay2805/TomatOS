@@ -50,6 +50,8 @@ error_t resource_remove(struct process* process, resource_t resource);
  */
 uint64_t hash_resource(int pid, resource_t resource);
 
+uint64_t hash_resource_thread(int pid, int tid, resource_t resource);
+
 /**
  * Will fully copy the descriptor to the kernel
  *

@@ -14,6 +14,12 @@ uint64_t hash_resource(int pid, resource_t resource) {
     return hash_bytes(&values, sizeof(values));
 }
 
+uint64_t hash_resource_thread(int pid, int tid, resource_t resource) {
+    uint64_t values[] = {(uint64_t) pid, (uint64_t) tid, (uint64_t) resource };
+    return hash_bytes(&values, sizeof(values));
+}
+
+
 error_t resource_create(process_t* process, resource_provider_t* provider, resource_t* resource) {
     error_t err = NO_ERROR;
     bool found = false;

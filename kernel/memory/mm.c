@@ -230,6 +230,9 @@ static global_error_t verify_integrity(mm_context_t* context) {
     } while(current != context->first);
 
 cleanup:
+    if(IS_GLOBAL_ERROR(err)) {
+        asm("nop");
+    }
     return err;
 }
 

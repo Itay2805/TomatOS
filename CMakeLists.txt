@@ -25,7 +25,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_ASM_FLAGS "-g ${CMAKE_ASM_FLAGS}")
 endif ()
 
-# For debugging
+# For release
 if (CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_C_FLAGS "-O3 ${CMAKE_C_FLAGS}")
     set(CMAKE_ASM_FLAGS "-O3 ${CMAKE_ASM_FLAGS}")
@@ -124,6 +124,11 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/echfs/echfs_provider.h
         kernel/providers/echfs/echfs.h
         kernel/providers/echfs/echfs.c
+
+        kernel/providers/ps2/ps2_provider.c
+        kernel/providers/ps2/ps2_provider.h
+        kernel/providers/ps2/ps2.h
+        kernel/providers/ps2/ps2.c
 
         kernel/multiboot.asm
         kernel/kernel.c)

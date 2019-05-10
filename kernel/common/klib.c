@@ -3,6 +3,9 @@
 //
 
 #include "klib.h"
+#include "string.h"
+#include "stdarg.h"
+#include "mini-printf.h"
 #include <process/syscalls.h>
 
 bool open(resource_descriptor_t* desc, resource_t* resource) {
@@ -41,10 +44,31 @@ bool close(resource_t res) {
     return result;
 }
 
+bool poll(resource_t res) {
+    bool result;
+    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_POLL), "D"(res));
+    return result;
+}
+
+bool wait(resource_t res) {
+    bool result;
+    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_WAIT), "D"(res));
+    return result;
+}
+
 bool invoke(resource_t res, int command, void* arg) {
     bool result;
     asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_INVOKE), "D"(res), "S"(command), "d"(arg));
     return result;
+}
+
+void fprintf(resource_t res, const char* fmt, ...) {
+    va_list list;
+    va_start(list, fmt);
+    char buffer[1024];
+    mini_vsnprintf(buffer, 1024u, fmt, list);
+    write(res, buffer, sizeof(buffer), NULL);
+    va_end(list);
 }
 
 bool tkill(int tid) {

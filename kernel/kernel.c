@@ -1,25 +1,30 @@
 #include "kernel.h"
 
-#include <memory/pmm.h>
-#include <memory/vmm.h>
+#include <providers/zero/zero_provider.h>
+#include <providers/term/term_provider.h>
+#include <providers/echfs/echfs_provider.h>
+#include <providers/ata/ata_provider.h>
+#include <providers/ps2/ps2_provider.h>
+#include <providers/echfs/echfs.h>
+
 #include <common/string.h>
+#include <common/klib.h>
+#include <common/common.h>
+
 #include <interrupts/idt.h>
 #include <interrupts/irq.h>
 #include <interrupts/isr.h>
+
 #include <process/scheduler.h>
+#include <process/syscall.h>
 #include <process/process.h>
-#include <common/common.h>
+
+#include <memory/gdt.h>
+#include <memory/pmm.h>
+#include <memory/vmm.h>
+
 #include <cpu/cpuid.h>
 #include <cpu/msr.h>
-#include <process/syscall.h>
-#include <memory/gdt.h>
-
-#include <providers/zero/zero_provider.h>
-#include <providers/term/term_provider.h>
-#include <providers/ata/ata_provider.h>
-#include <providers/echfs/echfs_provider.h>
-#include <common/klib.h>
-#include <providers/echfs/echfs.h>
 
 #include "graphics/term.h"
 
@@ -48,25 +53,19 @@ static void thread_kernel(void* arg) {
     };
     if(open(&echfs_desc, &echfs_file)) {
         echfs_directory_entry_t entry;
-        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        fprintf(stdout, "===========\n");
         while(invoke(echfs_file, 1, &entry)) {
-            if(entry.type == ECHFS_OBJECT_TYPE_FILE) {
-                write(stdout, "F> ", 3, NULL);
-            }else {
-                write(stdout, "D> ", 3, NULL);
-            }
-            write(stdout, entry.name, 218, NULL);
-            write(stdout, "\n", 1, NULL);
+            fprintf(stdout, "%c> %s\n", entry.type == ECHFS_OBJECT_TYPE_FILE ? 'F' : 'D', entry.name);
         }
-        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        fprintf(stdout, "===========\n");
         close(echfs_file);
     }else {
-        write(stdout, "Failed to open echfs://[ata://primary:0/]/\n", sizeof("Failed to open echfs://[ata://primary:0/]/\n"), NULL);
+        fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/\n");
     }
 
     echfs_desc.path = "file.txt";
     if(open(&echfs_desc, &echfs_file)) {
-        write(stdout, "=file.txt==\n", sizeof("=file.txt==\n"), NULL);
+        fprintf(stdout, "=file.txt==\n");
         size_t len;
         seek(echfs_file, SEEK_END, 0);
         tell(echfs_file, &len);
@@ -74,29 +73,23 @@ static void thread_kernel(void* arg) {
         char buffer[len];
         read(echfs_file, &buffer, (int) len, NULL);
         write(stdout, buffer, (int) len, NULL);
-        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        fprintf(stdout, "===========\n");
         close(echfs_file);
     }else {
-        write(stdout, "Failed to open echfs://[ata://primary:0/]/file.txt\n", sizeof("Failed to open echfs://[ata://primary:0/]/file.txt\n"), NULL);
+        fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/file.txt\n");
     }
 
     echfs_desc.path = "dir_uwu";
     if(open(&echfs_desc, &echfs_file)) {
         echfs_directory_entry_t entry;
-        write(stdout, "==dir_uwu==\n", sizeof("==dir_uwu==\n"), NULL);
+        fprintf(stdout, "==dir_uwu==\n");
         while(invoke(echfs_file, 1, &entry)) {
-            if(entry.type == ECHFS_OBJECT_TYPE_FILE) {
-                write(stdout, "F> ", 3, NULL);
-            }else {
-                write(stdout, "D> ", 3, NULL);
-            }
-            write(stdout, entry.name, 218, NULL);
-            write(stdout, "\n", 1, NULL);
+            fprintf(stdout, "%c> %s\n", entry.type == ECHFS_OBJECT_TYPE_FILE ? 'F' : 'D', entry.name);
         }
-        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        fprintf(stdout, "===========\n");
         close(echfs_file);
     }else {
-        write(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu\n", sizeof("Failed to open echfs://[ata://primary:0/]/dir_uwu\n"), NULL);
+        fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu\n");
     }
 
     echfs_desc.path = "dir_uwu/owo.txt";
@@ -109,14 +102,28 @@ static void thread_kernel(void* arg) {
         char buffer[len];
         read(echfs_file, &buffer, (int) len, NULL);
         write(stdout, buffer, (int) len, NULL);
-        write(stdout, "===========\n", sizeof("===========\n"), NULL);
+        fprintf(stdout, "===========\n");
         close(echfs_file);
     }else {
-        write(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu/owo.txt\n", sizeof("Failed to open echfs://[ata://primary:0/]/dir_uwu/owo.txt\n"), NULL);
+        fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu/owo.txt\n");
     }
     uint64_t end = rdtsc();
     uint64_t total = end - start;
-    while(true);
+
+    resource_t stdin;
+    resource_descriptor_t stdin_desc = {
+            .scheme = "ps2",
+            .domain = "keyboard"
+    };
+    open(&stdin_desc, &stdin);
+    while(true) {
+        wait(stdin);
+        while(poll(stdin)) {
+            char ch;
+            read(stdin, &ch, 1, NULL);
+            fprintf(stdout, "got scancode %d\n", ch);
+        }
+    }
 }
 
 void kernel_main(multiboot_info_t* info) {
@@ -166,6 +173,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(term_provider_init());
     CHECK_AND_RETHROW(ata_provider_init());
     CHECK_AND_RETHROW(echfs_provider_init());
+    CHECK_AND_RETHROW(ps2_provider_init());
 
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());

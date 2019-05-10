@@ -12,6 +12,7 @@
 #include <common/map.h>
 
 #include <memory/gdt.h>
+#include <locks/critical_section.h>
 
 #include "resource.h"
 
@@ -167,11 +168,10 @@ static error_t dispatch_resource_call(registers_t* regs) {
             break;
 
         case SYSCALL_POLL:
-            // TODO: Allow for multi resource poll
             CHECK_ERROR((uint64_t)provider->poll != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->poll;
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
-            CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
+            break;
 
         default:
             CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
@@ -222,7 +222,7 @@ static error_t syscall_wait(registers_t* regs) {
     CHECK_ERROR(provider->wait_support, ERROR_NOT_WAITABLE);
 
     // put in the map
-    map_put_uint64_from_uint64(&resource_wait, hash_resource(running_process->pid, regs->rdi), 1);
+    map_put_uint64_from_uint64(&resource_wait, hash_resource_thread(running_process->pid, (int) running_thread->tid, (resource_t) regs->rdi), 1);
 
     // set the thread to suspended
     running_thread->state = THREAD_SUSPENDED;
@@ -233,8 +233,16 @@ cleanup:
     return err;
 }
 
-error_t resource_manager_resource_ready(struct process* process, resource_t resource) {
+error_t resource_manager_resource_ready(thread_t* thread, resource_t resource) {
+    // check if the process is waiting for this resource
+    uint64_t hash = hash_resource_thread(thread->parent->pid, (int) thread->tid, resource);
+    if(map_get_uint64_from_uint64(&resource_wait, hash)) {
+        map_put_uint64_from_uint64(&resource_wait, hash, 0);
 
+        // kick start the thread
+        thread->cpu_state.rax = 0;
+        thread->state = THREAD_NORMAL;
+    }
     return NO_ERROR;
 }
 

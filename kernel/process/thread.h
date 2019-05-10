@@ -1,9 +1,9 @@
 #ifndef PROCESS_THREAD_H
 #define PROCESS_THREAD_H
 
-#include <common/stdint.h>
-#include <resource/resource.h>
 #include <interrupts/interrupts.h>
+#include <common/stdint.h>
+#include <common/except.h>
 
 #define DEFAULT_STACK_SIZE MB(4)
 

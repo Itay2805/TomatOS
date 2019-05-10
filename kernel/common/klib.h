@@ -15,6 +15,10 @@ bool seek(resource_t res, int relative, ptrdiff_t offset);
 bool tell(resource_t res, uint64_t* offset);
 bool invoke(resource_t res, int command, void* arg);
 bool close(resource_t res);
+bool poll(resource_t res);
+bool wait(resource_t res);
+
+void fprintf(resource_t res, const char* fmt, ...)  __attribute__ ((format (printf, 2, 3)));
 
 /**
  * Will kill the thread with the given tid, use 0 to kill the current thread
