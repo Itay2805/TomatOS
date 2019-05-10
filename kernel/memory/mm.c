@@ -124,8 +124,6 @@ static global_error_t join(mm_context_t* context) {
 
 /**
  * Gets the required padding
- *
- * TODO: We can do this with just the block since it has the alignment
  */
 static ptrdiff_t get_padding(mm_block_t* block, size_t alignment) {
     return ALIGN_UP((uintptr_t)&block->data, alignment) - (uintptr_t)&block->data;

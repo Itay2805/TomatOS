@@ -155,7 +155,6 @@ cleanup:
     return NO_ERROR;
 }
 
-// TODO: Range checking
 static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* write_size) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = NULL;
@@ -228,7 +227,6 @@ cleanup:
     return err;
 }
 
-// TODO: Range checking
 static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, ptrdiff_t pos) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));

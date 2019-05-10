@@ -11,7 +11,6 @@ typedef unsigned short      uint16_t;
 typedef unsigned int        uint32_t;
 typedef unsigned long long  uint64_t;
 
-// TODO: Move to the correct headers
 typedef uint64_t            size_t;
 typedef uint64_t            uintptr_t;
 typedef int64_t             ptrdiff_t;
