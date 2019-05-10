@@ -72,17 +72,23 @@ typedef void(*interrupt_handler_f)(registers_t* registers);
 /**
  * Enable interrupts
  */
-extern void sti();
+static inline void sti() {
+    asm volatile ("sti");
+}
 
 /**
  * Clear interrupts
  */
-extern void cli();
+static inline void cli() {
+    asm volatile ("cli");
+}
 
 /**
  * Halt until the next instruction
  */
-extern void hlt();
+static inline void hlt() {
+    asm volatile ("hlt");
+}
 
 /**
  * Load the idt

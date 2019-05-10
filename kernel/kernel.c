@@ -27,11 +27,11 @@ extern void* boot_pdpe;
 mm_context_t kernel_memory_manager;
 
 static void thread_kernel(void* arg) {
+    uint64_t start = rdtsc();
     resource_t stdout;
     resource_descriptor_t stdout_desc = {
             .scheme = "term"
     };
-
     open(&stdout_desc, &stdout);
     write(stdout, "In kernel thread\n", sizeof("In kernel thread\n"), NULL);
 
@@ -114,7 +114,8 @@ static void thread_kernel(void* arg) {
     }else {
         write(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu/owo.txt\n", sizeof("Failed to open echfs://[ata://primary:0/]/dir_uwu/owo.txt\n"), NULL);
     }
-
+    uint64_t end = rdtsc();
+    uint64_t total = end - start;
     while(true);
 }
 

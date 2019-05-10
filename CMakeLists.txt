@@ -18,10 +18,17 @@ set(CMAKE_C_FLAGS "-z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-b
 set(CMAKE_ASM_FLAGS "-f elf64")
 set(CMAKE_EXE_LINKER_FLAGS "-z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${KERNEL_PATH}/linker.ld")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
+
 # For debugging
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_C_FLAGS "-g ${CMAKE_C_FLAGS}")
     set(CMAKE_ASM_FLAGS "-g ${CMAKE_ASM_FLAGS}")
+endif ()
+
+# For debugging
+if (CMAKE_BUILD_TYPE MATCHES Release)
+    set(CMAKE_C_FLAGS "-O3 ${CMAKE_C_FLAGS}")
+    set(CMAKE_ASM_FLAGS "-O3 ${CMAKE_ASM_FLAGS}")
 endif ()
 
 # Setup kernel sources

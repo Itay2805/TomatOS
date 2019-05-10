@@ -40,4 +40,10 @@ static inline void wrmsr(uint32_t msr, uint64_t value) {
     asm volatile("wrmsr" : : "c"(msr), "a"(value & 0xFFFFFFFF), "d"(value >> 32));
 }
 
+static inline uint64_t rdtsc(void) {
+    uint32_t low, high;
+    asm volatile("rdtsc" : "=a"(low), "=d"(high));
+    return ((uint64_t)high << 32) | low;
+}
+
 #endif //TOMATKERNEL_MSR_H
