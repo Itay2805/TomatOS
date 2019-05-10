@@ -15,6 +15,8 @@
 
 static resource_provider_t term_provider = {0};
 
+static error_t handle_close(process_t* process, int tid, resource_t resource);
+
 static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
     resource_t created_resource = 0;
@@ -28,20 +30,20 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     // copy the resource to user space
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &created_resource, resource, sizeof(resource_t)));
 
-    cleanup:
-    if(IS_ERROR(err) != NO_ERROR) {
-        // TODO: Close the resource cause we had an error
+cleanup:
+    if(IS_ERROR(err)) {
+        handle_close(process, tid, created_resource);
     }
     return err;
 }
 
 static error_t handle_close(process_t* process, int tid, resource_t resource) {
-    // TODO: Add a remove resource function, memory leaking until that is fixed
-
-    UNUSED(process);
+    error_t err = NO_ERROR;
     UNUSED(tid);
-    UNUSED(resource);
 
+    CHECK_AND_RETHROW(resource_remove(process, resource));
+
+cleanup:
     return NO_ERROR;
 }
 

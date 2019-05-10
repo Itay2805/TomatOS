@@ -84,7 +84,8 @@ static error_t handle_close(process_t* process, int tid, resource_t resource) {
     mm_free(&kernel_memory_manager, context);
     map_put_from_uint64(&resource_context_map, hash_resource(process->pid, resource), NULL);
 
-    // TODO: Remove the resource from the kernel
+    // Remove the resource from the kernel 
+    CHECK_AND_RETHROW(resource_remove(process, resource));
 
 cleanup:
     return err;

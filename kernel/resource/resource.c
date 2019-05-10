@@ -47,6 +47,20 @@ cleanup:
     return err;
 }
 
+error_t resource_remove(struct process* process, resource_t resource) {
+    int index = 0;
+
+    for(resource_t* it = process->resources; it < buf_end(process->resources); it++, index++) {
+        if(*it == 0) {
+            *it = NULL;
+            process->providers[index] = NULL;
+            break;
+        }
+    }
+
+    return NO_ERROR;
+}
+
 error_t copy_resource_descriptor_to_kernel(struct process* original_process, resource_descriptor_t* descriptor, resource_descriptor_t** resource) {
     error_t err = NO_ERROR;
     resource_descriptor_t* new_descriptor = NULL;

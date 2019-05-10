@@ -36,6 +36,14 @@ struct process;
 error_t resource_create(struct process* process, resource_provider_t* provider, resource_t* resource);
 
 /**
+ * Will remove the resource from the process
+ * 
+ * @param process   [IN] The process to remove the resource from
+ * @param resource  [IN] The resource to remove
+ */
+error_t resource_remove(struct process* process, resource_t resource);
+
+/**
  * Will hash the pid and resource to give out a unique hash
  *
  * this is for using in maps
