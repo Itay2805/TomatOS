@@ -82,7 +82,7 @@ thread_t* process_start_thread(process_t* process, thread_start_f start) {
     thread_t* new_thread = thread_create(process, start);
         
     for(thread_t** it = process->threads; it < buf_end(process->threads); it++) {
-        if(*it != NULL) {
+        if(*it == NULL) {
             thread = it;
             break;
         }
