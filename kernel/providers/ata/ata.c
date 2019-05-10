@@ -57,7 +57,6 @@ cleanup:
 }
 
 error_t ata_write_sector(int drive, int port, uint64_t lba, char* buffer) {
-    error_t err = NO_ERROR;
     uint16_t iobase = portiop[drive];
 
     // send the command and wait
@@ -80,12 +79,10 @@ error_t ata_write_sector(int drive, int port, uint64_t lba, char* buffer) {
     }
     outb(iobase + ATA_REG_COMMAND, ATA_COMMAND_CACHE_FLUSH);
 
-cleanup:
-    return err;
+    return NO_ERROR;
 }
 
 error_t ata_read_sector(int drive, int port, uint64_t lba, char* buffer) {
-    error_t err = NO_ERROR;
     uint16_t iobase = portiop[drive];
 
     outb(iobase + ATA_REG_FEATURES, 0x00);
@@ -106,6 +103,5 @@ error_t ata_read_sector(int drive, int port, uint64_t lba, char* buffer) {
         *buf++ = inw(iobase + ATA_REG_DATA);
     }
 
-cleanup:
-    return err;
+    return NO_ERROR;
 }

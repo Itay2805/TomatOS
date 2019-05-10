@@ -32,24 +32,24 @@ void irq_init() {
     idt_set_entry(IRQ_BASE + IRQ_SECONDARY_ATA, irq_secondary_ata, IDT_INTERRUPT_GATE);
 }
 
-static const char* IRQ_NAMES[] = {
-        "Programmable Interval Timer (PIT)",
-        "Keyboard",
-        "Cascade",
-        "COM2",
-        "COM1",
-        "LPT2",
-        "FLOPPY",
-        "LPT1",
-        "CMOS",
-        "PERIPHERALS_1",
-        "PERIPHERALS_2",
-        "PERIPHERALS_3",
-        "PS2 Mouse",
-        "Co-processor",
-        "Primary ATA",
-        "Secondary ATA",
-};
+// static const char* IRQ_NAMES[] = {
+//         "Programmable Interval Timer (PIT)",
+//         "Keyboard",
+//         "Cascade",
+//         "COM2",
+//         "COM1",
+//         "LPT2",
+//         "FLOPPY",
+//         "LPT1",
+//         "CMOS",
+//         "PERIPHERALS_1",
+//         "PERIPHERALS_2",
+//         "PERIPHERALS_3",
+//         "PS2 Mouse",
+//         "Co-processor",
+//         "Primary ATA",
+//         "Secondary ATA",
+// };
 
 void irq_common(registers_t registers) {
     if(irq_handlers[registers.int_num - IRQ_BASE]) {

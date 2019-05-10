@@ -66,7 +66,6 @@ static void thread_kernel(void* arg) {
 
     echfs_desc.path = "file.txt";
     if(open(&echfs_desc, &echfs_file)) {
-        echfs_directory_entry_t entry;
         write(stdout, "=file.txt==\n", sizeof("=file.txt==\n"), NULL);
         size_t len;
         seek(echfs_file, SEEK_END, 0);
@@ -102,7 +101,6 @@ static void thread_kernel(void* arg) {
 
     echfs_desc.path = "dir_uwu/owo.txt";
     if(open(&echfs_desc, &echfs_file)) {
-        echfs_directory_entry_t entry;
         write(stdout, "==owo.txt==\n", sizeof("==owo.txt==\n"), NULL);
         size_t len;
         seek(echfs_file, SEEK_END, 0);
