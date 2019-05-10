@@ -38,17 +38,15 @@ static ata_entry_t* find_entry(int domain, int port) {
     return &ide_entries[domain * 2 + port];
 }
 
-static error_t handle_close(process_t* process, int tid, resource_t resource);
+static error_t handle_close(process_t* process, thread_t* thread, resource_t resource);
 
-static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
+static error_t handle_open(process_t* process, thread_t* thread, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
     resource_t created_resource = 0;
     resource_descriptor_t kdesc;
     char* domain_str = NULL;
     size_t domain_len = 0;
     int controller = 0;
-
-    UNUSED(tid);
 
     // we need the resource descriptor and the domain
     CHECK_AND_RETHROW(vmm_copy_to_kernel(process->address_space, descriptor, &kdesc, sizeof(resource_descriptor_t)));
@@ -62,6 +60,7 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
     }else if(strcmp(domain_str, "secondary") == 0) {
         controller = 1;
     }else {
+        term_print("[ata::open] %s\n", domain_str);
         CHECK_FAIL_ERROR(ERROR_INVALID_DOMAIN);
     }
 
@@ -82,7 +81,7 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
 
 cleanup:
     if(IS_ERROR(err)) {
-        handle_close(process, tid, created_resource);
+        handle_close(process, thread, created_resource);
     }
     if(domain_str != NULL) {
         mm_free(&kernel_memory_manager, domain_str);
@@ -90,7 +89,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_close(process_t* process, int tid, resource_t resource) {
+static error_t handle_close(process_t* process, thread_t* thread, resource_t resource) {
     error_t err = NO_ERROR;
 
     // get the context
@@ -109,12 +108,10 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* read_size) {
+static error_t handle_read(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = NULL;
     char* kbuffer = NULL;
-    size_t read = 0;
-    UNUSED(tid);
 
     CHECK_ERROR(buffer != NULL, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(len > 0, ERROR_INVALID_ARGUMENT);
@@ -155,12 +152,10 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* write_size) {
+static error_t handle_write(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len, size_t* write_size) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = NULL;
     char* kbuffer = NULL;
-
-    UNUSED(tid);
 
     CHECK_ERROR(buffer != NULL, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(len > 0, ERROR_INVALID_ARGUMENT);
@@ -208,12 +203,10 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_tell(process_t* process, int tid, resource_t resource, size_t* pos) {
+static error_t handle_tell(process_t* process, thread_t* thread, resource_t resource, size_t* pos) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
     CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
-
-    UNUSED(tid);
 
     CHECK_ERROR(pos != NULL, ERROR_INVALID_ARGUMENT);
 
@@ -227,7 +220,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, ptrdiff_t pos) {
+static error_t handle_seek(process_t* process, thread_t* thread, resource_t resource, int type, ptrdiff_t pos) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
     CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
@@ -295,7 +288,7 @@ error_t ata_provider_init() {
     error_t err = NO_ERROR;
 
     process_t* process = process_create(NULL, true);
-    thread_kill(&process->threads[0]);
+    thread_kill(process->threads[0]);
 
     ata_provider.scheme = "ata";
     ata_provider.pid = process->pid;

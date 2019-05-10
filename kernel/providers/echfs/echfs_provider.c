@@ -22,9 +22,9 @@ typedef struct resource_context {
 
 static map_t resource_context_map = {0};
 
-static error_t handle_close(process_t* process, int tid, resource_t resource);
+static error_t handle_close(process_t* process, thread_t* thread, resource_t resource);
 
-static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
+static error_t handle_open(process_t* process, thread_t* thread, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
     resource_t created_resource = 0;
     resource_descriptor_t* desc = NULL;
@@ -62,7 +62,7 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
 cleanup:
     if(IS_ERROR(err)) {
         // close
-        if(created_resource != NULL) handle_close(process, tid, created_resource);
+        if(created_resource != NULL) handle_close(process, thread, created_resource);
     }
     if(desc != NULL) {
         delete_resource_descriptor(desc);
@@ -70,7 +70,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_close(process_t* process, int tid, resource_t resource) {
+static error_t handle_close(process_t* process, thread_t* thread, resource_t resource) {
     error_t err = NO_ERROR;
 
     // get the context
@@ -92,7 +92,7 @@ cleanup:
 }
 
 // TODO: Maybe store the closest chain so we can quickly get to the offset
-static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* read_size) {
+static error_t handle_read(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
     size_t bytes_read = 0;
     char* kbuffer = NULL;
@@ -121,7 +121,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_tell(process_t* process, int tid, resource_t resource, size_t* pos) {
+static error_t handle_tell(process_t* process, thread_t* thread, resource_t resource, size_t* pos) {
     error_t err = NO_ERROR;
 
     // get the context
@@ -138,7 +138,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, ptrdiff_t pos) {
+static error_t handle_seek(process_t* process, thread_t* thread, resource_t resource, int type, ptrdiff_t pos) {
     error_t err = NO_ERROR;
 
     // get the context
@@ -173,7 +173,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_invoke(process_t* process, int tid, resource_t resource, int cmd, void* arg) {
+static error_t handle_invoke(process_t* process, thread_t* thread, resource_t resource, int cmd, void* arg) {
     error_t err = NO_ERROR;
     echfs_directory_entry_t entry;
 
@@ -204,7 +204,7 @@ error_t echfs_provider_init() {
     error_t err = NO_ERROR;
 
     process_t* process = process_create(NULL, true);
-    thread_kill(&process->threads[0]);
+    thread_kill(process->threads[0]);
 
     echfs_provider.scheme = "echfs";
     echfs_provider.pid = process->pid;

@@ -68,6 +68,7 @@ extern const char* except_strings[];
 #define ERROR_NOT_SEEKABLE      15u
 #define ERROR_OUT_OF_RANGE      16u
 #define ERROR_FINISHED          17u
+#define ERROR_NOT_WAITABLE      18u
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Global error handling

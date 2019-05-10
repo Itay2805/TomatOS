@@ -11,6 +11,8 @@ typedef struct resource_provider {
     int pid;
     const char* scheme;
 
+    bool wait_support;
+
     void* open;
     void* read;
     void* write;
@@ -25,6 +27,14 @@ typedef struct resource_provider {
  * Initializes the resource manager
  */
 error_t resource_manager_init();
+
+/**
+ * Will tell the resource manager that the resource is ready
+ * 
+ * @param process   [IN] The process the resource belongs to
+ * @param resource  [IN] The resource which is ready
+ */
+error_t resource_manager_resource_ready(struct process* process, resource_t resource);
 
 /**
  * Will register a provider to the providers list

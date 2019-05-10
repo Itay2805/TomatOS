@@ -24,13 +24,14 @@
 /**
  * The idle process, runs when there is nothing else to run
  */
+static thread_t idle_thread = {};
 static process_t idle_process = {};
 static void* idle_process_stack = NULL;
 
 /**
  * just hlt in a loop cause why not
  */
-static void idle_thread(void* arg) {
+static void idle_thread_loop(void* arg) {
     ((void)arg);
     while(true) {
         hlt();
@@ -43,27 +44,23 @@ static void idle_thread(void* arg) {
 static error_t idle_process_init() {
     idle_process.address_space = kernel_address_space;
     idle_process.pid = 0;
-    idle_process.next_tid = 1;
+    idle_process.next_tid = 2;
+
+    idle_thread.parent = &idle_process;
+    idle_thread.tid = 1;
+    idle_thread.state = THREAD_NORMAL;
 
     idle_process_stack = mm_allocate(&kernel_memory_manager, KB(1));
-
-    // create an idle thread
-    // TODO: Make this per cpu
-    buf_push(idle_process.threads, (thread_t) {
-        .state = THREAD_NORMAL,
-        .parent = &idle_process,
-        .tid = 1,
-        .start = idle_thread,
-    });
+    buf_push(idle_process.threads, &idle_thread);
 
     // setup the cpu state of the idle thread
-    idle_process.threads[0].cpu_state.cs = 8;
-    idle_process.threads[0].cpu_state.ds = 16;
-    idle_process.threads[0].cpu_state.ss = 16;
-    idle_process.threads[0].cpu_state.rflags = RFLAGS_DEFAULT;
-    idle_process.threads[0].cpu_state.rsp = (uint64_t) (idle_process_stack + KB(1));
-    idle_process.threads[0].cpu_state.rbp = (uint64_t) (idle_process_stack + KB(1));
-    idle_process.threads[0].cpu_state.rip = (uint64_t) idle_thread;
+    idle_thread.cpu_state.cs = 8;
+    idle_thread.cpu_state.ds = 16;
+    idle_thread.cpu_state.ss = 16;
+    idle_thread.cpu_state.rflags = RFLAGS_DEFAULT;
+    idle_thread.cpu_state.rsp = (uint64_t) (idle_process_stack + KB(1));
+    idle_thread.cpu_state.rbp = (uint64_t) (idle_process_stack + KB(1));
+    idle_thread.cpu_state.rip = (uint64_t) idle_thread_loop;
 
     return NO_ERROR;
 }
@@ -127,24 +124,24 @@ void schedule(registers_t* regs, int interval) {
         if(*it == NULL) continue;
         process_t* process = *it;
 
-        for(thread_t* thread = process->threads; thread < buf_end(process->threads); thread++) {
+        for(thread_t** thread = process->threads; thread < buf_end(process->threads); thread++) {
             // ignore dead threads
-            if(thread->state == THREAD_DEAD || thread->state == THREAD_SUSPENDED) continue;
+            if(*thread == NULL || (*thread)->state == THREAD_DEAD || (*thread)->state == THREAD_SUSPENDED) continue;
 
             // increment the time
-            thread->time += interval;
+            (*thread)->time += interval;
 
-            if(thread->state == THREAD_RUNNING) {
+            if((*thread)->state == THREAD_RUNNING) {
                 // this is the running thread,
                 // should it continue running?
-                if(thread->time <= time_slice) {
-                    thread_to_run = thread;
+                if((*thread)->time <= time_slice) {
+                    thread_to_run = *thread;
                     break;
                 }
             }else {
                 // check if this waited the most time
-                if(thread->time > most_watied_time) {
-                    thread_to_run = thread;
+                if((*thread)->time > most_watied_time) {
+                    thread_to_run = *thread;
                 }
             }
         }
@@ -160,7 +157,7 @@ void schedule(registers_t* regs, int interval) {
     // if no thread was found use the idle process
     if(thread_to_run == NULL) {
         // TODO: take the thread for the current cpu
-        thread_to_run = &idle_process.threads[0];
+        thread_to_run = idle_process.threads[0];
     }
 
     // save the state of the current running_thread thread

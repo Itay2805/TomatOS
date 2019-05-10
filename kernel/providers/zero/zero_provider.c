@@ -20,13 +20,12 @@
 
 static resource_provider_t zero_provider = {0};
 
-static error_t handle_close(process_t* process, int tid, resource_t resource);
+static error_t handle_close(process_t* process, thread_t* thread, resource_t resource);
 
-static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
+static error_t handle_open(process_t* process, thread_t* thread, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
     resource_t created_resource = 0;
 
-    UNUSED(tid);
     UNUSED(descriptor);
 
     // create the resource
@@ -37,14 +36,13 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
 
 cleanup:
     if(IS_ERROR(err)) {
-        handle_close(process, tid, created_resource);
+        handle_close(process, thread, created_resource);
     }
     return err;
 }
 
-static error_t handle_close(process_t* process, int tid, resource_t resource) {
+static error_t handle_close(process_t* process, thread_t* thread, resource_t resource) {
     error_t err = NO_ERROR;
-    UNUSED(tid);
 
     CHECK_AND_RETHROW(resource_remove(process, resource));
 
@@ -52,9 +50,8 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* read_size) {
+static error_t handle_read(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
-    UNUSED(tid);
     UNUSED(resource);
 
     CHECK_AND_RETHROW(vmm_clear_user(process->address_space, buffer, len));
@@ -66,11 +63,8 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* write_size) {
+static error_t handle_write(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len, size_t* write_size) {
     error_t err = NO_ERROR;
-    UNUSED(tid);
-    UNUSED(resource);
-    UNUSED(buffer);
 
     if(write_size != NULL) {
         CHECK_AND_RETHROW(vmm_clear_user(process->address_space, write_size, len));
@@ -80,12 +74,9 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_tell(process_t* process, int tid, resource_t resource, size_t* pos) {
+static error_t handle_tell(process_t* process, thread_t* thread, resource_t resource, size_t* pos) {
     error_t err = NO_ERROR;
     size_t zero = 0;
-
-    UNUSED(tid);
-    UNUSED(resource);
 
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &zero, pos, sizeof(size_t)));
 
@@ -93,12 +84,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_seek(process_t* process, int tid, resource_t resource, int type, size_t pos) {
-    UNUSED(process);
-    UNUSED(tid);
-    UNUSED(resource);
-    UNUSED(type);
-    UNUSED(pos);
+static error_t handle_seek(process_t* process, thread_t* thread, resource_t resource, int type, size_t pos) {
     // Does nothing
     return NO_ERROR;
 }
@@ -110,7 +96,7 @@ static error_t handle_seek(process_t* process, int tid, resource_t resource, int
 error_t zero_provider_init() {
     error_t err = NO_ERROR;
     process_t* process = process_create(NULL, true);
-    thread_kill(&process->threads[0]);
+    thread_kill(process->threads[0]);
 
     zero_provider.scheme = "zero";
     zero_provider.pid = process->pid;

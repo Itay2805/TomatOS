@@ -63,34 +63,17 @@ typedef struct thread {
     registers_t cpu_state;
 
     /**
-     * The thread start function, this is where the thread will start running from
-     */
-    thread_start_f start;
-
-    /**
      * The time that the thread been waiting to run/running
      */
     uint64_t time;
 } thread_t;
 
-/**
- * Initialize a thread
- *
- * This function assumes the parent and the start address have been set
- *
- * Note:    1.  DO NOT use this function to create a thread but use the process_start_thread, this function only
- *              initializes the thread context
-*           2.  This function needs to do an address space switch to create the stack!
- */
-void thread_init(thread_t* thread);
+// TODO: Change to use error_t
+thread_t* thread_create(struct process* process, thread_start_f start);
 
 error_t thread_find(struct process* process, int tid, thread_t** thread);
 
-/**
- * Kill a thread
- *
- * Note:    This function needs to do an address space switch to clear the buffer
- */
+// TODO: Change to use error_t
 void thread_kill(thread_t* thread);
 
 #endif

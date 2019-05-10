@@ -9,22 +9,25 @@
 
 #include <common/string.h>
 #include <common/buf.h>
+#include <common/map.h>
 
 #include <memory/gdt.h>
 
 #include "resource.h"
 
 resource_provider_t** providers = NULL;
+static map_t resource_wait = {0};
 
 extern void dispatch_resource_call_trampoline();
 
 static error_t syscall_provider_handler_finished(registers_t* regs) {
     error_t err = NO_ERROR;
     process_t* process = (process_t*)regs->rdi;
-    thread_t* thread = NULL;
+    thread_t* thread = (thread_t*)regs->rsi;
 
-    // check the arguments
-    CHECK_AND_RETHROW(thread_find(process, regs->rsi, &thread));
+    UNUSED(process);
+
+    // TODO: Verify that the pointers to the process and thread are still valid
 
     // only providers can call the provider handler finished
     // because only kernel processes can be providers we first filter by kernel processes
@@ -164,16 +167,17 @@ static error_t dispatch_resource_call(registers_t* regs) {
             break;
 
         case SYSCALL_POLL:
+            // TODO: Allow for multi resource poll
             CHECK_ERROR((uint64_t)provider->poll != NULL, ERROR_NOT_IMPLEMENTED);
             provider_thread->cpu_state.rax = (uint64_t)provider->poll;
-            // TODO: Implement this
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
 
         default:
             CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
     }
     provider_thread->cpu_state.rdi = (uint64_t) running_process;
-    provider_thread->cpu_state.rsi = running_thread->tid;
+    provider_thread->cpu_state.rsi = (uint64_t) running_thread;
 
     // we are going to allocate a small stack
     stack = mm_allocate(&kernel_memory_manager, KB(4));
@@ -204,6 +208,36 @@ cleanup:
     return err;
 }
 
+static error_t syscall_wait(registers_t* regs) {
+    error_t err = NO_ERROR;
+    process_t* running_process = NULL;
+    resource_provider_t* provider = NULL;
+
+    // get the running process
+    CHECK(running_thread != NULL);
+    running_process = running_thread->parent;
+
+    // check if we even support wait for that resource
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(running_process, regs->rdi, &provider));
+    CHECK_ERROR(provider->wait_support, ERROR_NOT_WAITABLE);
+
+    // put in the map
+    map_put_uint64_from_uint64(&resource_wait, hash_resource(running_process->pid, regs->rdi), 1);
+
+    // set the thread to suspended
+    running_thread->state = THREAD_SUSPENDED;
+
+    // schedule!
+    schedule(regs, 0);
+cleanup:
+    return err;
+}
+
+error_t resource_manager_resource_ready(struct process* process, resource_t resource) {
+
+    return NO_ERROR;
+}
+
 error_t resource_manager_init() {
     syscalls[SYSCALL_PROVIDER_HANDLER_FINISHED] = syscall_provider_handler_finished;
 
@@ -216,7 +250,7 @@ error_t resource_manager_init() {
     syscalls[SYSCALL_SEEK] = dispatch_resource_call;
     syscalls[SYSCALL_TELL] = dispatch_resource_call;
     syscalls[SYSCALL_INVOKE] = dispatch_resource_call;
-    syscalls[SYSCALL_WAIT] = NULL; // TODO
+    syscalls[SYSCALL_WAIT] = syscall_wait; // TODO
     syscalls[SYSCALL_SELECT] = NULL; // TODO
 
     return NO_ERROR;

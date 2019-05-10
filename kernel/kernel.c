@@ -172,8 +172,8 @@ void kernel_main(multiboot_info_t* info) {
     // create some test processes
     process_t* pk = process_create(thread_kernel, true);
     char* kstack = mm_allocate(&kernel_memory_manager, KB(4));
-    pk->threads[0].cpu_state.rbp = (uint64_t)kstack + KB(4);
-    pk->threads[0].cpu_state.rsp = (uint64_t)kstack + KB(4);
+    pk->threads[0]->cpu_state.rbp = (uint64_t)kstack + KB(4);
+    pk->threads[0]->cpu_state.rsp = (uint64_t)kstack + KB(4);
 
     // kick start the system!
     term_write("[kernel_main] Enabling interrupts\n");

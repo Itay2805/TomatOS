@@ -705,6 +705,7 @@ error_t vmm_copy_string_to_kernel(address_space_t address_space, const char* fro
     }
 
     // out the actual string length
+    if(to != NULL && len < *length) *to = '\0';
     *length = len + 1;
 
 cleanup:

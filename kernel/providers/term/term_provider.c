@@ -15,14 +15,11 @@
 
 static resource_provider_t term_provider = {0};
 
-static error_t handle_close(process_t* process, int tid, resource_t resource);
+static error_t handle_close(process_t* process, thread_t* thread, resource_t resource);
 
-static error_t handle_open(process_t* process, int tid, resource_descriptor_t* descriptor, resource_t* resource) {
+static error_t handle_open(process_t* process, thread_t* thread, resource_descriptor_t* descriptor, resource_t* resource) {
     error_t err = NO_ERROR;
     resource_t created_resource = 0;
-
-    UNUSED(tid);
-    UNUSED(descriptor);
 
     // create the resource
     CHECK_AND_RETHROW(resource_create(process, &term_provider, &created_resource));
@@ -32,14 +29,13 @@ static error_t handle_open(process_t* process, int tid, resource_descriptor_t* d
 
 cleanup:
     if(IS_ERROR(err)) {
-        handle_close(process, tid, created_resource);
+        handle_close(process, thread, created_resource);
     }
     return err;
 }
 
-static error_t handle_close(process_t* process, int tid, resource_t resource) {
+static error_t handle_close(process_t* process, thread_t* thread, resource_t resource) {
     error_t err = NO_ERROR;
-    UNUSED(tid);
 
     CHECK_AND_RETHROW(resource_remove(process, resource));
 
@@ -47,11 +43,10 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_write(process_t* process, int tid, resource_t resource, char* buffer, size_t len) {
+static error_t handle_write(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len) {
     error_t err = NO_ERROR;
     char* kbuffer = NULL;
 
-    UNUSED(tid);
     UNUSED(resource);
 
     kbuffer = mm_allocate(&kernel_memory_manager, len + 1);
@@ -74,7 +69,7 @@ error_t term_provider_init() {
     error_t err = NO_ERROR;
 
     process_t* process = process_create(NULL, true);
-    thread_kill(&process->threads[0]);
+    thread_kill(process->threads[0]);
 
     term_provider.scheme = "term";
     term_provider.pid = process->pid;

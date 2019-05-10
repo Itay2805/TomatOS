@@ -12,7 +12,11 @@
 #include "process.h"
 #include "cpu/rflags.h"
 
-void thread_init(thread_t* thread) {
+thread_t* thread_create(struct process* process, thread_start_f start) {
+    thread_t* thread = mm_allocate(&kernel_memory_manager, sizeof(thread_t));
+    memset(thread, 0, sizeof(thread_t));
+
+    thread->parent = process;
     thread->tid = thread->parent->next_tid++;
 
     thread->state = THREAD_NORMAL;
@@ -31,7 +35,9 @@ void thread_init(thread_t* thread) {
         thread->cpu_state.cs = GDT_USER_CODE;
     }
 
-    thread->cpu_state.rip = (uint64_t) thread->start;
+    thread->cpu_state.rip = (uint64_t) start;
+
+    return thread;
 }
 
 error_t thread_find(struct process* process, int tid, thread_t** thread) {
@@ -40,9 +46,9 @@ error_t thread_find(struct process* process, int tid, thread_t** thread) {
 
     CHECK_ERROR(process, ERROR_INVALID_ARGUMENT);
 
-    for(thread_t* it = process->threads; it < buf_end(process->threads); it++) {
-        if(it->state != THREAD_DEAD && it->tid == tid) {
-            th = it;
+    for(thread_t** it = process->threads; it < buf_end(process->threads); it++) {
+        if(*it != NULL && (*it)->state != THREAD_DEAD && (*it)->tid == tid) {
+            th = *it;
             break;
         }
     }
@@ -57,4 +63,13 @@ cleanup:
 
 void thread_kill(thread_t* thread) {
     thread->state = THREAD_DEAD;
+
+    for(thread_t** it = thread->parent->threads; it < buf_end(thread->parent->threads); it++) {
+        if(*it == thread) {
+            *it = NULL;
+            break;
+        }
+    }
+
+    mm_free(&kernel_memory_manager, thread);
 }

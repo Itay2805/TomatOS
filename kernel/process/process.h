@@ -36,7 +36,7 @@ struct process {
     /**
      * The thread list of this process (this is a stretchy buffer)
      */
-    thread_t* threads;
+    thread_t** threads;
 
     /**
      * The process address space

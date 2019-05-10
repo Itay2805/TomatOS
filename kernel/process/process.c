@@ -53,12 +53,7 @@ process_t* process_create(thread_start_f start, bool kernel) {
         proc->address_space = vmm_create_address_space();
     }
 
-    buf_push(proc->threads, (thread_t) {
-            .start = start,
-            .parent = proc
-    });
-
-    thread_init(&proc->threads[0]);
+    buf_push(proc->threads, thread_create(proc, start));
 
     return proc;
 }
@@ -83,31 +78,29 @@ cleanup:
 }
 
 thread_t* process_start_thread(process_t* process, thread_start_f start) {
-    thread_t* thread = NULL;
-    for(thread_t* it = process->threads; it < buf_end(process->threads); it++) {
-        if(it->state == THREAD_DEAD) {
+    thread_t** thread = NULL;
+    thread_t* new_thread = thread_create(process, start);
+        
+    for(thread_t** it = process->threads; it < buf_end(process->threads); it++) {
+        if(*it != NULL) {
             thread = it;
             break;
         }
     }
+
     if(thread == NULL) {
-        // add a new one
-        buf_push(process->threads, (thread_t){0});
-        thread = &process->threads[buf_len(process->threads) - 1];
+        buf_push(process->threads, new_thread);
+    }else {
+        *thread = new_thread;
     }
 
-    thread->start = start;
-    thread->parent = process;
-
-    thread_init(thread);
-
-    return thread;
+    return new_thread;
 }
 
 void process_remove(process_t* process) {
-    for(thread_t* it = process->threads; it < buf_end(process->threads); it++) {
-        if(it->state != THREAD_DEAD) {
-            thread_kill(it);
+    for(thread_t** it = process->threads; it < buf_end(process->threads); it++) {
+        if(*it != NULL && (*it)->state != THREAD_DEAD) {
+            thread_kill(*it);
         }
     }
 
