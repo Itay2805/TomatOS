@@ -101,14 +101,14 @@ static error_t handle_close(process_t* process, int tid, resource_t resource) {
     mm_free(&kernel_memory_manager, context);
     map_put_from_uint64(&resource_context_map, hash_resource(process->pid, resource), NULL);
 
-    // TODO: Remove the resource from the kernel
+    // Remove the resource from the kernel
+    CHECK_AND_RETHROW(resource_remove(process, resource));
 
 
 cleanup:
     return NO_ERROR;
 }
 
-// TODO: Range checking
 static error_t handle_read(process_t* process, int tid, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = NULL;
@@ -122,6 +122,10 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
     context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
     CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
 
+    // calculate how much can actually read
+    len = MIN(context->entry->size_in_bytes - context->ptr, len);
+    CHECK_ERROR(len > 0, ERROR_OUT_OF_RANGE);
+
     // calculate the padding and allocate a buffer
     size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
     size_t upper_lba = (size_t) ((ALIGN_UP(context->ptr + len, 512)) / 512);
@@ -132,24 +136,16 @@ static error_t handle_read(process_t* process, int tid, resource_t resource, cha
     // lock the disk and read from it
     spinlock_lock(&context->entry->lock);
     for(int i = 0; i < upper_lba - lower_lba; i++) {
-        if((lower_lba + i) * 512 >= context->entry->size_in_bytes) {
-            break;
-        }
-        read += 512;
         ata_read_sector(context->entry->controller, context->entry->port, i + lower_lba, kbuffer + i * 512);
     }
     spinlock_unlock(&context->entry->lock);
-    read -= start_padding;
-    if(read > len) {
-        read -= end_padding;
-    }
 
     // copy the buffer to the user
-    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, kbuffer + start_padding, buffer, read));
-    if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &read, read_size, sizeof(size_t)));
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, kbuffer + start_padding, buffer, len));
+    if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, read_size, sizeof(size_t)));
 
     // update the read pointers
-    context->ptr += read;
+    context->ptr += len;
 
 cleanup:
     // don't forget to free the buffer
@@ -173,6 +169,10 @@ static error_t handle_write(process_t* process, int tid, resource_t resource, ch
     // get the context
     context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
     CHECK_ERROR(context != NULL, ERROR_INVALID_RESOURCE);
+
+    // calculate how much can actually write
+    len = MIN(context->entry->size_in_bytes - context->ptr, len);
+    CHECK_ERROR(len > 0, ERROR_OUT_OF_RANGE);
 
     // calculate padding at start and end
     size_t lower_lba = (size_t) ((ALIGN_DOWN(context->ptr, 512)) / 512);
