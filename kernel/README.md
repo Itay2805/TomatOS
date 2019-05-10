@@ -1,22 +1,24 @@
 # TomatKernel
 
-## Note: This is mostly conceptual, and not implemented yet
+TomatKernel is a monolithic kernel.
 
-TomatKernel is going to be a microkernel. Everything is going to be done by a set of simple syscalls:
+Most of the interfacing with the kernel is done with these syscalls,
 
-* open
-* close
-* read
-* write
-* invoke
-* poll
-* wait
-* seek
-* tell
+* `bool open(resource_description_t* desc, resource_t* resource)`
+* `bool close(resource_t res)`
+* `bool read(resource_t res, char* buffer, size_t len, size_t* bytesRead)`
+* `bool write(resource_t res, char* buffer, size_t len, size_t* bytesWritten)`
+* `bool invoke(resource_t res, int cmd, void*)`
+* `bool poll(resource_t res)`
+* `bool wait(resource_t res)`
+* `bool seek(resource_t res, int relative, size_t pos)`
+* `bool tell(resource_t res, size_t* pos)`
 
-The way open works is by getting a `resource_descriptor`, this descriptor can basically be defined as a url, where we have a scheme, port, path and arguments. There is also nesting of resources, which some will be resolved automatically by the provider.
+The way open works is by getting a `resource_descriptor`, this descriptor can basically be defined as a uri, where we have a scheme, port, path and arguments. There is also nesting of resources, which some will be resolved automatically by the provider.
 
 ### Example
+
+***Note:** that currently path resolving is not implemented and is going to be a user side feature, for an example on how it currently works look in the [kernel.c](kernel.c#L30-L120)*
 
 `tcp://127.0.0.1:8192/`
 
@@ -161,14 +163,9 @@ while(true) {
 close(timer_res);
 ```
 
-## Implementation
-
-The way this is going to be implemented is that the syscall will basically delegate itself to the correct handler by copying the whole resolved descriptor to the kernel, creating a new thread that will handle the syscall in the provider's process, and suspending the caller (if blocking). eventually the provider will finish the thing, and will tell the kernel (will happen automatically with a small trampoline injected to the process that calls a syscall in the end), the kernel will then copy the result to the caller, kill the handling thread, and set the caller as ready to run.
-
-This allows processes to have a global context, which is available to them at all times.
-
-
 ## Syscall path
+
+### Most of the syscalls
 
 A syscall starts when a requesting process calls one of the queueing syscalls (open, close, etc..)
 
@@ -178,5 +175,10 @@ Lets say we are now in the provider's thread context. as said it will push the p
 
 now we are back in kernel space, this time we are going to find the thread that waited, pass the result to it, and set it to normal state, now it is ready to run again, now that the resource handling is over.
 
+### Wait
+
+The wait syscall is a little different. The way it works is that when you call it, the resource is put aside in a special data structure in the kernel, and the kernel will suspend the running thread, then it is up to the provider to tell the kernel when the resource is ready, basically the providers should always tell the kernel when a resource is ready, and the kernel will simply ignore resources which no one is waiting for. once the kernel is notified about a resource which is ready it will resume the thread.
+
 ### The problem with this system
-As much as I like this system because it allows to make any process into a provider technically (for starters we are only going to allow kernel processes to do that), it requires alot of context switches, and even if we don't do full ones if it is for drivers (which are in kernel space so the actual address space is not switched) it still means creating threads, running them and then resuming the process thread. it does mean we don't block too much in the kernel, we only do the dispatching.
+
+It is probably slow, every syscall requires two context switches at the very least, it might favour a multicore system but on single core idk how fast it is going to be.
