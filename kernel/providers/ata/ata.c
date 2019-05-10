@@ -1,6 +1,7 @@
 #include <drivers/portio.h>
 #include <common/except.h>
 #include <common/string.h>
+#include <cpu/msr.h>
 
 #include "ata.h"
 
@@ -35,15 +36,20 @@ error_t ata_identify(int drive, int port, ata_identify_t* identify) {
     // identify
     outb(iobase + ATA_REG_COMMAND, ATA_COMMAND_IDENTIFY);
     CHECK_ERROR(inb(iobase + ATA_REG_STATUS) != 0, ERROR_NOT_FOUND);
-    while(inb(iobase + ATA_REG_STATUS) & 0x80);
+    uint64_t timeout_start = rdtsc();
+    while(inb(iobase + ATA_REG_STATUS) & 0x80) {
+        CHECK_ERROR(rdtsc() - timeout_start < 1000000, ERROR_TIMEOUT);
+    }
 
     // check if an ata drive
     CHECK_ERROR(inb(iobase + ATA_REG_LBA1) == 0 && inb(iobase + ATA_REG_LBA2) == 0, ERROR_NOT_FOUND);
 
+    timeout_start = rdtsc();
     while(true) {
         uint8_t status = inb(iobase + ATA_REG_STATUS);
         if(status & 8) break;
         CHECK((status & 1) == 0);
+        CHECK_ERROR(rdtsc() - timeout_start < 1000000, ERROR_TIMEOUT);
     }
 
     // TODO: use insw

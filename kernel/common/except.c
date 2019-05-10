@@ -21,4 +21,5 @@ const char* except_strings[] = {
         [ERROR_NOT_SEEKABLE] = "Not seekable",
         [ERROR_OUT_OF_RANGE] = "Out of range",
         [ERROR_FINISHED] = "Finished",
+        [ERROR_TIMEOUT] = "Timeout"
 };

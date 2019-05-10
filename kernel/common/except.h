@@ -69,13 +69,13 @@ typedef error_info_t* error_t;
         vmm_set(kernel_address_space); \
         term_set_background_color(COLOR_RED); \
         term_set_text_color(COLOR_WHITE); \
-        term_print("\n[%s] Error %s (%d):\n", __FUNCTION__, except_strings[IS_ERROR(err)], IS_ERROR(err)); \
-        term_set_background_color(COLOR_BLACK); \
-        term_set_text_color(COLOR_WHITE); \
+        term_print("[%s] Error %s (%d):\n", __FUNCTION__, except_strings[IS_ERROR(err)], IS_ERROR(err)); \
         for (size_t i = (buf_len((err)->error_frames)) - 1; i >= 1; i--) { \
             term_print("[%s] \trethrown at '%s' (%s:%d)\n", __FUNCTION__, (err)->error_frames[i].function, (err)->error_frames[i].file, (err)->error_frames[i].line); \
         } \
-        term_print("[%s] \tthrown at '%s' (%s:%d)\n\n", __FUNCTION__, (err)->error_frames[0].function, (err)->error_frames[0].file, (err)->error_frames[0].line); \
+        term_print("[%s] \tthrown at '%s' (%s:%d)\n", __FUNCTION__, (err)->error_frames[0].function, (err)->error_frames[0].file, (err)->error_frames[0].line); \
+        term_set_background_color(COLOR_BLACK); \
+        term_set_text_color(COLOR_WHITE); \
     }while(0)
 
 #define KERNEL_PANIC(err) \

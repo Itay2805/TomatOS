@@ -50,6 +50,8 @@ set(KERNEL_SOURCE_FILES
         kernel/common/mini-printf.h
         kernel/common/klib.c
         kernel/common/klib.h
+        kernel/common/map.c
+        kernel/common/map.h
 
         kernel/graphics/font.c
         kernel/graphics/font.h
@@ -118,8 +120,13 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/ata/ata.h
         kernel/providers/ata/ata.c
 
+        kernel/providers/echfs/echfs_provider.c
+        kernel/providers/echfs/echfs_provider.h
+        kernel/providers/echfs/echfs.h
+        kernel/providers/echfs/echfs.c
+
         kernel/multiboot.asm
-        kernel/kernel.c kernel/providers/echfs/echfs_provider.c kernel/providers/echfs/echfs_provider.h kernel/providers/echfs/echfs.h kernel/common/map.c kernel/common/map.h kernel/providers/echfs/echfs.c kernel/providers/ps2/ps2_provider.c kernel/providers/ps2/ps2_provider.h)
+        kernel/kernel.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")

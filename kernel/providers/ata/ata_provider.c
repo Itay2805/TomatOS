@@ -305,45 +305,66 @@ error_t ata_provider_init() {
     ata_identify_t identify;
 
     // master:0
-    if(!IS_ERROR(ata_identify(0, 0, &identify))) {
+    err = ata_identify(0, 0, &identify);
+    if(!IS_ERROR(err)) {
         print_identify("ata://primary:0/", &identify);
         ide_entries[0].present = true;
         ide_entries[0].controller = 0;
         ide_entries[0].port = 0;
         ide_entries[0].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
+        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
+            KERNEL_STACK_TRACE(err);
+        }
+        ERROR_FREE(err);
         term_print("[ata_provider_init] ata://primary:0/ not found\n");
     }
 
-    if(!IS_ERROR(ata_identify(0, 1, &identify))) {
+    err = ata_identify(0, 1, &identify);
+    if(!IS_ERROR(err)) {
         print_identify("ata://primary:1/", &identify);
         ide_entries[1].present = true;
         ide_entries[1].controller = 0;
         ide_entries[1].port = 1;
         ide_entries[1].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
+        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
+            KERNEL_STACK_TRACE(err);
+        }
+        ERROR_FREE(err);
         term_print("[ata_provider_init] ata://primary:1/ not found\n");
     }
 
-    if(!IS_ERROR(ata_identify(1, 0, &identify))) {
+    err = ata_identify(1, 1, &identify);
+    if(!IS_ERROR(err)) {
         print_identify("ata://secondary:0/", &identify);
         ide_entries[2].present = true;
         ide_entries[2].controller = 1;
         ide_entries[2].port = 0;
         ide_entries[2].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
+        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
+            KERNEL_STACK_TRACE(err);
+        }
+        ERROR_FREE(err);
         term_print("[ata_provider_init] ata://secondary:0/ not found\n");
     }
 
-    if(!IS_ERROR(ata_identify(1, 1, &identify))) {
+    err = ata_identify(1, 1, &identify);
+    if(!IS_ERROR(err)) {
         print_identify("ata://secondary:1/", &identify);
         ide_entries[3].present = true;
         ide_entries[3].controller = 1;
         ide_entries[3].port = 1;
         ide_entries[3].size_in_bytes = identify.current_capacity_in_sectors * 512;
     }else {
+        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
+            KERNEL_STACK_TRACE(err);
+        }
+        ERROR_FREE(err);
         term_print("[ata_provider_init] ata://secondary:1/ not found\n");
     }
+    err = NO_ERROR;
 
 cleanup:
     return err;
