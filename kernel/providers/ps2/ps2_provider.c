@@ -1,6 +1,7 @@
 #include <resource/resource.h>
 #include <common/map.h>
 #include <common/string.h>
+#include <common/logging.h>
 #include <process/process.h>
 #include <interrupts/irq.h>
 #include <locks/critical_section.h>
@@ -210,11 +211,10 @@ error_t ps2_provider_init() {
     ps2_provider.read = handle_read;
     ps2_provider.poll = handle_poll;
 
-    term_write("[ps2_provider_init] setting interrupt handlers\n");
+    LOG_INFO("setting interrupt handlers");
     irq_handlers[IRQ_KEYBOARD] = handle_keyboard_interrupt;
     irq_handlers[IRQ_PS2_MOUSE] = handle_mouse_interrupt;
 
-    term_write("[ps2_provider_init] initializing ps2\n");
     ps2_init();
 
     CHECK_AND_RETHROW(resource_manager_register_provider(&ps2_provider));

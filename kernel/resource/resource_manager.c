@@ -13,6 +13,7 @@
 
 #include <memory/gdt.h>
 #include <locks/critical_section.h>
+#include <common/logging.h>
 
 #include "resource.h"
 
@@ -277,7 +278,7 @@ error_t resource_manager_register_provider(resource_provider_t* provider) {
     CHECK_ERROR(provider->open != NULL, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(provider->close != NULL, ERROR_INVALID_ARGUMENT);
 
-    term_print("[resource_manager_register] registered provider for '%s' (pid=%d)\n", provider->scheme, provider->pid);
+    LOG_INFO("registered provider for '%s' (pid=%d)", provider->scheme, provider->pid);
     buf_push(providers, provider);
 
 cleanup:

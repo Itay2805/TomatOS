@@ -1,6 +1,7 @@
 #include <graphics/term.h>
 #include <memory/vmm.h>
 #include <drivers/pic.h>
+#include <common/logging.h>
 #include "irq.h"
 #include "idt.h"
 #include "interrupts.h"
@@ -10,10 +11,10 @@
 interrupt_handler_f irq_handlers[16] = {0};
 
 void irq_init() {
-    term_write("[irq_init] Remapping IRQs\n");
+    LOG_INFO("Remapping IRQs");
     pic_remap(IRQ_BASE, IRQ_BASE + 8);
 
-    term_write("[irq_init] Settings interrupts stubs\n");
+    LOG_INFO("Settings interrupts stubs");
     idt_set_entry(IRQ_BASE + IRQ_PIT, irq_pit, IDT_INTERRUPT_GATE);
     idt_set_entry(IRQ_BASE + IRQ_KEYBOARD, irq_keyboard, IDT_INTERRUPT_GATE);
     idt_set_entry(IRQ_BASE + IRQ_CASCADE, irq_cascade, IDT_INTERRUPT_GATE);

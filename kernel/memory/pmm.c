@@ -1,3 +1,4 @@
+#include <common/logging.h>
 #include "pmm.h"
 
 #include "../common/kernel_info.h"
@@ -54,14 +55,14 @@ void pmm_init(multiboot_info_t* multiboot) {
     end_of_kernel += bitmap_size;
 
     // allocate all the pages set as unavailable ram as allocated
-    term_print("[pmm_init] iterating memory map:\n");
+    LOG_INFO("iterating memory map:");
     for(entry = entries; (char*)entry - (char*)entries < multiboot->mmap_length; entry++) {
         // print the entry
         uint32_t addr_start_lower = (uint32_t)(entry->addr & 0xFFFFFFFF);
         uint32_t addr_start_higher = (uint32_t)(entry->addr >> 32u);
         uint32_t addr_end_lower = (uint32_t)((entry->addr + entry->len) & 0xFFFFFFFF);
         uint32_t addr_end_higher = (uint32_t)((entry->addr + entry->len) >> 32u);
-        term_print("[pmm_init] \t0x%08x_%08x-0x%08x_%08x : %s\n", addr_start_higher, addr_start_lower, addr_end_higher, addr_end_lower, mmap_type_names[entry->type - 1]);
+        LOG_INFO("\t0x%08x_%08x-0x%08x_%08x : %s", addr_start_higher, addr_start_lower, addr_end_higher, addr_end_lower, mmap_type_names[entry->type - 1]);
 
         if(entry->type != MULTIBOOT_MEMORY_AVAILABLE) {
             for(ptr = ALIGN_DOWN(entry->addr, 4096u); ptr < ALIGN_UP(entry->addr + entry->len, 4096u); ptr += 4096) {
@@ -79,7 +80,7 @@ void pmm_init(multiboot_info_t* multiboot) {
 void pmm_map_kernel(void) {
     uintptr_t ptr;
 
-    term_print("[pmm_init] mapping kernel (0x%08x-0x%08x)\n", (uint32_t)KERNEL_START, end_of_kernel);
+    LOG_INFO("mapping kernel (0x%08x-0x%08x)", (uint32_t)KERNEL_START, end_of_kernel);
     for(ptr = ALIGN_DOWN(KERNEL_START, 4096u); ptr < ALIGN_UP(end_of_kernel, 4096u); ptr += 4096) {
         pmm_map((void*)ptr);
     }

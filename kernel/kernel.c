@@ -25,6 +25,7 @@
 
 #include <cpu/cpuid.h>
 #include <cpu/msr.h>
+#include <common/logging.h>
 
 #include "graphics/term.h"
 
@@ -121,7 +122,7 @@ static void thread_kernel(void* arg) {
         while(poll(stdin)) {
             char ch;
             read(stdin, &ch, 1, NULL);
-            fprintf(stdout, "got scancode %d\n", ch);
+            // fprintf(stdout, "got scancode %d\n", ch);
         }
     }
 }
@@ -134,13 +135,15 @@ void kernel_main(multiboot_info_t* info) {
 
     // initialize the terminal so we can log stuff
     term_init(info);
-    term_print("[kernel_main] successfully loaded the kernel (bootloader='%s', cmdline='%s')\n", (char *)(uintptr_t)info->boot_loader_name, (char *)(uintptr_t)info->cmdline);
+    LOG_NOTICE("successfully loaded the kernel");
+    LOG_INFO("bootloader='%s'", (char *)(uintptr_t)info->boot_loader_name);
+    LOG_INFO("cmdline='%s'", (char *)(uintptr_t)info->cmdline);
 
     // test cpuid
     int vendor;
     char name[13] = {0};
     get_cpu_vendor(&vendor, name);
-    term_print("[kernel_main] cpu vendor='%s'\n", name);
+    LOG_INFO("cpu vendor='%s'", name);
 
     // initialize isr (allows to catch exceptions)
     // we will finish initializing interrupts later
@@ -185,7 +188,7 @@ void kernel_main(multiboot_info_t* info) {
     pk->threads[0]->cpu_state.rsp = (uint64_t)kstack + KB(4);
 
     // kick start the system!
-    term_write("[kernel_main] Enabling interrupts\n");
+    LOG_NOTICE("Enabling interrupts");
     sti();
 
     while(true) {

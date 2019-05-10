@@ -8,6 +8,7 @@
 #include <common/common.h>
 #include <process/scheduler.h>
 #include <process/process.h>
+#include <common/logging.h>
 #include "isr.h"
 
 #include "idt.h"
@@ -15,7 +16,7 @@
 interrupt_handler_f isr_handlers[32] = {0};
 
 void isr_init() {
-    term_write("[isr_init] Setting exception stubs\n");
+    LOG_DEBUG("Setting exception stubs");
 
     idt_set_entry(ISR_DIVIDE_BY_ZERO, isr_divide_by_zero, IDT_INTERRUPT_GATE);
     idt_set_entry(ISR_DEBUG, isr_debug, IDT_INTERRUPT_GATE);

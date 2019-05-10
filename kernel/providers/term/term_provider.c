@@ -6,6 +6,7 @@
 #include <common/string.h>
 #include <process/syscalls.h>
 #include <common/klib.h>
+#include <graphics/term.h>
 
 #include "term_provider.h"
 

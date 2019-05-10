@@ -1,6 +1,7 @@
 #include <common/mini-printf.h>
 #include <locks/spinlock.h>
 #include <locks/critical_section.h>
+#include <common/logging.h>
 #include "term.h"
 
 #include "font.h"
@@ -9,7 +10,7 @@ static uint32_t* vram;
 static int width;
 static int height;
 static int cur_x = 0, cur_y = 0;
-static uint32_t bg_color = COLOR_BLACK, fg_color = COLOR_WHITE;
+static uint32_t bg_color = 0x000000, fg_color = 0xD3D7CF;
 
 /**
  * Used to draw a single character
@@ -48,7 +49,7 @@ void term_init(multiboot_info_t* multiboot) {
     // TODO: Right now we are assuming 32bpp, should have it more dynamic
 
     term_clear();
-    term_print("[term_init] width=%d, height=%d\n", width, height);
+    LOG_DEBUG("width=%d, height=%d", width, height);
 }
 
 void term_write(const char* text) {

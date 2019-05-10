@@ -178,11 +178,11 @@ void schedule(registers_t* regs, int interval) {
 
 error_t scheduler_init() {
     error_t err = NO_ERROR;
-    term_print("[scheduler_init] configuring PIT to run at 100Hz (10ms)\n");
+    LOG_INFO("configuring PIT to run at 100Hz (10ms)");
     pit_set_interval(10);
 
     // TODO: Instead of using the interrupt directly we should create a timer wrapper handler or something
-    term_write("[scheduler_init] setting PIT interrupt handler\n");
+    LOG_INFO("setting PIT interrupt handler");
     irq_handlers[IRQ_PIT] = handle_timer_interrupt;
 
     CHECK_AND_RETHROW(idle_process_init());

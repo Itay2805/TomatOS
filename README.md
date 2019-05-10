@@ -12,6 +12,7 @@ For specific information about the kernel you can go to the [kernel readme](kern
 * Processes (Both kernel ones and user ones)
 * Syscalls (open, close read, write, etc..)
 * High-res support (currently still a terminal interface tho)
+* Cool looking logger
 * Unique resource abstraction system (basically URI based)
 
 ## Providers
@@ -22,6 +23,7 @@ providers are basically drivers in TomatOS, they provider with function to do st
 * [`term:///`](kernel/providers/term/README.md)
 * [`ata://<bus>:<port>/`](kernel/providers/ata/README.md)
 * [`echfs://[<sub>]/<path>`](kernel/providers/echfs/README.md)
+* [`ps2://[<type>]/`](kernel/providers/ps2/README.md)
 
 ## TODO
 

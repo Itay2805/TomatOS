@@ -52,6 +52,8 @@ set(KERNEL_SOURCE_FILES
         kernel/common/klib.h
         kernel/common/map.c
         kernel/common/map.h
+        kernel/common/logging.c
+        kernel/common/logging.h
 
         kernel/graphics/font.c
         kernel/graphics/font.h
@@ -83,6 +85,8 @@ set(KERNEL_SOURCE_FILES
         kernel/drivers/pic.asm
         kernel/drivers/pit.c
         kernel/drivers/pit.h
+        kernel/drivers/rtc.c
+        kernel/drivers/rtc.h
 
         kernel/process/thread.c
         kernel/process/thread.h

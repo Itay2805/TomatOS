@@ -12,6 +12,7 @@
 #include <common/klib.h>
 #include <kernel.h>
 #include <common/map.h>
+#include <common/logging.h>
 
 #include "ata_provider.h"
 #include "ata.h"
@@ -258,29 +259,29 @@ cleanup:
 static void print_identify(const char* drive, ata_identify_t* identify) {
     char buffer[41];
 
-    term_print("[ata_provider_init] found drive in %s:\n", drive);
+    LOG_NOTICE("[ata_provider_init] found drive in %s:", drive);
 
     memcpy(buffer, identify->model_number, sizeof(identify->model_number));
     buffer[sizeof(identify->model_number)] = 0;
-    term_print("[ata_provider_init] \tmodel=%s\n", buffer);
+    LOG_NOTICE("[ata_provider_init] \tmodel=%s", buffer);
 
     memcpy(buffer, identify->firmware_revision, sizeof(identify->firmware_revision));
     buffer[sizeof(identify->firmware_revision)] = 0;
-    term_print("[ata_provider_init] \trev=%s\n", buffer);
+    LOG_NOTICE("[ata_provider_init] \trev=%s", buffer);
 
     memcpy(buffer, identify->serial_number, sizeof(identify->serial_number));
     buffer[sizeof(identify->serial_number)] = 0;
-    term_print("[ata_provider_init] \tserial=%s\n", buffer);
+    LOG_NOTICE("[ata_provider_init] \tserial=%s", buffer);
 
     size_t cap = identify->current_capacity_in_sectors * identify->buffer_size * 512;
     if(cap / GB(1) > 0) {
-        term_print("[ata_provider_init] \tcapacity=%dGB (%d sectors)\n", (int) (cap / GB(1)), identify->current_capacity_in_sectors);
+        LOG_NOTICE("[ata_provider_init] \tcapacity=%dGB (%d sectors)", (int) (cap / GB(1)), identify->current_capacity_in_sectors);
     }else if(cap / MB(1) > 0) {
-        term_print("[ata_provider_init] \tcapacity=%dMB (%d sectors)\n", (int) (cap / MB(1)), identify->current_capacity_in_sectors);
+        LOG_NOTICE("[ata_provider_init] \tcapacity=%dMB (%d sectors)", (int) (cap / MB(1)), identify->current_capacity_in_sectors);
     }else if(cap / KB(1) > 0) {
-        term_print("[ata_provider_init] \tcapacity=%dKB (%d sectors)\n", (int) (cap / KB(1)), identify->current_capacity_in_sectors);
+        LOG_NOTICE("[ata_provider_init] \tcapacity=%dKB (%d sectors)", (int) (cap / KB(1)), identify->current_capacity_in_sectors);
     }else {
-        term_print("[ata_provider_init] \tcapacity=%dB (%d sectors)\n", (int) cap, identify->current_capacity_in_sectors);
+        LOG_NOTICE("[ata_provider_init] \tcapacity=%dB (%d sectors)", (int) cap, identify->current_capacity_in_sectors);
     }
 }
 
@@ -317,7 +318,7 @@ error_t ata_provider_init() {
             KERNEL_STACK_TRACE(err);
         }
         ERROR_FREE(err);
-        term_print("[ata_provider_init] ata://primary:0/ not found\n");
+        LOG_WARN("[ata_provider_init] ata://primary:0/ not found");
     }
 
     err = ata_identify(0, 1, &identify);
@@ -332,7 +333,7 @@ error_t ata_provider_init() {
             KERNEL_STACK_TRACE(err);
         }
         ERROR_FREE(err);
-        term_print("[ata_provider_init] ata://primary:1/ not found\n");
+        LOG_WARN("[ata_provider_init] ata://primary:1/ not found");
     }
 
     err = ata_identify(1, 1, &identify);
@@ -347,7 +348,7 @@ error_t ata_provider_init() {
             KERNEL_STACK_TRACE(err);
         }
         ERROR_FREE(err);
-        term_print("[ata_provider_init] ata://secondary:0/ not found\n");
+        LOG_WARN("[ata_provider_init] ata://secondary:0/ not found");
     }
 
     err = ata_identify(1, 1, &identify);
@@ -362,7 +363,7 @@ error_t ata_provider_init() {
             KERNEL_STACK_TRACE(err);
         }
         ERROR_FREE(err);
-        term_print("[ata_provider_init] ata://secondary:1/ not found\n");
+        LOG_WARN("[ata_provider_init] ata://secondary:1/ not found");
     }
     err = NO_ERROR;
 

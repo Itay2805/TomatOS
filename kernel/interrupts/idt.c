@@ -1,5 +1,6 @@
 #include <drivers/pic.h>
 #include <graphics/term.h>
+#include <common/logging.h>
 #include "idt.h"
 #include "irq.h"
 #include "isr.h"
@@ -19,7 +20,7 @@ static idt_t idt = {
 };
 
 void idt_init() {
-    term_print("[idt_init] Loading idt (entry size=%d)\n", (int) sizeof(idt_entry_t));
+    LOG_DEBUG("Loading idt (entry size=%d)", (int) sizeof(idt_entry_t));
     lidt(&idt);
 }
 

@@ -68,7 +68,7 @@ static ps2_status_t ps2_get_status() {
 }
 
 error_t ps2_init() {
-    term_write("[ps2_init] initializing ps2\n");
+    LOG_INFO("initializing ps2");
 
     // disable devices
     outb(PS2_REG_COMMAND, PS2_CMD_DISABLE_FIRST_PORT);

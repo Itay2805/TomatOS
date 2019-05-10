@@ -8,6 +8,7 @@
 #include <cpu/msr.h>
 #include <kernel.h>
 #include <locks/critical_section.h>
+#include <common/logging.h>
 #include "pmm.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -327,16 +328,16 @@ void vmm_init(multiboot_info_t *multiboot) {
     // the other bitmap first
     pmm_map_kernel();
 
-    term_write("[vmm_init] Enabling features\n");
+    LOG_INFO("Enabling features");
 //    term_write("[vmm_init] \t* Page Global Enable\n");
 //    set_cr4(get_cr4() | CR4_PAGE_GLOBAL_ENABLED);
 //    term_write("[vmm_init] \t* PCID\n");
 //    set_cr4(get_cr4() | CR4_PCID_ENABLED);
-    term_write("[vmm_init] \t* No execute\n");
+    LOG_INFO("\t* No execute");
     wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_NO_EXECUTE_ENABLE);
 
     // create the kernel address space
-    term_print("[vmm_init] Creating kernel address space\n");
+    LOG_INFO("Creating kernel address space");
     kernel_address_space = pmm_allocate(1);
     memset(kernel_address_space, 0, KB(4));
 
@@ -344,12 +345,12 @@ void vmm_init(multiboot_info_t *multiboot) {
     uint64_t *pdp = get_or_create_page(kernel_address_space, PAGING_PML4_OFFSET(free_page), PAGE_ATTR_WRITE);
     uint64_t *pd = get_or_create_page(pdp, PAGING_PDPE_OFFSET(free_page), PAGE_ATTR_WRITE);
     uint64_t *pt = get_or_create_page(pd, PAGING_PDE_OFFSET(free_page), PAGE_ATTR_WRITE);
-    term_print("[vmm_init] \tMapping free page (pt=0x%p>0x%p, page=0x%p)\n", pte_for_free_page, pt, (void *) free_page);
+    LOG_INFO("\tMapping free page");
     early_map(kernel_address_space, (uintptr_t) pte_for_free_page, (uintptr_t) pt, PAGE_ATTR_WRITE);
     early_map(kernel_address_space, (uintptr_t) free_page, 0, PAGE_ATTR_WRITE);
 
     // identity map the kernel now
-    term_print("[vmm_init] \tIdentity mapping kernel\n");
+    LOG_INFO("\tIdentity mapping kernel");
     for (uintptr_t addr = ALIGN_DOWN(KERNEL_START, KB(4)); addr < ALIGN_UP(end_of_kernel, KB(4)); addr += KB(4)) {
         // TODO: Parse the kernel elf file properly to setup the correct attributes
         early_map(kernel_address_space, addr, addr, PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE);
@@ -364,14 +365,14 @@ void vmm_init(multiboot_info_t *multiboot) {
     uintptr_t framebuffer_end = multiboot->framebuffer_addr +
                                 multiboot->framebuffer_width * multiboot->framebuffer_height *
                                 (multiboot->framebuffer_bpp / 8);
-    term_print("[vmm_init] \tIdentity mapping framebuffer\n");
+    LOG_INFO("\tIdentity mapping framebuffer");
     for (uintptr_t addr = ALIGN_DOWN(multiboot->framebuffer_addr, 4096u);
          addr < ALIGN_UP(framebuffer_end, 4096u); addr += 4096) {
         early_map(kernel_address_space, addr, addr, PAGE_ATTR_WRITE);
     }
 
     vmm_set(kernel_address_space);
-    term_print("[vmm_init] Now using kernel address space\n");
+    LOG_INFO("Now using kernel address space");
 }
 
 void vmm_set(address_space_t addrspace) {

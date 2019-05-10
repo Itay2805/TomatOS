@@ -122,22 +122,18 @@ extern const char* except_strings[];
 #define KERNEL_GLOBAL_STACK_TRACE() \
     do { \
         vmm_set(kernel_address_space); \
-        term_set_background_color(COLOR_RED); \
-        term_set_text_color(COLOR_WHITE); \
-        term_print("\n\n[%s] Error %s (%d):\n", __FUNCTION__, except_strings[IS_GLOBAL_ERROR(err)], IS_GLOBAL_ERROR(err)); \
-        term_set_background_color(COLOR_BLACK); \
-        term_set_text_color(COLOR_WHITE); \
+        LOG_ERROR("Error %s (%d):", except_strings[IS_GLOBAL_ERROR(err)], IS_GLOBAL_ERROR(err)); \
         for (size_t i = ((err) >> 16u) - 1; i >= 1; i--) { \
-            term_print("[%s] \trethrown at '%s' (%s:%d)\n", __FUNCTION__, global_error_frames[i].function, global_error_frames[i].file, global_error_frames[i].line); \
+            LOG_ERROR("\trethrown at '%s' (%s:%d)", global_error_frames[i].function, global_error_frames[i].file, global_error_frames[i].line); \
         } \
-        term_print("[%s] \tthrown at '%s' (%s:%d)\n", __FUNCTION__, global_error_frames[0].function, global_error_frames[0].file, global_error_frames[0].line); \
+        LOG_ERROR("\tthrown at '%s' (%s:%d)", global_error_frames[0].function, global_error_frames[0].file, global_error_frames[0].line); \
     }while(0)
 
 #define KERNEL_GLOBAL_PANIC() \
     do { \
         cli(); \
+        LOG_CRITICAL("kernel panic :("); \
         KERNEL_GLOBAL_STACK_TRACE(); \
-        term_write("\n:(\n"); \
         while (true) hlt(); \
     }while(0)
 

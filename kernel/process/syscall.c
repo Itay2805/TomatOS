@@ -12,6 +12,7 @@
 #include <cpu/control.h>
 #include <cpu/rflags.h>
 #include <cpu/msr.h>
+#include <common/logging.h>
 
 #include "scheduler.h"
 #include "syscall.h"
@@ -63,8 +64,9 @@ void syscall_init() {
     term_write("[syscall_init] \tenabling the syscall feature\n");
     wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_SYSCALL);
 #else
-    term_write("[syscall_init] setting up int 0x80\n");
-    
+    LOG_WARN("syscall/sysret is currently disabled, using int 0x80");
+    LOG_INFO("setting up int 0x80");
+
     idt_set_entry(0x80, syscall_handler_stub, IDT_INTERRUPT_GATE);
 #endif
 }
