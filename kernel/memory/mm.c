@@ -281,6 +281,9 @@ static global_error_t allocate_internal(mm_context_t* context, size_t size, size
                 new_next->magic = MM_MAGIC;
                 new_next->allocated = false;
                 new_next->size = current->size - MM_BLOCK_SIZE - newsize;
+                new_next->alignment = 0;
+                new_next->line = 0;
+                new_next->filename = "<allocate_internal>";
 
                 // insert to the linked list
                 current->next = new_next;
@@ -296,14 +299,16 @@ static global_error_t allocate_internal(mm_context_t* context, size_t size, size
                 }
             }
 
-            // update the free block pointer
-            CHECK_GLOBAL_AND_RETHROW(update_free(context, tried_join, tried_expand));
-
             // set as allocated
             current->alignment = alignment;
             current->allocated = true;
             context->used_size += current->size;
+            memset(current->data, 0, (size_t) current->size);
             allocated = current->data + get_padding(current, alignment);
+
+            // update the free block pointer
+            CHECK_GLOBAL_AND_RETHROW(update_free(context, tried_join, tried_expand));
+
             break;
         }
 
@@ -376,6 +381,9 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     context->first->prev = context->first;
     context->first->next = context->first;
     context->first->allocated = false;
+    context->first->alignment = 0;
+    context->first->line = 0;
+    context->first->filename = "<mm_context_init>";
 
     critical_section_end(cs);
 }
@@ -447,7 +455,7 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size, const char* f
     mm_block_t* new_block = NULL;
     mm_block_t* block = NULL;
     void* new = NULL;
-    size_t s = 0;
+    size_t old_size = 0;
 
     critical_section_t cs = critical_section_start();
 
@@ -462,8 +470,9 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size, const char* f
         CHECK_GLOBAL_AND_RETHROW(get_block_from_ptr(ptr, &block));
         CHECK_GLOBAL_ERROR(block->allocated, ERROR_ALREADY_FREED);
 
-        if(block->size > (ptrdiff_t)size) {
-            s = (size_t) (block->size - get_padding(block, block->alignment));
+        ptrdiff_t padding = get_padding(block, block->alignment);
+        if(block->size - padding < (ptrdiff_t)size) {
+            old_size = (size_t) (block->size - padding);
             CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, block->alignment, &new, false, false));
         }else {
             new = ptr;
@@ -480,8 +489,7 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size, const char* f
 
     if(ptr != new) {
         // copy the old memory and free the new one
-        memcpy(new, ptr, s);
-        memset(new + s, 0, size - s);
+        memcpy(new, ptr, old_size);
 
         // free the block
         CHECK_GLOBAL_AND_RETHROW(internal_free(context, block));
@@ -495,5 +503,5 @@ cleanup:
 
     critical_section_end(cs);
 
-    return ptr;
+    return new;
 }
