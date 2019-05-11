@@ -318,7 +318,7 @@ error_t ata_provider_init() {
             KERNEL_STACK_TRACE(err);
         }
         ERROR_FREE(err);
-        LOG_WARN("[ata_provider_init] ata://primary:0/ not found");
+        LOG_WARN("ata://primary:0/ not found");
     }
 
     err = ata_identify(0, 1, &identify);
@@ -333,7 +333,7 @@ error_t ata_provider_init() {
             KERNEL_STACK_TRACE(err);
         }
         ERROR_FREE(err);
-        LOG_WARN("[ata_provider_init] ata://primary:1/ not found");
+        LOG_WARN("ata://primary:1/ not found");
     }
 
     err = ata_identify(1, 1, &identify);
@@ -348,7 +348,7 @@ error_t ata_provider_init() {
             KERNEL_STACK_TRACE(err);
         }
         ERROR_FREE(err);
-        LOG_WARN("[ata_provider_init] ata://secondary:0/ not found");
+        LOG_WARN("ata://secondary:0/ not found");
     }
 
     err = ata_identify(1, 1, &identify);
@@ -363,7 +363,7 @@ error_t ata_provider_init() {
             KERNEL_STACK_TRACE(err);
         }
         ERROR_FREE(err);
-        LOG_WARN("[ata_provider_init] ata://secondary:1/ not found");
+        LOG_WARN("ata://secondary:1/ not found");
     }
     err = NO_ERROR;
 
