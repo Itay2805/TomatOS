@@ -37,7 +37,6 @@ process_t* process_create(thread_start_f start, bool kernel) {
     }
 
     proc = kalloc(sizeof(process_t));
-    memset(proc, 0, sizeof(process_t));
     *proc_slot = proc;
 
     proc->pid = next_pid++;
