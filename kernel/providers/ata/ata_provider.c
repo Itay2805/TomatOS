@@ -259,29 +259,29 @@ cleanup:
 static void print_identify(const char* drive, ata_identify_t* identify) {
     char buffer[41];
 
-    LOG_NOTICE("[ata_provider_init] found drive in %s:", drive);
+    LOG_NOTICE("found drive in %s:", drive);
 
     memcpy(buffer, identify->model_number, sizeof(identify->model_number));
     buffer[sizeof(identify->model_number)] = 0;
-    LOG_NOTICE("[ata_provider_init] \tmodel=%s", buffer);
+    LOG_NOTICE("\tmodel=%s", buffer);
 
     memcpy(buffer, identify->firmware_revision, sizeof(identify->firmware_revision));
     buffer[sizeof(identify->firmware_revision)] = 0;
-    LOG_NOTICE("[ata_provider_init] \trev=%s", buffer);
+    LOG_NOTICE("\trev=%s", buffer);
 
     memcpy(buffer, identify->serial_number, sizeof(identify->serial_number));
     buffer[sizeof(identify->serial_number)] = 0;
-    LOG_NOTICE("[ata_provider_init] \tserial=%s", buffer);
+    LOG_NOTICE("\tserial=%s", buffer);
 
     size_t cap = identify->current_capacity_in_sectors * identify->buffer_size * 512;
     if(cap / GB(1) > 0) {
-        LOG_NOTICE("[ata_provider_init] \tcapacity=%dGB (%d sectors)", (int) (cap / GB(1)), identify->current_capacity_in_sectors);
+        LOG_NOTICE("\tcapacity=%dGB (%d sectors)", (int) (cap / GB(1)), identify->current_capacity_in_sectors);
     }else if(cap / MB(1) > 0) {
-        LOG_NOTICE("[ata_provider_init] \tcapacity=%dMB (%d sectors)", (int) (cap / MB(1)), identify->current_capacity_in_sectors);
+        LOG_NOTICE("\tcapacity=%dMB (%d sectors)", (int) (cap / MB(1)), identify->current_capacity_in_sectors);
     }else if(cap / KB(1) > 0) {
-        LOG_NOTICE("[ata_provider_init] \tcapacity=%dKB (%d sectors)", (int) (cap / KB(1)), identify->current_capacity_in_sectors);
+        LOG_NOTICE("\tcapacity=%dKB (%d sectors)", (int) (cap / KB(1)), identify->current_capacity_in_sectors);
     }else {
-        LOG_NOTICE("[ata_provider_init] \tcapacity=%dB (%d sectors)", (int) cap, identify->current_capacity_in_sectors);
+        LOG_NOTICE("\tcapacity=%dB (%d sectors)", (int) cap, identify->current_capacity_in_sectors);
     }
 }
 
