@@ -23,7 +23,8 @@ providers are basically drivers in TomatOS, they provider with function to do st
 * [`term:///`](kernel/providers/term/README.md)
 * [`ata://<bus>:<port>/`](kernel/providers/ata/README.md)
 * [`echfs://[<sub>]/<path>`](kernel/providers/echfs/README.md)
-* [`ps2://[<type>]/`](kernel/providers/ps2/README.md)
+* [`ps2://<type>/`](kernel/providers/ps2/README.md)
+* [`elf://[<sub>]/`](kernel/providers/elf/README.md)
 
 ## TODO
 
@@ -31,13 +32,12 @@ providers are basically drivers in TomatOS, they provider with function to do st
 
 these are things that I am going to actively work on
 
-* implementing the wait and poll functions
-* ELF loading
+* Turn term to stdio with stdout and stdin
+* Simple Shell (just allows to run programs)
 
 ### Planned in the near future
 
 these are things that I plan to implement after I finish working on what I worked till now
 
 * write support for echfs
-* Simple Shell (just allows to run programs)
 * Text editing program
