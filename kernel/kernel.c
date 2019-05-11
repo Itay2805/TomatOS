@@ -5,6 +5,7 @@
 #include <providers/echfs/echfs_provider.h>
 #include <providers/ata/ata_provider.h>
 #include <providers/ps2/ps2_provider.h>
+#include <providers/elf/elf_provider.h>
 #include <providers/echfs/echfs.h>
 
 #include <common/string.h>
@@ -33,7 +34,6 @@ extern void* boot_pdpe;
 mm_context_t kernel_memory_manager;
 
 static void thread_kernel(void* arg) {
-    uint64_t start = rdtsc();
     resource_t stdout;
     resource_descriptor_t stdout_desc = {
             .scheme = "term"
@@ -64,67 +64,20 @@ static void thread_kernel(void* arg) {
         fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/\n");
     }
 
-    echfs_desc.path = "file.txt";
-    if(open(&echfs_desc, &echfs_file)) {
-        fprintf(stdout, "=file.txt==\n");
-        size_t len;
-        seek(echfs_file, SEEK_END, 0);
-        tell(echfs_file, &len);
-        seek(echfs_file, SEEK_START, 0);
-        char buffer[len];
-        read(echfs_file, &buffer, (int) len, NULL);
-        write(stdout, buffer, (int) len, NULL);
-        fprintf(stdout, "===========\n");
-        close(echfs_file);
-    }else {
-        fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/file.txt\n");
-    }
-
-    echfs_desc.path = "dir_uwu";
-    if(open(&echfs_desc, &echfs_file)) {
-        echfs_directory_entry_t entry;
-        fprintf(stdout, "==dir_uwu==\n");
-        while(invoke(echfs_file, 1, &entry)) {
-            fprintf(stdout, "%c> %s\n", entry.type == ECHFS_OBJECT_TYPE_FILE ? 'F' : 'D', entry.name);
-        }
-        fprintf(stdout, "===========\n");
-        close(echfs_file);
-    }else {
-        fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu\n");
-    }
-
-    echfs_desc.path = "dir_uwu/owo.txt";
-    if(open(&echfs_desc, &echfs_file)) {
-        write(stdout, "==owo.txt==\n", sizeof("==owo.txt==\n"), NULL);
-        size_t len;
-        seek(echfs_file, SEEK_END, 0);
-        tell(echfs_file, &len);
-        seek(echfs_file, SEEK_START, 0);
-        char buffer[len];
-        read(echfs_file, &buffer, (int) len, NULL);
-        write(stdout, buffer, (int) len, NULL);
-        fprintf(stdout, "===========\n");
-        close(echfs_file);
-    }else {
-        fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/dir_uwu/owo.txt\n");
-    }
-    uint64_t end = rdtsc();
-    uint64_t total = end - start;
-
-    resource_t stdin;
-    resource_descriptor_t stdin_desc = {
-            .scheme = "ps2",
-            .domain = "keyboard"
+    fprintf(stdout, "attempting to load elf file...\n");
+    resource_t elf;
+    echfs_desc.path = "test.elf";
+    resource_descriptor_t elf_desc = {
+        .scheme = "elf",
+        .sub = &echfs_desc
     };
-    open(&stdin_desc, &stdin);
-    while(true) {
-        wait(stdin);
-        while(poll(stdin)) {
-            char ch;
-            read(stdin, &ch, 1, NULL);
-            // fprintf(stdout, "got scancode %d\n", ch);
-        }
+    if(open(&elf_desc, &elf)) {
+        close(elf);
+    }else {
+        fprintf(stdout, "Failed to open elf://[echfs://[ata://primary:0/]/test.elf]/\n");
     }
+
+    tkill(0);
 }
 
 void kernel_main(multiboot_info_t* info) {
@@ -177,6 +130,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(ata_provider_init());
     CHECK_AND_RETHROW(echfs_provider_init());
     CHECK_AND_RETHROW(ps2_provider_init());
+    CHECK_AND_RETHROW(elf_provider_init());
 
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());

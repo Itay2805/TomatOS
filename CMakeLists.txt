@@ -135,7 +135,7 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/ps2/ps2.c
 
         kernel/multiboot.asm
-        kernel/kernel.c)
+        kernel/kernel.c kernel/providers/elf/elf_provider.c kernel/providers/elf/elf_provider.h kernel/providers/elf/elf64.h kernel/providers/elf/elf_common.h kernel/providers/elf/elf64_loader.c kernel/providers/elf/elf64_loader.h)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")

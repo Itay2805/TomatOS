@@ -387,6 +387,9 @@ void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) 
 
     critical_section_t cs = critical_section_start();
 
+    CHECK_GLOBAL_ERROR(context != NULL, ERROR_INVALID_ARGUMENT);
+    CHECK_GLOBAL_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
+
     CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
     CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, (void**)&ptr, false, false));
     CHECK_GLOBAL(ptr != NULL);
