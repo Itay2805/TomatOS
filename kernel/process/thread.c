@@ -13,7 +13,7 @@
 #include "cpu/rflags.h"
 
 thread_t* thread_create(struct process* process, thread_start_f start) {
-    thread_t* thread = mm_allocate(&kernel_memory_manager, sizeof(thread_t));
+    thread_t* thread = kalloc(sizeof(thread_t));
     memset(thread, 0, sizeof(thread_t));
 
     thread->parent = process;
@@ -71,5 +71,5 @@ void thread_kill(thread_t* thread) {
         }
     }
 
-    mm_free(&kernel_memory_manager, thread);
+    kfree(thread);
 }

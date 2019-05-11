@@ -39,7 +39,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
     });
 
     // create the context
-    resource_context_t* context = mm_allocate(&kernel_memory_manager, sizeof(resource_context_t));
+    resource_context_t* context = kalloc(sizeof(resource_context_t));
     context->new_process = new_process;
     map_put_from_uint64(&resource_contexts, hash_resource(process->pid, created_resource), context);
 

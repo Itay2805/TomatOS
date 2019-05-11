@@ -28,33 +28,38 @@ typedef struct resource_context {
     char* buf;
 } resource_context_t;
 
-resource_context_t** contexts = NULL;
+static resource_context_t** contexts = NULL;
 
 static void add_context(resource_context_t* context) {
     resource_context_t** found = NULL;
-    for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
-        if(*it == NULL) {
-            found = it;
-            break;
-        }
-    }
-    if(found != NULL) {
-        *found = context;
-    }else {
-        buf_push(contexts, context);
-    }
+
+    CRITICAL_SECTION({
+         for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
+             if(*it == NULL) {
+                 found = it;
+                 break;
+             }
+         }
+         if(found != NULL) {
+             *found = context;
+         }else {
+             buf_push(contexts, context);
+         }
+    });
 }
 
 static error_t get_context(process_t* process, resource_t res, resource_context_t** context) {
     error_t err = NO_ERROR;
     resource_context_t* found = NULL;
 
-    for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
-        if(*it != NULL && (*it)->resource == res) {
-            found = *it;
-            break;
-        }
-    }
+    CRITICAL_SECTION({
+         for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
+             if(*it != NULL && (*it)->resource == res && (*it)->thread->parent == process) {
+                 found = *it;
+                 break;
+             }
+         }
+    });
 
     CHECK_ERROR(found != NULL, ERROR_INVALID_RESOURCE);
     *context = found;
@@ -67,13 +72,15 @@ static error_t remove_context(process_t* process, resource_t res) {
     error_t err = NO_ERROR;
     bool found = false;
 
-    for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
-        if(*it != NULL && (*it)->resource == res) {
-            mm_free(&kernel_memory_manager, *it);
-            *it = NULL;
-            break;
-        }
-    }
+    CRITICAL_SECTION({
+         for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
+             if(*it != NULL && (*it)->resource == res && (*it)->thread->parent == process) {
+                 kfree(*it);
+                 *it = NULL;
+                 break;
+             }
+         }
+     });
 
     CHECK_ERROR(found, ERROR_INVALID_RESOURCE);
 
@@ -82,18 +89,18 @@ cleanup:
 }
 
 // keycode mapping
-#define KEY_RELEASE 0x80
+#define KEY_RELEASE 0x80u
 static uint8_t scs_mapping[0x80];
 static uint8_t shift_mapping[0x80];
 static bool key_states[1024];
 
-static char translate_char(char c) {
+static uint8_t translate_char(uint8_t c) {
     if(c == 0xE0) {
         read(ps2_keyboard, &c, 0, NULL);
         // TODO:
         c = NULL;
     }else {
-        if(c & KEY_RELEASE != 0) {
+        if((c & KEY_RELEASE) != 0) {
             // key release
             c &= ~KEY_RELEASE;
             if(scs_mapping[c] != NULL) {
@@ -115,7 +122,7 @@ static char translate_char(char c) {
     return c;
 }
 
-static void dispatch(char c) {
+static void dispatch(uint8_t c) {
     for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
         if(*it != NULL && (*it)->type == STDIN) {
             CRITICAL_SECTION({
@@ -129,18 +136,18 @@ static void dispatch(char c) {
 static void handle_ps2() {
     // TODO: detect which keyboards are available
     // uses ps2://keyboard/
-    resource_descriptor_t descriptor;
+    resource_descriptor_t descriptor = {0};
     descriptor.scheme = "ps2";
     descriptor.domain = "keyboard";
     if(open(&descriptor, &ps2_keyboard)) {
         while(true) {
             wait(ps2_keyboard);
             while(poll(ps2_keyboard)) {
-                char c = 0;
+                uint8_t c = 0;
                 read(ps2_keyboard, &c, 0, NULL);
                 c = translate_char(c);
                 if(c != NULL) {
-
+                    dispatch(c);
                 }
             }
         }
@@ -167,7 +174,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
     // copy the resource to user space
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &created_resource, resource, sizeof(resource_t)));
 
-    resource_context_t* context = mm_allocate(&kernel_memory_manager, sizeof(resource_context_t));
+    resource_context_t* context = kalloc(sizeof(resource_context_t));
     context->resource = created_resource;
     context->thread = thread;
     context->buf = 0;
@@ -180,12 +187,14 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
         CHECK_FAIL_ERROR(ERROR_INVALID_DOMAIN);
     }
 
+    add_context(context);
+
 cleanup:
     if(IS_ERROR(err)) {
         handle_close(process, thread, created_resource);
     }
     if(desc != NULL) {
-        mm_free(&kernel_memory_manager, desc);
+        delete_resource_descriptor(desc);
     }
     return err;
 }
@@ -209,7 +218,7 @@ static error_t handle_write(process_t* process, thread_t* thread, resource_t res
     CHECK_AND_RETHROW(get_context(process, resource, &context));
     CHECK_ERROR(context->type == STDOUT, ERROR_NOT_WRITEABLE);
 
-    kbuffer = mm_allocate(&kernel_memory_manager, len + 1);
+    kbuffer = kalloc(len + 1);
     kbuffer[len] = 0;
     CHECK_AND_RETHROW(vmm_copy_to_kernel(process->address_space, buffer, kbuffer, len));
 
@@ -217,7 +226,7 @@ static error_t handle_write(process_t* process, thread_t* thread, resource_t res
 
     // Does nothing
 cleanup:
-    mm_free(&kernel_memory_manager, kbuffer);
+    kfree(kbuffer);
     return err;
 }
 
@@ -240,7 +249,7 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
     if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, read_size, sizeof(size_t)));
 
 cleanup:
-    mm_free(&kernel_memory_manager, kbuffer);
+    kfree(kbuffer);
     return err;
 }
 
@@ -258,7 +267,7 @@ static error_t handle_poll(process_t* process, thread_t* thread, resource_t reso
         CHECK_ERROR(buf_len(context->buf) > 0, ERROR_FINISHED);
     }
 cleanup:
-    mm_free(&kernel_memory_manager, kbuffer);
+    kfree(kbuffer);
     return err;
 }
 
@@ -266,11 +275,12 @@ cleanup:
 // Kernel initialization
 ////////////////////////////////////////////////////////////////////////////
 
-error_t term_provider_init() {
+error_t stdio_provider_init() {
     error_t err = NO_ERROR;
     process_t* process = process_create(handle_ps2, true);
-    process->threads[0]->cpu_state.rsp = mm_allocate(&kernel_memory_manager, KB(1));
-    process->threads[0]->cpu_state.rbp = mm_allocate(&kernel_memory_manager, KB(1));
+    uint64_t stack = (uint64_t) kalloc(KB(1));
+    process->threads[0]->cpu_state.rsp = stack + KB(1);
+    process->threads[0]->cpu_state.rbp = stack + KB(1);
 
     // clear mapping
     memset(scs_mapping, 0, sizeof(scs_mapping));
@@ -391,6 +401,9 @@ error_t term_provider_init() {
 
     stdio_provider.scheme = "stdio";
     stdio_provider.pid = process->pid;
+
+    // TODO: Need a better way to sign that we support wait, since for example on stdout we don't support it
+    stdio_provider.wait_support = true;
     stdio_provider.open = handle_open;
     stdio_provider.close = handle_close;
     stdio_provider.write = handle_write;

@@ -37,7 +37,7 @@ typedef struct BufHdr {
 #define buf_sizeof(b) ((b) ? buf_len(b)*sizeof(*b) : 0)
 #define buf_resize(b, s) ((b) ? buf__hdr(b)->len = s : 0)
 
-#define buf_free(b) ((b) ? (mm_free(&kernel_memory_manager, buf__hdr(b)), (b) = NULL) : 0)
+#define buf_free(b) ((b) ? (kfree(buf__hdr(b)), (b) = NULL) : 0)
 #define buf_fit(b, n) ((n) <= buf_cap(b) ? 0 : ((b) = buf__grow((b), (n), sizeof(*(b)))))
 #define buf_push(b, ...) (buf_fit((b), 1 + buf_len(b)), (b)[buf__hdr(b)->len++] = (__VA_ARGS__))
 #define buf_clear(b) ((b) ? buf__hdr(b)->len = 0 : 0)

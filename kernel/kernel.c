@@ -35,11 +35,15 @@ mm_context_t kernel_memory_manager;
 
 static void thread_kernel(void* arg) {
     resource_t stdout;
-    resource_descriptor_t stdout_desc = {
-            .scheme = "term"
+    resource_t stdin;
+    resource_descriptor_t stdio_desc = {
+            .scheme = "stdio",
+            .domain = "stdout"
     };
-    open(&stdout_desc, &stdout);
+    open(&stdio_desc, &stdout);
     write(stdout, "In kernel thread\n", sizeof("In kernel thread\n"), NULL);
+    stdio_desc.domain = "stdin";
+    open(&stdio_desc, &stdin);
 
     resource_t echfs_file;
     resource_descriptor_t ata_desc = {
@@ -77,7 +81,12 @@ static void thread_kernel(void* arg) {
         fprintf(stdout, "Failed to open elf://[echfs://[ata://primary:0/]/test.elf]/\n");
     }
 
-    tkill(0);
+    while(true) {
+        wait(stdin);
+        char c;
+        read(stdin, &c, 1, NULL);
+        fprintf(stdout, "%c", c);
+    }
 }
 
 void kernel_main(multiboot_info_t* info) {
@@ -137,7 +146,7 @@ void kernel_main(multiboot_info_t* info) {
 
     // create some test processes
     process_t* pk = process_create(thread_kernel, true);
-    char* kstack = mm_allocate(&kernel_memory_manager, KB(4));
+    char* kstack = kalloc(KB(4));
     pk->threads[0]->cpu_state.rbp = (uint64_t)kstack + KB(4);
     pk->threads[0]->cpu_state.rsp = (uint64_t)kstack + KB(4);
 

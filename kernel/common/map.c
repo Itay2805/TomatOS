@@ -53,8 +53,8 @@ uint64_t map_get_uint64_from_uint64(map_t *map, uint64_t key) {
 void map_grow(map_t *map, size_t new_cap) {
     new_cap = CLAMP_MIN(new_cap, 16);
     map_t new_map = {
-            mm_allocate(&kernel_memory_manager, new_cap * sizeof(uint64_t)),
-            mm_allocate(&kernel_memory_manager, new_cap * sizeof(uint64_t)),
+            kalloc(new_cap * sizeof(uint64_t)),
+            kalloc(new_cap * sizeof(uint64_t)),
             0,
             new_cap,
     };
@@ -64,8 +64,8 @@ void map_grow(map_t *map, size_t new_cap) {
             map_put_uint64_from_uint64(&new_map, map->keys[i], map->vals[i]);
         }
     }
-    if(map->keys != NULL) mm_free(&kernel_memory_manager, map->keys);
-    if(map->vals != NULL) mm_free(&kernel_memory_manager, map->vals);
+    if(map->keys != NULL) kfree(map->keys);
+    if(map->vals != NULL) kfree(map->vals);
     *map = new_map;
 }
 

@@ -50,7 +50,7 @@ static error_t idle_process_init() {
     idle_thread.tid = 1;
     idle_thread.state = THREAD_NORMAL;
 
-    idle_process_stack = mm_allocate(&kernel_memory_manager, KB(1));
+    idle_process_stack = kalloc(KB(1));
     buf_push(idle_process.threads, &idle_thread);
 
     // setup the cpu state of the idle thread

@@ -41,4 +41,11 @@ static inline void pause() {
     asm volatile ("pause" ::: "memory");
 }
 
+#define kalloc(size)  mm_allocate(&kernel_memory_manager, size, __FILENAME__, __LINE__)
+#define kalloc_aligned(size, alignment) mm_allocate_aligned(&kernel_memory_manager, size, alignment, __FILENAME__, __LINE__)
+#define kfree(ptr) mm_free(&kernel_memory_manager, ptr, __FILENAME__, __LINE__)
+#define krealloc(ptr, size) mm_reallocate(&kernel_memory_manager, ptr, size, __FILENAME__, __LINE__)
+
+#define offsetof(type, member) __builtin_offsetof(type, member)
+
 #endif

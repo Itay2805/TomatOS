@@ -32,12 +32,12 @@ static global_error_t expand(mm_context_t* context, size_t min) {
     }
 
     if(context->last->allocated) {
-        min += sizeof(mm_block_t);
+        min += MM_BLOCK_SIZE;
     }
 
     min = ALIGN_UP(min, 4096u);
     size_t page_count = min / 4096u;
-    char* start = (void *) ((uintptr_t)context->last + sizeof(mm_block_t) + context->last->size);
+    char* start = (void *) ((uintptr_t)context->last + MM_BLOCK_SIZE + context->last->size);
     for(size_t i = 0; i < page_count; i++) {
         vmm_allocate(vmm_get(), start + i * KB(4), attrs);
     }
@@ -48,14 +48,14 @@ static global_error_t expand(mm_context_t* context, size_t min) {
     if(context->last->allocated) {
         // the last block is already allocated, we need
         // to create a new block
-        context->used_size += sizeof(mm_block_t);
+        context->used_size += MM_BLOCK_SIZE;
 
         // set the new block
-        mm_block_t* new_block = (mm_block_t *) ((uintptr_t)context->last + sizeof(mm_block_t) + context->last->size);
+        mm_block_t* new_block = (mm_block_t *) ((uintptr_t)context->last + MM_BLOCK_SIZE + context->last->size);
         new_block->magic = MM_MAGIC;
         new_block->allocated = false;
         new_block->alignment = 0;
-        new_block->size = min - sizeof(mm_block_t);
+        new_block->size = min - MM_BLOCK_SIZE;
         new_block->next = context->first;
         new_block->prev = context->last;
 
@@ -93,7 +93,7 @@ static global_error_t join(mm_context_t* context) {
 
         if(!current->allocated && !next->allocated) {
             // join the blocks
-            current->size += next->size + sizeof(mm_block_t);
+            current->size += next->size + MM_BLOCK_SIZE;
             current->next = next->next;
             next->next->prev = current;
 
@@ -114,7 +114,7 @@ static global_error_t join(mm_context_t* context) {
                 context->first->prev = context->last;
             }
 
-            context->used_size -= sizeof(mm_block_t);
+            context->used_size -= MM_BLOCK_SIZE;
         }else {
             current = next;
         }
@@ -147,7 +147,7 @@ static bool check_size_and_alignment(mm_block_t* block, size_t size, size_t alig
  * Will check if we have enough space in this block to split it to two blocks
  */
 static bool can_split(mm_block_t* block, size_t size, size_t alignment) {
-    ptrdiff_t size_left = block->size - sizeof(mm_block_t) - get_size_with_padding(block, size, alignment) - sizeof(size_t) * 3;
+    ptrdiff_t size_left = block->size - MM_BLOCK_SIZE - get_size_with_padding(block, size, alignment) - sizeof(size_t) * 3;
     return (bool) ((size_left) > 0);
 }
 
@@ -159,7 +159,7 @@ static bool can_split(mm_block_t* block, size_t size, size_t alignment) {
  */
 static global_error_t get_block_from_ptr(void* ptr, mm_block_t** block) {
     global_error_t err = NO_ERROR;
-    mm_block_t* assumed_block = ptr - sizeof(mm_block_t);
+    mm_block_t* assumed_block = ptr - offsetof(mm_block_t, data);
 
     int padding = 0;
     while(assumed_block->magic != MM_MAGIC) {
@@ -172,6 +172,9 @@ static global_error_t get_block_from_ptr(void* ptr, mm_block_t** block) {
     *block = assumed_block;
 
 cleanup:
+    if(IS_GLOBAL_ERROR(err)) {
+        asm("nop");
+    }
     return err;
 }
 
@@ -277,7 +280,7 @@ static global_error_t allocate_internal(mm_context_t* context, size_t size, size
                 new_next->prev = current;
                 new_next->magic = MM_MAGIC;
                 new_next->allocated = false;
-                new_next->size = current->size - sizeof(mm_block_t) - newsize;
+                new_next->size = current->size - MM_BLOCK_SIZE - newsize;
 
                 // insert to the linked list
                 current->next = new_next;
@@ -285,7 +288,7 @@ static global_error_t allocate_internal(mm_context_t* context, size_t size, size
                 next->prev = new_next;
 
                 // update the size
-                context->used_size += sizeof(mm_block_t);
+                context->used_size += MM_BLOCK_SIZE;
 
                 // update the last block
                 if(current == context->last) {
@@ -366,9 +369,9 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     context->last = context->first;
     context->free = context->first;
     context->total_size = 4096;
-    context->used_size = sizeof(mm_block_t);
+    context->used_size = MM_BLOCK_SIZE;
 
-    context->first->size = 4096 - sizeof(mm_block_t);
+    context->first->size = 4096 - MM_BLOCK_SIZE;
     context->first->magic = MM_MAGIC;
     context->first->prev = context->first;
     context->first->next = context->first;
@@ -377,13 +380,14 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     critical_section_end(cs);
 }
 
-void* mm_allocate(mm_context_t* context, size_t size) {
-    return mm_allocate_aligned(context, size, 8);
+void* mm_allocate(mm_context_t* context, size_t size, const char* filename, int line) {
+    return mm_allocate_aligned(context, size, 8, filename, line);
 }
 
-void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) {
+void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment, const char* filename, int line) {
     global_error_t err = NO_ERROR;
     void* ptr = NULL;
+    mm_block_t* block;
 
     critical_section_t cs = critical_section_start();
 
@@ -391,12 +395,16 @@ void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment) 
     CHECK_GLOBAL_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
 
     CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
-    CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, (void**)&ptr, false, false));
+    CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, alignment, &ptr, false, false));
     CHECK_GLOBAL(ptr != NULL);
+    CHECK_GLOBAL_AND_RETHROW(get_block_from_ptr(ptr, &block));
     CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
 
+    block->filename = filename;
+    block->line = line;
+
 cleanup:
-    if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
+    if(IS_GLOBAL_ERROR(err)) {
         KERNEL_GLOBAL_PANIC();
     }
 
@@ -405,7 +413,7 @@ cleanup:
     return ptr;
 }
 
-void mm_free(mm_context_t* context, void* ptr) {
+void mm_free(mm_context_t* context, void* ptr, const char* filename, int line) {
     global_error_t err = NO_ERROR;
     mm_block_t* block = NULL;
 
@@ -422,6 +430,9 @@ void mm_free(mm_context_t* context, void* ptr) {
     CHECK_GLOBAL_AND_RETHROW(internal_free(context, block));
     CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
 
+    block->filename = filename;
+    block->line = line;
+
 cleanup:
     // we ignore invalid pointer in the free
     if(IS_GLOBAL_ERROR(err) != NO_ERROR) {
@@ -431,8 +442,9 @@ cleanup:
     critical_section_end(cs);
 }
 
-void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
+void* mm_reallocate(mm_context_t* context, void* ptr, size_t size, const char* filename, int line) {
     global_error_t err = NO_ERROR;
+    mm_block_t* new_block = NULL;
     mm_block_t* block = NULL;
     void* new = NULL;
     size_t s = 0;
@@ -445,18 +457,26 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size) {
     CHECK_GLOBAL_AND_RETHROW(verify_integrity(context));
 
     if(ptr == NULL) {
-        new = mm_allocate(context, size);
+        new = mm_allocate(context, size, filename, line);
     }else {
         CHECK_GLOBAL_AND_RETHROW(get_block_from_ptr(ptr, &block));
         CHECK_GLOBAL_ERROR(block->allocated, ERROR_ALREADY_FREED);
 
         if(block->size > (ptrdiff_t)size) {
             s = (size_t) (block->size - get_padding(block, block->alignment));
-            CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, block->alignment, (void**)new, false, false));
+            CHECK_GLOBAL_AND_RETHROW(allocate_internal(context, size, block->alignment, &new, false, false));
         }else {
             new = ptr;
         }
     }
+    CHECK_GLOBAL_AND_RETHROW(get_block_from_ptr(new, &new_block));
+
+    // For debugging
+    new_block->filename = filename;
+    new_block->line = line;
+
+    block->filename = filename;
+    new_block->line = line;
 
     if(ptr != new) {
         // copy the old memory and free the new one

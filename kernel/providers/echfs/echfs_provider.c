@@ -42,7 +42,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
     CHECK_AND_RETHROW(resource_create(process, &echfs_provider, &created_resource));
 
     // allocate the context
-    resource_context_t* context = mm_allocate(&kernel_memory_manager, sizeof(resource_context_t));
+    resource_context_t* context = kalloc(sizeof(resource_context_t));
     map_put_from_uint64(&resource_context_map, hash_resource(process->pid, created_resource), context);
     context->base = sub_resource;
     context->ptr = 0;
@@ -81,7 +81,7 @@ static error_t handle_close(process_t* process, thread_t* thread, resource_t res
     close(context->base);
 
     // remove the context
-    mm_free(&kernel_memory_manager, context);
+    kfree(context);
     map_put_from_uint64(&resource_context_map, hash_resource(process->pid, resource), NULL);
 
     // Remove the resource from the kernel 
@@ -106,7 +106,7 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
 
     // get the min len we can read
     len = MIN(context->entry.size - context->ptr, len);
-    kbuffer = mm_allocate(&kernel_memory_manager, len);
+    kbuffer = kalloc(len);
     CHECK_AND_RETHROW(echfs_read_from_chain(context->base, context->entry.data_start, kbuffer, context->ptr, len, &bytes_read));
 
     CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, kbuffer, buffer, len));
@@ -116,7 +116,7 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
 
 cleanup:
     if(kbuffer != NULL) {
-        mm_free(&kernel_memory_manager, kbuffer);
+        kfree(kbuffer);
     }
     return err;
 }

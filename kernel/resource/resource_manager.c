@@ -54,7 +54,7 @@ static error_t syscall_provider_handler_finished(registers_t* regs) {
 
 cleanup:
     // kill the thread and reschedule even if we failed
-    mm_free(&kernel_memory_manager, (void *) regs->rsp - KB(4));
+    kfree((void *) regs->rsp - KB(4));
     thread_kill(running_thread);
     schedule(regs, 0);
 
@@ -88,7 +88,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
             CHECK_AND_RETHROW(vmm_copy_to_kernel(running_process->address_space, (void*)regs->rdi, &descriptor, sizeof(resource_descriptor_t)));
             // get the scheme name length, allocate a buffer to store it, and read the scheme
             CHECK_AND_RETHROW(vmm_copy_string_to_kernel(running_process->address_space, descriptor.scheme, NULL, &len));
-            scheme = mm_allocate(&kernel_memory_manager, len);
+            scheme = kalloc(len);
             CHECK_AND_RETHROW(vmm_copy_string_to_kernel(running_process->address_space, descriptor.scheme, scheme, &len));
 
             // get the actual provider
@@ -181,7 +181,7 @@ static error_t dispatch_resource_call(registers_t* regs) {
     provider_thread->cpu_state.rsi = (uint64_t) running_thread;
 
     // we are going to allocate a small stack
-    stack = mm_allocate(&kernel_memory_manager, KB(4));
+    stack = kalloc(KB(4));
     provider_thread->cpu_state.rbp = (uintptr_t)stack + KB(4);
     provider_thread->cpu_state.rsp = (uintptr_t)stack + KB(4);
 
@@ -189,13 +189,13 @@ static error_t dispatch_resource_call(registers_t* regs) {
     running_thread->state = THREAD_SUSPENDED;
 cleanup:
     if(scheme != NULL) {
-        mm_free(&kernel_memory_manager, scheme);
+        kfree(scheme);
     }
 
     if(IS_ERROR(err)) {
         regs->rax = false;
         if(provider_thread != NULL) thread_kill(provider_thread);
-        if(stack != NULL) mm_free(&kernel_memory_manager, stack);
+        if(stack != NULL) kfree(stack);
     }else {
         // The reason we put this here is because the schedule will change our address space
         // and otherwise this could cause a problem when trying to free the scheme (since the kernel)

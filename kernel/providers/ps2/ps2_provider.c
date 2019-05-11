@@ -24,7 +24,7 @@ typedef struct resource_context {
     char* buf;
 } resource_context_t;
 
-resource_context_t** contexts = NULL;
+static resource_context_t** contexts = NULL;
 
 static void add_context(resource_context_t* context) {
     resource_context_t** found = NULL;
@@ -65,7 +65,7 @@ static error_t remove_context(process_t* process, resource_t res) {
 
     for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
         if(*it != NULL && (*it)->resource == res && (*it)->thread->parent == process) {
-            mm_free(&kernel_memory_manager, *it);
+            kfree(*it);
             *it = NULL;
             break;
         }
@@ -94,7 +94,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
     CHECK_AND_RETHROW(resource_create(process, &ps2_provider, &created_resource));
 
     // allocate and add the context
-    resource_context_t* context = mm_allocate(&kernel_memory_manager, sizeof(resource_context_t));
+    resource_context_t* context = kalloc(sizeof(resource_context_t));
     context->buf = NULL;
     context->resource = created_resource;
     context->thread = thread;
@@ -130,7 +130,7 @@ static error_t handle_close(process_t* process, thread_t* thread, resource_t res
     // Remove the resource from the kernel
     CHECK_AND_RETHROW(resource_remove(process, resource));
 
-    cleanup:
+cleanup:
     return err;
 }
 

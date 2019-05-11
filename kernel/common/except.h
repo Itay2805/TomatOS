@@ -36,10 +36,10 @@ typedef error_info_t* error_t;
     do { \
         if(!(condition)) { \
             if(IS_ERROR(err)) { \
-                mm_free(&kernel_memory_manager, err); \
+                kfree(err); \
                 err = NULL; \
             } \
-            err = mm_allocate(&kernel_memory_manager, sizeof(error_info_t)); \
+            err = kalloc(sizeof(error_info_t)); \
             memset(err, 0, sizeof(error_info_t)); \
             err->code = (error); \
             buf_push(err->error_frames, (error_frame_t){ __FILENAME__, __FUNCTION__, __LINE__ }); \
@@ -85,7 +85,7 @@ typedef error_info_t* error_t;
 #define ERROR_FREE(err) \
     do { \
         buf_free((err)->error_frames); \
-        mm_free(&kernel_memory_manager, (err)); \
+        kfree((err)); \
         (err) = NULL; \
     } while(0)
 

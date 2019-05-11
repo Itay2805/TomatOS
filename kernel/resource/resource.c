@@ -76,7 +76,7 @@ error_t copy_resource_descriptor_to_kernel(struct process* original_process, res
     CHECK_ERROR(descriptor != NULL, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(resource != NULL, ERROR_INVALID_ARGUMENT);
 
-    new_descriptor = mm_allocate(&kernel_memory_manager, sizeof(resource_descriptor_t));
+    new_descriptor = kalloc(sizeof(resource_descriptor_t));
     memset(new_descriptor, 0, sizeof(resource_descriptor_t));
     CHECK_AND_RETHROW(vmm_copy_to_kernel(original_process->address_space, descriptor, &copied_descriptor, sizeof(resource_descriptor_t)));
 
@@ -84,7 +84,7 @@ error_t copy_resource_descriptor_to_kernel(struct process* original_process, res
     if(copied_descriptor.scheme) {
         size_t len = 0;
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.scheme, NULL, &len));
-        new_descriptor->scheme = mm_allocate(&kernel_memory_manager, len);
+        new_descriptor->scheme = kalloc(len);
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.scheme, new_descriptor->scheme, &len));
     }
 
@@ -92,7 +92,7 @@ error_t copy_resource_descriptor_to_kernel(struct process* original_process, res
     if(copied_descriptor.domain) {
         size_t len = 0;
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.domain, NULL, &len));
-        new_descriptor->domain = mm_allocate(&kernel_memory_manager, len);
+        new_descriptor->domain = kalloc(len);
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.domain, new_descriptor->domain, &len));
     }
 
@@ -100,7 +100,7 @@ error_t copy_resource_descriptor_to_kernel(struct process* original_process, res
     if(copied_descriptor.path) {
         size_t len = 0;
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.path, NULL, &len));
-        new_descriptor->path = mm_allocate(&kernel_memory_manager, len);
+        new_descriptor->path = kalloc(len);
         CHECK_AND_RETHROW(vmm_copy_string_to_kernel(original_process->address_space, copied_descriptor.path, new_descriptor->path, &len));
     }
 
@@ -132,9 +132,9 @@ error_t delete_resource_descriptor(resource_descriptor_t* resource) {
     }
 
     // delete the strings
-    if(resource->scheme != NULL)    mm_free(&kernel_memory_manager, (void *) resource->scheme);
-    if(resource->domain != NULL)    mm_free(&kernel_memory_manager, (void *) resource->domain);
-    if(resource->path != NULL)      mm_free(&kernel_memory_manager, (void *) resource->path);
+    if(resource->scheme != NULL)    kfree((void *) resource->scheme);
+    if(resource->domain != NULL)    kfree((void *) resource->domain);
+    if(resource->path != NULL)      kfree((void *) resource->path);
 
 cleanup:
     return err;

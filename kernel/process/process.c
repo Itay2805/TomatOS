@@ -36,7 +36,7 @@ process_t* process_create(thread_start_f start, bool kernel) {
         proc_slot = &processes[buf_len(processes) - 1];
     }
 
-    proc = mm_allocate(&kernel_memory_manager, sizeof(process_t));
+    proc = kalloc(sizeof(process_t));
     memset(proc, 0, sizeof(process_t));
     *proc_slot = proc;
 
@@ -121,7 +121,7 @@ void process_remove(process_t* process) {
     for(process_t** it = processes; it < buf_end(processes); it++) {
         if(*it == process) {
             *it = NULL;
-            mm_free(&kernel_memory_manager, process);
+            kfree(process);
             break;
         }
     }

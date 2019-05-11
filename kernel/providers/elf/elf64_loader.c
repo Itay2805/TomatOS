@@ -8,7 +8,7 @@
 
 static error_t load_exec(process_t* process, resource_t res, Elf64_Ehdr* header) {
     error_t err = NO_ERROR;
-    Elf64_Phdr* phdr = mm_allocate(&kernel_memory_manager, sizeof(Elf64_Phdr));
+    Elf64_Phdr* phdr = kalloc(sizeof(Elf64_Phdr));
     char* buffer = NULL;
 
     CHECK(header->e_entry != NULL);
@@ -38,13 +38,13 @@ static error_t load_exec(process_t* process, resource_t res, Elf64_Ehdr* header)
             // only do this if has size on disk
             if(phdr->p_filesz > 0) {
                 // get the blob from the file
-                buffer = mm_allocate(&kernel_memory_manager, phdr->p_filesz);
+                buffer = kalloc(phdr->p_filesz);
                 CHECK(seek(res, SEEK_START, phdr->p_offset));
                 CHECK(read(res, buffer, phdr->p_filesz, NULL));
 
                 // copy the data from the file and free the buffer
                 CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, buffer, (void*)phdr->p_vaddr, phdr->p_filesz));
-                mm_free(&kernel_memory_manager, buffer);
+                kfree(buffer);
                 buffer = NULL;
             }
         }
@@ -53,17 +53,17 @@ static error_t load_exec(process_t* process, resource_t res, Elf64_Ehdr* header)
 
 cleanup:
     if(buffer != NULL) {
-        mm_free(&kernel_memory_manager, buffer);
+        kfree(buffer);
     }
     if(phdr != NULL) {
-        mm_free(&kernel_memory_manager, phdr);
+        kfree(phdr);
     }
     return err;
 }
 
 error_t load_elf64(process_t* process, resource_t res) {
     error_t err = NO_ERROR;
-    Elf64_Ehdr* header = mm_allocate(&kernel_memory_manager, sizeof(Elf64_Ehdr));
+    Elf64_Ehdr* header = kalloc(sizeof(Elf64_Ehdr));
 
     // read the header and check it
     CHECK(read(res, header, sizeof(Elf64_Ehdr), NULL));
@@ -92,7 +92,7 @@ error_t load_elf64(process_t* process, resource_t res) {
 
 cleanup:
     if(header != NULL) {
-        mm_free(&kernel_memory_manager, header);
+        kfree(header);
     }
     return err;
 }

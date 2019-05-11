@@ -52,7 +52,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
     // we need the resource descriptor and the domain
     CHECK_AND_RETHROW(vmm_copy_to_kernel(process->address_space, descriptor, &kdesc, sizeof(resource_descriptor_t)));
     CHECK_AND_RETHROW(vmm_copy_string_to_kernel(process->address_space, kdesc.domain, NULL, &domain_len));
-    domain_str = mm_allocate(&kernel_memory_manager, domain_len);
+    domain_str = kalloc(domain_len);
     CHECK_AND_RETHROW(vmm_copy_string_to_kernel(process->address_space, kdesc.domain, domain_str, &domain_len));
 
     // get the controller
@@ -74,7 +74,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
 
     // create the resource and add the context to it
     CHECK_AND_RETHROW(resource_create(process, &ata_provider, &created_resource));
-    ata_resource_context_t* context = mm_allocate(&kernel_memory_manager, sizeof(ata_resource_context_t));
+    ata_resource_context_t* context = kalloc(sizeof(ata_resource_context_t));
     context->entry = entry;
     context->ptr = 0;
     map_put_from_uint64(&resource_context_map, hash_resource(process->pid, created_resource), context);
@@ -85,7 +85,7 @@ cleanup:
         handle_close(process, thread, created_resource);
     }
     if(domain_str != NULL) {
-        mm_free(&kernel_memory_manager, domain_str);
+        kfree(domain_str);
     }
     return err;
 }
@@ -98,7 +98,7 @@ static error_t handle_close(process_t* process, thread_t* thread, resource_t res
     CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
 
     // remove the context
-    mm_free(&kernel_memory_manager, context);
+    kfree(context);
     map_put_from_uint64(&resource_context_map, hash_resource(process->pid, resource), NULL);
 
     // Remove the resource from the kernel
@@ -129,7 +129,7 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
     size_t upper_lba = (size_t) ((ALIGN_UP(context->ptr + len, 512)) / 512);
     size_t start_padding = context->ptr - lower_lba * 512;
     size_t end_padding = upper_lba * 512 - (context->ptr + len);
-    kbuffer = mm_allocate(&kernel_memory_manager, start_padding + len + end_padding);
+    kbuffer = kalloc(start_padding + len + end_padding);
 
     // lock the disk and read from it
     spinlock_lock(&context->entry->lock);
@@ -148,7 +148,7 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
 cleanup:
     // don't forget to free the buffer
     if(kbuffer != NULL) {
-        mm_free(&kernel_memory_manager, kbuffer);
+        kfree(kbuffer);
     }
     return NO_ERROR;
 }
@@ -176,7 +176,7 @@ static error_t handle_write(process_t* process, thread_t* thread, resource_t res
     size_t end_padding = upper_lba * 512 - (start_padding + context->ptr + len);
 
     // allocate the buffer and read the paddings
-    kbuffer = mm_allocate(&kernel_memory_manager, start_padding + len + end_padding);
+    kbuffer = kalloc(start_padding + len + end_padding);
     if(start_padding != 0) ata_read_sector(context->entry->controller, context->entry->port, lower_lba, kbuffer);
     if(end_padding != 0 && lower_lba != upper_lba - 1) ata_read_sector(context->entry->controller, context->entry->port, upper_lba - 1, kbuffer + start_padding + len);
 
@@ -199,7 +199,7 @@ static error_t handle_write(process_t* process, thread_t* thread, resource_t res
 cleanup:
     // don't forget to free the buffer
     if(kbuffer != NULL) {
-        mm_free(&kernel_memory_manager, kbuffer);
+        kfree(kbuffer);
     }
     return NO_ERROR;
 }

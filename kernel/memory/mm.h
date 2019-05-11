@@ -20,6 +20,8 @@
 #include <common/stdbool.h>
 #include <locks/spinlock.h>
 
+#define MM_BLOCK_SIZE offsetof(mm_block_t, data)
+
 /**
  * Am allocated memory block
  */
@@ -30,7 +32,12 @@ typedef struct mm_block {
     struct mm_block* next;
     struct mm_block* prev;
     size_t alignment;
-    char data[0];
+
+    // debugging
+    const char* filename;
+    int line;
+
+    char data[];
 } mm_block_t;
 
 /**
@@ -72,7 +79,7 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start);
  * mm_allocate_aligned
  *
  */
-void* mm_allocate(mm_context_t* context, size_t size);
+void* mm_allocate(mm_context_t* context, size_t size, const char* filename, int line);
 
 /**
  * Allocate memory of the given size, but have it aligned to the alignment
@@ -84,7 +91,7 @@ void* mm_allocate(mm_context_t* context, size_t size);
  * @return
  * Pointer for the allocated pointer
  */
-void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment);
+void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment, const char* filename, int line);
 
 /**
  * Free an allocated buffer
@@ -92,7 +99,7 @@ void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment);
  * @param context   [IN/OUT]    The context of the memory manager
  * @param ptr       [IN]        The pointer to free
  */
-void mm_free(mm_context_t* context, void* ptr);
+void mm_free(mm_context_t* context, void* ptr, const char* filename, int line);
 
 /**
  * Reallocate a given buffer, will allocate a new buffer if ptr is null
@@ -107,6 +114,6 @@ void mm_free(mm_context_t* context, void* ptr);
  * @return
  * The new allocated buffer
  */
-void* mm_reallocate(mm_context_t* context, void* ptr, size_t size);
+void* mm_reallocate(mm_context_t* context, void* ptr, size_t size, const char* filename, int line);
 
 #endif
