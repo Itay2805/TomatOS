@@ -27,6 +27,7 @@
 #include <cpu/cpuid.h>
 #include <cpu/msr.h>
 #include <common/logging.h>
+#include <shell/shell.h>
 
 #include "graphics/term.h"
 
@@ -36,27 +37,12 @@ mm_context_t kernel_memory_manager;
 static void thread_kernel(void* arg) {
     resource_t stdout;
     resource_t stdin;
-    resource_descriptor_t stdio_desc = {
-            .scheme = "stdio",
-            .domain = "stdout"
-    };
-    open(&stdio_desc, &stdout);
+    resolve_and_open("stdio://stdout/", &stdout);
     write(stdout, "In kernel thread\n", sizeof("In kernel thread\n"), NULL);
-    stdio_desc.domain = "stdin";
-    open(&stdio_desc, &stdin);
+    resolve_and_open("stdio://stdin/", &stdin);
 
     resource_t echfs_file;
-    resource_descriptor_t ata_desc = {
-            .scheme = "ata",
-            .domain = "primary",
-            .port = 0
-    };
-    resource_descriptor_t echfs_desc = {
-            .scheme = "echfs",
-            .path = "",
-            .sub = &ata_desc
-    };
-    if(open(&echfs_desc, &echfs_file)) {
+    if(resolve_and_open("echfs://[ata://primary:0/]/", &echfs_file)) {
         echfs_directory_entry_t entry;
         fprintf(stdout, "===========\n");
         while(invoke(echfs_file, 1, &entry)) {
@@ -70,12 +56,7 @@ static void thread_kernel(void* arg) {
 
     fprintf(stdout, "attempting to load elf file...\n");
     resource_t elf;
-    echfs_desc.path = "test.elf";
-    resource_descriptor_t elf_desc = {
-        .scheme = "elf",
-        .sub = &echfs_desc
-    };
-    if(open(&elf_desc, &elf)) {
+    if(resolve_and_open("elf://[echfs://[ata://primary:0/]/test.elf]/", &elf)) {
         close(elf);
     }else {
         fprintf(stdout, "Failed to open elf://[echfs://[ata://primary:0/]/test.elf]/\n");
@@ -83,9 +64,11 @@ static void thread_kernel(void* arg) {
 
     while(true) {
         wait(stdin);
-        char c;
-        read(stdin, &c, 1, NULL);
-        fprintf(stdout, "%c", c);
+        while(poll(stdin)) {
+            char c;
+            read(stdin, &c, 1, NULL);
+            fprintf(stdout, "%c", c);
+        }
     }
 }
 

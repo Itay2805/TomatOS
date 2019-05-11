@@ -54,6 +54,7 @@ set(KERNEL_SOURCE_FILES
         kernel/common/map.h
         kernel/common/logging.c
         kernel/common/logging.h
+        kernel/common/ctype.h
 
         kernel/graphics/font.c
         kernel/graphics/font.h
@@ -140,6 +141,9 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/elf/elf_common.h
         kernel/providers/elf/elf64_loader.c
         kernel/providers/elf/elf64_loader.h
+
+        kernel/shell/shell.c
+        kernel/shell/shell.h
 
         kernel/multiboot.asm
         kernel/kernel.c)
