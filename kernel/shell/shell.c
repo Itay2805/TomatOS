@@ -10,6 +10,7 @@
 #include <process/process.h>
 #include <graphics/term.h>
 #include <providers/stdio/stdio_provider.h>
+#include <providers/invokes.h>
 #include "shell.h"
 
 static resource_descriptor_t* resolve_uri(const char* str) {
@@ -147,33 +148,89 @@ static void safe_delete(void* ptr) {
     }
 }
 
-static void handle_command(const char* command_line) {
+static void handle_command(char* command_line) {
     if(buf_len(command_line) == 0 || strlen(command_line) == 0) return;
     if(command_line[0] == '!') {
         // Builtins, incase no mount is found
-        if(strncmp(command_line, "!mount ", 7) == 0) {
-            safe_close(working_dir);
-            working_dir = NULL;
-            if(descriptor) delete_resource_descriptor(descriptor);
-            const char* uri_start = strchr(command_line, ' ') + 1;
-            descriptor = resolve_uri(uri_start);
-            if(descriptor == NULL) {
-                LOG_ERROR("Failed to resolve path!");
-            }else {
-                if(open(descriptor, &working_dir)) {
-                    LOG_INFO("Mounted `%s`", uri_start);
-                }else {
-                    LOG_ERROR("Failed to mount `%s`", uri_start);
-                    delete_resource_descriptor(descriptor);
-                    descriptor = NULL;
+        if(strncmp(command_line, "!mount", 6) == 0) {
+            const char *uri_start = strchr(command_line, ' ');
+            if(uri_start != NULL) {
+                uri_start += 1;
+                safe_close(working_dir);
+                working_dir = NULL;
+                if (descriptor) delete_resource_descriptor(descriptor);
+                descriptor = resolve_uri(uri_start);
+                if (descriptor == NULL) {
+                    LOG_ERROR("Failed to resolve path!");
+                } else {
+                    if (open(descriptor, &working_dir)) {
+                        LOG_INFO("Mounted `%s`", uri_start);
+                    } else {
+                        LOG_ERROR("Failed to mount `%s`", uri_start);
+                        delete_resource_descriptor(descriptor);
+                        descriptor = NULL;
+                    }
                 }
+            }else {
+                LOG_WARN("Usage: !mount <resource uri>");
             }
+        }else if(strncmp(command_line, "!ls", 3) == 0) {
+            dir_entry_t entry;
+            while(invoke(working_dir, FS_READ_DIR, &entry)) {
+                if(term_get_cursor_x() + strlen(entry.name) >= term_get_width()) {
+                    term_write("\n");
+                }
+                term_print("%s ", entry.name);
+            }
+            invoke(working_dir, FS_READ_DIR_RESET, NULL);
+            term_write("\n");
         }else {
             LOG_ERROR("No such builtin");
         }
     }else {
         // run a binary
-        LOG_DEBUG("Implement running binaries from the command line");
+        if(descriptor != NULL) {
+            char* new_path_buffer = NULL;
+            char* original_path = NULL;
+            if(descriptor->path && strlen(descriptor->path) > 0) {
+                size_t path_len = strlen(descriptor->path);
+                size_t command_len = strlen(command_line);
+                bool add_slash = false;
+                if(descriptor->path[path_len - 1] != '/') {
+                    add_slash = true;
+                }
+                // format path
+                new_path_buffer = kalloc(path_len + command_len + 1 + (add_slash ? 1 : 0));
+                memcpy(new_path_buffer, descriptor->path, path_len);
+                if(add_slash) new_path_buffer[path_len] = '/';
+                memcpy(new_path_buffer + path_len + (add_slash ? 1 : 0), command_line, command_len);
+                new_path_buffer[command_len+path_len+(add_slash ? 1 : 0)] = 0;
+                descriptor->path = new_path_buffer;
+            }else {
+                original_path = descriptor->path;
+                descriptor->path = command_line;
+            }
+
+            resource_t new_process = NULL;
+
+            resource_descriptor_t elf = {
+                .scheme = "elf",
+                .sub = descriptor,
+            };
+            if(open(&elf, &new_process)) {
+                // TODO: wait for process
+                close(new_process);
+            }else {
+                LOG_ERROR("Failed to start process");
+            }
+
+            descriptor->path = original_path;
+            if(new_path_buffer != NULL) {
+                kfree(new_path_buffer);
+            }
+        }else {
+            LOG_ERROR("Must have a mount before running files");
+        }
     }
 }
 
