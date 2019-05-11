@@ -13,6 +13,7 @@ For specific information about the kernel you can go to the [kernel readme](kern
 * Syscalls (open, close read, write, etc..)
 * High-res support (currently still a terminal interface tho)
 * Cool looking logger
+* An embedded shell (WIP)
 * Unique resource abstraction system (basically URI based)
 
 ## Providers
@@ -32,8 +33,7 @@ providers are basically drivers in TomatOS, they provider with function to do st
 
 these are things that I am going to actively work on
 
-* Turn term to stdio with stdout and stdin
-* Simple Shell (just allows to run programs)
+* Simple embedded shell
 
 ### Planned in the near future
 

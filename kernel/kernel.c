@@ -34,44 +34,6 @@
 extern void* boot_pdpe;
 mm_context_t kernel_memory_manager;
 
-static void thread_kernel(void* arg) {
-    resource_t stdout;
-    resource_t stdin;
-    resolve_and_open("stdio://stdout/", &stdout);
-    write(stdout, "In kernel thread\n", sizeof("In kernel thread\n"), NULL);
-    resolve_and_open("stdio://stdin/", &stdin);
-
-    resource_t echfs_file;
-    if(resolve_and_open("echfs://[ata://primary:0/]/", &echfs_file)) {
-        echfs_directory_entry_t entry;
-        fprintf(stdout, "===========\n");
-        while(invoke(echfs_file, 1, &entry)) {
-            fprintf(stdout, "%c> %s\n", entry.type == ECHFS_OBJECT_TYPE_FILE ? 'F' : 'D', entry.name);
-        }
-        fprintf(stdout, "===========\n");
-        close(echfs_file);
-    }else {
-        fprintf(stdout, "Failed to open echfs://[ata://primary:0/]/\n");
-    }
-
-    fprintf(stdout, "attempting to load elf file...\n");
-    resource_t elf;
-    if(resolve_and_open("elf://[echfs://[ata://primary:0/]/test.elf]/", &elf)) {
-        close(elf);
-    }else {
-        fprintf(stdout, "Failed to open elf://[echfs://[ata://primary:0/]/test.elf]/\n");
-    }
-
-    while(true) {
-        wait(stdin);
-        while(poll(stdin)) {
-            char c;
-            read(stdin, &c, 1, NULL);
-            fprintf(stdout, "%c", c);
-        }
-    }
-}
-
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
 
@@ -127,11 +89,9 @@ void kernel_main(multiboot_info_t* info) {
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());
 
-    // create some test processes
-    process_t* pk = process_create(thread_kernel, true);
-    char* kstack = kalloc(KB(4));
-    pk->threads[0]->cpu_state.rbp = (uint64_t)kstack + KB(4);
-    pk->threads[0]->cpu_state.rsp = (uint64_t)kstack + KB(4);
+    // start the embedded shell
+    // TODO: Mount from the commandline
+    start_shell("");
 
     // kick start the system!
     LOG_NOTICE("Enabling interrupts");

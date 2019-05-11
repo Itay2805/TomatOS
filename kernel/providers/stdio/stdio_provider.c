@@ -262,7 +262,7 @@ static void dispatch(uint8_t c) {
                 }
 
                 // we ended with something which is not printable, ignore
-                if(!isprint(c) && c != KEYS_BACKSPACE) {
+                if(!isprint(c) && c != KEYS_BACKSPACE && c != '\n') {
                     continue;
                 }
             }

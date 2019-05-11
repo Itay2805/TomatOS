@@ -70,7 +70,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
 
     // get the ide entry
     ata_entry_t* entry = find_entry(controller, kdesc.port);
-    CHECK_ERROR(entry, ERROR_NOT_FOUND);
+    CHECK_ERROR(entry && entry->present, ERROR_NOT_FOUND);
 
     // create the resource and add the context to it
     CHECK_AND_RETHROW(resource_create(process, &ata_provider, &created_resource));
