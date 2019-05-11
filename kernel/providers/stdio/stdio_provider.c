@@ -8,6 +8,7 @@
 #include <common/klib.h>
 #include <locks/critical_section.h>
 #include <graphics/term.h>
+#include <common/ctype.h>
 
 #include "stdio_provider.h"
 
@@ -25,6 +26,7 @@ typedef struct resource_context {
     resource_t resource;
     thread_t* thread;
     int type;
+    int mode;
     char* buf;
 } resource_context_t;
 
@@ -90,10 +92,11 @@ cleanup:
 
 // keycode mapping
 #define KEY_RELEASE 0x80u
-static uint8_t scs_mapping[0x80] = {
+static bool caps_lock = false;
+static uint8_t ps2_scancodes[0x80] = {
         // 0x0
         NULL,
-        NULL,   // KEYS_ESC
+        KEYS_ESC,
         '1',
         '2',
         '3',
@@ -106,7 +109,7 @@ static uint8_t scs_mapping[0x80] = {
         '0',
         '-',
         '=',
-        NULL,   // KEYS_BACKSPACE
+        KEYS_BACKSPACE,
         '\t',
         'q',
         'w',
@@ -121,7 +124,7 @@ static uint8_t scs_mapping[0x80] = {
         '[',
         ']',
         '\n',
-        NULL,   // KEYS_LEFT_CONTROL
+        KEYS_LEFT_CTRL,
         'a',
         's',
         'd',
@@ -134,7 +137,7 @@ static uint8_t scs_mapping[0x80] = {
         ';',
         '\'',
         '`',
-        NULL,   // KEYS_LEFT_SHIFT
+        KEYS_LEFT_SHIFT,
         '\\',
         'z',
         'x',
@@ -146,75 +149,49 @@ static uint8_t scs_mapping[0x80] = {
         ',',
         '.',
         '/',
-        NULL,   // KEYS_RIGHT_SHIFT
-        '*',    // keypad
-        NULL,   // KEYS_LEFT_ALT
+        KEYS_RIGHT_SHIFT,
+        '*',    // TODO keypad
+        KEYS_LEFT_ALT,
         ' ',
-        NULL,   // KEYS_CAPS_LOCK
-        NULL,   // KEYS_F1
-        NULL,   // KEYS_F2
-        NULL,   // KEYS_F3
-        NULL,   // KEYS_F4
-        NULL,   // KEYS_F5
-        NULL,   // KEYS_F6
-        NULL,   // KEYS_F7
-        NULL,   // KEYS_F8
-        NULL,   // KEYS_F9
-        NULL,   // KEYS_F10
-        NULL,   // KEYS_NUM_LOCK
-        NULL,   // KEYS_SCROLL_LOCK
-        '7',    // keypad
-        '8',    // keypad
-        '9',    // keypad
-        '-',    // keypad
-        '4',    // keypad
-        '5',    // keypad
-        '6',    // keypad
-        '+',    // keypad
-        '1',    // keypad
-        '2',    // keypad
-        '3',    // keypad
-        '0',    // keypad
-        '.',    // keypad
+        KEYS_CAPS_LOCK,
+        KEYS_F1,
+        KEYS_F2,
+        KEYS_F3,
+        KEYS_F4,
+        KEYS_F5,
+        KEYS_F6,
+        KEYS_F7,
+        KEYS_F8,
+        KEYS_F9,
+        KEYS_F10,
+        KEYS_NUM_LOCK,
+        KEYS_SCROLL_LOCK,
+        '7',    // TODO keypad
+        '8',    // TODO keypad
+        '9',    // TODO keypad
+        '-',    // TODO keypad
+        '4',    // TODO keypad
+        '5',    // TODO keypad
+        '6',    // TODO keypad
+        '+',    // TODO keypad
+        '1',    // TODO keypad
+        '2',    // TODO keypad
+        '3',    // TODO keypad
+        '0',    // TODO keypad
+        '.',    // TODO keypad
         NULL,
         NULL,
         NULL,
-        NULL,   // KEYS_F11
-        NULL,   // KEYS_F12
+        KEYS_F11,
+        KEYS_F12,
 };
 
-static uint8_t shift_mapping[0x80] = {
-    ['q'] = 'Q',
-    ['w'] = 'W',
-    ['e'] = 'E',
-    ['r'] = 'R',
-    ['t'] = 'T',
-    ['y'] = 'Y',
-    ['u'] = 'U',
-    ['i'] = 'I',
-    ['o'] = 'O',
-    ['p'] = 'P',
+static uint8_t shift_transformation[0x80] = {
     ['['] = '{',
     [']'] = '}',
     ['\\'] = '|',
-    ['a'] = 'A',
-    ['s'] = 'S',
-    ['d'] = 'D',
-    ['f'] = 'F',
-    ['g'] = 'G',
-    ['h'] = 'H',
-    ['j'] = 'J',
-    ['k'] = 'K',
-    ['l'] = 'L',
     [';'] = ':',
     ['\''] = '"',
-    ['z'] = 'Z',
-    ['x'] = 'X',
-    ['c'] = 'C',
-    ['v'] = 'V',
-    ['b'] = 'B',
-    ['n'] = 'N',
-    ['m'] = 'M',
     [','] = ',',
     ['.'] = '.',
     ['/'] = '/',
@@ -235,7 +212,7 @@ static uint8_t shift_mapping[0x80] = {
 
 static bool key_states[1024];
 
-static uint8_t translate_char(uint8_t c) {
+static uint8_t ps2_scancode_to_keycode(uint8_t c) {
     if(c == 0xE0) {
         read(ps2_keyboard, &c, 0, NULL);
         // TODO:
@@ -244,19 +221,15 @@ static uint8_t translate_char(uint8_t c) {
         if((c > KEY_RELEASE) != 0) {
             // key release
             c -= KEY_RELEASE;
-            if(scs_mapping[c] != NULL) {
-                c = scs_mapping[c];
+            if(ps2_scancodes[c] != NULL) {
+                c = ps2_scancodes[c];
                 key_states[c] = false;
             }
             return NULL;
         }else {
             // key press
-            if(scs_mapping[c] != NULL) {
-                c = scs_mapping[c];
-                // TODO: Transform according to CAPS or SHIFT
-//                if(key_states[KEYS_LEFT_SHIFT] || key_states[KEYS_RIGHT_SHIFT]) {
-//                    c = shift_mapping[c];
-//                }
+            if(ps2_scancodes[c] != NULL) {
+                c = ps2_scancodes[c];
                 key_states[c] = true;
                 return c;
             }
@@ -267,10 +240,36 @@ static uint8_t translate_char(uint8_t c) {
 
 static void dispatch(uint8_t c) {
     for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
-        if(*it != NULL && (*it)->type == STDIN) {
+        if(*it != NULL && (*it)->mode == STDIN) {
+
+            // character tranformation
+            if((*it)->mode == STDIN_MODE_CHAR) {
+                bool shift_pressed = (bool) (key_states[KEYS_LEFT_SHIFT] || key_states[KEYS_RIGHT_SHIFT]);
+                if(isalpha(c)) {
+                    // special handling for characters
+                    if(shift_pressed && caps_lock){
+                        // if both are pressed tolower
+                        c = (uint8_t) tolower(c);
+                    }else if(caps_lock || shift_pressed) {
+                        // if either is pressed toupper
+                        c = (uint8_t) toupper(c);
+                    }
+                }else {
+                    // do transformation if needed and possible
+                    if(shift_pressed && shift_transformation[c]) {
+                        c = shift_transformation[c];
+                    }
+                }
+
+                // we ended with something which is not printable, ignore
+                if(!isprint(c) && c != KEYS_BACKSPACE) {
+                    continue;
+                }
+            }
+
             CRITICAL_SECTION({
-                buf_push((*it)->buf, c);
-            });
+                 buf_push((*it)->buf, c);
+             });
             resource_manager_resource_ready((*it)->thread, (*it)->resource);
         }
     }
@@ -288,7 +287,8 @@ static void handle_ps2() {
             while(poll(ps2_keyboard)) {
                 uint8_t c = 0;
                 read(ps2_keyboard, &c, 1, NULL);
-                c = translate_char(c);
+                c = ps2_scancode_to_keycode(c);
+                if(c == KEYS_CAPS_LOCK) caps_lock = caps_lock ? false : true;
                 if(c != NULL) {
                     dispatch(c);
                 }
@@ -326,6 +326,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
         context->type = STDOUT;
     }else if(strcmp(desc->domain, "stdin") == 0) {
         context->type = STDIN;
+        context->mode = STDIN_MODE_CHAR;
     }else {
         CHECK_FAIL_ERROR(ERROR_INVALID_DOMAIN);
     }
@@ -396,19 +397,18 @@ cleanup:
 
 static error_t handle_poll(process_t* process, thread_t* thread, resource_t resource) {
     error_t err = NO_ERROR;
-    char* kbuffer = NULL;    
     resource_context_t* context = NULL;
 
     // get the context
     CHECK_AND_RETHROW(get_context(process, resource, &context));
 
     if(context->type == STDOUT) {
-        CHECK_FAIL_ERROR(ERROR_FINISHED);
+        CHECK_FAIL_ERROR(ERROR_NOT_WAITABLE);
     }else if(context->type == STDIN) {
         CHECK_ERROR(buf_len(context->buf) > 0, ERROR_FINISHED);
     }
+
 cleanup:
-    kfree(kbuffer);
     return err;
 }
 

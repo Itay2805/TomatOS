@@ -20,7 +20,7 @@ For specific information about the kernel you can go to the [kernel readme](kern
 providers are basically drivers in TomatOS, they provider with function to do stuff with resources
 
 * [`zero:///`](kernel/providers/zero/README.md)
-* [`term:///`](kernel/providers/term/README.md)
+* [`stdio://<type>/`](kernel/providers/stdio/README.md)
 * [`ata://<bus>:<port>/`](kernel/providers/ata/README.md)
 * [`echfs://[<sub>]/<path>`](kernel/providers/echfs/README.md)
 * [`ps2://<type>/`](kernel/providers/ps2/README.md)
