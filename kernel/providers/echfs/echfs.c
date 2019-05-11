@@ -163,9 +163,10 @@ error_t echfs_read_from_chain(resource_t resource, uint64_t current_block, char*
             if(offset < header.bytes_per_sector) {
                 // offset is less than the sector, read however much we can from the sector
                 CHECK(seek(resource, SEEK_START, current_block * header.bytes_per_sector + offset));
-                CHECK(read(resource, buffer, header.bytes_per_sector - offset, NULL));
-                buffer += offset;
-                bytes_left -= offset;
+                CHECK(read(resource, buffer, MIN(header.bytes_per_sector - offset, len), NULL));
+                buffer += MIN(header.bytes_per_sector - offset, len);
+                bytes_left -= MIN(header.bytes_per_sector - offset, len);
+                offset = 0;
             }else {
                 // we need to skip this sector entirely
                 offset -= header.bytes_per_sector;

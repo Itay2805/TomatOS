@@ -105,7 +105,7 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
     CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_FILE, ERROR_NOT_READABLE);
 
     // get the min len we can read
-    len = MIN(context->entry.size, context->ptr + len);
+    len = MIN(context->entry.size - context->ptr, len);
     kbuffer = mm_allocate(&kernel_memory_manager, len);
     CHECK_AND_RETHROW(echfs_read_from_chain(context->base, context->entry.data_start, kbuffer, context->ptr, len, &bytes_read));
 
