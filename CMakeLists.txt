@@ -116,8 +116,8 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/zero/zero_provider.h
         kernel/providers/zero/zero_provider.c
 
-        kernel/providers/term/term_provider.h
-        kernel/providers/term/term_provider.c
+        kernel/providers/stdio/stdio_provider.h
+        kernel/providers/stdio/stdio_provider.c
 
         kernel/providers/ata/ata_provider.c
         kernel/providers/ata/ata_provider.h
@@ -134,8 +134,15 @@ set(KERNEL_SOURCE_FILES
         kernel/providers/ps2/ps2.h
         kernel/providers/ps2/ps2.c
 
+        kernel/providers/elf/elf_provider.c
+        kernel/providers/elf/elf_provider.h
+        kernel/providers/elf/elf64.h
+        kernel/providers/elf/elf_common.h
+        kernel/providers/elf/elf64_loader.c
+        kernel/providers/elf/elf64_loader.h
+
         kernel/multiboot.asm
-        kernel/kernel.c kernel/providers/elf/elf_provider.c kernel/providers/elf/elf_provider.h kernel/providers/elf/elf64.h kernel/providers/elf/elf_common.h kernel/providers/elf/elf64_loader.c kernel/providers/elf/elf64_loader.h)
+        kernel/kernel.c)
 
 include_directories(${KERNEL_PATH})
 add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")

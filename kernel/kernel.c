@@ -1,7 +1,7 @@
 #include "kernel.h"
 
 #include <providers/zero/zero_provider.h>
-#include <providers/term/term_provider.h>
+#include <providers/stdio/stdio_provider.h>
 #include <providers/echfs/echfs_provider.h>
 #include <providers/ata/ata_provider.h>
 #include <providers/ps2/ps2_provider.h>
@@ -126,10 +126,10 @@ void kernel_main(multiboot_info_t* info) {
     // initialize resource related stuff
     CHECK_AND_RETHROW(resource_manager_init());
     CHECK_AND_RETHROW(zero_provider_init());
-    CHECK_AND_RETHROW(term_provider_init());
+    CHECK_AND_RETHROW(ps2_provider_init());
+    CHECK_AND_RETHROW(stdio_provider_init());
     CHECK_AND_RETHROW(ata_provider_init());
     CHECK_AND_RETHROW(echfs_provider_init());
-    CHECK_AND_RETHROW(ps2_provider_init());
     CHECK_AND_RETHROW(elf_provider_init());
 
     // initlize the scheduler

@@ -41,12 +41,12 @@ static void add_context(resource_context_t* context) {
     }
 }
 
-static error_t get_context(resource_t res, resource_context_t** context) {
+static error_t get_context(process_t* process, resource_t res, resource_context_t** context) {
     error_t err = NO_ERROR;
     resource_context_t* found = NULL;
 
     for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
-        if(*it != NULL && (*it)->resource == res) {
+        if(*it != NULL && (*it)->resource == res && (*it)->thread->parent == process) {
             found = *it;
             break;
         }
@@ -59,12 +59,12 @@ cleanup:
     return err;
 }
 
-static error_t remove_context(resource_t res) {
+static error_t remove_context(process_t* process, resource_t res) {
     error_t err = NO_ERROR;
     bool found = false;
 
     for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
-        if(*it != NULL && (*it)->resource == res) {
+        if(*it != NULL && (*it)->resource == res && (*it)->thread->parent == process) {
             mm_free(&kernel_memory_manager, *it);
             *it = NULL;
             break;
@@ -125,7 +125,7 @@ static error_t handle_close(process_t* process, thread_t* thread, resource_t res
     error_t err = NO_ERROR;
 
     // remove the context
-    CHECK_AND_RETHROW(remove_context(resource));
+    CHECK_AND_RETHROW(remove_context(process, resource));
 
     // Remove the resource from the kernel
     CHECK_AND_RETHROW(resource_remove(process, resource));
@@ -140,7 +140,7 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
     resource_context_t* context = NULL;
 
     // get the context
-    CHECK_AND_RETHROW(get_context(resource, &context));
+    CHECK_AND_RETHROW(get_context(process, resource, &context));
 
     // protect against interrupts modifying this while we modify it
     CRITICAL_SECTION_LABEL(copy_to_user_failed, {
@@ -162,7 +162,7 @@ static error_t handle_poll(process_t* process, thread_t* thread, resource_t reso
     resource_context_t* context = NULL;
 
     // get the context
-    CHECK_AND_RETHROW(get_context(resource, &context));
+    CHECK_AND_RETHROW(get_context(process, resource, &context));
 
     CHECK_ERROR(buf_len(context->buf) > 0, ERROR_FINISHED);
 
