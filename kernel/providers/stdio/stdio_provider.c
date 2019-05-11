@@ -90,8 +90,149 @@ cleanup:
 
 // keycode mapping
 #define KEY_RELEASE 0x80u
-static uint8_t scs_mapping[0x80];
-static uint8_t shift_mapping[0x80];
+static uint8_t scs_mapping[0x80] = {
+        // 0x0
+        NULL,
+        NULL,   // KEYS_ESC
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+        '0',
+        '-',
+        '=',
+        NULL,   // KEYS_BACKSPACE
+        '\t',
+        'q',
+        'w',
+        'e',
+        'r',
+        't',
+        'y',
+        'u',
+        'i',
+        'o',
+        'p',
+        '[',
+        ']',
+        '\n',
+        NULL,   // KEYS_LEFT_CONTROL
+        'a',
+        's',
+        'd',
+        'f',
+        'g',
+        'h',
+        'j',
+        'k',
+        'l',
+        ';',
+        '\'',
+        '`',
+        NULL,   // KEYS_LEFT_SHIFT
+        '\\',
+        'z',
+        'x',
+        'c',
+        'v',
+        'b',
+        'n',
+        'm',
+        ',',
+        '.',
+        '/',
+        NULL,   // KEYS_RIGHT_SHIFT
+        '*',    // keypad
+        NULL,   // KEYS_LEFT_ALT
+        ' ',
+        NULL,   // KEYS_CAPS_LOCK
+        NULL,   // KEYS_F1
+        NULL,   // KEYS_F2
+        NULL,   // KEYS_F3
+        NULL,   // KEYS_F4
+        NULL,   // KEYS_F5
+        NULL,   // KEYS_F6
+        NULL,   // KEYS_F7
+        NULL,   // KEYS_F8
+        NULL,   // KEYS_F9
+        NULL,   // KEYS_F10
+        NULL,   // KEYS_NUM_LOCK
+        NULL,   // KEYS_SCROLL_LOCK
+        '7',    // keypad
+        '8',    // keypad
+        '9',    // keypad
+        '-',    // keypad
+        '4',    // keypad
+        '5',    // keypad
+        '6',    // keypad
+        '+',    // keypad
+        '1',    // keypad
+        '2',    // keypad
+        '3',    // keypad
+        '0',    // keypad
+        '.',    // keypad
+        NULL,
+        NULL,
+        NULL,
+        NULL,   // KEYS_F11
+        NULL,   // KEYS_F12
+};
+
+static uint8_t shift_mapping[0x80] = {
+    ['q'] = 'Q',
+    ['w'] = 'W',
+    ['e'] = 'E',
+    ['r'] = 'R',
+    ['t'] = 'T',
+    ['y'] = 'Y',
+    ['u'] = 'U',
+    ['i'] = 'I',
+    ['o'] = 'O',
+    ['p'] = 'P',
+    ['['] = '{',
+    [']'] = '}',
+    ['\\'] = '|',
+    ['a'] = 'A',
+    ['s'] = 'S',
+    ['d'] = 'D',
+    ['f'] = 'F',
+    ['g'] = 'G',
+    ['h'] = 'H',
+    ['j'] = 'J',
+    ['k'] = 'K',
+    ['l'] = 'L',
+    [';'] = ':',
+    ['\''] = '"',
+    ['z'] = 'Z',
+    ['x'] = 'X',
+    ['c'] = 'C',
+    ['v'] = 'V',
+    ['b'] = 'B',
+    ['n'] = 'N',
+    ['m'] = 'M',
+    [','] = ',',
+    ['.'] = '.',
+    ['/'] = '/',
+    ['`'] = '~',
+    ['1'] = '!',
+    ['2'] = '@',
+    ['3'] = '#',
+    ['4'] = '$',
+    ['5'] = '%',
+    ['6'] = '^',
+    ['7'] = '&',
+    ['8'] = '*',
+    ['9'] = '(',
+    ['0'] = ')',
+    ['-'] = '_',
+    ['='] = '+',
+};
+
 static bool key_states[1024];
 
 static uint8_t translate_char(uint8_t c) {
@@ -100,26 +241,28 @@ static uint8_t translate_char(uint8_t c) {
         // TODO:
         c = NULL;
     }else {
-        if((c & KEY_RELEASE) != 0) {
+        if((c > KEY_RELEASE) != 0) {
             // key release
-            c &= ~KEY_RELEASE;
+            c -= KEY_RELEASE;
             if(scs_mapping[c] != NULL) {
                 c = scs_mapping[c];
                 key_states[c] = false;
             }
-            c = NULL;
+            return NULL;
         }else {
             // key press
             if(scs_mapping[c] != NULL) {
                 c = scs_mapping[c];
-                if(key_states[KEYS_LEFT_SHIFT] || key_states[KEYS_RIGHT_SHIFT]) {
-                    c = shift_mapping[c];
-                }
+                // TODO: Transform according to CAPS or SHIFT
+//                if(key_states[KEYS_LEFT_SHIFT] || key_states[KEYS_RIGHT_SHIFT]) {
+//                    c = shift_mapping[c];
+//                }
                 key_states[c] = true;
+                return c;
             }
         }
     }
-    return c;
+    return NULL;
 }
 
 static void dispatch(uint8_t c) {
@@ -144,7 +287,7 @@ static void handle_ps2() {
             wait(ps2_keyboard);
             while(poll(ps2_keyboard)) {
                 uint8_t c = 0;
-                read(ps2_keyboard, &c, 0, NULL);
+                read(ps2_keyboard, &c, 1, NULL);
                 c = translate_char(c);
                 if(c != NULL) {
                     dispatch(c);
@@ -232,7 +375,6 @@ cleanup:
 
 static error_t handle_read(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len, size_t* read_size) {
     error_t err = NO_ERROR;
-    char* kbuffer = NULL;    
     resource_context_t* context = NULL;
 
     // get the context
@@ -249,7 +391,6 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
     if(read_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, read_size, sizeof(size_t)));
 
 cleanup:
-    kfree(kbuffer);
     return err;
 }
 
@@ -281,123 +422,6 @@ error_t stdio_provider_init() {
     uint64_t stack = (uint64_t) kalloc(KB(1));
     process->threads[0]->cpu_state.rsp = stack + KB(1);
     process->threads[0]->cpu_state.rbp = stack + KB(1);
-
-    // clear mapping
-    memset(scs_mapping, 0, sizeof(scs_mapping));
-    memset(shift_mapping, 0, sizeof(scs_mapping));
-
-    // normal key mapping (scs 1)
-
-    scs_mapping[0x0b] = '0';
-    scs_mapping[0x02] = '1';
-    scs_mapping[0x03] = '2';
-    scs_mapping[0x04] = '3';
-    scs_mapping[0x05] = '4';
-    scs_mapping[0x06] = '5';
-    scs_mapping[0x07] = '6';
-    scs_mapping[0x08] = '7';
-    scs_mapping[0x09] = '8';
-    scs_mapping[0x0a] = '9';
-
-    scs_mapping[0x29] = '`';
-    scs_mapping[0xC] = '-';
-    scs_mapping[0xD] = '=';
-    scs_mapping[0x1A] = '[';
-    scs_mapping[0x1B] = ']';
-    scs_mapping[0x27] = ';';
-    scs_mapping[0x28] = '\'';
-    scs_mapping[0x2B] = '\\';
-    scs_mapping[0x2B] = '\\';
-    scs_mapping[0x33] = ',';
-    scs_mapping[0x34] = '.';
-    scs_mapping[0x35] = '/';
-
-    scs_mapping[0x1e] = 'a';
-    scs_mapping[0x30] = 'b';
-    scs_mapping[0x2e] = 'c';
-    scs_mapping[0x20] = 'd';
-    scs_mapping[0x12] = 'e';
-    scs_mapping[0x21] = 'f';
-    scs_mapping[0x22] = 'g';
-    scs_mapping[0x23] = 'h';
-    scs_mapping[0x17] = 'i';
-    scs_mapping[0x24] = 'j';
-    scs_mapping[0x25] = 'k';
-    scs_mapping[0x26] = 'l';
-    scs_mapping[0x32] = 'm';
-    scs_mapping[0x31] = 'n';
-    scs_mapping[0x18] = 'o';
-    scs_mapping[0x19] = 'p';
-    scs_mapping[0x10] = 'q';
-    scs_mapping[0x13] = 'r';
-    scs_mapping[0x1f] = 's';
-    scs_mapping[0x14] = 't';
-    scs_mapping[0x16] = 'u';
-    scs_mapping[0x2f] = 'v';
-    scs_mapping[0x11] = 'w';
-    scs_mapping[0x2d] = 'x';
-    scs_mapping[0x15] = 'y';
-    scs_mapping[0x2c] = 'z';
-
-    scs_mapping[0x39] = ' ';
-
-    scs_mapping[0x2A] = KEYS_LEFT_SHIFT;
-    scs_mapping[0x36] = KEYS_RIGHT_SHIFT;
-
-    // key mapping while pressed SHIFT (scs 1)
-
-    shift_mapping['0'] = ')';
-    shift_mapping['1'] = '!';
-    shift_mapping['2'] = '@';
-    shift_mapping['3'] = '#';
-    shift_mapping['4'] = '$';
-    shift_mapping['5'] = '%';
-    shift_mapping['6'] = '^';
-    shift_mapping['7'] = '&';
-    shift_mapping['8'] = '*';
-    shift_mapping['9'] = '(';
-
-    shift_mapping['`'] = '~';
-    shift_mapping['-'] = '_';
-    shift_mapping['='] = '+';
-    shift_mapping['['] = '{';
-    shift_mapping[']'] = '}';
-    shift_mapping[';'] = ':';
-    shift_mapping['\''] = '"';
-    shift_mapping['\\'] = '|';
-    shift_mapping[','] = '<';
-    shift_mapping['.'] = '>';
-    shift_mapping['/'] = '?';
-
-    shift_mapping['a'] = 'A';
-    shift_mapping['b'] = 'B';
-    shift_mapping['c'] = 'C';
-    shift_mapping['d'] = 'D';
-    shift_mapping['e'] = 'E';
-    shift_mapping['f'] = 'F';
-    shift_mapping['g'] = 'G';
-    shift_mapping['h'] = 'H';
-    shift_mapping['i'] = 'I';
-    shift_mapping['j'] = 'J';
-    shift_mapping['k'] = 'K';
-    shift_mapping['l'] = 'L';
-    shift_mapping['m'] = 'M';
-    shift_mapping['n'] = 'N';
-    shift_mapping['o'] = 'O';
-    shift_mapping['p'] = 'P';
-    shift_mapping['q'] = 'Q';
-    shift_mapping['r'] = 'R';
-    shift_mapping['s'] = 'S';
-    shift_mapping['t'] = 'T';
-    shift_mapping['u'] = 'U';
-    shift_mapping['v'] = 'V';
-    shift_mapping['w'] = 'W';
-    shift_mapping['x'] = 'X';
-    shift_mapping['y'] = 'Y';
-    shift_mapping['z'] = 'Z';
-
-    // even if shift is pressed we want to continue being able to use space
-    shift_mapping[' '] = ' ';
 
     stdio_provider.scheme = "stdio";
     stdio_provider.pid = process->pid;

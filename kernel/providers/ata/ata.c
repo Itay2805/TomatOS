@@ -21,6 +21,14 @@ static uint16_t portiop[] = {
     [1] = 0x170
 };
 
+static void ata_str_swap(char* str, int len) {
+    for(int i = 0; i < len / 2; i++) {
+        char tmp = str[i * 2];
+        str[i * 2] = str[i * 2 + 1];
+        str[i * 2 + 1] = tmp;
+    }
+}
+
 error_t ata_identify(int drive, int port, ata_identify_t* identify) {
     error_t err = NO_ERROR;
     uint16_t iobase = portiop[drive];
@@ -58,6 +66,10 @@ error_t ata_identify(int drive, int port, ata_identify_t* identify) {
     for(int i = 0; i < 256; i++) {
         *buffer++ = inw(iobase + ATA_REG_DATA);
     }
+
+    ata_str_swap(identify->model_number, 40);
+    ata_str_swap(identify->serial_number, 20);
+    ata_str_swap(identify->firmware_revision, 8);
 
 cleanup:
     return err;
