@@ -142,11 +142,11 @@ static void safe_close(resource_t res) {
     }
 }
 
-static void safe_delete(void* ptr) {
-    if(ptr != NULL) {
-        kfree(ptr);
-    }
-}
+//static void safe_delete(void* ptr) {
+//    if(ptr != NULL) {
+//        kfree(ptr);
+//    }
+//}
 
 static void handle_command(char* command_line) {
     if(buf_len(command_line) == 0 || strlen(command_line) == 0) return;

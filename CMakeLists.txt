@@ -86,6 +86,8 @@ set(KERNEL_SOURCE_FILES
         kernel/drivers/pic.asm
         kernel/drivers/pit.c
         kernel/drivers/pit.h
+        kernel/drivers/pci.c
+        kernel/drivers/pci.h
         kernel/drivers/rtc.c
         kernel/drivers/rtc.h
 

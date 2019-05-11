@@ -32,7 +32,7 @@ void rtc_time(time_t* time) {
     if((rtc_read(RTC_ADDR_STATUS_B) & 0x4) == 0) {
         time->seconds = (time->seconds & 0xf) + ((time->seconds / 16) * 10);
         time->minutes = (time->minutes & 0xf) + ((time->minutes / 16) * 10);
-        time->hours = (time->hours & 0xf) + (((time->hours & 0x70) / 16) * 10) | (time->hours & 0x80);
+        time->hours = ((time->hours & 0xf) + (((time->hours & 0x70) / 16) * 10)) | (time->hours & 0x80);
         time->day = (time->day & 0xf) + ((time->day / 16) * 10);
         time->month = (time->month & 0xf) + ((time->month / 16) * 10);
         time->year = (time->year & 0xf) + ((time->year / 16) * 10);

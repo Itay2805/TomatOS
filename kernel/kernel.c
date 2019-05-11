@@ -10,6 +10,7 @@
 
 #include <common/string.h>
 #include <common/klib.h>
+#include <common/logging.h>
 #include <common/common.h>
 
 #include <interrupts/idt.h>
@@ -24,9 +25,10 @@
 #include <memory/pmm.h>
 #include <memory/vmm.h>
 
+#include <drivers/pci.h>
+
 #include <cpu/cpuid.h>
 #include <cpu/msr.h>
-#include <common/logging.h>
 #include <shell/shell.h>
 
 #include "graphics/term.h"
@@ -73,6 +75,7 @@ void kernel_main(multiboot_info_t* info) {
     idt_init();
 
     /// ONLY USE ERRORS FROM HERE
+    CHECK_AND_RETHROW(pci_init());
 
     // initialize processes
     CHECK_AND_RETHROW(process_init());
