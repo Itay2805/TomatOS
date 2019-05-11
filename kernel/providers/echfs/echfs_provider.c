@@ -48,7 +48,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
     context->ptr = 0;
 
     // resolve the path
-    if(strlen(desc->path) == 0) {
+    if(desc->path == NULL || strlen(desc->path) == 0) {
         context->entry.parent_id = ECHFS_DIR_ID_END_OF_DIR;
         context->entry.type = ECHFS_OBJECT_TYPE_DIR;
         context->entry.dir_id = ECHFS_DIR_ID_ROOT;
