@@ -28,7 +28,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
     // get the sub resource
     CHECK_AND_RETHROW(copy_resource_descriptor_to_kernel(process, descriptor, &desc));
     CHECK_ERROR(desc->sub, ERROR_INVALID_ARGUMENT);
-    CHECK(open(desc->sub, &sub_resource));
+    CHECK_AND_RETHROW(kopen(desc->sub, &sub_resource));
 
     // create the resource
     CHECK_AND_RETHROW(resource_create(process, &elf_provider, &created_resource));
@@ -61,7 +61,7 @@ cleanup:
     if(desc != NULL) {
         delete_resource_descriptor(desc);
     }
-    if(sub_resource != 0) close(sub_resource);
+    if(sub_resource != 0) kclose(sub_resource);
     return err;
 }
 

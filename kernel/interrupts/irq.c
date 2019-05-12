@@ -46,7 +46,6 @@ void irq_common(registers_t registers) {
     }
 
 cleanup:
-    cli();
     pic_send_eoi((uint8_t)registers.int_num);
     if(IS_ERROR(err)) {
         KERNEL_PANIC(err);

@@ -8,14 +8,14 @@
 #define SEEK_START 1
 #define SEEK_END 2
 
-bool open(resource_descriptor_t* desc, resource_t* resource);
-bool read(resource_t res, void* buffer, int size, int* outSize);
-bool write(resource_t res, const void* buffer, int size, int* outSize);
-bool seek(resource_t res, int relative, ptrdiff_t offset);
-bool tell(resource_t res, uint64_t* offset);
-bool invoke(resource_t res, int command, void* arg);
-bool close(resource_t res);
-bool poll(resource_t res);
+error_t kopen(resource_descriptor_t* desc, resource_t* resource);
+error_t kread(resource_t res, void* buffer, int size, size_t* outSize);
+error_t kwrite(resource_t res, const void* buffer, int size, size_t* outSize);
+error_t kseek(resource_t res, int relative, ptrdiff_t offset);
+error_t ktell(resource_t res, uint64_t* offset);
+error_t kinvoke(resource_t res, uint64_t command, void* arg);
+error_t kclose(resource_t res);
+error_t kpoll(resource_t res);
 bool wait(resource_t res);
 
 void fprintf(resource_t res, const char* fmt, ...)  __attribute__ ((format (printf, 2, 3)));

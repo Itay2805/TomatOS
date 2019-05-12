@@ -13,6 +13,14 @@
 #include <providers/invokes.h>
 #include "shell.h"
 
+static bool error_to_bool(error_t err) {
+    bool e = IS_ERROR(err) ? true : false;
+    if(e) {
+        ERROR_FREE(err);
+    }
+    return (bool) !e;
+}
+
 static resource_descriptor_t* resolve_uri(const char* str) {
     bool err = true;
     char* scheme = NULL;
@@ -125,11 +133,13 @@ cleanup:
     return desc;
 }
 
-bool resolve_and_open(const char* str, resource_t* resource) {
+error_t resolve_and_open(const char* str, resource_t* resource) {
+    error_t err = NO_ERROR;
     resource_descriptor_t* desc = resolve_uri(str);
-    bool succ = open(desc, resource);
+    CHECK_AND_RETHROW(kopen(desc, resource));
     delete_resource_descriptor(desc);
-    return succ;
+cleanup:
+    return err;
 }
 
 static const char* mount_point;
@@ -138,7 +148,7 @@ static resource_t working_dir;
 
 static void safe_close(resource_t res) {
     if(res != NULL) {
-        close(res);
+        kclose(res);
     }
 }
 
@@ -150,6 +160,7 @@ static void safe_close(resource_t res) {
 
 static void handle_command(char* command_line) {
     if(buf_len(command_line) == 0 || strlen(command_line) == 0) return;
+    while(strchr(command_line, ' ') != NULL) command_line++;
     if(command_line[0] == '!') {
         // Builtins, incase no mount is found
         if(strncmp(command_line, "!mount", 6) == 0) {
@@ -163,7 +174,7 @@ static void handle_command(char* command_line) {
                 if (descriptor == NULL) {
                     LOG_ERROR("Failed to resolve path!");
                 } else {
-                    if (open(descriptor, &working_dir)) {
+                    if (error_to_bool(kopen(descriptor, &working_dir))) {
                         LOG_INFO("Mounted `%s`", uri_start);
                     } else {
                         LOG_ERROR("Failed to mount `%s`", uri_start);
@@ -176,13 +187,13 @@ static void handle_command(char* command_line) {
             }
         }else if(strncmp(command_line, "!ls", 3) == 0) {
             dir_entry_t entry;
-            while(invoke(working_dir, FS_READ_DIR, &entry)) {
+            while(error_to_bool(kinvoke(working_dir, FS_READ_DIR, &entry))) {
                 if(term_get_cursor_x() + strlen(entry.name) >= term_get_width()) {
                     term_write("\n");
                 }
                 term_print("%s ", entry.name);
             }
-            invoke(working_dir, FS_READ_DIR_RESET, NULL);
+            kinvoke(working_dir, FS_READ_DIR_RESET, NULL);
             term_write("\n");
         }else {
             LOG_ERROR("No such builtin");
@@ -217,9 +228,9 @@ static void handle_command(char* command_line) {
                 .scheme = "elf",
                 .sub = descriptor,
             };
-            if(open(&elf, &new_process)) {
+            if(error_to_bool(kopen(&elf, &new_process))) {
                 // TODO: wait for process
-                close(new_process);
+                kclose(new_process);
             }else {
                 LOG_ERROR("Failed to start process");
             }
@@ -242,14 +253,13 @@ static void shell_start() {
     LOG_NOTICE("TomatShell loaded successfully!");
 
     descriptor = resolve_uri(mount_point);
-    if(!resolve_and_open("stdio://stdin/", &stdin)) {
+    if(!error_to_bool(resolve_and_open("stdio://stdin/", &stdin))) {
         LOG_CRITICAL("shell failed to open stdin :(");
         tkill(0);
-        // TODO: Exit process
     }
 
     if(mount_point != NULL && strlen(mount_point) > 0) {
-        if(!resolve_and_open(mount_point, &working_dir)) {
+        if(!error_to_bool(resolve_and_open(mount_point, &working_dir))) {
             LOG_ERROR("Failed to mount `%s`, use `!mount <path>` to mount a resource", mount_point);
         }else {
             LOG_INFO("Loaded mount `%s`", mount_point);
@@ -268,8 +278,8 @@ static void shell_start() {
         char ch[] = { 0, 0 };
         while(ch[0] != '\n') {
             wait(stdin);
-            while(poll(stdin)) {
-                read(stdin, &ch[0], 1, NULL);
+            while(error_to_bool(kpoll(stdin))) {
+                kread(stdin, &ch[0], 1, NULL);
                 if(buf_len(command_line) > 0 && ch[0] == KEYS_BACKSPACE) {
                     // delete char
                     term_set_cursor_pos(term_get_cursor_x() - 1, term_get_cursor_y());

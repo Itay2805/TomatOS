@@ -7,47 +7,90 @@
 #include "stdarg.h"
 #include "mini-printf.h"
 #include <process/syscalls.h>
+#include <process/scheduler.h>
 
-bool open(resource_descriptor_t* desc, resource_t* resource) {
-    bool result;
-    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_OPEN), "D"(desc), "S"(resource));
-    return result;
+error_t kopen(resource_descriptor_t* desc, resource_t* resource) {
+    error_t err = NO_ERROR;
+    resource_provider_t* provider = NULL;
+    thread_t* thread = running_thread;
+
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_scheme(desc->scheme, &provider));
+    CHECK_AND_RETHROW(provider->open(thread->parent, thread, desc, resource));
+
+cleanup:
+    return err;
 }
 
-bool read(resource_t res, void* buffer, int size, int* outSize) {
-    bool result;
-    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_READ), "D"(res), "S"(buffer), "d"(size), "c"(outSize));
-    return result;
+error_t kread(resource_t res, void* buffer, int size, size_t* outSize) {
+    error_t err = NO_ERROR;
+    resource_provider_t* provider = NULL;
+    thread_t* thread = running_thread;
+
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(thread->parent, res, &provider));
+    CHECK_AND_RETHROW(provider->read(thread->parent, thread, res, buffer, size, outSize));
+
+cleanup:
+    return err;
 }
 
-bool write(resource_t res, const void* buffer, int size, int* outSize) {
-    bool result;
-    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_WRITE), "D"(res), "S"(buffer), "d"(size), "c"(outSize));
-    return result;
+error_t kwrite(resource_t res, const void* buffer, int size, size_t* outSize) {
+    error_t err = NO_ERROR;
+    resource_provider_t* provider = NULL;
+    thread_t* thread = running_thread;
+
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(thread->parent, res, &provider));
+    CHECK_AND_RETHROW(provider->write(thread->parent, thread, res, buffer, size, outSize));
+
+cleanup:
+    return err;
 }
 
-bool seek(resource_t res, int relative, ptrdiff_t offset) {
-    bool result;
-    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_SEEK), "D"(res), "S"(relative), "d"(offset));
-    return result;
+error_t kseek(resource_t res, int relative, ptrdiff_t offset) {
+    error_t err = NO_ERROR;
+    resource_provider_t* provider = NULL;
+    thread_t* thread = running_thread;
+
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(thread->parent, res, &provider));
+    CHECK_AND_RETHROW(provider->seek(thread->parent, thread, res, relative, offset));
+
+cleanup:
+    return err;
 }
 
-bool tell(resource_t res, uint64_t* offset) {
-    bool result;
-    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_TELL), "D"(res), "S"(offset));
-    return result;
+error_t ktell(resource_t res, uint64_t* offset) {
+    error_t err = NO_ERROR;
+    resource_provider_t* provider = NULL;
+    thread_t* thread = running_thread;
+
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(thread->parent, res, &provider));
+    CHECK_AND_RETHROW(provider->tell(thread->parent, thread, res, offset));
+
+cleanup:
+    return err;
 }
 
-bool close(resource_t res) {
-    bool result;
-    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_CLOSE), "D"(res));
-    return result;
+error_t kclose(resource_t res) {
+    error_t err = NO_ERROR;
+    resource_provider_t* provider = NULL;
+    thread_t* thread = running_thread;
+
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(thread->parent, res, &provider));
+    CHECK_AND_RETHROW(provider->close(thread->parent, thread, res));
+
+cleanup:
+    return err;
 }
 
-bool poll(resource_t res) {
-    bool result;
-    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_POLL), "D"(res));
-    return result;
+error_t kpoll(resource_t res) {
+    error_t err = NO_ERROR;
+    resource_provider_t* provider = NULL;
+    thread_t* thread = running_thread;
+
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(thread->parent, res, &provider));
+    CHECK_AND_RETHROW(provider->poll(thread->parent, thread, res));
+
+cleanup:
+    return err;
 }
 
 bool wait(resource_t res) {
@@ -56,10 +99,16 @@ bool wait(resource_t res) {
     return result;
 }
 
-bool invoke(resource_t res, int command, void* arg) {
-    bool result;
-    asm volatile ("int $0x80" : "=a"(result) : "a"(SYSCALL_INVOKE), "D"(res), "S"(command), "d"(arg));
-    return result;
+error_t kinvoke(resource_t res, uint64_t command, void* arg) {
+    error_t err = NO_ERROR;
+    resource_provider_t* provider = NULL;
+    thread_t* thread = running_thread;
+
+    CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(thread->parent, res, &provider));
+    CHECK_AND_RETHROW(provider->invoke(thread->parent, thread, res, command, arg));
+
+cleanup:
+    return err;
 }
 
 void fprintf(resource_t res, const char* fmt, ...) {
@@ -67,7 +116,7 @@ void fprintf(resource_t res, const char* fmt, ...) {
     va_start(list, fmt);
     char buffer[1024];
     mini_vsnprintf(buffer, 1024u, fmt, list);
-    write(res, buffer, sizeof(buffer), NULL);
+    kwrite(res, buffer, sizeof(buffer), NULL);
     va_end(list);
 }
 

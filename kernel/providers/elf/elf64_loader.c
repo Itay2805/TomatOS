@@ -18,8 +18,8 @@ static error_t load_exec(process_t* process, resource_t res, Elf64_Ehdr* header)
     CHECK(header->e_phnum > 0);
     for(int i = 0; i < header->e_phnum; i++) {
         // read the header
-        CHECK(seek(res, SEEK_START, header->e_phoff + header->e_phentsize * i));
-        CHECK(read(res, phdr, sizeof(Elf64_Phdr), NULL));
+        CHECK_AND_RETHROW(kseek(res, SEEK_START, header->e_phoff + header->e_phentsize * i));
+        CHECK_AND_RETHROW(kread(res, phdr, sizeof(Elf64_Phdr), NULL));
 
         if(phdr->p_type == PT_NULL) continue;
 
@@ -39,8 +39,8 @@ static error_t load_exec(process_t* process, resource_t res, Elf64_Ehdr* header)
             if(phdr->p_filesz > 0) {
                 // get the blob from the file
                 buffer = kalloc(phdr->p_filesz);
-                CHECK(seek(res, SEEK_START, phdr->p_offset));
-                CHECK(read(res, buffer, phdr->p_filesz, NULL));
+                CHECK_AND_RETHROW(kseek(res, SEEK_START, phdr->p_offset));
+                CHECK_AND_RETHROW(kread(res, buffer, phdr->p_filesz, NULL));
 
                 // copy the data from the file and free the buffer
                 CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, buffer, (void*)phdr->p_vaddr, phdr->p_filesz));
@@ -66,7 +66,7 @@ error_t load_elf64(process_t* process, resource_t res) {
     Elf64_Ehdr* header = kalloc(sizeof(Elf64_Ehdr));
 
     // read the header and check it
-    CHECK(read(res, header, sizeof(Elf64_Ehdr), NULL));
+    CHECK_AND_RETHROW(kread(res, header, sizeof(Elf64_Ehdr), NULL));
     CHECK(header->e_ident[EI_MAG0] == ELFMAG0);
     CHECK(header->e_ident[EI_MAG1] == ELFMAG1);
     CHECK(header->e_ident[EI_MAG2] == ELFMAG2);

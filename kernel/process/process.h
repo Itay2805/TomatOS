@@ -62,6 +62,11 @@ struct process {
      * the next resource id
      */
     resource_t next_resource;
+
+    /**
+     * To lock resources
+     */
+    spinlock_t resource_lock;
 };
 
 typedef struct process process_t;

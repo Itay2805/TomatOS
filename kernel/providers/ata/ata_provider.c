@@ -168,7 +168,7 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_write(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len, size_t* write_size) {
+static error_t handle_write(process_t* process, thread_t* thread, resource_t resource, const char* buffer, size_t len, size_t* write_size) {
     error_t err = NO_ERROR;
     ata_resource_context_t* context = NULL;
     char* kbuffer = NULL;

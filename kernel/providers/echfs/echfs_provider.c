@@ -37,7 +37,7 @@ static error_t handle_open(process_t* process, thread_t* thread, resource_descri
     // get the sub resource
     CHECK_AND_RETHROW(copy_resource_descriptor_to_kernel(process, descriptor, &desc));
     CHECK_ERROR(desc->sub != NULL, ERROR_INVALID_ARGUMENT);
-    CHECK(open(desc->sub, &sub_resource));
+    CHECK_AND_RETHROW(kopen(desc->sub, &sub_resource));
 
     // create the resource
     CHECK_AND_RETHROW(resource_create(process, &echfs_provider, &created_resource));
@@ -79,7 +79,7 @@ static error_t handle_close(process_t* process, thread_t* thread, resource_t res
     CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
 
     // close the sub resource
-    close(context->base);
+    kclose(context->base);
 
     // remove the context
     kfree(context);
@@ -174,7 +174,7 @@ cleanup:
     return err;
 }
 
-static error_t handle_invoke(process_t* process, thread_t* thread, resource_t resource, int cmd, void* arg) {
+static error_t handle_invoke(process_t* process, thread_t* thread, resource_t resource, uint64_t cmd, void* arg) {
     error_t err = NO_ERROR;
     echfs_directory_entry_t entry;
     dir_entry_t user_entry;

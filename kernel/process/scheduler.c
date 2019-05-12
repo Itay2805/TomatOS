@@ -112,6 +112,11 @@ void schedule(registers_t* regs, int interval) {
         if (*process == NULL) {
             continue;
         }
+        for(thread_t** thread = (*process)->threads; thread < buf_end((*process)->threads); thread++) {
+            if(*thread != NULL && ((*thread)->state == THREAD_NORMAL || (*thread)->state == THREAD_RUNNING)) {
+                thread_count++;
+            }
+        }
         thread_count += buf_len((*process)->threads);
     }
 

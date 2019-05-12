@@ -6,8 +6,8 @@ static error_t echfs_read_header(resource_t resource, echfs_header_t* header) {
     error_t err = NO_ERROR;
 
     // read the header and check the signature
-    CHECK(seek(resource, SEEK_START, 0));
-    CHECK(read(resource, header, sizeof(echfs_header_t), NULL));
+    CHECK_AND_RETHROW(kseek(resource, SEEK_START, 0));
+    CHECK_AND_RETHROW(kread(resource, header, sizeof(echfs_header_t), NULL));
 
     CHECK(strcmp(header->signature, "_ECH_FS_") == 0);
 
@@ -21,9 +21,9 @@ static error_t echfs_find_file(resource_t resource, echfs_header_t* header, uint
     echfs_directory_entry_t entry = {0};
     bool found = false;
 
-    CHECK(seek(resource, SEEK_START, start));
+    CHECK_AND_RETHROW(kseek(resource, SEEK_START, start));
     for(int i = 0; i < header->main_dir_length; i++) {
-        CHECK(read(resource, &entry, sizeof(echfs_directory_entry_t), NULL));
+        CHECK_AND_RETHROW(kread(resource, &entry, sizeof(echfs_directory_entry_t), NULL));
         if(entry.parent_id == parent_id && strcmp(entry.name, name) == 0) {
             found = true;
             break;
@@ -104,9 +104,9 @@ error_t echfs_read_dir(resource_t resource, uint64_t parent_id, uint64_t* pointe
     }
 
     // find the next entry with the same folder id
-    CHECK(seek(resource, SEEK_START, start));
+    CHECK_AND_RETHROW(kseek(resource, SEEK_START, start));
     for(int i = 0; i < header.main_dir_length; i++) {
-        CHECK(read(resource, &entry, sizeof(echfs_directory_entry_t), NULL));
+        CHECK_AND_RETHROW(kread(resource, &entry, sizeof(echfs_directory_entry_t), NULL));
 
         // no more dirs
         if(entry.parent_id == ECHFS_DIR_ID_END_OF_DIR) {
@@ -124,7 +124,7 @@ error_t echfs_read_dir(resource_t resource, uint64_t parent_id, uint64_t* pointe
     CHECK_ERROR(found, ERROR_FINISHED);
 
     // update the pointer
-    CHECK(tell(resource, pointer));
+    CHECK_AND_RETHROW(ktell(resource, pointer));
     *out_entry = entry;
 
 cleanup:
@@ -147,23 +147,23 @@ error_t echfs_read_from_chain(resource_t resource, uint64_t current_block, char*
     while(bytes_left > 0 || next_block_in_chain == ECHFS_ATAB_END_OF_CHAIN) {
         // we already started reading
         if(offset == 0) {
-            CHECK(seek(resource, SEEK_START, current_block * header.bytes_per_sector));
+            CHECK_AND_RETHROW(kseek(resource, SEEK_START, current_block * header.bytes_per_sector));
             if(bytes_left >= header.bytes_per_sector) {
                 // more than a sector to read, read a single sector
-                CHECK(read(resource, buffer, sizeof(header.bytes_per_sector), NULL));
+                CHECK_AND_RETHROW(kread(resource, buffer, sizeof(header.bytes_per_sector), NULL));
                 buffer += header.bytes_per_sector;
                 bytes_left -= header.bytes_per_sector;
             }else {
                 // less than a sector to read, read all thats left and exit the loop
-                CHECK(read(resource, buffer, bytes_left, NULL));
+                CHECK_AND_RETHROW(kread(resource, buffer, bytes_left, NULL));
                 buffer += bytes_left;
                 bytes_left = 0;
             }
         }else {
             if(offset < header.bytes_per_sector) {
                 // offset is less than the sector, read however much we can from the sector
-                CHECK(seek(resource, SEEK_START, current_block * header.bytes_per_sector + offset));
-                CHECK(read(resource, buffer, MIN(header.bytes_per_sector - offset, len), NULL));
+                CHECK_AND_RETHROW(kseek(resource, SEEK_START, current_block * header.bytes_per_sector + offset));
+                CHECK_AND_RETHROW(kread(resource, buffer, MIN(header.bytes_per_sector - offset, len), NULL));
                 buffer += MIN(header.bytes_per_sector - offset, len);
                 bytes_left -= MIN(header.bytes_per_sector - offset, len);
                 offset = 0;
@@ -174,8 +174,8 @@ error_t echfs_read_from_chain(resource_t resource, uint64_t current_block, char*
         }
 
         // read the position of the next block in the chain
-        CHECK(seek(resource, SEEK_START, allocation_table + next_block_in_chain * sizeof(uint64_t)));
-        CHECK(read(resource, &next_block_in_chain, sizeof(uint64_t), NULL));
+        CHECK_AND_RETHROW(kseek(resource, SEEK_START, allocation_table + next_block_in_chain * sizeof(uint64_t)));
+        CHECK_AND_RETHROW(kread(resource, &next_block_in_chain, sizeof(uint64_t), NULL));
     }
 
     if(outLen != NULL) *outLen = len - bytes_left;

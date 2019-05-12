@@ -104,7 +104,7 @@ void kernel_main(multiboot_info_t* info) {
 
     // start the embedded shell
     // TODO: Mount from the commandline
-    start_shell("");
+    start_shell("echfs://[ata://primary:0/]/");
 
     // kick start the system!
     LOG_NOTICE("Enabling interrupts");

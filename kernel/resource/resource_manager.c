@@ -20,6 +20,8 @@
 resource_provider_t** providers = NULL;
 static map_t resource_wait = {0};
 
+#define PROVIDER_STACK_SIZE MB(1)
+
 extern void dispatch_resource_call_trampoline();
 
 static error_t syscall_provider_handler_finished(registers_t* regs) {
@@ -54,7 +56,7 @@ static error_t syscall_provider_handler_finished(registers_t* regs) {
 
 cleanup:
     // kill the thread and reschedule even if we failed
-    kfree((void *) regs->rsp - KB(4));
+    kfree((void *) regs->rsp - PROVIDER_STACK_SIZE);
     thread_kill(running_thread);
     schedule(regs, 0);
 
@@ -181,9 +183,9 @@ static error_t dispatch_resource_call(registers_t* regs) {
     provider_thread->cpu_state.rsi = (uint64_t) running_thread;
 
     // we are going to allocate a small stack
-    stack = kalloc(KB(4));
-    provider_thread->cpu_state.rbp = (uintptr_t)stack + KB(4);
-    provider_thread->cpu_state.rsp = (uintptr_t)stack + KB(4);
+    stack = kalloc(PROVIDER_STACK_SIZE);
+    provider_thread->cpu_state.rbp = (uintptr_t)stack + PROVIDER_STACK_SIZE;
+    provider_thread->cpu_state.rsp = (uintptr_t)stack + PROVIDER_STACK_SIZE;
 
     // save the state of the thread
     running_thread->state = THREAD_SUSPENDED;
@@ -290,6 +292,8 @@ error_t resource_manager_get_provider_by_resource(process_t* process, resource_t
     resource_provider_t* found_provider = NULL;
     int i = 0;
 
+    spinlock_lock(&process->resource_lock);
+
     // Check argiments
     CHECK_ERROR(process != NULL, ERROR_INVALID_ARGUMENT);
 
@@ -309,6 +313,7 @@ error_t resource_manager_get_provider_by_resource(process_t* process, resource_t
     *provider = found_provider;
 
 cleanup:
+    spinlock_unlock(&process->resource_lock);
     return err;
 }
 

@@ -8,10 +8,11 @@
 // TODO: Use this, basically the first few bits are gonna be used just for
 //       storing the resource information (will not require a syscall to query
 //       these stuff)
-#define RESOURCE_ATTR_SEEKABLE (1 << 0)
-#define RESOURCE_ATTR_READABLE (1 << 1)
-#define RESOURCE_ATTR_WRITEABLE (1 << 2)
-#define RESOURCE_ATTR_WAITABLE (1 << 3)
+#define RESOURCE_ATTR_SEEKABLE (1 << (31 - 0))
+#define RESOURCE_ATTR_READABLE (1 << (31 - 1))
+#define RESOURCE_ATTR_WRITEABLE (1 << (31 - 2))
+#define RESOURCE_ATTR_WAITABLE (1 << (31 - 3))
+#define RESOURCE_ATTR_MASK ~(RESOURCE_ATTR_SEEKABLE | RESOURCE_ATTR_READABLE | RESOURCE_ATTR_WRITEABLE | RESOURCE_ATTR_WAITABLE)
 
 typedef int resource_t;
 
@@ -50,6 +51,11 @@ error_t resource_remove(struct process* process, resource_t resource);
  */
 uint64_t hash_resource(int pid, resource_t resource);
 
+/**
+ * Will hash the pid, tid and resource to give out a unique hash
+ *
+ * this is for using in maps
+ */
 uint64_t hash_resource_thread(int pid, int tid, resource_t resource);
 
 /**

@@ -9,6 +9,7 @@
 #include <locks/critical_section.h>
 #include <graphics/term.h>
 #include <common/ctype.h>
+#include <shell/shell.h>
 
 #include "stdio_provider.h"
 
@@ -214,7 +215,7 @@ static bool key_states[1024];
 
 static uint8_t ps2_scancode_to_keycode(uint8_t c) {
     if(c == 0xE0) {
-        read(ps2_keyboard, &c, 0, NULL);
+        kread(ps2_keyboard, &c, 0, NULL);
         // TODO:
         c = NULL;
     }else {
@@ -278,26 +279,25 @@ static void dispatch(uint8_t c) {
 static void handle_ps2() {
     // TODO: detect which keyboards are available
     // uses ps2://keyboard/
-    resource_descriptor_t descriptor = {0};
-    descriptor.scheme = "ps2";
-    descriptor.domain = "keyboard";
-    if(open(&descriptor, &ps2_keyboard)) {
-        while(true) {
-            wait(ps2_keyboard);
-            while(poll(ps2_keyboard)) {
-                uint8_t c = 0;
-                read(ps2_keyboard, &c, 1, NULL);
-                c = ps2_scancode_to_keycode(c);
-                if(c == KEYS_CAPS_LOCK) caps_lock = caps_lock ? false : true;
-                if(c != NULL) {
-                    dispatch(c);
-                }
+    error_t err = NO_ERROR;
+    CHECK_AND_RETHROW(resolve_and_open("ps2://keyboard/", &ps2_keyboard));
+    while(true) {
+        wait(ps2_keyboard);
+        do {
+            uint8_t c = 0;
+            kread(ps2_keyboard, &c, 1, NULL);
+            c = ps2_scancode_to_keycode(c);
+            if(c == KEYS_CAPS_LOCK) caps_lock = caps_lock ? false : true;
+            if(c != NULL) {
+                dispatch(c);
             }
-        }
-    }else {
-        LOG_ERROR("Failed to open ps2://keyboard/, stdio://stdin/ will not work!");
-        tkill(0);
+            err = kpoll(ps2_keyboard);
+        } while(!IS_ERROR(err));
     }
+cleanup:
+    LOG_ERROR("Failed to open ps2://keyboard/, stdio://stdin/ will not work!");
+    ERROR_FREE(err);
+    tkill(0);
 }
 
 static error_t handle_close(process_t* process, thread_t* thread, resource_t resource);
@@ -353,7 +353,7 @@ cleanup:
     return NO_ERROR;
 }
 
-static error_t handle_write(process_t* process, thread_t* thread, resource_t resource, char* buffer, size_t len) {
+static error_t handle_write(process_t* process, thread_t* thread, resource_t resource, const char* buffer, size_t len, size_t* write_size) {
     error_t err = NO_ERROR;
     char* kbuffer = NULL;    
     resource_context_t* context = NULL;
@@ -365,6 +365,8 @@ static error_t handle_write(process_t* process, thread_t* thread, resource_t res
     kbuffer = kalloc(len + 1);
     kbuffer[len] = 0;
     CHECK_AND_RETHROW(vmm_copy_to_kernel(process->address_space, buffer, kbuffer, len));
+
+    if(write_size != NULL) CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &len, write_size, sizeof(size_t)));
 
     term_write(kbuffer);
 
@@ -419,9 +421,9 @@ cleanup:
 error_t stdio_provider_init() {
     error_t err = NO_ERROR;
     process_t* process = process_create(handle_ps2, true);
-    uint64_t stack = (uint64_t) kalloc(KB(1));
-    process->threads[0]->cpu_state.rsp = stack + KB(1);
-    process->threads[0]->cpu_state.rbp = stack + KB(1);
+    uint64_t stack = (uint64_t) kalloc(MB(1));
+    process->threads[0]->cpu_state.rsp = stack + MB(1);
+    process->threads[0]->cpu_state.rbp = stack + MB(1);
 
     stdio_provider.scheme = "stdio";
     stdio_provider.pid = process->pid;
