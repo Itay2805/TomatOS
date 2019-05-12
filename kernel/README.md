@@ -182,3 +182,7 @@ The wait syscall is a little different. The way it works is that when you call i
 ### The problem with this system
 
 It is probably slow, every syscall requires two context switches at the very least, it might favour a multicore system but on single core idk how fast it is going to be.
+
+# Synchronization
+
+First of all, we are going to have nested interrupts, but there are two restrictions, while in a nested interrupt, scheduling will be turned off, this is to prevent from a situation where we schedule in the middle of an interrupt and that interrupt never finishes. 

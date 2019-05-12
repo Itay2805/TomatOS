@@ -30,11 +30,14 @@
 #include <cpu/cpuid.h>
 #include <cpu/msr.h>
 #include <shell/shell.h>
+#include <drivers/rtc.h>
 
 #include "graphics/term.h"
 
 extern void* boot_pdpe;
 mm_context_t kernel_memory_manager;
+
+spinlock_t freq_lock = 0;
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -73,6 +76,13 @@ void kernel_main(multiboot_info_t* info) {
     irq_init();
     syscall_init();
     idt_init();
+
+    LOG_INFO("Calculating CPU freq...");
+    uint64_t start = rtc_unixtime();
+    int64_t start_tick = rdtsc();
+    while(rtc_unixtime() - start < 1);
+    int64_t end_tick = rdtsc();
+    LOG_INFO("Running at `%d` steps per second", (int)(end_tick - start_tick));
 
     /// ONLY USE ERRORS FROM HERE
     CHECK_AND_RETHROW(pci_init());
