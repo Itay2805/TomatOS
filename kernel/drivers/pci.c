@@ -202,8 +202,8 @@ static const char* get_device_name(uint16_t class, uint16_t subclass, uint16_t p
 }
 
 static void print_device(pci_device_t* dev) {
-    const char* name = get_device_name(dev->class, dev->subclass, dev->prog_if);
-    LOG_INFO("\t%d:%d:%d -> %s (%x:%x:%x)", dev->bus, dev->slot, dev->function, name, dev->class, dev->subclass, dev->prog_if);
+    const char* name = get_device_name(dev->class, dev->subclass, dev->programming_interface);
+    LOG_INFO("\t%d:%d:%d -> %s (%x:%x:%x)", dev->bus, dev->slot, dev->function, name, dev->class, dev->subclass, dev->programming_interface);
 }
 
 error_t pci_init() {
@@ -217,22 +217,24 @@ error_t pci_init() {
     for(uint16_t bus = 0; bus < 256u; bus++) {
         for(uint16_t slot = 0; slot < 32u; slot++) {
             for(uint16_t function = 0; function < 8; function++) {
-                uint16_t vendor = pci_read(bus, slot, function, 0);
+                pci_device_t pci_device = {
+                        .bus = bus,
+                        .slot = slot,
+                        .function = function,
+                };
+                uint16_t vendor = pci_read_uint16(&pci_device, 0);
                 if(vendor == 0xffff) break;
-                uint16_t device = pci_read(bus, slot, function, 2);
-                uint16_t revision_prog = pci_read(bus, slot, function, 8);
-                uint16_t device_class = pci_read(bus, slot, function, 10);
-                buf_push(pci_devices, (pci_device_t){
-                    .bus = bus,
-                    .slot = slot,
-                    .function = function,
-                    .vendor = vendor,
-                    .device = device,
-                    .class = device_class >> 8,
-                    .subclass = device_class & 0xff,
-                    .prog_if = revision_prog >> 8,
-                    .revision_id = revision_prog & 0xff
-                });
+                uint16_t device = pci_read_uint16(&pci_device, 2);
+                uint16_t revision_prog = pci_read_uint16(&pci_device, 8);
+                uint16_t device_class = pci_read_uint16(&pci_device, 10);
+
+                pci_device.vendor = vendor;
+                pci_device.device = device;
+                pci_device.class = (uint8_t) (device_class >> 8);
+                pci_device.subclass = (uint8_t) (device_class & 0xff);
+                pci_device.programming_interface = (uint8_t) (revision_prog >> 8);
+                pci_device.revision_id = (uint8_t) (revision_prog & 0xff);
+                buf_push(pci_devices, pci_device);
                 print_device(&pci_devices[buf_len(pci_devices) - 1]);
             }
         }
@@ -242,14 +244,23 @@ cleanup:
     return err;
 }
 
-uint16_t pci_read(uint16_t bus, uint16_t slot, uint16_t func, uint16_t reg) {
-    uint32_t addr = (bus << 16) | (slot << 11) | (func << 8) | (reg & 0xfc) | 0x80000000;
-    outl(PCI_REG_ADDRESS, addr);
-    return inl(PCI_REG_DATA) >> ((reg & 2) * 8) & 0xffff;
+uint32_t pci_read_uint32(pci_device_t* device, uint16_t reg) {
+    return pci_read_uint16(device, reg) | (pci_read_uint16(device, (uint16_t) (reg + 2)) << 16);
 }
 
-void pci_write(uint16_t bus, uint16_t slot, uint16_t func, uint16_t reg, uint16_t data) {
-    uint32_t addr = (bus << 16) | (slot << 11) | (func << 8) | (reg & 0xfc) | 0x80000000;
+void pci_write_uint32(pci_device_t* device, uint16_t reg, uint32_t data) {
+    pci_write_uint16(device, reg, (uint16_t) (data & 0xFFFF));
+    pci_write_uint16(device, (uint16_t) (reg + 2), (uint16_t) ((data >> 16) & 0xFFFF));
+}
+
+uint16_t pci_read_uint16(pci_device_t* device, uint16_t reg) {
+    uint32_t addr = (device->bus << 16) | (device->slot << 11) | (device->function << 8) | (reg & 0xfc) | 0x80000000;
+    outl(PCI_REG_ADDRESS, addr);
+    return (uint16_t) (inl(PCI_REG_DATA) >> ((reg & 2) * 8) & 0xffff);
+}
+
+void pci_write_uint16(pci_device_t* device, uint16_t reg, uint16_t data) {
+    uint32_t addr = (device->bus << 16) | (device->slot << 11) | (device->function << 8) | (reg & 0xfc) | 0x80000000;
     outl(PCI_REG_ADDRESS, addr);
     outl(PCI_REG_DATA, data);    
 }

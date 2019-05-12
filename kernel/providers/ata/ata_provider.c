@@ -13,6 +13,7 @@
 #include <kernel.h>
 #include <common/map.h>
 #include <common/logging.h>
+#include <drivers/pci.h>
 
 #include "ata_provider.h"
 #include "ata.h"
@@ -20,6 +21,20 @@
 ////////////////////////////////////////////////////////////////////////////
 // The process functions
 ////////////////////////////////////////////////////////////////////////////
+
+typedef struct ata_entry {
+    // is this a valid entry
+    bool present;
+
+    // the channel (primary vs secondary)
+    int channel;
+
+    // the internal bus, 2 per channel
+    int bus;
+
+    size_t size_in_bytes;
+    spinlock_t lock;
+} ata_entry_t;
 
 typedef struct ata_resource_context {
     ata_entry_t* entry;
@@ -134,7 +149,7 @@ static error_t handle_read(process_t* process, thread_t* thread, resource_t reso
     // lock the disk and read from it
     spinlock_lock(&context->entry->lock);
     for(int i = 0; i < upper_lba - lower_lba; i++) {
-        ata_read_sector(context->entry->controller, context->entry->port, i + lower_lba, kbuffer + i * 512);
+        ata_read_sector(context->entry->channel, context->entry->bus, i + lower_lba, kbuffer + i * 512);
     }
     spinlock_unlock(&context->entry->lock);
 
@@ -177,8 +192,8 @@ static error_t handle_write(process_t* process, thread_t* thread, resource_t res
 
     // allocate the buffer and read the paddings
     kbuffer = kalloc(start_padding + len + end_padding);
-    if(start_padding != 0) ata_read_sector(context->entry->controller, context->entry->port, lower_lba, kbuffer);
-    if(end_padding != 0 && lower_lba != upper_lba - 1) ata_read_sector(context->entry->controller, context->entry->port, upper_lba - 1, kbuffer + start_padding + len);
+    if(start_padding != 0) ata_read_sector(context->entry->channel, context->entry->bus, lower_lba, kbuffer);
+    if(end_padding != 0 && lower_lba != upper_lba - 1) ata_read_sector(context->entry->channel, context->entry->bus, upper_lba - 1, kbuffer + start_padding + len);
 
     // read the buffer from the user
     CHECK_AND_RETHROW(vmm_copy_to_kernel(process->address_space, buffer, kbuffer + start_padding, len));
@@ -186,7 +201,7 @@ static error_t handle_write(process_t* process, thread_t* thread, resource_t res
     // write it all to the disk
     spinlock_lock(&context->entry->lock);
     for(int i = 0; i < upper_lba - lower_lba; i++) {
-        ata_write_sector(context->entry->controller, context->entry->port, i + lower_lba, kbuffer + i * 512);
+        ata_write_sector(context->entry->channel, context->entry->bus, i + lower_lba, kbuffer + i * 512);
     }
     spinlock_unlock(&context->entry->lock);
 
@@ -288,84 +303,127 @@ static void print_identify(const char* drive, ata_identify_t* identify) {
 error_t ata_provider_init() {
     error_t err = NO_ERROR;
 
-    process_t* process = process_create(NULL, true);
-    thread_kill(process->threads[0]);
-
-    ata_provider.scheme = "ata";
-    ata_provider.pid = process->pid;
-    ata_provider.open = handle_open;
-    ata_provider.close = handle_close;
-    ata_provider.read = handle_read;
-    ata_provider.write = handle_write;
-    ata_provider.tell = handle_tell;
-    ata_provider.seek = handle_seek;
-
-    CHECK_AND_RETHROW(resource_manager_register_provider(&ata_provider));
-
     // check for drives
     ata_identify_t identify;
 
-    // master:0
-    err = ata_identify(0, 0, &identify);
-    if(!IS_ERROR(err)) {
-        print_identify("ata://primary:0/", &identify);
-        ide_entries[0].present = true;
-        ide_entries[0].controller = 0;
-        ide_entries[0].port = 0;
-        ide_entries[0].size_in_bytes = identify.current_capacity_in_sectors * 512;
-    }else {
-        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
-            KERNEL_STACK_TRACE(err);
+    pci_device_t* ide_device = NULL;
+    for(pci_device_t* it = pci_devices; it < buf_end(pci_devices); it++) {
+        if(it->class == 0x01 && it->subclass == 0x01) {
+            if(ide_device != NULL) {
+                LOG_WARN("Detected another IDE controller, currently we only support having one ide controller!");
+            }else {
+                LOG_INFO("Found IDE controller!");
+                int count = 0;
+
+                ide_device = it;
+                int bar0 = pci_read_uint32(it, PCI_REG_BAR0);
+                int bar1 = pci_read_uint32(it, PCI_REG_BAR1);
+                int bar2 = pci_read_uint32(it, PCI_REG_BAR2);
+                int bar3 = pci_read_uint32(it, PCI_REG_BAR3);
+
+                LOG_DEBUG("%s TODO: Support DMA", __FILENAME__);
+                int bar4 = pci_read_uint32(it, PCI_REG_BAR4);
+
+                // primary channel
+                if((bar0 == 0x0 || bar0 == 0x1) && (bar1 == 0x0 || bar1 == 0x1)) {
+                    count++;
+
+                    err = ata_identify(0, 0, &identify);
+                    if(!IS_ERROR(err)) {
+                        print_identify("ata://primary:0/", &identify);
+                        ide_entries[0].present = true;
+                        ide_entries[0].channel = 0;
+                        ide_entries[0].bus = 0;
+                        ide_entries[0].size_in_bytes = identify.current_capacity_in_sectors * 512;
+                    }else {
+                        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
+                            KERNEL_STACK_TRACE(err);
+                        }
+                        ERROR_FREE(err);
+                        LOG_WARN("ata://primary:0/ not found");
+                    }
+
+                    err = ata_identify(0, 1, &identify);
+                    if(!IS_ERROR(err)) {
+                        print_identify("ata://primary:1/", &identify);
+                        ide_entries[1].present = true;
+                        ide_entries[1].channel = 0;
+                        ide_entries[1].bus = 1;
+                        ide_entries[1].size_in_bytes = identify.current_capacity_in_sectors * 512;
+                    }else {
+                        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
+                            KERNEL_STACK_TRACE(err);
+                        }
+                        ERROR_FREE(err);
+                        LOG_WARN("ata://primary:1/ not found");
+                    }
+                }else {
+                    LOG_WARN("Primary channel uses incompatible ports");
+                }
+
+                // secondary channel
+                if((bar2 == 0x0 || bar2 == 0x1) && (bar3 == 0x0 || bar3 == 0x1)) {
+                    count++;
+
+                    err = ata_identify(1, 1, &identify);
+                    if(!IS_ERROR(err)) {
+                        print_identify("ata://secondary:0/", &identify);
+                        ide_entries[2].present = true;
+                        ide_entries[2].channel = 1;
+                        ide_entries[2].bus = 0;
+                        ide_entries[2].size_in_bytes = identify.current_capacity_in_sectors * 512;
+                    }else {
+                        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
+                            KERNEL_STACK_TRACE(err);
+                        }
+                        ERROR_FREE(err);
+                        LOG_WARN("ata://secondary:0/ not found");
+                    }
+
+                    err = ata_identify(1, 1, &identify);
+                    if(!IS_ERROR(err)) {
+                        print_identify("ata://secondary:1/", &identify);
+                        ide_entries[3].present = true;
+                        ide_entries[3].channel = 1;
+                        ide_entries[3].bus = 1;
+                        ide_entries[3].size_in_bytes = identify.current_capacity_in_sectors * 512;
+                    }else {
+                        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
+                            KERNEL_STACK_TRACE(err);
+                        }
+                        ERROR_FREE(err);
+                        LOG_WARN("ata://secondary:1/ not found");
+                    }
+                    err = NO_ERROR;
+                }else {
+                    LOG_WARN("Secondary channel uses incompatible ports");
+                }
+
+                if(count == 0) {
+                    ide_device = NULL;
+                    LOG_WARN("No compatible channels, ignoring controller");
+                }
+            }
         }
-        ERROR_FREE(err);
-        LOG_WARN("ata://primary:0/ not found");
     }
 
-    err = ata_identify(0, 1, &identify);
-    if(!IS_ERROR(err)) {
-        print_identify("ata://primary:1/", &identify);
-        ide_entries[1].present = true;
-        ide_entries[1].controller = 0;
-        ide_entries[1].port = 1;
-        ide_entries[1].size_in_bytes = identify.current_capacity_in_sectors * 512;
+    if(pci_devices == NULL) {
+        LOG_WARN("No compatible IDE controller found, will not register ata!");
     }else {
-        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
-            KERNEL_STACK_TRACE(err);
-        }
-        ERROR_FREE(err);
-        LOG_WARN("ata://primary:1/ not found");
-    }
+        process_t* process = process_create(NULL, true);
+        thread_kill(process->threads[0]);
 
-    err = ata_identify(1, 1, &identify);
-    if(!IS_ERROR(err)) {
-        print_identify("ata://secondary:0/", &identify);
-        ide_entries[2].present = true;
-        ide_entries[2].controller = 1;
-        ide_entries[2].port = 0;
-        ide_entries[2].size_in_bytes = identify.current_capacity_in_sectors * 512;
-    }else {
-        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
-            KERNEL_STACK_TRACE(err);
-        }
-        ERROR_FREE(err);
-        LOG_WARN("ata://secondary:0/ not found");
-    }
+        ata_provider.scheme = "ata";
+        ata_provider.pid = process->pid;
+        ata_provider.open = handle_open;
+        ata_provider.close = handle_close;
+        ata_provider.read = handle_read;
+        ata_provider.write = handle_write;
+        ata_provider.tell = handle_tell;
+        ata_provider.seek = handle_seek;
 
-    err = ata_identify(1, 1, &identify);
-    if(!IS_ERROR(err)) {
-        print_identify("ata://secondary:1/", &identify);
-        ide_entries[3].present = true;
-        ide_entries[3].controller = 1;
-        ide_entries[3].port = 1;
-        ide_entries[3].size_in_bytes = identify.current_capacity_in_sectors * 512;
-    }else {
-        if(IS_ERROR(err) != ERROR_NOT_FOUND) {
-            KERNEL_STACK_TRACE(err);
-        }
-        ERROR_FREE(err);
-        LOG_WARN("ata://secondary:1/ not found");
+        CHECK_AND_RETHROW(resource_manager_register_provider(&ata_provider));
     }
-    err = NO_ERROR;
 
 cleanup:
     return err;

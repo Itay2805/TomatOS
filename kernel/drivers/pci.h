@@ -3,7 +3,7 @@
 
 #include <common/except.h>
 
-// TODO: PCI-to-PCI bridge
+// TODO: PCI-to-PCI bridge/PCI-to-BUSCARD bridge
 
 typedef struct pci_device {
     uint16_t bus;
@@ -11,18 +11,27 @@ typedef struct pci_device {
     uint16_t function;
     uint16_t vendor;
     uint16_t device;
-    uint16_t class;
-    uint16_t subclass;
-    uint16_t prog_if;
-    uint16_t revision_id;
+    uint8_t class;
+    uint8_t subclass;
+    uint8_t programming_interface;
+    uint8_t revision_id;
 } pci_device_t;
 
 extern pci_device_t* pci_devices;
 
 error_t pci_init();
 
-uint16_t pci_read(uint16_t bus, uint16_t slot, uint16_t func, uint16_t reg);
+#define PCI_REG_BAR0    0x10
+#define PCI_REG_BAR1    0x14
+#define PCI_REG_BAR2    0x18
+#define PCI_REG_BAR3    0x1C
+#define PCI_REG_BAR4    0x20
+#define PCI_REG_BAR5    0x24
 
-void pci_write(uint16_t bus, uint16_t slot, uint16_t func, uint16_t reg, uint16_t data);
+uint16_t pci_read_uint16(pci_device_t* device, uint16_t reg);
+void pci_write_uint16(pci_device_t* device, uint16_t reg, uint16_t data);
+
+uint32_t pci_read_uint32(pci_device_t* device, uint16_t reg);
+void pci_write_uint32(pci_device_t* device, uint16_t reg, uint32_t data);
 
 #endif
