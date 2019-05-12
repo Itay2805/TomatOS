@@ -76,7 +76,14 @@ static const char* get_device_name(uint16_t class, uint16_t subclass, uint16_t p
                 case 0x02: return "3D Controller (Non VGA-Compatible)";
                 default: return "Display Controller";
             }
-        case 0x04: return "Multimedia Controller";
+        case 0x04:
+            switch(subclass) {
+                case 0x00: return "Multimedia Video Controller";
+                case 0x01: return "Multimedia Audio Controller";
+                case 0x02: return "Computer Telephony Device";
+                case 0x03: return "Audio device";
+                default: return "Multimedia Controller";
+            }
         case 0x05:
             switch(subclass) {
                 case 0x00: return "RAM Controller";
