@@ -174,7 +174,7 @@ cleanup:
 // Kernel initialization
 ////////////////////////////////////////////////////////////////////////////
 
-static void handle_keyboard_interrupt() {
+static error_t handle_keyboard_interrupt() {
     error_t err = NO_ERROR;
     uint8_t ch;
 
@@ -187,14 +187,11 @@ static void handle_keyboard_interrupt() {
     }
 
 cleanup:
-    if(IS_ERROR(err)) {
-        KERNEL_STACK_TRACE(err);
-        ERROR_FREE(err);
-    }
+    return err;
 }
 
-static void handle_mouse_interrupt() {
-
+static error_t handle_mouse_interrupt() {
+    return NO_ERROR;
 }
 
 error_t ps2_provider_init() {

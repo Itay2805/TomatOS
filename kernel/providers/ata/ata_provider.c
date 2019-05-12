@@ -322,7 +322,7 @@ error_t ata_provider_init() {
                 int bar3 = pci_read_uint32(it, PCI_REG_BAR3);
 
                 LOG_DEBUG("%s TODO: Support DMA", __FILENAME__);
-                int bar4 = pci_read_uint32(it, PCI_REG_BAR4);
+                // int bar4 = pci_read_uint32(it, PCI_REG_BAR4);
 
                 // primary channel
                 if((bar0 == 0x0 || bar0 == 0x1) && (bar1 == 0x0 || bar1 == 0x1)) {

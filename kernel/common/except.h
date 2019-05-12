@@ -1,7 +1,6 @@
 #ifndef TOMATKERNEL_EXCEPT_H
 #define TOMATKERNEL_EXCEPT_H
 
-#include <interrupts/interrupts.h>
 #include <common/logging.h>
 #include <kernel.h>
 

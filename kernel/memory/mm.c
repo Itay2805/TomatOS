@@ -1,5 +1,6 @@
 #include "mm.h"
 
+#include <interrupts/interrupts.h>
 #include <common/global_except.h>
 #include <common/string.h>
 #include <common/common.h>
@@ -363,6 +364,7 @@ static global_error_t internal_free(mm_context_t* context, mm_block_t* block) {
 
 void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     critical_section_t cs = critical_section_start();
+    spinlock_lock(&context->lock);
 
     int attrs = PAGE_ATTR_WRITE;
     if(vmm_get() != kernel_address_space) {
@@ -385,6 +387,7 @@ void mm_context_init(mm_context_t* context, uintptr_t virtual_start) {
     context->first->line = 0;
     context->first->filename = "<mm_context_init>";
 
+    spinlock_unlock(&context->lock);
     critical_section_end(cs);
 }
 
@@ -398,6 +401,7 @@ void* mm_allocate_aligned(mm_context_t* context, size_t size, size_t alignment, 
     mm_block_t* block;
 
     critical_section_t cs = critical_section_start();
+    spinlock_lock(&context->lock);
 
     CHECK_GLOBAL_ERROR(context != NULL, ERROR_INVALID_ARGUMENT);
     CHECK_GLOBAL_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
@@ -416,6 +420,7 @@ cleanup:
         KERNEL_GLOBAL_PANIC();
     }
 
+    spinlock_unlock(&context->lock);
     critical_section_end(cs);
 
     return ptr;
@@ -426,6 +431,7 @@ void mm_free(mm_context_t* context, void* ptr, const char* filename, int line) {
     mm_block_t* block = NULL;
 
     critical_section_t cs = critical_section_start();
+    spinlock_lock(&context->lock);
 
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
 
@@ -447,6 +453,7 @@ cleanup:
         KERNEL_GLOBAL_PANIC();
     }
 
+    spinlock_unlock(&context->lock);
     critical_section_end(cs);
 }
 
@@ -458,6 +465,7 @@ void* mm_reallocate(mm_context_t* context, void* ptr, size_t size, const char* f
     size_t old_size = 0;
 
     critical_section_t cs = critical_section_start();
+    spinlock_lock(&context->lock);
 
     CHECK_GLOBAL_ERROR(context, ERROR_INVALID_ARGUMENT);
     CHECK_GLOBAL_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
@@ -501,6 +509,7 @@ cleanup:
         KERNEL_GLOBAL_PANIC();
     }
 
+    spinlock_unlock(&context->lock);
     critical_section_end(cs);
 
     return new;

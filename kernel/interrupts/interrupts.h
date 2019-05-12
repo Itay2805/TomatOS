@@ -15,6 +15,7 @@
 
 #include <common/stdint.h>
 #include <common/stdbool.h>
+#include <common/except.h>
 #include "idt.h"
 
 /**
@@ -67,7 +68,7 @@ typedef struct registers {
  * Note: This is not the one called from the IDT, but rather one called
  *       from the IDT stubs
  */
-typedef void(*interrupt_handler_f)(registers_t* registers);
+typedef error_t(*interrupt_handler_f)(registers_t* registers);
 
 /**
  * Enable interrupts

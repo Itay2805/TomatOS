@@ -83,8 +83,9 @@ thread_t* running_thread = NULL;
  * the timer handler, will basically do the scheduling
  * and thread rollup
  */
-static void handle_timer_interrupt(registers_t* regs) {
+static error_t handle_timer_interrupt(registers_t* regs) {
     schedule(regs, (int) pit_get_interval());
+    return NO_ERROR;
 }
 
 void schedule(registers_t* regs, int interval) {

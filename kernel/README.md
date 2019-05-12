@@ -185,4 +185,4 @@ It is probably slow, every syscall requires two context switches at the very lea
 
 # Synchronization
 
-First of all, we are going to have nested interrupts, but there are two restrictions, while in a nested interrupt, scheduling will be turned off, this is to prevent from a situation where we schedule in the middle of an interrupt and that interrupt never finishes. 
+TODO

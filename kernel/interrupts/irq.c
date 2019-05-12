@@ -2,6 +2,9 @@
 #include <memory/vmm.h>
 #include <drivers/pic.h>
 #include <common/logging.h>
+#include <common/string.h>
+#include <process/process.h>
+#include <process/scheduler.h>
 #include "irq.h"
 #include "idt.h"
 #include "interrupts.h"
@@ -33,38 +36,19 @@ void irq_init() {
     idt_set_entry(IRQ_BASE + IRQ_SECONDARY_ATA, irq_secondary_ata, IDT_INTERRUPT_GATE);
 }
 
-// static const char* IRQ_NAMES[] = {
-//         "Programmable Interval Timer (PIT)",
-//         "Keyboard",
-//         "Cascade",
-//         "COM2",
-//         "COM1",
-//         "LPT2",
-//         "FLOPPY",
-//         "LPT1",
-//         "CMOS",
-//         "PERIPHERALS_1",
-//         "PERIPHERALS_2",
-//         "PERIPHERALS_3",
-//         "PS2 Mouse",
-//         "Co-processor",
-//         "Primary ATA",
-//         "Secondary ATA",
-// };
-
 void irq_common(registers_t registers) {
-    if(irq_handlers[registers.int_num - IRQ_BASE]) {
-        irq_handlers[registers.int_num - IRQ_BASE](&registers);
-    }else {
-//        address_space_t addr = vmm_get();
-//        if(addr != kernel_address_space) vmm_set(kernel_address_space);
-//        if(registers.int_num - IRQ_BASE < sizeof(IRQ_NAMES) / sizeof(char*)) {
-//            term_print("[irq_common] Unhandled interrupt (%s)\n", IRQ_NAMES[registers.int_num - IRQ_BASE]);
-//        }else {
-//            term_print("[irq_common] Unhandled interrupt (irq=%d, int=%d)\n", (int) registers.int_num - IRQ_BASE, (int) registers.int_num);
-//        }
-//        if(addr != kernel_address_space) vmm_set(addr);
+    error_t err = NO_ERROR;
+    int int_num = (int) (registers.int_num - IRQ_BASE);
+    CHECK(int_num >= 0 && int_num < 16);
+
+    if(irq_handlers[int_num]) {
+        CHECK_AND_RETHROW(irq_handlers[registers.int_num - IRQ_BASE](&registers));
     }
 
+cleanup:
+    cli();
     pic_send_eoi((uint8_t)registers.int_num);
+    if(IS_ERROR(err)) {
+        KERNEL_PANIC(err);
+    }
 }
