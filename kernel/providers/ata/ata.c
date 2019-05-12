@@ -29,14 +29,44 @@ static void ata_str_swap(char* str, int len) {
     }
 }
 
-error_t ata_identify(int drive, int port, ata_identify_t* identify) {
+static error_t ata_busy_wait(int channel, bool data) {
     error_t err = NO_ERROR;
-    uint16_t iobase = portiop[drive];
+
+    uint16_t iobase = portiop[channel];
+    uint8_t status_raw = 0;
+    ata_status_t* status = (ata_status_t *) &status_raw;
+    uint64_t start = rtc_unixtime();
+    do {
+        status_raw = inb(iobase + ATA_REG_STATUS);
+        CHECK(!status->error);
+        CHECK_ERROR(rtc_unixtime() - start <= 1, ERROR_TIMEOUT);
+    } while(status->drive_busy && (data ? status->data_request_ready : true));
+
+cleanup:
+    return err;
+}
+
+static const char* ata_error_strings[] = {
+        "No address mark",
+        "Track 0 not found",
+        "Command aborted",
+        "Media change request",
+        "ID mark not found",
+        "Media changed",
+        "Uncorrectable data",
+        "Bad block"
+};
+
+error_t ata_identify(int channel, int bus, ata_identify_t* identify) {
+    error_t err = NO_ERROR;
+    uint16_t iobase = portiop[channel];
+
+    CHECK_ERROR(inb(iobase + ATA_REG_STATUS) != 0xFF, ERROR_NOT_FOUND);
 
     CHECK_ERROR(identify != NULL, ERROR_INVALID_ARGUMENT);
 
     // set the drive
-    outb(iobase + ATA_REG_HARD_DRIVE_DEVICE_SELECT, port_to_device_port[port]);
+    outb(iobase + ATA_REG_HARD_DRIVE_DEVICE_SELECT, port_to_device_port[bus]);
     outb(iobase + ATA_REG_SECTOR_COUNT_0, 0);
     outb(iobase + ATA_REG_LBA0, 0);
     outb(iobase + ATA_REG_LBA1, 0);
@@ -44,22 +74,14 @@ error_t ata_identify(int drive, int port, ata_identify_t* identify) {
 
     // identify
     outb(iobase + ATA_REG_COMMAND, ATA_COMMAND_IDENTIFY);
+    CHECK_AND_RETHROW(ata_busy_wait(channel, false));
+
     CHECK_ERROR(inb(iobase + ATA_REG_STATUS) != 0, ERROR_NOT_FOUND);
-    uint64_t timeout_start = rtc_unixtime();
-    while(inb(iobase + ATA_REG_STATUS) & 0x80) {
-        CHECK_ERROR(rtc_unixtime() - timeout_start < 1, ERROR_TIMEOUT);
-    }
+    CHECK_AND_RETHROW(ata_busy_wait(channel, false));
 
     // check if an ata drive
     CHECK_ERROR(inb(iobase + ATA_REG_LBA1) == 0 && inb(iobase + ATA_REG_LBA2) == 0, ERROR_NOT_FOUND);
-
-    timeout_start = rtc_unixtime();
-    while(true) {
-        uint8_t status = inb(iobase + ATA_REG_STATUS);
-        if(status & 8) break;
-        CHECK((status & 1) == 0);
-        CHECK_ERROR(rtc_unixtime() - timeout_start < 1, ERROR_TIMEOUT);
-    }
+    CHECK_AND_RETHROW(ata_busy_wait(channel, true));
 
     // TODO: use insw
     uint16_t* buffer = (uint16_t*)identify;
@@ -72,6 +94,19 @@ error_t ata_identify(int drive, int port, ata_identify_t* identify) {
     ata_str_swap(identify->firmware_revision, 8);
 
 cleanup:
+    if(IS_ERROR(err) && IS_ERROR(err) != ERROR_NOT_FOUND) {
+        uint8_t error = inb(iobase + ATA_REG_ERROR);
+        bool printed = false;
+        for(int i = 0; i < 8; i++) {
+            if((error & (i << 1)) == 1) {
+                LOG_ERROR("%s", ata_error_strings[i]);
+                printed = true;
+            }
+        }
+        if(!printed) {
+            LOG_ERROR("Unknown error");
+        }
+    }
     return err;
 }
 

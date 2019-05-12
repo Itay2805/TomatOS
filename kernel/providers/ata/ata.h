@@ -99,6 +99,17 @@ typedef struct ata_identify {
     uint16_t reserved_12[192];
 } __attribute__((packed)) ata_identify_t;
 
+typedef struct ata_status {
+    uint8_t error : 1;
+    uint8_t index : 1;
+    uint8_t corrected_data : 1;
+    uint8_t data_request_ready : 1;
+    uint8_t drive_seek_complete : 1;
+    uint8_t drive_write_fault : 1;
+    uint8_t drive_ready : 1;
+    uint8_t drive_busy : 1;
+} __attribute__((packed)) ata_status_t;
+
 /**
  * Identify the drive, will return error if the drive was not found or is not ata
  *
