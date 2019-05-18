@@ -50,7 +50,7 @@ typedef struct thread {
     /**
      * the thread id (only unique per process)
      */
-    size_t tid;
+    int tid;
 
     /**
      * the thread state

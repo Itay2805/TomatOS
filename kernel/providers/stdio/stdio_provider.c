@@ -268,10 +268,15 @@ static void dispatch(uint8_t c) {
                 }
             }
 
-            CRITICAL_SECTION({
-                 buf_push((*it)->buf, c);
-             });
-            resource_manager_resource_ready((*it)->thread, (*it)->resource);
+            critical_section_t cs = critical_section_start();
+
+            buf_push((*it)->buf, c);
+            error_t err = resource_manager_resource_ready((*it)->thread, (*it)->resource);
+            if(err) {
+                KERNEL_PANIC(err);
+            }
+
+            critical_section_end(cs);
         }
     }
 }

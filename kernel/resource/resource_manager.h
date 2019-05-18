@@ -8,6 +8,7 @@ struct process;
 struct resource_descriptor;
 
 typedef int resource_t;
+struct resource_stat;
 
 typedef struct resource_provider {
     int pid;
@@ -22,6 +23,8 @@ typedef struct resource_provider {
     error_t (*tell)(struct process* process, thread_t* thread, resource_t resource, size_t* pos);
     error_t (*poll)(struct process* process, thread_t* thread, resource_t resource);
     error_t (*close)(struct process* process, thread_t* thread, resource_t resource);
+    error_t (*mkdir)(struct process* process, thread_t* thread, resource_t resource);
+    error_t (*readdir)(struct process* process, thread_t* thread, resource_t resource, struct resource_stat* out);
     error_t (*invoke)(struct process* process, thread_t* thread, resource_t res, uint64_t cmd, void* arg);
 } resource_provider_t;
 
@@ -35,6 +38,9 @@ error_t resource_manager_init();
  * 
  * @param process   [IN] The process the resource belongs to
  * @param resource  [IN] The resource which is ready
+ *
+ * @remark
+ * This assumes we are running under interrupt context
  */
 error_t resource_manager_resource_ready(thread_t* thread, resource_t resource);
 

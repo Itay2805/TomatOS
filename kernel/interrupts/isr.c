@@ -66,19 +66,7 @@ static const char* ISR_NAMES[] = {
 
 static void default_exception_handler(registers_t* regs) {
     // set a valid address space
-    address_space_t curr = vmm_get();
     vmm_set(kernel_address_space);
-
-    // clear screen
-    //term_set_background_color(COLOR_BLACK);
-    //term_set_text_color(COLOR_WHITE);
-    //term_clear();
-    //term_set_cursor_pos(0, 0);
-
-    term_write("\n\n");
-
-    term_set_background_color(COLOR_RED);
-    term_set_text_color(COLOR_WHITE);
 
     // print error name
     const char* name = 0;
@@ -86,12 +74,12 @@ static void default_exception_handler(registers_t* regs) {
         name = ISR_NAMES[regs->int_num];
     }
     if(name == 0) {
-        term_print("Exception occurred: %p\n\n", (void *)regs->int_num);
+        LOG_CRITICAL("Exception occurred: %p", (void *)regs->int_num);
     }else {
-        term_print("Exception occurred: %s\n\n", name);
+        LOG_CRITICAL("Exception occurred: %s", name);
     }
 
-    term_set_background_color(COLOR_BLACK);
+    // term_set_background_color(COLOR_BLACK);
 
     static char* PROCESSOR_NAME[] = {
             "Internal",
@@ -127,100 +115,53 @@ static void default_exception_handler(registers_t* regs) {
         case ISR_STACK_SEGMENT_FAULT:
         case ISR_GENERAL_PROTECTION_FAULT:
             if(regs->error_code != 0) {
-                term_print("Selector(processor=%s, table=%s, index=%d)\n",
+                LOG_CRITICAL("Selector(processor=%s, table=%s, index=%d)",
                         PROCESSOR_NAME[regs->error_code & 0b1],
                         TABLE_NAME[(regs->error_code >> 1) & 0b11],
                         (int) (regs->error_code & 0xFFF8) / 16);
             }
             break;
         case ISR_PAGE_FAULT:
-            term_print("Reason: %s\n", PRESENT_NAMES[regs->error_code & 1]);
-            term_print("Address: 0x%p\n", (void *)get_cr2());
-            term_print("Mode: %s\n", USER_NAME[(regs->error_code >> 2) & 1]);
+            LOG_CRITICAL("Reason: %s", PRESENT_NAMES[regs->error_code & 1]);
+            LOG_CRITICAL("Address: 0x%p", (void *)get_cr2());
+            LOG_CRITICAL("Mode: %s", USER_NAME[(regs->error_code >> 2) & 1]);
             if(((regs->error_code >> 4) & 1) != 0) {
-                term_print("Operation: Instruction Fetch\n");
+                LOG_CRITICAL("Operation: Instruction Fetch");
             }else if(((regs->error_code >> 3) & 1) != 0) {
-                term_write("Operation: Reserved write\n");
+                LOG_CRITICAL("Operation: Reserved write");
             }else {
-                term_print("Operation: %s\n", OPERATION_NAME[(regs->error_code >> 1) & 1]);
+                LOG_CRITICAL("Operation: %s", OPERATION_NAME[(regs->error_code >> 1) & 1]);
             }
             break;
         default:
             break;
     }
-    term_write("\n");
 
     // print process stuff
     if(running_thread == NULL) {
-        term_write("pid=N/A\ntid=N/A\n");
+        LOG_INFO("pid=N/A");
+        LOG_INFO("tid=N/A");
     }else {
-        term_print("pid=%d\n", running_thread->parent->pid);
-        term_print("tid=%d\n", (int) running_thread->tid);
+        LOG_INFO("pid=%d", running_thread->parent->pid);
+        LOG_INFO("tid=%d", (int) running_thread->tid);
     }
-    term_write("\n");
 
     // print registers
-    term_print("rip=0x%p rsp=0x%p rbp=0x%p\n", (void *)regs->rip, (void *)regs->rsp, (void *)regs->rbp);
-    term_print("rdi=0x%p rsi=0x%p\n", (void *)regs->rdi, (void *)regs->rsi);
-    term_print("rax=0x%p rbx=0x%p rcx=0x%p rdx=0x%p\n", (void *)regs->rax, (void *)regs->rbx, (void *)regs->rcx, (void *)regs->rdx);
-    term_print("r8 =0x%p r9 =0x%p r10=0x%p r11=0x%p\n", (void *)regs->r8, (void *)regs->r9, (void *)regs->r10, (void *)regs->r11);
-    term_print("r12=0x%p r13=0x%p r14=0x%p r15=0x%p\n", (void *)regs->r12, (void *)regs->r13, (void *)regs->r14, (void *)regs->r15);
+    LOG_INFO("rip=0x%p rsp=0x%p rbp=0x%p", (void *)regs->rip, (void *)regs->rsp, (void *)regs->rbp);
+    LOG_INFO("rdi=0x%p rsi=0x%p", (void *)regs->rdi, (void *)regs->rsi);
+    LOG_INFO("rax=0x%p rbx=0x%p rcx=0x%p rdx=0x%p", (void *)regs->rax, (void *)regs->rbx, (void *)regs->rcx, (void *)regs->rdx);
+    LOG_INFO("r8 =0x%p r9 =0x%p r10=0x%p r11=0x%p", (void *)regs->r8, (void *)regs->r9, (void *)regs->r10, (void *)regs->r11);
+    LOG_INFO("r12=0x%p r13=0x%p r14=0x%p r15=0x%p", (void *)regs->r12, (void *)regs->r13, (void *)regs->r14, (void *)regs->r15);
 
-    term_print("\ncs=0x%x ss=0x%x ds=0x%x\n", (int)regs->cs, (int)regs->ss, (int)regs->ds);
+    LOG_INFO("cs=0x%x ss=0x%x ds=0x%x", (int)regs->cs, (int)regs->ss, (int)regs->ds);
     
 
     // print flags
     // for extended information look:
     // https://en.wikipedia.org/wiki/FLAGS_register
-    term_print("\nFLAGS:\n");
-    if((regs->rflags & FLAGS_CARRY) != 0) term_print("CF ");
-    if((regs->rflags & FLAGS_PARITY) != 0) term_print("PF ");
-    if((regs->rflags & FLAGS_ADJUST) != 0) term_print("AF ");
-    if((regs->rflags & FLAGS_ZERO) != 0) term_print("ZF ");
-    if((regs->rflags & FLAGS_SIGN) != 0) term_print("SF ");
-    if((regs->rflags & FLAGS_TRAP) != 0) term_print("TF ");
-    if((regs->rflags & FLAGS_INTERRUPT_ENABLE) != 0) term_print("IF ");
-    if((regs->rflags & FLAGS_DIRECTION) != 0) term_print("DF ");
-    if((regs->rflags & FLAGS_OVERFLOW) != 0) term_print("OF ");
-    int iopl = (int) ((regs->rflags >> 12) & 3);
-    term_print("IOPL%d ", iopl);
-    if((regs->rflags & FLAGS_NESTED_TASK) != 0) term_print("NT ");
+    LOG_INFO("FLAGS: 0x%p", (void*)regs->rflags);
 
-    term_print("\n\nEFLAGS:\n");
-    if((regs->rflags & EFLAGS_RESUME) != 0) term_print("RF ");
-    if((regs->rflags & EFLAGS_V8086) != 0) term_print("VM ");
-    if((regs->rflags & ISR_ALIGNMENT_CHECK) != 0) term_print("AC ");
-    if((regs->rflags & EFLAGS_VIRTUAL_INTERRUPT) != 0) term_print("VIF ");
-    if((regs->rflags & EFLAGS_VIRTUAL_INTERRUPT_PENDING) != 0) term_print("VIP ");
-    if((regs->rflags & EFLAGS_CPUID) != 0) term_print("ID ");
-
-    term_print("\n\nRFLAGS:\n");
-
-
-    term_write("\n\nStack:\n");
-    if(curr == kernel_address_space) {
-        uint64_t* rsp = (uint64_t *) regs->rsp;
-        for(int y = 0; y < 7; y++) {
-            for(int x = 0; x < 7; x++) {
-                term_print("%p ", (void *)*rsp);
-                rsp++;
-            }
-            term_write("\n");
-        }
-    }else {
-        uint64_t current = 0;
-        uint64_t* rsp = (uint64_t *) regs->rsp;
-        for(int y = 0; y < 7; y++) {
-            for(int x = 0; x < 7; x++) {
-                vmm_copy_to_kernel(curr, rsp, &current, sizeof(uint64_t));
-                rsp++;
-                term_print("%p ", (void *) current);
-            }
-            term_write("\n");
-        }
-    }
-
-    term_write("\n\nhalting...");
+    LOG_CRITICAL(":(");
     cli();
     while(true) {
         hlt();

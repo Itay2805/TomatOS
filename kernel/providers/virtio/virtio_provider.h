@@ -1,0 +1,6 @@
+#ifndef TOMATKERNEL_VIRTIO_PROVIDER_H
+#define TOMATKERNEL_VIRTIO_PROVIDER_H
+
+error_t virtio_provider_init();
+
+#endif //TOMATKERNEL_VIRTIO_PROVIDER_H

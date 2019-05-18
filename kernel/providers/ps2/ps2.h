@@ -8,8 +8,8 @@
 
 error_t ps2_init();
 
+bool ps2_poll();
 error_t ps2_read(uint8_t* value);
-
 error_t ps2_write(int port, uint8_t value);
 
 #endif //TOMATKERNEL_PS2_H

@@ -86,6 +86,10 @@ error_t ps2_init() {
     return NO_ERROR;
 }
 
+bool ps2_poll() {
+    return (bool) (!ps2_get_status().input_buffer && ps2_get_status().output_buffer);
+}
+
 error_t ps2_read(uint8_t* value) {
     error_t err = NO_ERROR;
     int timeout = 1000;

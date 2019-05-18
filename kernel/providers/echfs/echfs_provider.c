@@ -4,7 +4,6 @@
 #include <process/process.h>
 #include <common/string.h>
 #include <common/map.h>
-#include <providers/invokes.h>
 
 #include "echfs.h"
 #include "echfs_provider.h"
@@ -174,40 +173,25 @@ cleanup:
     return err;
 }
 
-static error_t handle_invoke(process_t* process, thread_t* thread, resource_t resource, uint64_t cmd, void* arg) {
+static error_t handle_readdir(process_t* process, thread_t* thread, resource_t resource, resource_stat_t* stat) {
     error_t err = NO_ERROR;
     echfs_directory_entry_t entry;
-    dir_entry_t user_entry;
-    int type;
+    resource_stat_t user_stat = {};
 
     // get the context
     resource_context_t* context = map_get_from_uint64(&resource_context_map, hash_resource(process->pid, resource));
     CHECK_ERROR(context != NULL, ERROR_NOT_FOUND);
 
-    switch(cmd) {
-        case FS_READ_DIR:
-            CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_DIR, ERROR_NOT_IMPLEMENTED);
-            CHECK_AND_RETHROW(echfs_read_dir(context->base, context->entry.dir_id, &context->ptr, &entry));
-            memcpy(user_entry.name, entry.name, 218);
-            user_entry.type = context->entry.type == ECHFS_OBJECT_TYPE_DIR ? FS_DIR : FS_FILE;
-            CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &user_entry, arg, sizeof(dir_entry_t)));
-            break;
-
-        case FS_READ_DIR_RESET:
-            CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_DIR, ERROR_NOT_IMPLEMENTED);
-            context->ptr = 0;
-            break;
-
-        case FS_RESOURCE_TYPE:
-            type = context->entry.type == ECHFS_OBJECT_TYPE_DIR ? FS_DIR : FS_FILE;
-            CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &type, arg, sizeof(int)));
-            break;
-
-        default:
-            CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
-    }
+    CHECK_ERROR(context->entry.type == ECHFS_OBJECT_TYPE_DIR, ERROR_NOT_IMPLEMENTED);
+    CHECK_AND_RETHROW(echfs_read_dir(context->base, context->entry.dir_id, &context->ptr, &entry));
+    memcpy(user_stat.name, entry.name, 218);
+    user_stat.type = context->entry.type == ECHFS_OBJECT_TYPE_DIR ? RES_DIR : RES_FILE;
+    CHECK_AND_RETHROW(vmm_copy_to_user(process->address_space, &user_stat, stat, sizeof(resource_stat_t)));
 
 cleanup:
+    if(IS_ERROR(err)) {
+        context->ptr = context->entry.size;
+    }
     return err;
 }
 
@@ -229,7 +213,7 @@ error_t echfs_provider_init() {
     // TODO Write support
     echfs_provider.seek = handle_seek;
     echfs_provider.tell = handle_tell;
-    echfs_provider.invoke = handle_invoke;
+    echfs_provider.readdir = handle_readdir;
 
     CHECK_AND_RETHROW(resource_manager_register_provider(&echfs_provider));
 

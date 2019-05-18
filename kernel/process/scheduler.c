@@ -101,8 +101,10 @@ void schedule(registers_t* regs, int interval) {
     // the current thread was suspended
     // save it's state and set that there is no running thread
     if(running_thread != NULL && (running_thread->state == THREAD_SUSPENDED || running_thread->state == THREAD_DEAD)) {
-        running_thread->cpu_state = *regs;
-        running_thread->time = 0;
+        if(running_thread->state != THREAD_DEAD) {
+            running_thread->cpu_state = *regs;
+            running_thread->time = 0;
+        }
         running_thread = NULL;
     }
 
@@ -117,7 +119,6 @@ void schedule(registers_t* regs, int interval) {
                 thread_count++;
             }
         }
-        thread_count += buf_len((*process)->threads);
     }
 
     // calculate the timeslice
@@ -179,7 +180,9 @@ void schedule(registers_t* regs, int interval) {
     *regs = thread_to_run->cpu_state;
     running_thread = thread_to_run;
 
-    vmm_set(thread_to_run->parent->address_space);
+    if(kernel_address_space != thread_to_run->parent->address_space) {
+        vmm_set(thread_to_run->parent->address_space);
+    }
 }
 
 error_t scheduler_init() {

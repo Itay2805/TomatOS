@@ -31,6 +31,7 @@
 #include <cpu/msr.h>
 #include <shell/shell.h>
 #include <drivers/rtc.h>
+#include <providers/virtio/virtio_provider.h>
 
 #include "graphics/term.h"
 
@@ -38,6 +39,18 @@ extern void* boot_pdpe;
 mm_context_t kernel_memory_manager;
 
 spinlock_t freq_lock = 0;
+
+static void provider_init(error_t(*init_func)()) {
+    error_t err = NO_ERROR;
+
+    CHECK_AND_RETHROW(init_func());
+
+cleanup:
+    if(IS_ERROR(err)) {
+        KERNEL_STACK_TRACE(err);
+        ERROR_FREE(err);
+    }
+}
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -91,13 +104,14 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(process_init());
 
     // initialize resource related stuff
-    CHECK_AND_RETHROW(resource_manager_init());
-    CHECK_AND_RETHROW(zero_provider_init());
-    CHECK_AND_RETHROW(ps2_provider_init());
-    CHECK_AND_RETHROW(stdio_provider_init());
-    CHECK_AND_RETHROW(ata_provider_init());
-    CHECK_AND_RETHROW(echfs_provider_init());
-    CHECK_AND_RETHROW(elf_provider_init());
+    provider_init(resource_manager_init);
+    provider_init(zero_provider_init);
+    provider_init(virtio_provider_init);
+    provider_init(ps2_provider_init);
+    provider_init(stdio_provider_init);
+    provider_init(ata_provider_init);
+    provider_init(echfs_provider_init);
+    provider_init(elf_provider_init);
 
     // initlize the scheduler
     CHECK_AND_RETHROW(scheduler_init());

@@ -27,6 +27,7 @@ error_t pci_init();
 #define PCI_REG_BAR3    0x1C
 #define PCI_REG_BAR4    0x20
 #define PCI_REG_BAR5    0x24
+#define PCI_REG_CAP     0x34
 
 uint16_t pci_read_uint16(pci_device_t* device, uint16_t reg);
 void pci_write_uint16(pci_device_t* device, uint16_t reg, uint16_t data);

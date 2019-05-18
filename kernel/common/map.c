@@ -70,13 +70,23 @@ void map_grow(map_t *map, size_t new_cap) {
 }
 
 void map_put_uint64_from_uint64(map_t *map, uint64_t key, uint64_t val) {
+    size_t i = (size_t)hash_uint64(key);
     if (!val) {
-        return;
+        for (;;) {
+            i &= map->cap - 1;
+            if(map->len >= i) {
+                return;
+            }else if (map->keys[i] == key) {
+                map->vals[i] = val;
+                return;
+            }
+            i++;
+        }
     }
+
     if (2 * map->len >= map->cap) {
         map_grow(map, 2 * map->cap);
     }
-    size_t i = (size_t)hash_uint64(key);
     for (;;) {
         i &= map->cap - 1;
         if (!map->keys[i]) {

@@ -10,7 +10,6 @@
 #include <process/process.h>
 #include <graphics/term.h>
 #include <providers/stdio/stdio_provider.h>
-#include <providers/invokes.h>
 #include "shell.h"
 
 static bool error_to_bool(error_t err) {
@@ -172,31 +171,30 @@ static void handle_command(char* command_line) {
                 if (descriptor) delete_resource_descriptor(descriptor);
                 descriptor = resolve_uri(uri_start);
                 if (descriptor == NULL) {
-                    LOG_ERROR("Failed to resolve path!");
+                    term_print("Failed to resolve path!\n");
                 } else {
                     if (error_to_bool(kopen(descriptor, &working_dir))) {
-                        LOG_INFO("Mounted `%s`", uri_start);
+                        term_print("Mounted `%s`\n", uri_start);
                     } else {
-                        LOG_ERROR("Failed to mount `%s`", uri_start);
+                        term_print("Failed to mount `%s`\n", uri_start);
                         delete_resource_descriptor(descriptor);
                         descriptor = NULL;
                     }
                 }
             }else {
-                LOG_WARN("Usage: !mount <resource uri>");
+                term_print("Usage: !mount <resource uri>\n");
             }
         }else if(strncmp(command_line, "!ls", 3) == 0) {
-            dir_entry_t entry;
-            while(error_to_bool(kinvoke(working_dir, FS_READ_DIR, &entry))) {
+            resource_stat_t entry;
+            while(error_to_bool(kreaddir(working_dir, &entry))) {
                 if(term_get_cursor_x() + strlen(entry.name) >= term_get_width()) {
                     term_write("\n");
                 }
                 term_print("%s ", entry.name);
             }
-            kinvoke(working_dir, FS_READ_DIR_RESET, NULL);
             term_write("\n");
         }else {
-            LOG_ERROR("No such builtin");
+            term_print("No such builtin\n");
         }
     }else {
         // run a binary
@@ -232,7 +230,7 @@ static void handle_command(char* command_line) {
                 // TODO: wait for process
                 kclose(new_process);
             }else {
-                LOG_ERROR("Failed to start process");
+                term_print("Failed to start process\n");
             }
 
             descriptor->path = original_path;
@@ -240,7 +238,7 @@ static void handle_command(char* command_line) {
                 kfree(new_path_buffer);
             }
         }else {
-            LOG_ERROR("Must have a mount before running files");
+            term_print("Must have a mount before running files\n");
         }
     }
 }
@@ -249,23 +247,22 @@ static void shell_start() {
     resource_t stdin;
     char* command_line = NULL;
 
-    term_write("\n\n\n");
-    LOG_NOTICE("TomatShell loaded successfully!");
+    term_print("TomatShell loaded successfully!\n");
 
     descriptor = resolve_uri(mount_point);
     if(!error_to_bool(resolve_and_open("stdio://stdin/", &stdin))) {
-        LOG_CRITICAL("shell failed to open stdin :(");
+        term_print("shell failed to open stdin :(\n");
         tkill(0);
     }
 
     if(mount_point != NULL && strlen(mount_point) > 0) {
         if(!error_to_bool(resolve_and_open(mount_point, &working_dir))) {
-            LOG_ERROR("Failed to mount `%s`, use `!mount <path>` to mount a resource", mount_point);
+            term_print("Failed to mount `%s`, use `!mount <path>` to mount a resource\n", mount_point);
         }else {
-            LOG_INFO("Loaded mount `%s`", mount_point);
+            term_print("Loaded mount `%s`\n", mount_point);
         }
     }else {
-        LOG_WARN("no mount specified, use `!mount <path>` to mount a resource");
+        term_print("no mount specified, use `!mount <path>` to mount a resource\n");
     }
 
     while(true) {

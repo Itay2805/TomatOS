@@ -312,7 +312,7 @@ error_t ata_provider_init() {
             if(ide_device != NULL) {
                 LOG_WARN("Detected another IDE controller, currently we only support having one ide controller!");
             }else {
-                LOG_INFO("Found IDE controller!");
+                LOG_NOTICE("Found IDE controller (%d:%d:%d)", it->bus, it->slot, it->function);
                 int count = 0;
 
                 ide_device = it;
@@ -321,15 +321,11 @@ error_t ata_provider_init() {
                 int bar2 = pci_read_uint32(it, PCI_REG_BAR2);
                 int bar3 = pci_read_uint32(it, PCI_REG_BAR3);
 
-                LOG_DEBUG("%s TODO: Support DMA", __FILENAME__);
-                // int bar4 = pci_read_uint32(it, PCI_REG_BAR4);
-
                 // primary channel
                 if((bar0 == 0x0 || bar0 == 0x1) && (bar1 == 0x0 || bar1 == 0x1)) {
-                    count++;
-
                     err = ata_identify(0, 0, &identify);
                     if(!IS_ERROR(err)) {
+                        count++;
                         print_identify("ata://primary:0/", &identify);
                         ide_entries[0].present = true;
                         ide_entries[0].channel = 0;
@@ -345,6 +341,7 @@ error_t ata_provider_init() {
 
                     err = ata_identify(0, 1, &identify);
                     if(!IS_ERROR(err)) {
+                        count++;
                         print_identify("ata://primary:1/", &identify);
                         ide_entries[1].present = true;
                         ide_entries[1].channel = 0;
@@ -363,10 +360,10 @@ error_t ata_provider_init() {
 
                 // secondary channel
                 if((bar2 == 0x0 || bar2 == 0x1) && (bar3 == 0x0 || bar3 == 0x1)) {
-                    count++;
 
                     err = ata_identify(1, 1, &identify);
                     if(!IS_ERROR(err)) {
+                        count++;
                         print_identify("ata://secondary:0/", &identify);
                         ide_entries[2].present = true;
                         ide_entries[2].channel = 1;
@@ -382,6 +379,7 @@ error_t ata_provider_init() {
 
                     err = ata_identify(1, 1, &identify);
                     if(!IS_ERROR(err)) {
+                        count++;
                         print_identify("ata://secondary:1/", &identify);
                         ide_entries[3].present = true;
                         ide_entries[3].channel = 1;
@@ -407,8 +405,8 @@ error_t ata_provider_init() {
         }
     }
 
-    if(pci_devices == NULL) {
-        LOG_WARN("No compatible IDE controller found, will not register ata!");
+    if(ide_device == NULL) {
+        LOG_WARN("No ATA devices found, ata provider will be disabled");
     }else {
         process_t* process = process_create(NULL, true);
         thread_kill(process->threads[0]);

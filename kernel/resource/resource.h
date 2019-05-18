@@ -24,6 +24,22 @@ typedef struct resource_descriptor {
     struct resource_descriptor* sub;
 } resource_descriptor_t;
 
+typedef enum resource_type {
+    RES_FILE,
+    RES_DIR,
+    RES_LINK,
+    RES_META,
+} resource_type_t;
+
+typedef struct resource_stat {
+    char name[0xFF];
+    resource_type_t type;
+    uint64_t modification_time;
+    uint64_t creation_time;
+    uint64_t access_time;
+    size_t size;
+} resource_stat_t;
+
 // forward declare
 struct process;
 

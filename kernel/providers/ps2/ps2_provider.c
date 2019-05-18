@@ -178,13 +178,15 @@ static error_t handle_keyboard_interrupt() {
     error_t err = NO_ERROR;
     uint8_t ch;
 
-    CHECK_AND_RETHROW(ps2_read(&ch));
-    for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
-        if(*it != NULL && (*it)->type == PS2_KEYBOARD) {
-            buf_push((*it)->buf, ch);
-            resource_manager_resource_ready((*it)->thread, (*it)->resource);
+    do {
+        CHECK_AND_RETHROW(ps2_read(&ch));
+        for(resource_context_t** it = contexts; it < buf_end(contexts); it++) {
+            if(*it != NULL && (*it)->type == PS2_KEYBOARD) {
+                buf_push((*it)->buf, ch);
+                CHECK_AND_RETHROW(resource_manager_resource_ready((*it)->thread, (*it)->resource));
+            }
         }
-    }
+    } while(ps2_poll());
 
 cleanup:
     return err;

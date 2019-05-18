@@ -82,6 +82,8 @@ static error_t dispatch_resource_call(registers_t* regs) {
     running_process = running_thread->parent;
 
     switch(regs->rax) {
+        // TODO Implement open at
+        case SYSCALL_OPEN_AT:
         case SYSCALL_OPEN: {
             resource_descriptor_t descriptor = {0};
             size_t len = 0;
@@ -104,6 +106,9 @@ static error_t dispatch_resource_call(registers_t* regs) {
         case SYSCALL_TELL:
         case SYSCALL_POLL:
         case SYSCALL_INVOKE:
+        case SYSCALL_MKDIR:
+        case SYSCALL_READDIR:
+        case SYSCALL_DUPLICATE:
             CHECK_AND_RETHROW(resource_manager_get_provider_by_resource(running_process, regs->rdi, &provider));
             break;
 
@@ -176,6 +181,18 @@ static error_t dispatch_resource_call(registers_t* regs) {
             provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
             break;
 
+        case SYSCALL_READDIR:
+            CHECK_ERROR((uint64_t)provider->readdir != NULL, ERROR_NOT_IMPLEMENTED);
+            provider_thread->cpu_state.rax = (uint64_t)provider->poll;
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
+            provider_thread->cpu_state.rcx = regs->rsi; // resource_stat_t* stat
+            break;
+
+        case SYSCALL_MKDIR:
+            CHECK_ERROR((uint64_t)provider->mkdir != NULL, ERROR_NOT_IMPLEMENTED);
+            provider_thread->cpu_state.rdx = regs->rdi; // resource_t resource
+            break;
+
         default:
             CHECK_FAIL_ERROR(ERROR_NOT_IMPLEMENTED);
     }
@@ -237,16 +254,26 @@ cleanup:
 }
 
 error_t resource_manager_resource_ready(thread_t* thread, resource_t resource) {
+    error_t err = NO_ERROR;
+
     // check if the process is waiting for this resource
     uint64_t hash = hash_resource_thread(thread->parent->pid, (int) thread->tid, resource);
-    if(map_get_uint64_from_uint64(&resource_wait, hash)) {
+
+    if(map_get_uint64_from_uint64(&resource_wait, hash) != 0) {
         map_put_uint64_from_uint64(&resource_wait, hash, 0);
 
-        // kick start the thread
+        CHECK(thread->state == THREAD_SUSPENDED);
+
         thread->cpu_state.rax = 0;
         thread->state = THREAD_NORMAL;
     }
-    return NO_ERROR;
+
+cleanup:
+    if(IS_ERROR(err)) {
+        asm("nop");
+    }
+
+    return err;
 }
 
 error_t resource_manager_init() {

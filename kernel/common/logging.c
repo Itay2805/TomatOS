@@ -4,12 +4,43 @@
 #include "stdarg.h"
 #include "mini-printf.h"
 
+#include <drivers/qemu.h>
+
 #define LOG_LVL_CRITICAL    0
 #define LOG_LVL_ERROR       1
 #define LOG_LVL_WARNING     2
 #define LOG_LVL_NOTICE      3
 #define LOG_LVL_INFO        4
 #define LOG_LVL_DEBUG       5
+
+#ifdef LOGGING_TERMINAL
+#define WRITE_TERM term_write
+    #define PRINT_TERM term_print
+#else
+#define WRITE_TERM(...)
+#define PRINT_TERM(...)
+#endif
+
+#ifdef LOGGING_QEMU
+#define WRITE_QEMU qemu_write
+    #define PRINT_QEMU qemu_print
+#else
+#define WRITE_QEMU(...)
+#define PRINT_QEMU(...)
+#endif
+
+#define LOG_PRINT(...) \
+    do { \
+        PRINT_TERM(__VA_ARGS__); \
+        PRINT_QEMU(__VA_ARGS__); \
+    } while(0)
+
+#define LOG_WRITE(...) \
+    do { \
+        WRITE_TERM(__VA_ARGS__); \
+        WRITE_QEMU(__VA_ARGS__); \
+    } while(0)
+
 
 static const char* LEVEL_NAMES[] = {
         "CRT",
@@ -21,41 +52,42 @@ static const char* LEVEL_NAMES[] = {
 };
 
 static uint32_t FG_COLORS[] = {
-    0x75507B,
-    0xCC0000,
-    0xC4A000,
-    0x4E9A06,
-    0xD3D7CF,
-    0x06989A,
+        0x75507B,
+        0xCC0000,
+        0xC4A000,
+        0x4E9A06,
+        0xD3D7CF,
+        0x06989A,
 };
 
 static int log_count = 0;
 
 static void print_pad_two(int i) {
     if(i < 10) {
-        term_print("0%d", i);
+        LOG_PRINT("0%d", i);
     }else {
-        term_print("%d", i);
+        LOG_PRINT("%d", i);
     }
 }
 
 static void print_time() {
     time_t time = {0};
     rtc_time(&time);
-    term_write("20");
+    LOG_WRITE("20");
     print_pad_two(time.year);
-    term_write("-");
+    LOG_WRITE("-");
     print_pad_two(time.month);
-    term_write("-");
+    LOG_WRITE("-");
     print_pad_two(time.day);
-    term_write(" ");
+    LOG_WRITE(" ");
     print_pad_two(time.hours);
-    term_write(":");
+    LOG_WRITE(":");
     print_pad_two(time.minutes);
-    term_write(":");
+    LOG_WRITE(":");
     print_pad_two(time.seconds);
 }
 
+// TODO: abstract color
 static void do_log(const char* func, int lvl, const char* fmt, va_list va) {
     uint32_t fg = term_get_text_color();
     uint32_t bg = term_get_background_color();
@@ -63,20 +95,20 @@ static void do_log(const char* func, int lvl, const char* fmt, va_list va) {
     term_set_background_color(0);
     ++log_count;
     if(log_count < 10) {
-        term_print("#00%d ", log_count);
+        LOG_PRINT("#00%d ", log_count);
     }else if(log_count < 100) {
-        term_print("#0%d ", log_count);
+        LOG_PRINT("#0%d ", log_count);
     }else {
-        term_print("#%d ", log_count);
+        LOG_PRINT("#%d ", log_count);
     }
     print_time();
-    term_print(" \x7F %s ", LEVEL_NAMES[lvl]);
+    LOG_PRINT(" \x7F %s ", LEVEL_NAMES[lvl]);
     char buffer[1024];
     mini_vsnprintf(buffer, 1024u, fmt, va);
-    term_write(buffer);
+    LOG_WRITE(buffer);
     term_set_text_color(fg);
     term_set_background_color(bg);
-    term_write("\n");
+    LOG_WRITE("\n");
 }
 
 void log_critical(const char* func, const char* fmt, ...) {
