@@ -18,13 +18,13 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_early_init(info));
     CHECK_AND_RETHROW(vmm_init(info));
 
-    // TODO: run pre-init arrays
-
     log_info("finished early initialization");
 
-    // TODO: run init arrays
+    // TODO: run pre-init arrays
 
     CHECK_AND_RETHROW(pmm_init());
+
+    // TODO: run init arrays
 
     log_info("initialization finished");
 

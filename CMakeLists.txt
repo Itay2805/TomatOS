@@ -66,7 +66,7 @@ set(KERNEL_SOURCE_FILES
         src/memory/pmm.c
         src/memory/pmm.h
 
-        src/main.c src/memory/vmm.c src/memory/vmm.h lib/common/elf_common.h lib/common/cpu/cr.h)
+        src/main.c src/memory/vmm.c src/memory/vmm.h lib/common/elf_common.h lib/common/cpu/cr.h src/resource/resource.c src/resource/resource.h src/resource/resource_provider.c src/resource/resource_provider.h)
 
 include_directories(src)
 include_directories(lib/libc)
