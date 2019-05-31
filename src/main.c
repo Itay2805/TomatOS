@@ -1,14 +1,16 @@
 #include <boot/multiboot.h>
 
+#include <drivers/e9hack/e9hack.h>
+
 #include <logger/logger.h>
 
 #include <memory/gdt.h>
+#include <memory/pmm.h>
+#include <memory/vmm.h>
+#include <memory/mm.h>
 
 #include <common.h>
 #include <error.h>
-#include <drivers/e9hack/e9hack.h>
-#include <memory/pmm.h>
-#include <memory/vmm.h>
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -23,6 +25,7 @@ void kernel_main(multiboot_info_t* info) {
     // TODO: run pre-init arrays
 
     CHECK_AND_RETHROW(pmm_init());
+    CHECK_AND_RETHROW(mm_init());
 
     // TODO: run init arrays
 

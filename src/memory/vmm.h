@@ -5,9 +5,11 @@
 #include <boot/multiboot.h>
 #include <stddef.h>
 
-#define VMM_ATTR_EXECUTE    (1 << 0)
-#define VMM_ATTR_USER       (1 << 1)
-#define VMM_ATTR_WRITE      (1 << 2)
+#define PAGE_ATTR_EXECUTE    (1 << 0)
+#define PAGE_ATTR_USER       (1 << 1)
+#define PAGE_ATTR_WRITE      (1 << 2)
+
+// TODO: Add locks to all of these
 
 typedef uint64_t address_space_t;
 
@@ -45,11 +47,23 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
 /**
  * Unmap the virtual address
  *
+ * @remark
+ * This will not free the physical page, but will leave it as is
+ *
  * @param address_space     [IN] The address space we are operating on
  * @param virtual_address   [IN] The virtual page to unmap
  *
  * @return NO_ERROR: Success
  */
 error_t vmm_unmap(address_space_t address_space, void* virtual_address);
+
+/**
+ * Allocate a new page, this will also allocate the physical page
+ *
+ * @param address_space     [IN] The address space to allocate in
+ * @param virtual_address   [IN] The virtual address to allocate
+ * @param attributes        [IN] The attributes of the new page
+ */
+error_t vmm_allocate(address_space_t address_space, void* virtual_address, int attributes);
 
 #endif //TOMATKERNEL_VMM_H

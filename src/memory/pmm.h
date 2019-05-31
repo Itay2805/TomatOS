@@ -14,6 +14,8 @@
 #include <error.h>
 #include <stddef.h>
 
+// TODO: Add locks to all of these
+
 /**
  * Called at the start, will initialize stuff assuming that we still have the first gb identity mapped
  */

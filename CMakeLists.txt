@@ -73,6 +73,8 @@ set(KERNEL_SOURCE_FILES
         src/memory/pmm.h
         src/memory/vmm.c
         src/memory/vmm.h
+        src/memory/mm.c
+        src/memory/mm.h
 
         src/resource/resource.c
         src/resource/resource.h

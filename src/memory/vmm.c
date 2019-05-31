@@ -85,13 +85,13 @@ static uint64_t kernel_paging;
 static inline void set_attributes(uint64_t* entry, int attributes) {
     if(attributes == 0) return;
 
-    if(!(*entry & PAGING_USER_BIT) && (attributes & VMM_ATTR_USER)) {
+    if(!(*entry & PAGING_USER_BIT) && (attributes & PAGE_ATTR_USER)) {
         *entry |= PAGING_USER_BIT;
     }
-    if(!(*entry & PAGING_READ_WRITE_BIT) && (attributes & VMM_ATTR_WRITE)) {
+    if(!(*entry & PAGING_READ_WRITE_BIT) && (attributes & PAGE_ATTR_WRITE)) {
         *entry |= PAGING_READ_WRITE_BIT;
     }
-    if((*entry & PAGING_NO_EXECUTE_BIT) && (attributes & VMM_ATTR_EXECUTE)) {
+    if((*entry & PAGING_NO_EXECUTE_BIT) && (attributes & PAGE_ATTR_EXECUTE)) {
         *entry &= ~PAGING_NO_EXECUTE_BIT;
     }
 }
@@ -246,7 +246,7 @@ error_t vmm_init(multiboot_info_t* info) {
 
     log_debug("mapping the physical memory");
     for(int i = 0; i < total_phys_mem_kb; i++) {
-        CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (i * KB(4) + 0xFFFF800000000000), (void *) (i * KB(4)), VMM_ATTR_WRITE));
+        CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (i * KB(4) + 0xFFFF800000000000), (void *) (i * KB(4)), PAGE_ATTR_WRITE));
     }
 
     log_debug("mapping the kernel");
@@ -254,7 +254,7 @@ error_t vmm_init(multiboot_info_t* info) {
     // TODO: Use the kernel elf header to set the attributes correctly
 
     for(uint64_t addr = ALIGN_DOWN(KERNEL_PHYSICAL_START, KB(4)); addr < ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)); addr += KB(4)) {
-        CHECK_AND_RETHROW(vmm_map(kpml4, (void *)(addr + 0xFFFFFFFFC0000000), (void *) (addr), VMM_ATTR_USER | VMM_ATTR_EXECUTE));
+        CHECK_AND_RETHROW(vmm_map(kpml4, (void *)(addr + 0xFFFFFFFFC0000000), (void *) (addr), PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE));
     }
 
     kernel_paging = kpml4;
@@ -311,8 +311,20 @@ error_t vmm_unmap(address_space_t address_space, void* virtual_address) {
     table[PAGING_PTE_OFFSET(virtual_address)] = 0;
     invlpg(addr);
 
-    // TODO: Free the physical page
+cleanup:
+    return err;
+}
+
+error_t vmm_allocate(address_space_t address_space, void* virtual_address, int attributes) {
+    error_t err = NO_ERROR;
+    uint64_t phys = 0;
+
+    CHECK_AND_RETHROW(pmm_allocate(&phys));
+    CHECK_AND_RETHROW(vmm_map(address_space, virtual_address, (void*)phys, attributes));
 
 cleanup:
+    if(err != NO_ERROR) {
+        if(phys) pmm_free(phys);
+    }
     return err;
 }
