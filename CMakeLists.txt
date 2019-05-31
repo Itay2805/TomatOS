@@ -34,7 +34,7 @@ set(COMMON_SOURCE_FILES
         lib/common/error.h
         lib/common/vsnprintf.c
         lib/common/vsnprintf.h
-)
+        lib/common/elf64.h)
 
 set(LIBC_SOURCE_FILES
         lib/libc/stdarg.h
@@ -66,7 +66,7 @@ set(KERNEL_SOURCE_FILES
         src/memory/pmm.c
         src/memory/pmm.h
 
-        src/main.c)
+        src/main.c src/memory/vmm.c src/memory/vmm.h lib/common/elf_common.h lib/common/cpu/cr.h)
 
 include_directories(src)
 include_directories(lib/libc)

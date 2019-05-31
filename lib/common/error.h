@@ -10,6 +10,8 @@ typedef enum error {
     ERROR_INVALID_POINTER,
     ERROR_OUT_OF_MEMORY,
     ERROR_NOT_FOUND,
+    ERROR_ALREADY_MAPPED,
+    ERROR_NOT_MAPPED,
 
     ERROR_COUNT
 } error_t;

@@ -8,6 +8,8 @@ const char* error_names[ERROR_COUNT] = {
         "Invalid argument",
         "Invalid pointer",
         "Out of memory",
-        "Not found"
+        "Not found",
+        "Already mapped",
+        "Not mapped"
 };
 

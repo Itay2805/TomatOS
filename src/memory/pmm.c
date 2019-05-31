@@ -36,13 +36,17 @@ error_t pmm_early_init(multiboot_info_t* info) {
 
     stack_cap = ALIGN_UP(total_available_size, KB(4))  / KB(4);
     size_t total_size_for_stack = (stack_cap) * sizeof(uint64_t);
-    log_debug("PMM stack size %lld bytes", total_size_for_stack);
+    log_debug("PMM stack size %lld bytes (%lld entries)", total_size_for_stack, stack_cap);
+
+    addrs = (uint64_t *) (ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)) + KB(4));
 
     log_debug("Memory map:");
     for(it = entries; (char*)it - (char*)entries < info->mmap_length; it++) {
-        log_debug("0x%016p-0x%016p: %s", it->addr, it->addr + it->len, MMAP_TYPE[it->type]);
+        log_debug("\t0x%016p-0x%016p: %s", it->addr, it->addr + it->len, MMAP_TYPE[it->type]);
         if(it->type == MULTIBOOT_MEMORY_AVAILABLE) {
             for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
+                // we want the first 1mb to stay as is
+                if(addr <= MB(1)) continue;
                 CHECK_AND_RETHROW(pmm_free(addr));
             }
         }
