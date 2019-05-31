@@ -29,12 +29,19 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
 endif ()
 
 set(COMMON_SOURCE_FILES
+        lib/common/cpu/cr.h
+
         lib/common/common.h
+
+        lib/common/elf64.h
+        lib/common/elf_common.h
+
         lib/common/error.c
         lib/common/error.h
+
         lib/common/vsnprintf.c
         lib/common/vsnprintf.h
-        lib/common/elf64.h)
+)
 
 set(LIBC_SOURCE_FILES
         lib/libc/stdarg.h
@@ -44,11 +51,10 @@ set(LIBC_SOURCE_FILES
         lib/libc/string.h
         lib/libc/stdint.h
         lib/libc/ctype.h
-        )
+)
 
 # Setup kernel sources
 set(KERNEL_SOURCE_FILES
-
         src/boot/multiboot.asm
         src/boot/multiboot.h
 
@@ -65,8 +71,16 @@ set(KERNEL_SOURCE_FILES
         src/memory/gdt.h
         src/memory/pmm.c
         src/memory/pmm.h
+        src/memory/vmm.c
+        src/memory/vmm.h
 
-        src/main.c src/memory/vmm.c src/memory/vmm.h lib/common/elf_common.h lib/common/cpu/cr.h src/resource/resource.c src/resource/resource.h src/resource/resource_provider.c src/resource/resource_provider.h)
+        src/resource/resource.c
+        src/resource/resource.h
+        src/resource/resource_provider.c
+        src/resource/resource_provider.h
+
+        src/main.c
+)
 
 include_directories(src)
 include_directories(lib/libc)
