@@ -4,11 +4,14 @@
 // Taken from
 // https://gitlab.com/qookei/quack/blob/master/kernel/vsnprintf.c
 
-#define FMT_PUT(dst, len, c) {\
-				if(!(len)) goto end; \
-				*(dst)++ = (c); \
-				len--; \
-			}
+#define FMT_PUT(dst, len, c) \
+    do {\
+        if(len) { \
+            *(dst)++ = (c); \
+            len--; \
+        } \
+        total_len++; \
+    } while(0)
 
 static const char *digits_upper = "0123456789ABCDEF";
 static const char *digits_lower = "0123456789abcdef";
@@ -44,8 +47,10 @@ static char *num_fmt(uint64_t i, int base, int padding, char pad_with, int handl
     return ptr;
 }
 
-void vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
+size_t vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
     uint64_t i;
+    size_t total_len = 0;
+    char* buf_end = buf + len;
     char *s;
 
     while(*fmt && len) {
@@ -80,7 +85,7 @@ void vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
         switch (*fmt) {
             case 'c': {
                 i = (uint64_t) va_arg(arg, int);
-                FMT_PUT(buf, len, i)
+                FMT_PUT(buf, len, i);
                 break;
             }
 
@@ -170,15 +175,16 @@ void vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
                 break;
         }
 
+        if (!len && buf_end != buf) {
+            *buf++ = '.';	// requires extra reserved space
+            *buf++ = '.';
+            *buf++ = '.';
+        }
+
         fmt++;
     }
 
-    end:
-    if (!len) {
-        *buf++ = '.';	// requires extra reserved space
-        *buf++ = '.';
-        *buf++ = '.';
-    }
-
     *buf++ = '\0';
+
+    return total_len;
 }

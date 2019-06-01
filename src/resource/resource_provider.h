@@ -16,9 +16,6 @@ typedef error_t (*resource_readdir)(kresource_t res, resource_stat_t* stat, int 
 
 typedef struct resource_provider {
     const char* scheme;
-
-    // TODO: Attechment to a process to allow for the creation of threads
-
     resource_open open;
     resource_close close;
     resource_seek seek;
@@ -30,6 +27,29 @@ typedef struct resource_provider {
     resource_mkdir mkdir;
     resource_readdir readdir;
 } resource_provider_t;
+
+/**
+ * Create a new kernel resource handler
+ *
+ * For user mode processes you will need to register that kernel handler to
+ * the process, giving you a user space handler
+ *
+ * @param provider   [IN] The provider this resource should be bound to
+ */
+kresource_t create_kresource(resource_provider_t* provider);
+
+/**
+ * Will delete the given kernel resource handler
+ *
+ * @remark
+ * This will not remove the process handlers from user processes you will have
+ * to do it manually
+ *
+ * TODO: Maybe this should be done in here?
+ *
+ * @param res       [IN] The resource to delete
+ */
+void delete_kresource(kresource_t res);
 
 /**
  * Register a new provider which can be used

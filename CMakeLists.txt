@@ -32,15 +32,16 @@ set(COMMON_SOURCE_FILES
         lib/common/cpu/cr.h
         lib/common/cpu/msr.h
         lib/common/cpu/rflags.h
-
+        lib/common/buf.c
+        lib/common/buf.h
         lib/common/common.h
-
         lib/common/elf64.h
         lib/common/elf_common.h
-
         lib/common/error.c
         lib/common/error.h
-
+        lib/common/hash.h
+        lib/common/map.c
+        lib/common/map.h
         lib/common/vsnprintf.c
         lib/common/vsnprintf.h
 )
@@ -49,10 +50,12 @@ set(LIBC_SOURCE_FILES
         lib/libc/stdarg.h
         lib/libc/stdbool.h
         lib/libc/stddef.h
-        lib/libc/string.c
-        lib/libc/string.h
         lib/libc/stdint.h
         lib/libc/ctype.h
+        lib/libc/stdlib.h
+        lib/libc/stdlib.c
+        lib/libc/string.c
+        lib/libc/string.h
 )
 
 # Setup kernel sources
