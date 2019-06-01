@@ -13,14 +13,23 @@
 
 #include <common.h>
 #include <error.h>
+#include <providers/system/system.h>
+#include <interrupts/interrupts.h>
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
+
+    // we start by creating a logger, allows us to actually log stuff
     e9hack_register_logger();
 
+    // initialize the idt first, so we can catch errors
     idt_init();
+
+    // now have a proper gdt
     gdt_init();
 
+    // early initialization of the pmm and vmm comes next
+    // TODO: Maybe put in the pre init arrays
     CHECK_AND_RETHROW(pmm_early_init(info));
     CHECK_AND_RETHROW(vmm_init(info));
 
@@ -28,14 +37,23 @@ void kernel_main(multiboot_info_t* info) {
 
     // TODO: run pre-init arrays
 
+    // now finish initialization of the pmm and initialize mm
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
 
     // TODO: run init arrays
 
+    // register all the providers
+    // TODO: Maybe move to be in the init arrays ?
+    CHECK_AND_RETHROW(system_provider_init());
+
     log_info("initialization finished");
 
+    // TODO: start the scheduler
+    // _sti();
+
     while(true) {
+        _hlt();
     }
 
 cleanup:

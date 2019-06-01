@@ -23,6 +23,7 @@ const char* error_names[ERROR_COUNT] = {
         "Not seekable",
         "Not a directory",
         "Not pollable",
-        "Invalid resource"
+        "Invalid resource",
+        "Not implemented"
 };
 

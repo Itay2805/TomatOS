@@ -33,6 +33,8 @@ typedef enum error {
 
     ERROR_INVALID_RESOURCE,
 
+    ERROR_NOT_IMPLEMENTED,
+
     ERROR_COUNT
 } error_t;
 
@@ -72,6 +74,15 @@ extern const char* error_names[ERROR_COUNT];
 
 #define CHECK(cond) \
     CHECK_ERROR(cond, ERROR_CHECK_FAILED)
+
+#define CHECK_FAIL() \
+    CHECK(false)
+
+#define CHECK_FAIL_ERROR(error) \
+    CHECK_ERROR(false, error)
+
+#define CHECK_FAIL_ERROR_TRACE(error, fmt, ...) \
+    CHECK_ERROR_TRACE(false, error, fmt, ## __VA_ARGS__)
 
 #define CHECK_AND_RETHROW_LOG_LABEL(error, log_func, label) \
     do { \

@@ -408,6 +408,7 @@ error_t mm_allocate_aligned(size_t size, size_t alignment, void** out_ptr) {
     mm_block_t* block;
 
     CHECK_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(out_ptr, ERROR_INVALID_ARGUMENT);
 
     CHECK_AND_RETHROW(verify_integrity());
     CHECK_AND_RETHROW(allocate_internal(size, alignment, &ptr, false, false));

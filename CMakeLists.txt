@@ -88,6 +88,9 @@ set(KERNEL_SOURCE_FILES
         src/memory/mm.c
         src/memory/mm.h
 
+        src/providers/system/system.c
+        src/providers/system/system.h
+
         src/resource/resource.c
         src/resource/resource.h
         src/resource/resource_provider.c

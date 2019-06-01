@@ -12,6 +12,7 @@ error_t kopen(resource_descriptor_t* descriptor, kresource_t* out_res) {
     CHECK_ERROR(out_res, ERROR_INVALID_ARGUMENT);
 
     resource_provider_t* provider = get_provider_by_scheme(descriptor->scheme);
+    CHECK_ERROR(provider->open, ERROR_NOT_IMPLEMENTED);
     CHECK_ERROR(provider, ERROR_INVALID_SCHEME);
     CHECK_AND_RETHROW(provider->open(descriptor, out_res));
 
@@ -23,6 +24,7 @@ error_t kclose(kresource_t res) {
     error_t err = NO_ERROR;
 
     resource_provider_t* provider = get_provider_by_kresource(res);
+    CHECK_ERROR(provider->close, ERROR_NOT_IMPLEMENTED);
     CHECK_ERROR(provider, ERROR_INVALID_RESOURCE);
     CHECK_AND_RETHROW(provider->close(res));
 
@@ -34,6 +36,7 @@ error_t kseek(kresource_t res, size_t offset, int dir) {
     error_t err = NO_ERROR;
 
     resource_provider_t* provider = get_provider_by_kresource(res);
+    CHECK_ERROR(provider->seek, ERROR_NOT_SEEKABLE);
     CHECK_ERROR(provider, ERROR_INVALID_RESOURCE);
     CHECK_AND_RETHROW(provider->seek(res, offset, dir));
 
@@ -45,6 +48,7 @@ error_t ktell(kresource_t res, size_t* offset) {
     error_t err = NO_ERROR;
 
     resource_provider_t* provider = get_provider_by_kresource(res);
+    CHECK_ERROR(provider->tell, ERROR_NOT_SEEKABLE);
     CHECK_ERROR(provider, ERROR_INVALID_RESOURCE);
     CHECK_AND_RETHROW(provider->tell(res, offset));
 
@@ -56,6 +60,7 @@ error_t kread(kresource_t res, void* buffer, size_t buffer_size, size_t read_siz
     error_t err = NO_ERROR;
 
     resource_provider_t* provider = get_provider_by_kresource(res);
+    CHECK_ERROR(provider->read, ERROR_NOT_READABLE);
     CHECK_ERROR(provider, ERROR_INVALID_RESOURCE);
     CHECK_AND_RETHROW(provider->read(res, buffer, buffer_size, read_size));
 
@@ -67,6 +72,7 @@ error_t kwrite(kresource_t res, const void* buffer, size_t buffer_size, size_t w
     error_t err = NO_ERROR;
 
     resource_provider_t* provider = get_provider_by_kresource(res);
+    CHECK_ERROR(provider->write, ERROR_NOT_WRITEABLE);
     CHECK_ERROR(provider, ERROR_INVALID_RESOURCE);
     CHECK_AND_RETHROW(provider->write(res, buffer, buffer_size, writen_size));
 
@@ -78,9 +84,9 @@ error_t kstat(kresource_t res, resource_stat_t* stat) {
     error_t err = NO_ERROR;
 
     resource_provider_t* provider = get_provider_by_kresource(res);
+    CHECK_ERROR(provider->stat, ERROR_NOT_IMPLEMENTED);
     CHECK_ERROR(provider, ERROR_INVALID_RESOURCE);
-
-    err = provider->close(res);
+    CHECK_AND_RETHROW(provider->stat(res, stat));
 
 cleanup:
     return err;
@@ -90,6 +96,7 @@ error_t kpoll(kresource_t res, int* state) {
     error_t err = NO_ERROR;
 
     resource_provider_t* provider = get_provider_by_kresource(res);
+    CHECK_ERROR(provider->poll, ERROR_NOT_POLLABLE);
     CHECK_ERROR(provider, ERROR_INVALID_RESOURCE);
     CHECK_AND_RETHROW(provider->poll(res, state));
 
@@ -103,6 +110,7 @@ error_t kmkdir(resource_descriptor_t* descriptor) {
     CHECK_ERROR(descriptor, ERROR_INVALID_ARGUMENT);
 
     resource_provider_t* provider = get_provider_by_scheme(descriptor->scheme);
+    CHECK_ERROR(provider->mkdir, ERROR_NOT_IMPLEMENTED);
     CHECK_ERROR(provider, ERROR_INVALID_SCHEME);
     CHECK_AND_RETHROW(provider->mkdir(descriptor));
 
@@ -114,6 +122,7 @@ error_t kreaddir(kresource_t res, resource_stat_t* stat, int index) {
     error_t err = NO_ERROR;
 
     resource_provider_t* provider = get_provider_by_kresource(res);
+    CHECK_ERROR(provider->readdir, ERROR_NOT_IMPLEMENTED);
     CHECK_ERROR(provider, ERROR_INVALID_RESOURCE);
     CHECK_AND_RETHROW(provider->readdir(res, stat, index));
 
