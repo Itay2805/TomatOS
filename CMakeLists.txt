@@ -30,6 +30,8 @@ endif ()
 
 set(COMMON_SOURCE_FILES
         lib/common/cpu/cr.h
+        lib/common/cpu/msr.h
+        lib/common/cpu/rflags.h
 
         lib/common/common.h
 
@@ -64,6 +66,13 @@ set(KERNEL_SOURCE_FILES
         src/drivers/rtc/rtc.c
         src/drivers/portio.h
 
+        src/interrupts/idt.c
+        src/interrupts/idt.h
+        src/interrupts/interrupts.h
+        src/interrupts/isr.asm
+        src/interrupts/isr.c
+        src/interrupts/isr.h
+
         src/logger/logger.c
         src/logger/logger.h
 
@@ -81,8 +90,7 @@ set(KERNEL_SOURCE_FILES
         src/resource/resource_provider.c
         src/resource/resource_provider.h
 
-        src/main.c
-)
+        src/main.c)
 
 include_directories(src)
 include_directories(lib/libc)

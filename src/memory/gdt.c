@@ -69,6 +69,7 @@ void gdt_init() {
     gdt.entries->tss.low = (uint16_t) (((uint64_t)&tss64) & 0xFFFF);
     gdt.entries->tss.mid = (uint8_t) (((uint64_t)&tss64 >> 16) & 0xFF);
     gdt.entries->tss.high = (uint8_t) (((uint64_t)&tss64 >> 24) & 0xFF);
+    gdt.entries->tss.upper32 = (uint32_t)(((uint64_t)&tss64 >> 32) & 0xFFFFFFFF);
 
     // set everything to use the kernel stack for now
     tss64.rsp0 = KERNEL_STACK;
@@ -82,7 +83,7 @@ void gdt_init() {
     tss64.ist6 = KERNEL_STACK;
     tss64.ist7 = KERNEL_STACK;
 
-    log_info("loading new gdt and tss");
+    log_info("loading new gdt and tss (tss size=%d)", sizeof(tss64_t));
     _lgdt(gdt);
     _ltr(GDT_TSS);
 }

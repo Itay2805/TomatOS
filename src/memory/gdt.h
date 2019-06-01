@@ -58,7 +58,7 @@ typedef struct tss64 {
     uint64_t ist6;
     uint64_t ist7;
     uint64_t reserved_3;
-    uint16_t iopb_offset;
+    uint32_t iopb_offset;
 } PACKED tss64_t;
 
 #define _lgdt(addr) asm volatile("lgdt %0" : : "m"(addr))

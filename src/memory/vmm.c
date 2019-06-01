@@ -6,6 +6,7 @@
 #include <boot/multiboot.h>
 #include <elf64.h>
 #include <cpu/cr.h>
+#include <cpu/msr.h>
 
 ////////////////////////////////////////////////////////////////////////////
 // Page attributes
@@ -187,25 +188,25 @@ static uint64_t get_pt(uint64_t pml4, uint64_t virt_addr, int attributes) {
 static error_t get_or_create_pt(uint64_t pml4, uint64_t virt_addr, int attributes, uint64_t* pt) {
     error_t err = NO_ERROR;
 
-    uint64_t* table = &physical_memory[pml4];
+    uint64_t* table = (uint64_t*)&physical_memory[pml4];
 
     // get pdp
     {
-        uint64_t next;
+        uint64_t next = 0;
         CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML4_OFFSET(virt_addr)], attributes, &next));
         table = (uint64_t *) &physical_memory[next];
     }
 
     // get the pd
     {
-        uint64_t next;
+        uint64_t next = 0;
         CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PDPE_OFFSET(virt_addr)], attributes, &next));
         table = (uint64_t*) &physical_memory[next];
     }
 
     // get the pt
     {
-        uint64_t next;
+        uint64_t next = 0;
         CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PDE_OFFSET(virt_addr)], attributes, &next));
         *pt = (uint64_t) next;
     }
@@ -235,24 +236,42 @@ static inline void invlpg(uintptr_t addr) {
 error_t vmm_init(multiboot_info_t* info) {
     error_t err = NO_ERROR;
 
-    uint64_t total_phys_mem = (info->mem_upper + info->mem_lower) * KB(1);
-    uint64_t total_phys_mem_kb = ALIGN_UP(total_phys_mem, KB(4)) / KB(4);
-    uint64_t kpml4;
+    multiboot_memory_map_t* entries = (multiboot_memory_map_t*)(uintptr_t)info->mmap_addr;
+    multiboot_memory_map_t* it;
+
+    // enable whatever features we wanna use
+    log_info("Enabling features");
+    log_info("\t* No execute");
+    wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_NO_EXECUTE_ENABLE);
 
     physical_memory = 0;
 
+    // allocate the kernel memory map
+    uint64_t kpml4;
     CHECK_AND_RETHROW(pmm_allocate(&kpml4));
     memset((void *)kpml4, 0, KB(4));
 
     log_debug("mapping the physical memory");
-    for(int i = 0; i < total_phys_mem_kb; i++) {
-        CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (i * KB(4) + 0xFFFF800000000000), (void *) (i * KB(4)), PAGE_ATTR_WRITE));
+    for(it = entries; (char*)it - (char*)entries < info->mmap_length; it++) {
+        switch(it->type) {
+            case MULTIBOOT_MEMORY_AVAILABLE:
+            case MULTIBOOT_MEMORY_RESERVED:
+            case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE: {
+                // all these addresses should be mapped to higher half
+                for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
+                    if(addr >= 0xFFFFFFFF00000000) {
+                        log_error("Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", addr, ALIGN_DOWN(it->addr + it->len, KB(4)));
+                        break;
+                    }
+                    CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (addr + 0xFFFF800000000000), (void *) (addr), PAGE_ATTR_WRITE));
+                }
+            } break;
+            default: break;
+        }
     }
 
     log_debug("mapping the kernel");
-
     // TODO: Use the kernel elf header to set the attributes correctly
-
     for(uint64_t addr = ALIGN_DOWN(KERNEL_PHYSICAL_START, KB(4)); addr < ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)); addr += KB(4)) {
         CHECK_AND_RETHROW(vmm_map(kpml4, (void *)(addr + 0xFFFFFFFFC0000000), (void *) (addr), PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE));
     }

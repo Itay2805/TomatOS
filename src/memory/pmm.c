@@ -64,6 +64,8 @@ error_t pmm_init() {
 error_t pmm_allocate(uint64_t* addr) {
     error_t err = NO_ERROR;
 
+    CHECK_ERROR(addr, ERROR_INVALID_ARGUMENT);
+
     CHECK(addrs);
     CHECK_ERROR_TRACE(stack_len > 0, ERROR_OUT_OF_MEMORY, "No more available physical address!");
 
