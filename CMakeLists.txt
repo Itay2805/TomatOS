@@ -88,15 +88,12 @@ set(KERNEL_SOURCE_FILES
         src/memory/mm.c
         src/memory/mm.h
 
-        src/providers/system/system.c
-        src/providers/system/system.h
+        src/process/process.h
+        src/process/signal.c
+        src/process/signal.h
+        src/process/thread.h
 
-        src/resource/resource.c
-        src/resource/resource.h
-        src/resource/resource_provider.c
-        src/resource/resource_provider.h
-
-        src/main.c)
+        src/main.c src/process/scheduler.h src/process/thread.c src/process/syscalls.h)
 
 include_directories(src)
 include_directories(lib/libc)

@@ -215,6 +215,10 @@ cleanup:
     return err;
 }
 
+static void* virt_to_phys(address_space_t address_space, void* virt) {
+
+}
+
 /**
  * Invalidate a page
  *
@@ -346,4 +350,28 @@ cleanup:
         if(phys) pmm_free(phys);
     }
     return err;
+}
+
+error_t vmm_free(address_space_t address_space, void* virtual_address) {
+    error_t err = NO_ERROR;
+    uint64_t* table = NULL;
+
+    // get the page table
+    uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
+    CHECK_ERROR(pt, ERROR_NOT_MAPPED);
+    table = (uint64_t *) &physical_memory[pt];
+
+    // unset the given page
+    uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
+    CHECK_ERROR(table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_PRESENT_BIT, ERROR_NOT_MAPPED);
+    CATCH(pmm_free(addr));
+    table[PAGING_PTE_OFFSET(virtual_address)] = 0;
+    invlpg(addr);
+
+cleanup:
+    return err;
+}
+
+error_t vmm_copy(address_space_t dst_addrspace, void* dst, address_space_t src_addrspace, void* src, size_t size) {
+
 }

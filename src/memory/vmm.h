@@ -9,6 +9,8 @@
 #define PAGE_ATTR_USER       (1 << 1)
 #define PAGE_ATTR_WRITE      (1 << 2)
 
+#define PHYSICAL_ADDRESS(addr) ((void*)((uintptr_t)addr + 0xFFFF800000000000))
+
 // TODO: Add locks to all of these
 
 typedef uint64_t address_space_t;
@@ -65,5 +67,24 @@ error_t vmm_unmap(address_space_t address_space, void* virtual_address);
  * @param attributes        [IN] The attributes of the new page
  */
 error_t vmm_allocate(address_space_t address_space, void* virtual_address, int attributes);
+
+/**
+ * Free the virtual page including the physical page
+ *
+ * @param address_space     [IN] The address space to free from
+ * @param virtual_address   [IN] The virtual address to free
+ */
+error_t vmm_free(address_space_t address_space, void* virtual_address);
+
+/**
+ * Allocate a buffer from one address space to another
+ *
+ * @param dst_addrspace     [IN] The address space we are going to write to
+ * @param dst               [IN] The virtual address of the destination buffer in that address space
+ * @param src_addrspace     [IN] The address space of the source buffer
+ * @param src               [IN] The virtual address of the destination buffer in that address space
+ * @param size              [IN] The size of the buffer we are going to copy
+ */
+error_t vmm_copy(address_space_t dst_addrspace, void* dst, address_space_t src_addrspace, void* src, size_t size);
 
 #endif //TOMATKERNEL_VMM_H

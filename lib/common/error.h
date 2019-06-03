@@ -102,6 +102,11 @@ extern const char* error_names[ERROR_COUNT];
 #define CHECK_AND_RETHROW(error) \
     CHECK_AND_RETHROW_LOG_LABEL(error, log_error, cleanup)
 
-#undef LOGGER_FUNCTION
+#define CATCH(err) \
+    do { \
+        if((err) != NO_ERROR) { \
+            log_warn("\tcatched (%s:%d)", __FILENAME__, __LINE__); \
+        } \
+    } while(0)
 
 #endif //TOMATKERNEL_ERROR_H
