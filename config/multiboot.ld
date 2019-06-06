@@ -35,6 +35,14 @@ SECTIONS
 	    *(.text*)
 	}
 
+	/* usermode code (like trampolines) */
+	kernel_user_text_start = .;
+	.utext ALIGN(4K) : AT (ADDR (.utext) - 0xFFFFFFFFC0000000)
+	{
+	    *(.utext*)
+	}
+    kernel_user_text_end = .;
+
     .rodata ALIGN(4K) : AT (ADDR (.rodata) - 0xFFFFFFFFC0000000)
     {
         *(.rodata)

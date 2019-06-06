@@ -53,9 +53,16 @@
 extern void* kernel_stack;
 extern void* kernel_physical_end;
 extern void* kernel_physical_start;
+extern void* kernel_user_text_start;
+extern void* kernel_user_text_end;
+
 #define KERNEL_STACK ((uint64_t)&kernel_stack)
 
 #define KERNEL_PHYSICAL_START ((uint64_t)&kernel_physical_start)
 #define KERNEL_PHYSICAL_END ((uint64_t)&kernel_physical_end)
+
+#define KERNEL_USER_TEXT_START ((uint64_t)&kernel_user_text_start)
+#define KERNEL_USER_TEXT_END ((uint64_t)&kernel_user_text_end)
+
 
 #endif //TOMATKERNEL_COMMON_H

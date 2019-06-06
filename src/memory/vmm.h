@@ -16,6 +16,11 @@
 typedef uint64_t address_space_t;
 
 /**
+ * The address space of the kernel
+ */
+extern address_space_t kernel_address_space;
+
+/**
  * Initialize the virtual memory manager
  */
 error_t vmm_init(multiboot_info_t* info);
@@ -77,7 +82,20 @@ error_t vmm_allocate(address_space_t address_space, void* virtual_address, int a
 error_t vmm_free(address_space_t address_space, void* virtual_address);
 
 /**
+ * Will convert the given virtual address to a physical address
+ *
+ * @param address_space     [IN]    The address space to convert from
+ * @param virtual_address   [IN]    The virtual address to get
+ * @param physical_address  [OUT]   The out physical address
+ */
+error_t vmm_virt_to_phys(address_space_t address_space, void* virtual_address, void** physical_address);
+
+/**
  * Allocate a buffer from one address space to another
+ *
+ * @remark
+ * This function may switch between address spaces, so make sure the kernel is always mapped in all
+ * of the given address space!
  *
  * @param dst_addrspace     [IN] The address space we are going to write to
  * @param dst               [IN] The virtual address of the destination buffer in that address space

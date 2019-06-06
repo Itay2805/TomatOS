@@ -2,6 +2,7 @@
 #define TOMATKERNEL_THREAD_T_H
 
 #include <interrupts/interrupts.h>
+#include <map.h>
 #include "signal.h"
 
 struct process;
@@ -13,8 +14,11 @@ typedef enum thread_status {
     // This thread is ready to run
     THREAD_STATUS_READY,
 
-    // This thread is dead (either cancelled or exited)
-    THREAD_STATUS_DEAD,
+    // This thread has finished running
+    THREAD_STATUS_FINISHED,
+
+    // This thread was canceled (killed)
+    THREAD_STATUS_CANCELED,
 
     // This thread was suspended by the aio_suspend syscall
     THREAD_STATUS_SUSPEND,
@@ -23,7 +27,7 @@ typedef enum thread_status {
     THREAD_STATUS_JOIN,
 
     // This thread is pooled to be used again for another thing
-    THREAD_POOLED,
+    THREAD_STATUS_POOLED,
 } thread_status_t;
 
 // TODO: We should have a concept of detaching
@@ -66,6 +70,14 @@ typedef struct thread {
 } thread_t;
 
 /**
+ * Functions like:
+ * - thread_join
+ *
+ * require to use a syscall, this is because it suspends the current thread, a sync operation
+ * and we would not want to block the kernel because of it
+ */
+
+/**
  * Registers the thread related syscalls
  */
 error_t thread_register_syscalls();
@@ -89,5 +101,44 @@ error_t thread_create(struct process* process, void*(*start_routine)(void*), voi
  * @param thread    [IN] The thread to cancel
  */
 error_t thread_cancel(thread_t* thread);
+
+/**
+ * Add a signal handler to the thread
+ *
+ * @remark
+ * The handler is copied by value, so no need to worry about it
+ *
+ * @remark
+ * The thread is set automatically
+ *
+ * @param thread    [IN] The thread to add to
+ * @param handler    [IN] The handler to add
+ */
+error_t thread_set_handler(thread_t* thread, signal_handler_t* handler);
+
+/**
+ * Will raise a signal on the given thread
+ *
+ * @param thread    [IN] The thread to raise the signal on
+ * @param sig       [IN] The signal to raise
+ */
+error_t thread_raise(thread_t* thread, uint64_t sig);
+
+/**
+ * Try to do a join with a thread, if the thread is dead, will decrement the refcount for it.
+ *
+ * If the thread is still running, it will simply return an error and won't block.
+ *
+ * @param thread    [IN]    The thread to join
+ * @param retval    [OUT]   The return value of the thread
+ */
+error_t thread_try_join(thread_t* thread, uint64_t* retval);
+
+/**
+ * Will validate the given thread still exists
+ *
+ * @param thread    [IN] The thread to validate
+ */
+bool thread_validate(thread_t* thread);
 
 #endif //TOMATKERNEL_THREAD_T_H

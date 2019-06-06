@@ -1,5 +1,5 @@
 BITS 64
-SECTION .user.text
+SECTION .utext
 
 GLOBAL signal_return
 signal_return:
@@ -12,4 +12,5 @@ signal_return:
     pop rsi
     pop rdi
     pop rax
+    pop rsp
     ret

@@ -35,6 +35,9 @@ typedef enum error {
 
     ERROR_NOT_IMPLEMENTED,
 
+    ERROR_THREAD_CANCELED,
+    ERROR_THREAD_RUNNING,
+
     ERROR_COUNT
 } error_t;
 

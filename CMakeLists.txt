@@ -93,7 +93,7 @@ set(KERNEL_SOURCE_FILES
         src/process/signal.h
         src/process/thread.h
 
-        src/main.c src/process/scheduler.h src/process/thread.c src/process/syscalls.h)
+        src/main.c src/process/scheduler.h src/process/thread.c src/process/syscalls.h src/process/process.c)
 
 include_directories(src)
 include_directories(lib/libc)

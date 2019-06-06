@@ -61,13 +61,13 @@
  *
  * this is set to 0 at the start and later on is set to 0xFFFF800000000000
  */
-static char* physical_memory = 0;
+char* physical_memory = 0;
 
 /*
  * This contains the paging of the kernel, when creating new address spaces
  * we are going to copy from this.
  */
-static uint64_t kernel_paging;
+address_space_t kernel_address_space;
 
 ////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -215,10 +215,6 @@ cleanup:
     return err;
 }
 
-static void* virt_to_phys(address_space_t address_space, void* virt) {
-
-}
-
 /**
  * Invalidate a page
  *
@@ -277,11 +273,15 @@ error_t vmm_init(multiboot_info_t* info) {
     log_debug("mapping the kernel");
     // TODO: Use the kernel elf header to set the attributes correctly
     for(uint64_t addr = ALIGN_DOWN(KERNEL_PHYSICAL_START, KB(4)); addr < ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)); addr += KB(4)) {
-        CHECK_AND_RETHROW(vmm_map(kpml4, (void *)(addr + 0xFFFFFFFFC0000000), (void *) (addr), PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE));
+        int attr = PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE;
+        if(addr >= KERNEL_USER_TEXT_START && addr < KERNEL_USER_TEXT_END) {
+            attr |= PAGE_ATTR_USER;
+        }
+        CHECK_AND_RETHROW(vmm_map(kpml4, (void *)(addr + 0xFFFFFFFFC0000000), (void *) (addr), attr));
     }
 
-    kernel_paging = kpml4;
-    vmm_set(kpml4);
+    kernel_address_space = kpml4;
+    vmm_set(kernel_address_space);
 
     physical_memory += 0xFFFF800000000000;
 
@@ -372,6 +372,117 @@ cleanup:
     return err;
 }
 
-error_t vmm_copy(address_space_t dst_addrspace, void* dst, address_space_t src_addrspace, void* src, size_t size) {
+error_t vmm_virt_to_phys(address_space_t address_space, void* virtual_address, void** physical_address) {
+    error_t err = NO_ERROR;
+    uint64_t* table = NULL;
 
+    // get the page table
+    uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
+    CHECK_ERROR(pt, ERROR_NOT_MAPPED);
+    table = (uint64_t *) &physical_memory[pt];
+
+    // unset the given page
+    uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
+    CHECK_ERROR(addr, ERROR_NOT_MAPPED);
+
+    *physical_address = (void *) addr;
+
+cleanup:
+    return err;
+}
+
+static error_t copy_to_another(address_space_t address_space, const char* from, char* to, size_t len) {
+    error_t err = NO_ERROR;
+    uintptr_t physical_addr = NULL;
+    char* ptr;
+    int padding;
+
+    // setup for the alignment in the first page
+    CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, to, (void**)&physical_addr));
+    padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
+
+    // align everything
+    to = (char *) ALIGN_DOWN((uintptr_t)to, KB(4));
+    ptr = &physical_memory[physical_addr + padding];
+
+    while (len) {
+        *ptr++ = *from++;
+        len--;
+        if (ptr >= &physical_memory[physical_addr] + KB(4)) {
+            // if we got the ptr to the end of the tmp page lets
+            // put the ptr to the start and remap the tmp page
+            to += KB(4);
+            CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, to, (void**)&physical_addr));
+            ptr = &physical_memory[physical_addr];
+        }
+    }
+
+cleanup:
+    return err;
+}
+
+static error_t copy_from_another(address_space_t address_space, const char* from, char* to, size_t len) {
+    error_t err = NO_ERROR;
+    uintptr_t physical_addr = NULL;
+    char* ptr;
+    int padding;
+
+    // setup for the alignment in the first page
+    CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, from, (void**)&physical_addr));
+    padding = (int) ((uintptr_t) from - ALIGN_DOWN((uintptr_t) from, KB(4)));
+
+    // align everything
+    from = (char *) ALIGN_DOWN((uintptr_t)from, KB(4));
+    ptr = &physical_memory[physical_addr + padding];
+
+    while (len) {
+        *to++ = *ptr++;
+        len--;
+        if (ptr >= &physical_memory[physical_addr] + KB(4)) {
+            // if we got the ptr to the end of the tmp page lets
+            // put the ptr to the start and remap the tmp page
+            from += KB(4);
+            CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, from, (void**)&physical_addr));
+            ptr = &physical_memory[physical_addr];
+        }
+    }
+
+    cleanup:
+    return err;
+}
+
+error_t vmm_copy(address_space_t dst_addrspace, void* dst, address_space_t src_addrspace, void* src, size_t size) {
+    error_t err = NO_ERROR;
+
+    CHECK_ERROR(dst_addrspace, ERROR_INVALID_ARGUMENT);
+    CHECK_ERROR(src_addrspace, ERROR_INVALID_ARGUMENT);
+
+    if(size == 0) goto cleanup;
+
+    if(dst_addrspace == src_addrspace) {
+        address_space_t cur = 0;
+
+        // not used right now, lets just use it
+        if(vmm_get() != dst_addrspace) {
+            cur = vmm_get();
+            vmm_set(dst_addrspace);
+        }
+
+        // memove
+        memmove(dst, src, size);
+
+        // revert to the address space we were in
+        if(cur != 0) {
+            vmm_set(cur);
+        }
+    }else if(dst_addrspace == vmm_get()) {
+        // copy assuming this is the current address space
+        copy_from_another(src_addrspace, src, dst, size);
+    }else if(src_addrspace == vmm_get()) {
+        // copy assuming copying from this address space
+        copy_to_another(dst_addrspace, src, dst, size);
+    }
+
+cleanup:
+    return err;
 }
