@@ -160,9 +160,18 @@ size_t vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
 
             case 's': {
                 s = va_arg(arg, char *);
-                while (*s) {
-                    FMT_PUT(buf, len, *s);
-                    s++;
+                if(s == NULL) {
+                    FMT_PUT(buf, len, '(');
+                    FMT_PUT(buf, len, 'n');
+                    FMT_PUT(buf, len, 'u');
+                    FMT_PUT(buf, len, 'l');
+                    FMT_PUT(buf, len, 'l');
+                    FMT_PUT(buf, len, ')');
+                }else {
+                    while (*s) {
+                        FMT_PUT(buf, len, *s);
+                        s++;
+                    }
                 }
                 break;
             }

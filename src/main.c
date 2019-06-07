@@ -22,6 +22,8 @@ void kernel_main(multiboot_info_t* info) {
 
     /*********************************************************
      * Early initialization
+     *
+     * basically setting a nice enviroment to work in
      *********************************************************/
 
     // we start by creating a logger, allows us to actually log stuff
@@ -33,31 +35,34 @@ void kernel_main(multiboot_info_t* info) {
 
     /*********************************************************
      * Early memory initialization
+     *
      * can start using errors
      *********************************************************/
-    // TODO: Maybe put in the pre init arrays
     CHECK_AND_RETHROW(pmm_early_init(info));
     CHECK_AND_RETHROW(vmm_init(info));
 
     /*********************************************************
-     * Initialization of everything else
+     * Initialization of essentials
+     *
+     * we require everything in here to work
      *********************************************************/
-    // TODO: run pre-init arrays
-
-    // now finish initialization of the pmm and initialize mm
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
-
-    // everything else can be initialized now
     CHECK_AND_RETHROW(acpi_init());
-    CHECK_AND_RETHROW(pci_init());
 
-    log_info("initialization finished");
+    /*********************************************************
+     * Driver initialization
+     *
+     * anything in here might not be loaded depending
+     * on the computer configuration
+     *********************************************************/
+    pci_init();
 
     /*********************************************************
      * Initialization completed
      *********************************************************/
-
+    log_info("initialization finished");
+    
     // TODO: start the scheduler
     // _sti();
 
