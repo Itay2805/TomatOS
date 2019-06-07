@@ -53,13 +53,37 @@ error_t rsdt_init() {
 
     CHECK_ERROR_TRACE(rsdt || xsdt, ERROR_NOT_FOUND, "Could not find xsdt/rsdt!");
 
+    // just for debugging
+    if(rsdt != NULL) {
+        log_debug("\titerating RSDT:");
+
+        // rsdt searching
+        for(uint32_t* sdt = rsdt->sdts; sdt < (rsdt->sdts + ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4)); sdt++) {
+            hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+            log_debug("\t\t%c%c%c%c"
+                    , hdr->signature[0]
+                    , hdr->signature[1]
+                    , hdr->signature[2]
+                    , hdr->signature[3]);
+        }
+    }else {
+        log_debug("\titerating XSDT:");
+        for(uint64_t* sdt = xsdt->sdts; sdt < (xsdt->sdts + ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8)); sdt++) {
+            hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+            log_debug("\t\t%c%c%c%c"
+                    , hdr->signature[0]
+                    , hdr->signature[1]
+                    , hdr->signature[2]
+                    , hdr->signature[3]);
+        }
+    }
 cleanup:
     return err;
 }
 
 sdt_hdr_t* xsdt_search(char* signature) {
     for(uint64_t* sdt = xsdt->sdts; sdt < (xsdt->sdts + ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8)); sdt++) {
-        sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(sdt);
+        sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
         if(memcmp(hdr->signature, signature, 4) == 0) {
             return hdr;
         }
@@ -72,7 +96,7 @@ sdt_hdr_t* rsdt_search(char* signature) {
     if(rsdt != NULL) {
         // rsdt searching
         for(uint32_t* sdt = rsdt->sdts; sdt < (rsdt->sdts + ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4)); sdt++) {
-            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(sdt);
+            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
             if(memcmp(hdr->signature, signature, 4) == 0) {
                 return hdr;
             }
