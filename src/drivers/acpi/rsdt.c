@@ -33,7 +33,7 @@ error_t rsdt_init() {
     }
 
     CHECK_TRACE(acpi_validate_checksum(hdr, hdr->length), "Invalid SDT checksum!");
-
+    log_info("\t\tRevision: %d", hdr->revision);
     log_info("\t\tOEM ID: %c%c%c%c%c%c"
                         , hdr->oemid[0]
                         , hdr->oemid[1]
@@ -52,31 +52,6 @@ error_t rsdt_init() {
                         , hdr->oem_table_id[7]);
 
     CHECK_ERROR_TRACE(rsdt || xsdt, ERROR_NOT_FOUND, "Could not find xsdt/rsdt!");
-
-    // just for debugging
-    if(rsdt != NULL) {
-        log_debug("\titerating RSDT:");
-
-        // rsdt searching
-        for(uint32_t* sdt = rsdt->sdts; sdt < (rsdt->sdts + ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4)); sdt++) {
-            hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
-            log_debug("\t\t%c%c%c%c"
-                    , hdr->signature[0]
-                    , hdr->signature[1]
-                    , hdr->signature[2]
-                    , hdr->signature[3]);
-        }
-    }else {
-        log_debug("\titerating XSDT:");
-        for(uint64_t* sdt = xsdt->sdts; sdt < (xsdt->sdts + ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8)); sdt++) {
-            hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
-            log_debug("\t\t%c%c%c%c"
-                    , hdr->signature[0]
-                    , hdr->signature[1]
-                    , hdr->signature[2]
-                    , hdr->signature[3]);
-        }
-    }
 cleanup:
     return err;
 }

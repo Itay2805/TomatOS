@@ -65,15 +65,26 @@ set(KERNEL_SOURCE_FILES
 
         src/drivers/acpi/acpi.c
         src/drivers/acpi/acpi.h
+        src/drivers/acpi/mcfg.c
+        src/drivers/acpi/mcfg.h
         src/drivers/acpi/rdsp.c
         src/drivers/acpi/rsdp.h
         src/drivers/acpi/rsdt.c
         src/drivers/acpi/rsdt.h
 
+        src/drivers/pci/legacy.c
+        src/drivers/pci/legacy.h
+        src/drivers/pci/pci.c
+        src/drivers/pci/pci.h
+        src/drivers/pci/pcie.c
+        src/drivers/pci/pcie.h
+
         src/drivers/vmdev/vmdev.c
         src/drivers/vmdev/vmdev.h
+
         src/drivers/rtc/rtc.h
         src/drivers/rtc/rtc.c
+
         src/drivers/portio.h
 
         src/interrupts/idt.c

@@ -2,6 +2,7 @@
 
 #include <drivers/vmdev/vmdev.h>
 #include <drivers/acpi/acpi.h>
+#include <drivers/pci/pci.h>
 
 #include <interrupts/interrupts.h>
 #include <interrupts/idt.h>
@@ -49,6 +50,7 @@ void kernel_main(multiboot_info_t* info) {
 
     // everything else can be initialized now
     CHECK_AND_RETHROW(acpi_init());
+    CHECK_AND_RETHROW(pci_init());
 
     log_info("initialization finished");
 
