@@ -4,6 +4,7 @@
 #include "rsdp.h"
 #include "rsdt.h"
 #include "mcfg.h"
+#include "madt.h"
 
 error_t acpi_init() {
     error_t err = NO_ERROR;
@@ -11,6 +12,7 @@ error_t acpi_init() {
     log_info("Initializing ACPI");
     CHECK_AND_RETHROW(rsdp_init());
     CHECK_AND_RETHROW(rsdt_init());
+    CHECK_AND_RETHROW(madt_init());
 
     mcfg_init();
 
