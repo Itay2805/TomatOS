@@ -6,6 +6,8 @@
 #include "scheduler.h"
 #include "process.h"
 
+thread_t* running_thread;
+
 error_t thread_create(struct process* process, void*(*start_routine)(void*), void* arg, thread_t** thread) {
     error_t err = NO_ERROR;
 
@@ -131,11 +133,11 @@ cleanup:
 
 bool thread_validate(thread_t* thread) {
     error_t err = NO_ERROR;
-    void* addr;
+    uintptr_t addr;
 
     // make sure this thread actually exists in memory
-    CHECK_AND_RETHROW(vmm_virt_to_phys(kernel_address_space, thread, &addr));
-    CHECK_AND_RETHROW(vmm_virt_to_phys(kernel_address_space, ((char*)thread) + sizeof(thread_t), &addr));
+    CHECK_AND_RETHROW(vmm_virt_to_phys(kernel_address_space, (uintptr_t)thread, &addr));
+    CHECK_AND_RETHROW(vmm_virt_to_phys(kernel_address_space, (uintptr_t)((char*)thread) + sizeof(thread_t), &addr));
 
      // check the parent
     CHECK(process_validate(thread->parent));

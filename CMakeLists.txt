@@ -63,6 +63,11 @@ set(KERNEL_SOURCE_FILES
         src/boot/multiboot.asm
         src/boot/multiboot.h
 
+        src/drivers/acpi/acpi.c
+        src/drivers/acpi/acpi.h
+        src/drivers/acpi/rdsp.c
+        src/drivers/acpi/rsdp.h
+
         src/drivers/e9hack/e9hack.c
         src/drivers/e9hack/e9hack.h
         src/drivers/rtc/rtc.h
@@ -88,12 +93,17 @@ set(KERNEL_SOURCE_FILES
         src/memory/mm.c
         src/memory/mm.h
 
+        src/process/process.c
         src/process/process.h
+        src/process/scheduler.h
+        src/process/signal.asm
         src/process/signal.c
         src/process/signal.h
+        src/process/syscalls.h
+        src/process/thread.c
         src/process/thread.h
 
-        src/main.c src/process/scheduler.h src/process/thread.c src/process/syscalls.h src/process/process.c)
+        src/main.c src/drivers/acpi/rsdt.c src/drivers/acpi/rsdt.h)
 
 include_directories(src)
 include_directories(lib/libc)

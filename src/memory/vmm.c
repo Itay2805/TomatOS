@@ -372,7 +372,7 @@ cleanup:
     return err;
 }
 
-error_t vmm_virt_to_phys(address_space_t address_space, void* virtual_address, void** physical_address) {
+error_t vmm_virt_to_phys(address_space_t address_space, uintptr_t virtual_address, uintptr_t* physical_address) {
     error_t err = NO_ERROR;
     uint64_t* table = NULL;
 
@@ -381,14 +381,27 @@ error_t vmm_virt_to_phys(address_space_t address_space, void* virtual_address, v
     CHECK_ERROR(pt, ERROR_NOT_MAPPED);
     table = (uint64_t *) &physical_memory[pt];
 
-    // unset the given page
+    // get the address of the page
     uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
     CHECK_ERROR(addr, ERROR_NOT_MAPPED);
 
-    *physical_address = (void *) addr;
+    if(physical_address) *physical_address = addr;
 
 cleanup:
     return err;
+}
+
+bool vmm_is_mapped(address_space_t address_space, uintptr_t virtual_address) {
+    uint64_t* table = NULL;
+
+    // get the page table
+    uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
+    if(!pt) return false;
+    table = (uint64_t *) &physical_memory[pt];
+
+    // get the address of the page
+    uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
+    return addr != NULL;
 }
 
 static error_t copy_to_another(address_space_t address_space, const char* from, char* to, size_t len) {
@@ -398,7 +411,7 @@ static error_t copy_to_another(address_space_t address_space, const char* from, 
     int padding;
 
     // setup for the alignment in the first page
-    CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, to, (void**)&physical_addr));
+    CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, (uintptr_t)to, &physical_addr));
     padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
 
     // align everything
@@ -412,7 +425,7 @@ static error_t copy_to_another(address_space_t address_space, const char* from, 
             // if we got the ptr to the end of the tmp page lets
             // put the ptr to the start and remap the tmp page
             to += KB(4);
-            CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, to, (void**)&physical_addr));
+            CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, (uintptr_t)to, &physical_addr));
             ptr = &physical_memory[physical_addr];
         }
     }
@@ -428,7 +441,7 @@ static error_t copy_from_another(address_space_t address_space, const char* from
     int padding;
 
     // setup for the alignment in the first page
-    CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, from, (void**)&physical_addr));
+    CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, (uintptr_t)from, &physical_addr));
     padding = (int) ((uintptr_t) from - ALIGN_DOWN((uintptr_t) from, KB(4)));
 
     // align everything
@@ -442,7 +455,7 @@ static error_t copy_from_another(address_space_t address_space, const char* from
             // if we got the ptr to the end of the tmp page lets
             // put the ptr to the start and remap the tmp page
             from += KB(4);
-            CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, from, (void**)&physical_addr));
+            CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, (uintptr_t)from, &physical_addr));
             ptr = &physical_memory[physical_addr];
         }
     }
@@ -451,7 +464,7 @@ static error_t copy_from_another(address_space_t address_space, const char* from
     return err;
 }
 
-error_t vmm_copy(address_space_t dst_addrspace, void* dst, address_space_t src_addrspace, void* src, size_t size) {
+error_t vmm_copy(address_space_t dst_addrspace, uintptr_t dst, address_space_t src_addrspace, uintptr_t src, size_t size) {
     error_t err = NO_ERROR;
 
     CHECK_ERROR(dst_addrspace, ERROR_INVALID_ARGUMENT);
@@ -469,7 +482,7 @@ error_t vmm_copy(address_space_t dst_addrspace, void* dst, address_space_t src_a
         }
 
         // memove
-        memmove(dst, src, size);
+        memmove((void*) dst, (const void*) src, size);
 
         // revert to the address space we were in
         if(cur != 0) {
@@ -477,10 +490,12 @@ error_t vmm_copy(address_space_t dst_addrspace, void* dst, address_space_t src_a
         }
     }else if(dst_addrspace == vmm_get()) {
         // copy assuming this is the current address space
-        copy_from_another(src_addrspace, src, dst, size);
+        copy_from_another(src_addrspace, (const char*) src, (char*) dst, size);
     }else if(src_addrspace == vmm_get()) {
         // copy assuming copying from this address space
-        copy_to_another(dst_addrspace, src, dst, size);
+        copy_to_another(dst_addrspace, (const char*) src, (char*) dst, size);
+    }else {
+        CHECK_FAIL_ERROR_TRACE(ERROR_NOT_IMPLEMENTED, "Transferring from two different address spaces is not supported yet");
     }
 
 cleanup:

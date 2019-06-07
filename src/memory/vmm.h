@@ -9,7 +9,8 @@
 #define PAGE_ATTR_USER       (1 << 1)
 #define PAGE_ATTR_WRITE      (1 << 2)
 
-#define PHYSICAL_ADDRESS(addr) ((void*)((uintptr_t)addr + 0xFFFF800000000000))
+#define PHYSICAL_BASE           0xFFFF800000000000
+#define PHYSICAL_ADDRESS(addr) ((void*)((uintptr_t)addr + PHYSICAL_BASE))
 
 // TODO: Add locks to all of these
 
@@ -88,7 +89,16 @@ error_t vmm_free(address_space_t address_space, void* virtual_address);
  * @param virtual_address   [IN]    The virtual address to get
  * @param physical_address  [OUT]   The out physical address
  */
-error_t vmm_virt_to_phys(address_space_t address_space, void* virtual_address, void** physical_address);
+error_t vmm_virt_to_phys(address_space_t address_space, uintptr_t virtual_address, uintptr_t* physical_address);
+
+/**
+ * Checks if the given address is mapped, it is helpful because it won't print any error
+ * for unmapped memory
+ *
+ * @param address_space     [IN] The address space to check for
+ * @param virtual_address   [IN] The address to check
+ */
+bool vmm_is_mapped(address_space_t address_space, uintptr_t virtual_address);
 
 /**
  * Allocate a buffer from one address space to another
@@ -103,6 +113,6 @@ error_t vmm_virt_to_phys(address_space_t address_space, void* virtual_address, v
  * @param src               [IN] The virtual address of the destination buffer in that address space
  * @param size              [IN] The size of the buffer we are going to copy
  */
-error_t vmm_copy(address_space_t dst_addrspace, void* dst, address_space_t src_addrspace, void* src, size_t size);
+error_t vmm_copy(address_space_t dst_addrspace, uintptr_t dst, address_space_t src_addrspace, uintptr_t src, size_t size);
 
 #endif //TOMATKERNEL_VMM_H

@@ -27,12 +27,12 @@ typedef struct process {
  */
 extern map_t processes;
 
-// error_t process_spawn(process_t** process, );
+// TODO: error_t process_spawn(process_t** process, );
 
 /**
  * Create a kernel process, which will run in the kernel
  */
-error_t process_create(process_t** process);
+error_t process_create(process_t** process, void*(start_routine)(void*), int argc, const char* argv[]);
 
 /**
  * Will cancel the process

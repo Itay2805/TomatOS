@@ -13,8 +13,8 @@
 
 #include <common.h>
 #include <error.h>
-#include <providers/system/system.h>
 #include <interrupts/interrupts.h>
+#include <drivers/acpi/acpi.h>
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -41,11 +41,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
 
-    // TODO: run init arrays
-
-    // register all the providers
-    // TODO: Maybe move to be in the init arrays ?
-    CHECK_AND_RETHROW(system_provider_init());
+    CHECK_AND_RETHROW(acpi_init());
 
     log_info("initialization finished");
 
