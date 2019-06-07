@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 
 project(TomatKernel)
 
-# Setup paths
-set(KERNEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/kernel")
-
 # Setup C
 set(CMAKE_C_COMPILER /usr/bin/gcc)
 
@@ -16,7 +13,7 @@ set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <SOURCE> <FLAGS> -o <OBJECT>"
 # Setup compilation flags
 set(CMAKE_C_FLAGS "-z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
 set(CMAKE_ASM_FLAGS "-F dwarf -f elf64")
-set(CMAKE_EXE_LINKER_FLAGS "-z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${KERNEL_PATH}/linker.ld")
+set(CMAKE_EXE_LINKER_FLAGS "-z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${CMAKE_SOURCE_DIR}/config/multiboot.ld")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
 # For debugging
@@ -31,142 +28,94 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_ASM_FLAGS "-O3 ${CMAKE_ASM_FLAGS}")
 endif ()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLOGGING_QEMU")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLOGGING_TERMINAL")
+set(COMMON_SOURCE_FILES
+        lib/common/cpu/cr.h
+        lib/common/cpu/msr.h
+        lib/common/cpu/rflags.h
+        lib/common/buf.c
+        lib/common/buf.h
+        lib/common/common.h
+        lib/common/elf64.h
+        lib/common/elf_common.h
+        lib/common/error.c
+        lib/common/error.h
+        lib/common/hash.h
+        lib/common/map.c
+        lib/common/map.h
+        lib/common/vsnprintf.c
+        lib/common/vsnprintf.h
+)
+
+set(LIBC_SOURCE_FILES
+        lib/libc/stdarg.h
+        lib/libc/stdbool.h
+        lib/libc/stddef.h
+        lib/libc/stdint.h
+        lib/libc/ctype.h
+        lib/libc/stdlib.h
+        lib/libc/stdlib.c
+        lib/libc/string.c
+        lib/libc/string.h
+)
 
 # Setup kernel sources
 set(KERNEL_SOURCE_FILES
-        kernel/common/common.h
-        kernel/common/kernel_info.h
-        kernel/common/multiboot.h
-        kernel/common/stdbool.h
-        kernel/common/stdint.h
-        kernel/common/stdarg.h
-        kernel/common/string.c
-        kernel/common/string.h
-        kernel/common/buf.c
-        kernel/common/buf.h
-        kernel/common/global_except.h
-        kernel/common/except.c
-        kernel/common/except.h
-        kernel/common/mini-printf.c
-        kernel/common/mini-printf.h
-        kernel/common/klib.c
-        kernel/common/klib.h
-        kernel/common/map.c
-        kernel/common/map.h
-        kernel/common/logging.c
-        kernel/common/logging.h
-        kernel/common/ctype.h
+        src/boot/multiboot.asm
+        src/boot/multiboot.h
 
-        kernel/graphics/font.c
-        kernel/graphics/font.h
-        kernel/graphics/term.c
-        kernel/graphics/term.h
+        src/drivers/acpi/acpi.c
+        src/drivers/acpi/acpi.h
+        src/drivers/acpi/rdsp.c
+        src/drivers/acpi/rsdp.h
+        src/drivers/acpi/rsdt.c
+        src/drivers/acpi/rsdt.h
 
-        kernel/memory/pmm.c
-        kernel/memory/pmm.h
-        kernel/memory/vmm.c
-        kernel/memory/vmm.h
-        kernel/memory/mm.c
-        kernel/memory/mm.h
-        kernel/memory/gdt.h
+        src/drivers/vmdev/vmdev.c
+        src/drivers/vmdev/vmdev.h
+        src/drivers/rtc/rtc.h
+        src/drivers/rtc/rtc.c
+        src/drivers/portio.h
 
-        kernel/interrupts/irq.c
-        kernel/interrupts/irq.asm
-        kernel/interrupts/irq.h
-        kernel/interrupts/isr.c
-        kernel/interrupts/isr.asm
-        kernel/interrupts/isr.h
-        kernel/interrupts/idt.c
-        kernel/interrupts/idt.h
-        kernel/interrupts/interrupts.h
-        kernel/interrupts/interrupts.asm
+        src/interrupts/idt.c
+        src/interrupts/idt.h
+        src/interrupts/interrupts.h
+        src/interrupts/isr.asm
+        src/interrupts/isr.c
+        src/interrupts/isr.h
 
-        kernel/drivers/portio.h
-        kernel/drivers/pic.c
-        kernel/drivers/pic.h
-        kernel/drivers/pic.asm
-        kernel/drivers/pit.c
-        kernel/drivers/pit.h
-        kernel/drivers/pci.c
-        kernel/drivers/pci.h
-        kernel/drivers/rtc.c
-        kernel/drivers/rtc.h
-        kernel/drivers/qemu.c
-        kernel/drivers/qemu.h
+        src/logger/logger.c
+        src/logger/logger.h
 
-        kernel/process/thread.c
-        kernel/process/thread.h
-        kernel/process/process.c
-        kernel/process/process.h
-        kernel/process/scheduler.c
-        kernel/process/scheduler.h
-        kernel/process/syscall.asm
-        kernel/process/syscall.c
-        kernel/process/syscall.h
+        src/memory/gdt.c
+        src/memory/gdt.h
+        src/memory/pmm.c
+        src/memory/pmm.h
+        src/memory/vmm.c
+        src/memory/vmm.h
+        src/memory/mm.c
+        src/memory/mm.h
 
-        kernel/locks/spinlock.h
-        kernel/locks/rwlock.h
-        kernel/locks/critical_section.h
+        src/process/process.c
+        src/process/process.h
+        src/process/scheduler.h
+        src/process/signal.asm
+        src/process/signal.c
+        src/process/signal.h
+        src/process/syscalls.h
+        src/process/thread.c
+        src/process/thread.h
 
-        kernel/cpu/rflags.h
-        kernel/cpu/msr.h
-        kernel/cpu/cpuid.h
-        kernel/cpu/control.h
+        src/main.c)
 
-        kernel/resource/resource_manager.asm
-        kernel/resource/resource_manager.c
-        kernel/resource/resource_manager.h
-        kernel/resource/resource.c
-        kernel/resource/resource.h
+include_directories(src)
+include_directories(lib/libc)
+include_directories(lib/common)
 
-        kernel/providers/zero/zero_provider.h
-        kernel/providers/zero/zero_provider.c
-
-        kernel/providers/stdio/stdio_provider.h
-        kernel/providers/stdio/stdio_provider.c
-
-        kernel/providers/ata/ata_provider.c
-        kernel/providers/ata/ata_provider.h
-        kernel/providers/ata/ata.h
-        kernel/providers/ata/ata.c
-
-        kernel/providers/echfs/echfs_provider.c
-        kernel/providers/echfs/echfs_provider.h
-        kernel/providers/echfs/echfs.h
-        kernel/providers/echfs/echfs.c
-
-        kernel/providers/ps2/ps2_provider.c
-        kernel/providers/ps2/ps2_provider.h
-        kernel/providers/ps2/ps2.h
-        kernel/providers/ps2/ps2.c
-
-        kernel/providers/elf/elf_provider.c
-        kernel/providers/elf/elf_provider.h
-        kernel/providers/elf/elf64.h
-        kernel/providers/elf/elf_common.h
-        kernel/providers/elf/elf64_loader.c
-        kernel/providers/elf/elf64_loader.h
-
-        kernel/providers/virtio/virtio_provider.c
-        kernel/providers/virtio/virtio_provider.h
-        kernel/providers/virtio/virtio-queue.h
-        kernel/providers/virtio/virtio.c
-        kernel/providers/virtio/virtio.h
-
-        kernel/shell/shell.c
-        kernel/shell/shell.h
-
-        kernel/multiboot.asm
-        kernel/kernel.c)
-
-include_directories(${KERNEL_PATH})
-add_executable(TomatKernel "${KERNEL_SOURCE_FILES}")
+add_executable(TomatKernel ${KERNEL_SOURCE_FILES} ${COMMON_SOURCE_FILES} ${LIBC_SOURCE_FILES})
 add_custom_command(
         TARGET TomatKernel
         COMMAND mkdir -p ${CMAKE_BINARY_DIR}/iso/boot/grub
         COMMAND cp ${CMAKE_BINARY_DIR}/TomatKernel ${CMAKE_BINARY_DIR}/iso/boot/TomatKernel
-        COMMAND cp ${CMAKE_SOURCE_DIR}/grub.cfg ${CMAKE_BINARY_DIR}/iso/boot/grub/grub.cfg
+        COMMAND cp ${CMAKE_SOURCE_DIR}/config/multiboot.grub.cfg ${CMAKE_BINARY_DIR}/iso/boot/grub/grub.cfg
         COMMAND grub-mkrescue -o ${CMAKE_SOURCE_DIR}/tomatos.iso ${CMAKE_BINARY_DIR}/iso
 )
