@@ -79,6 +79,9 @@ set(KERNEL_SOURCE_FILES
         src/drivers/pci/pcie.c
         src/drivers/pci/pcie.h
 
+        src/drivers/pic8259/pic.c
+        src/drivers/pic8259/pic.h
+
         src/drivers/vmdev/vmdev.c
         src/drivers/vmdev/vmdev.h
 

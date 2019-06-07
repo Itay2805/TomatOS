@@ -25,8 +25,6 @@ static void set_mmio_base(pcidev_pcie_t* dev) {
  * PCIe read and write functions
  **************************************************************/
 
-// TODO: Have all of the pci read/write implemented by driver, since this can make it much faster
-
 uint64_t pcie_config_read_64(pcidev_t* dev, uint16_t offset) {
     return *(uint64_t*)&dev->pcie.mmio_base[offset];
 }

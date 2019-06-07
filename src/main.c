@@ -1,6 +1,7 @@
 #include <boot/multiboot.h>
 
 #include <drivers/vmdev/vmdev.h>
+#include <drivers/pic8259/pic.h>
 #include <drivers/acpi/acpi.h>
 #include <drivers/pci/pci.h>
 
@@ -49,6 +50,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(acpi_init());
+    CHECK_AND_RETHROW(pic8259_disable());
 
     /*********************************************************
      * Driver initialization
@@ -62,9 +64,9 @@ void kernel_main(multiboot_info_t* info) {
      * Initialization completed
      *********************************************************/
     log_info("initialization finished");
-    
+
     // TODO: start the scheduler
-    // _sti();
+    _sti();
 
     while(true) {
         _hlt();
