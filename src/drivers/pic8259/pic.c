@@ -31,7 +31,6 @@ error_t pic8259_remap(uint8_t master, uint8_t slave) {
     outb(PIC_MASTER_DATA, 1);
     outb(PIC_SLAVE_DATA, 1);
 
-cleanup:
     return err;
 }
 

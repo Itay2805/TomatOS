@@ -65,6 +65,8 @@ set(KERNEL_SOURCE_FILES
 
         src/drivers/acpi/acpi.c
         src/drivers/acpi/acpi.h
+        src/drivers/acpi/madt.c
+        src/drivers/acpi/madt.h
         src/drivers/acpi/mcfg.c
         src/drivers/acpi/mcfg.h
         src/drivers/acpi/rdsp.c
@@ -119,7 +121,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c src/drivers/apic/apic.c src/drivers/apic/apic.h src/drivers/apic/lapic.c src/drivers/apic/lapic.h src/drivers/acpi/madt.c src/drivers/acpi/madt.h src/drivers/apic/ioapic.c src/drivers/apic/ioapic.h)
+        src/main.c)
 
 include_directories(src)
 include_directories(lib/libc)
