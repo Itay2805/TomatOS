@@ -63,7 +63,7 @@ static void check_function(pcidev_pcie_t* dev) {
     pcidev.subclass = pci_config_read_8(&pcidev, PCI_SUBCLASS);
     pcidev.prog_if = pci_config_read_8(&pcidev, PCI_PROG_IF);
 
-    log_info("\t0x%016p -> %s", dev->mmio_base, pci_get_name(&pcidev));
+    log_info("\t0x%016p -> %s", dev->mmio_base - PHYSICAL_BASE, pci_get_name(&pcidev));
     buf_push(pcidevs, pcidev);
 }
 
