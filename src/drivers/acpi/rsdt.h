@@ -2,6 +2,7 @@
 #define TOMATKERNEL_RSDT_H
 
 #include <elf64.h>
+#include <error.h>
 
 typedef struct sdt_hdr {
     char signature[4];
@@ -13,20 +14,25 @@ typedef struct sdt_hdr {
     uint32_t oem_revision;
     uint32_t creator_id;
     uint32_t creator_revision;
-} sdt_hdr_t;
+} __attribute__((packed)) sdt_hdr_t;
 
 typedef struct rsdt {
     sdt_hdr_t header;
     uint32_t sdts[0];
-} rsdt_t;
+} __attribute__((packed)) rsdt_t;
 
 typedef struct xsdt {
     sdt_hdr_t header;
     uint64_t sdts[0];
-} xsdt_t;
+} __attribute__((packed)) xsdt_t;
 
-extern rsdt_t rsdt;
-extern xsdt_t xsdt;
+extern rsdt_t* rsdt;
+extern xsdt_t* xsdt;
+
+/**
+ * Will initialize the rsdt
+ */
+error_t rsdt_init();
 
 /**
  * Will search for an sdt inside the rsdt

@@ -5,7 +5,7 @@ OUTPUT_ARCH(i386:x86-64)
 SECTIONS
 {
 	. = 0x0100000;
-	kernel_physical_start = . - 0x0100000;
+	kernel_physical_start = .;
 
     /* ========== Multiboot ========== */
     .multiboot.header ALIGN(8) :

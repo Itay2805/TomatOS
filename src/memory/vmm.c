@@ -256,6 +256,7 @@ error_t vmm_init(multiboot_info_t* info) {
         switch(it->type) {
             case MULTIBOOT_MEMORY_AVAILABLE:
             case MULTIBOOT_MEMORY_RESERVED:
+            case MULTIBOOT_MEMORY_NVS:
             case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE: {
                 // all these addresses should be mapped to higher half
                 for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
@@ -263,7 +264,11 @@ error_t vmm_init(multiboot_info_t* info) {
                         log_error("Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", addr, ALIGN_DOWN(it->addr + it->len, KB(4)));
                         break;
                     }
-                    CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (addr + 0xFFFF800000000000), (void *) (addr), PAGE_ATTR_WRITE));
+                    int attr = 0;
+                    if(it->type != MULTIBOOT_MEMORY_NVS) {
+                        attr = PAGE_ATTR_WRITE;
+                    }
+                    CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (addr + 0xFFFF800000000000), (void *) (addr), attr));
                 }
             } break;
             default: break;

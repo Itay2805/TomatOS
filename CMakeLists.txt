@@ -67,9 +67,11 @@ set(KERNEL_SOURCE_FILES
         src/drivers/acpi/acpi.h
         src/drivers/acpi/rdsp.c
         src/drivers/acpi/rsdp.h
+        src/drivers/acpi/rsdt.c
+        src/drivers/acpi/rsdt.h
 
-        src/drivers/e9hack/e9hack.c
-        src/drivers/e9hack/e9hack.h
+        src/drivers/vmdev/vmdev.c
+        src/drivers/vmdev/vmdev.h
         src/drivers/rtc/rtc.h
         src/drivers/rtc/rtc.c
         src/drivers/portio.h
@@ -103,7 +105,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c src/drivers/acpi/rsdt.c src/drivers/acpi/rsdt.h)
+        src/main.c)
 
 include_directories(src)
 include_directories(lib/libc)

@@ -39,18 +39,28 @@ error_t pmm_early_init(multiboot_info_t* info) {
     log_debug("PMM stack size %lld bytes (%lld entries)", total_size_for_stack, stack_cap);
 
     addrs = (uint64_t *) (ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)) + KB(4));
+    uintptr_t kernel_end = ALIGN_UP(ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)) + KB(4) + total_size_for_stack, KB(4));
 
     log_debug("Memory map:");
     for(it = entries; (char*)it - (char*)entries < info->mmap_length; it++) {
         log_debug("\t0x%016p-0x%016p: %s", it->addr, it->addr + it->len, MMAP_TYPE[it->type]);
         if(it->type == MULTIBOOT_MEMORY_AVAILABLE) {
             for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
-                // we want the first 1mb to stay as is
-                if(addr <= MB(1)) continue;
+                // only use physical memory from the kernel upwards
+                if(addr <= kernel_end)  continue;
+
                 CHECK_AND_RETHROW(pmm_free(addr));
             }
         }
     }
+
+    // reverse the stack, we do this because otherwise we will allocate high addresses
+    // before even having that place mapped, this will make us allocate lower addresses first
+    for(int i = 0; i < stack_len / 2; i++) {
+        uint64_t tmp = addrs[stack_len - i];
+        addrs[stack_len - i] = addrs[i];
+    addrs[i] = tmp;
+}
 
 cleanup:
     return err;

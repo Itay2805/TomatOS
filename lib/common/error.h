@@ -51,8 +51,8 @@ extern const char* error_names[ERROR_COUNT];
     do { \
         if(!(cond)) { \
             err = error; \
-            log_func("error `%s` thrown (%s:%d), trace:", error_names[err], __FILENAME__, __LINE__); \
-            log_func(fmt, ## __VA_ARGS__); \
+            log_func("error `%s`: " fmt, error_names[err], ## __VA_ARGS__); \
+            log_func("thrown (%s:%d), trace:", __FILENAME__, __LINE__); \
             goto cleanup; \
         } \
     } while(0)

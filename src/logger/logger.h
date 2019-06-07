@@ -23,7 +23,7 @@ typedef struct logger {
  *
  * @param logger - the logger, will be copied to an internal array
  */
-void logger_register(const logger_t* logger);
+void logger_register(logger_t* logger);
 
 void log_debug_full(const char* filename, const char* function, int line, const char* fmt, ...);
 void log_info_full(const char* filename, const char* function, int line, const char* fmt, ...);

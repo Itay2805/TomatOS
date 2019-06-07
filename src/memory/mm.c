@@ -379,7 +379,7 @@ static error_t internal_free(mm_block_t* block) {
 error_t mm_init() {
     error_t err = NO_ERROR;
 
-    CHECK_AND_RETHROW(vmm_allocate(vmm_get(), (void *) 0xFFFFFFFF00000000, PAGE_ATTR_WRITE));
+    CHECK_AND_RETHROW(vmm_allocate(kernel_address_space, (void *) 0xFFFFFFFF00000000, PAGE_ATTR_WRITE));
     first_block = (mm_block_t*)0xFFFFFFFF00000000;
     last_block = first_block;
     free_block = first_block;

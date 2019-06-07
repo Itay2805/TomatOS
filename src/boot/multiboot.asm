@@ -28,10 +28,10 @@ dd 0 ; bss_end_addr
 dd 0 ; entry_addr
 
 ; these are the graphics fields
-dd 0    ; video mode
-dd 1024 ; width
-dd 768  ; height
-dd 32   ; depth (bpp)
+;dd 0    ; video mode
+;dd 1024 ; width
+;dd 768  ; height
+;dd 32   ; depth (bpp)
 
 ; ====================================
 ;   Multiboot entry

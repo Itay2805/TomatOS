@@ -20,15 +20,15 @@ enum {
     LOG_LEVEL_DEBUG,
 };
 
-logger_t loggers[LOGGER_COUNT] = {};
+logger_t* loggers[LOGGER_COUNT] = {};
 
 static int log_count = 0;
 
-void logger_register(const logger_t* logger) {
+void logger_register(logger_t* logger) {
     for(int i = 0; i < LOGGER_COUNT; i++) {
-        if(!loggers[i].enabled) {
-            loggers[i] = *logger;
-            loggers[i].enabled = true;
+        if(loggers[i] == NULL) {
+            loggers[i] = logger;
+            loggers[i]->enabled = true;
             break;
         }
     }
@@ -61,9 +61,9 @@ static const char* LEVEL_NAMES[] = {
 ///////////////////////////////////////////////////////
 
 static void write_to_loggers(const char* str) {
-    for(logger_t* logger = loggers; logger < loggers + LOGGER_COUNT; logger++) {
-        if(logger->enabled) {
-            logger->write(str);
+    for(logger_t** logger = loggers; logger < loggers + LOGGER_COUNT; logger++) {
+        if(*logger != NULL && (*logger)->enabled) {
+            (*logger)->write(str);
         }
     }
 }

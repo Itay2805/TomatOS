@@ -9,4 +9,9 @@
  */
 error_t acpi_init();
 
+/**
+ * Check if the checksum of an acpi table is correct
+ */
+bool acpi_validate_checksum(const void* addr, size_t size);
+
 #endif //TOMATKERNEL_ACPI_H

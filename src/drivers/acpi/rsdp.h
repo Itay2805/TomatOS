@@ -25,7 +25,6 @@ typedef struct rsdp2 {
 extern rsdp2_t* rsdp2;
 extern rsdp_t* rsdp;
 
-
 /**
  * Will search for the rsdp
  */
