@@ -28,6 +28,15 @@ error_t pci_init() {
     }else if(pci_legacy_supported()) {
         pcitype = PCI_TYPE_LEGACY;
         log_info("Legacy PCI is supported");
+
+        // set the config read/write
+        pci_config_read_64 = pci_legacy_config_read_64;
+        pci_config_read_32 = pci_legacy_config_read_32;
+        pci_config_read_16 = pci_legacy_config_read_16;
+        pci_config_read_8 = pci_legacy_config_read_8;
+
+
+        // initialize the driver
         CHECK_AND_RETHROW(pci_legacy_init());
     }else {
         CHECK_FAIL_ERROR_TRACE(ERROR_NOT_IMPLEMENTED, "No PCI controller found!");
