@@ -25,7 +25,7 @@ void* calloc(size_t count, size_t size) {
     error_t err = NO_ERROR;
     void* ptr = NULL;
 
-    CHECK_AND_RETHROW(mm_allocate(size * count, ptr));
+    CHECK_AND_RETHROW(mm_allocate(size * count, &ptr));
 
 cleanup:
     return ptr;

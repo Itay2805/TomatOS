@@ -4,8 +4,8 @@
 #include "idt.h"
 
 typedef struct timer {
-    size_t initial_millis;
-    size_t millis_left;
+    int64_t initial_millis;
+    int64_t millis_left;
     interrupt_handler_f handler;
 } timer_t;
 
@@ -32,6 +32,15 @@ cleanup:
             _hlt();
         }
     }
+}
+
+error_t timer_add(interrupt_handler_f handler, uint64_t time) {
+    buf_push(timers, (timer_t){
+        .initial_millis = time,
+        .millis_left = 0,
+        .handler = handler
+    });
+    return NO_ERROR;
 }
 
 error_t timer_init() {

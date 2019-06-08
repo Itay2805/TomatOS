@@ -55,6 +55,9 @@ typedef struct thread {
         } join;
     };
 
+    // the priority of the thread
+    int64_t priority;
+
     // This allows the kernel to track how many stuff are waiting for the thread
     int refcount;
 
@@ -97,6 +100,9 @@ error_t thread_create(struct process* process, void*(*start_routine)(void*), voi
  *
  * @remark
  * Attempting to join a cancelled thread will return ERROR_CANCELLED_THREAD
+ *
+ * @remark
+ * The caller has to decrease the refcount by itself
  *
  * @param thread    [IN] The thread to cancel
  */

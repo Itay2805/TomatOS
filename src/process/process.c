@@ -11,14 +11,17 @@ error_t process_create(process_t** process, void*(start_routine)(void*), int arg
     // create a new process
     process_t* new_process = calloc(1, sizeof(process_t));
     new_process->pid = (int) ++pid;
+    new_process->address_space = kernel_address_space;
+    new_process->base_priority = 10;
 
-    // create a thread
-    CHECK_AND_RETHROW(thread_create(new_process, start_routine, NULL, &thread));
+    if(start_routine) {
+        // create a thread, if has start routine
+        CHECK_AND_RETHROW(thread_create(new_process, start_routine, NULL, &thread));
 
-    // set the main arguments
-    thread->state.cpu.rdi = (uint64_t) argc;
-    thread->state.cpu.rdi = (uint64_t) argv;
-
+        // set the main arguments
+        thread->state.cpu.rdi = (uint64_t) argc;
+        thread->state.cpu.rdi = (uint64_t) argv;
+    }
 
     map_put_from_uint64(&processes, (uint64_t) new_process->pid, new_process);
 

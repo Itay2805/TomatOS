@@ -20,6 +20,9 @@ typedef struct process {
 
     // holds a list of all threads
     map_t threads;
+
+    // the base priority of all other threads
+    uint64_t base_priority;
 } process_t;
 
 /**

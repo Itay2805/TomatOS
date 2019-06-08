@@ -6,15 +6,12 @@
 #include "scheduler.h"
 #include "process.h"
 
-thread_t* running_thread;
-
 error_t thread_create(struct process* process, void*(*start_routine)(void*), void* arg, thread_t** thread) {
     error_t err = NO_ERROR;
 
     // allocate the thread
     thread_t* new_thread = calloc(1, sizeof(thread_t));
     new_thread->tid = ++process->next_tid;
-    new_thread->refcount++;
     new_thread->status = THREAD_STATUS_READY;
 
     // set the segments
@@ -35,8 +32,14 @@ error_t thread_create(struct process* process, void*(*start_routine)(void*), voi
     new_thread->state.cpu.rdi = (uint64_t) arg;
     new_thread->state.cpu.rip = (uint64_t) start_routine;
 
+    // set the priority
+    new_thread->priority = new_thread->parent->base_priority;
+
     // add the thread to the threads list of the process
     map_put_from_uint64(&process->threads, (uint64_t) new_thread->tid, new_thread);
+
+    // add the process to the scheduler
+    scheduler_add(new_thread);
 
     *thread = new_thread;
 
@@ -68,7 +71,6 @@ error_t thread_cancel(thread_t* thread) {
     if(thread->status != THREAD_STATUS_POOLED) goto cleanup;
 
     // set the thread as dead
-    thread->refcount--;
     thread->status = THREAD_STATUS_CANCELED;
 
     // only close and free if not pooling this thread and the refcount is 0

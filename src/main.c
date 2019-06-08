@@ -19,6 +19,18 @@
 #include <common.h>
 #include <error.h>
 #include <interrupts/timer.h>
+#include <process/scheduler.h>
+#include <process/process.h>
+
+static void* test_1(void* arg) {
+    (void)arg;
+    while(true) vmdev_write("1");
+}
+
+static void* test_2(void* arg) {
+    (void)arg;
+    while(true) vmdev_write("2");
+}
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -57,6 +69,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pic8259_disable());
     CHECK_AND_RETHROW(apic_init());
     CHECK_AND_RETHROW(timer_init());
+    CHECK_AND_RETHROW(scheduler_init());
 
     /*********************************************************
      * Driver initialization
@@ -70,6 +83,15 @@ void kernel_main(multiboot_info_t* info) {
      * Initialization completed
      *********************************************************/
     log_info("initialization finished");
+
+    process_t* process = NULL;
+    thread_t* thread_1 = NULL;
+    thread_t* thread_2 = NULL;
+    CHECK_AND_RETHROW(process_create(&process, NULL, 0, NULL));
+    CHECK_AND_RETHROW(thread_create(process, test_1, NULL, &thread_1));
+    CHECK_AND_RETHROW(thread_create(process, test_2, NULL, &thread_2));
+
+
 
     // TODO: start the scheduler
     _sti();

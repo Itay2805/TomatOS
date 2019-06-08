@@ -14,6 +14,16 @@
  */
 error_t timer_init();
 
+// TODO: Support one-shot timers
+
+/**
+ * Add an interval timer
+ *
+ * @param handler   [IN] The handler to call on the timer
+ * @param time      [IN] The time in millis for each interval
+ */
+error_t timer_add(interrupt_handler_f handler, uint64_t time);
+
 /**
  * The timer interrupt stub, calls the timer_interrupt_handler
  */
