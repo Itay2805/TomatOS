@@ -242,7 +242,7 @@ error_t vmm_init(multiboot_info_t* info) {
     // enable whatever features we wanna use
     log_info("Enabling features");
     log_info("\t* No execute");
-    wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_NO_EXECUTE_ENABLE);
+    _wrmsr(MSR_EFER, _rdmsr(MSR_EFER) | EFER_NO_EXECUTE_ENABLE);
 
     physical_memory = 0;
 

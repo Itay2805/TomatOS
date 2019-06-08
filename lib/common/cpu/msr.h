@@ -23,17 +23,17 @@
 #define MSR_GS_BASE 0xc0000101
 #define MSR_KERNEL_GS_BASE 0xc0000102
 
-static inline uint64_t rdmsr(uint32_t msr) {
+static inline uint64_t _rdmsr(uint32_t msr) {
     uint32_t low, high;
     asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
     return ((uint64_t)high << 32u) | (uint64_t)low;
 }
 
-static inline void wrmsr(uint32_t msr, uint64_t value) {
+static inline void _wrmsr(uint32_t msr, uint64_t value) {
     asm volatile("wrmsr" : : "c"(msr), "a"(value & 0xFFFFFFFF), "d"(value >> 32));
 }
 
-static inline uint64_t rdtsc(void) {
+static inline uint64_t _rdtsc(void) {
     uint32_t low, high;
     asm volatile("rdtsc" : "=a"(low), "=d"(high));
     return ((uint64_t)high << 32) | low;

@@ -50,6 +50,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(acpi_init());
+    CHECK_AND_RETHROW(pic8259_disable());
 
     /*********************************************************
      * Driver initialization

@@ -19,7 +19,7 @@ error_t rsdt_init() {
         rsdt = (rsdt_t *) PHYSICAL_ADDRESS(rsdp->rsdt_addr);
         hdr = &rsdt->header;
 
-        log_info("\tRSDT found (0x%016p):", (uintptr_t)rsdt - PHYSICAL_BASE);
+        log_info("\tRSDT found (0x%016p)", (uintptr_t)rsdt - PHYSICAL_BASE);
     }else {
         xsdt = (xsdt_t *) PHYSICAL_ADDRESS(rsdp2->xsdt_addr);
         hdr = &xsdt->header;
@@ -29,19 +29,19 @@ error_t rsdt_init() {
             log_warn("\tUnknown ACPI revision, assuming XSDT");
         }
 
-        log_info("\tXSDT found (0x%016p):", (uintptr_t)xsdt - PHYSICAL_BASE);
+        log_info("\tXSDT found (0x%016p)", (uintptr_t)xsdt - PHYSICAL_BASE);
     }
 
     CHECK_TRACE(acpi_validate_checksum(hdr, hdr->length), "Invalid SDT checksum!");
-    log_info("\t\tRevision: %d", hdr->revision);
-    log_info("\t\tOEM ID: %c%c%c%c%c%c"
+    log_debug("\t\tRevision: %d", hdr->revision);
+    log_debug("\t\tOEM ID: %c%c%c%c%c%c"
                         , hdr->oemid[0]
                         , hdr->oemid[1]
                         , hdr->oemid[2]
                         , hdr->oemid[3]
                         , hdr->oemid[4]
                         , hdr->oemid[5]);
-    log_info("\t\tOEM TABLE ID: %c%c%c%c%c%c%c%c"
+    log_debug("\t\tOEM TABLE ID: %c%c%c%c%c%c%c%c"
                         , hdr->oem_table_id[0]
                         , hdr->oem_table_id[1]
                         , hdr->oem_table_id[2]
@@ -50,6 +50,32 @@ error_t rsdt_init() {
                         , hdr->oem_table_id[5]
                         , hdr->oem_table_id[6]
                         , hdr->oem_table_id[7]);
+
+
+    // just for debugging
+    log_debug("\t\tentries:");
+    if(rsdt != NULL) {
+        // rsdt iteration
+        for(uint32_t* sdt = rsdt->sdts; sdt < (rsdt->sdts + ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4)); sdt++) {
+            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+            log_debug("\t\t\t%c%c%c%c"
+            , hdr->signature[0]
+            , hdr->signature[1]
+            , hdr->signature[2]
+            , hdr->signature[3]);
+        }
+    }else {
+        // xsdt iteration
+        for(uint64_t* sdt = xsdt->sdts; sdt < (xsdt->sdts + ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8)); sdt++) {
+            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+            log_debug("\t\t\t%c%c%c%c"
+            , hdr->signature[0]
+            , hdr->signature[1]
+            , hdr->signature[2]
+            , hdr->signature[3]);
+        }
+    }
+
 
     CHECK_ERROR_TRACE(rsdt || xsdt, ERROR_NOT_FOUND, "Could not find xsdt/rsdt!");
 cleanup:
