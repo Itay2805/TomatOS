@@ -1,4 +1,5 @@
 #include <buf.h>
+#include <drivers/apic/lapic.h>
 #include "timer.h"
 #include "idt.h"
 
@@ -20,6 +21,9 @@ static void interrupt_handler(registers_t regs) {
             CHECK_AND_RETHROW(timer->handler(&regs));
         }
     }
+    log_info("Hello there");
+
+    CHECK_AND_RETHROW(lapic_send_eoi());
 
 cleanup:
     if(err != NO_ERROR) {

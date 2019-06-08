@@ -21,7 +21,7 @@ static error_t mesure_ticks_per_second() {
 
     // set the timer vector (none-periodic at the start)
     lapic_lvt_t lvt_timer = {
-            .vector = INTERRUPT_TIMER,
+            .vector = 0,
             .periodic = false,
             .delievery_mode = LAPIC_LVT_FIXED
     };
@@ -110,5 +110,10 @@ error_t lapic_enable() {
     svr->enabled = true;
     svr->vector = LAPIC_SPURIOUS_VECTOR;
     lapic_write(LAPIC_REG_SIVR, reg);
+    return NO_ERROR;
+}
+
+error_t lapic_send_eoi() {
+    lapic_write(LAPIC_REG_EOI, 0);
     return NO_ERROR;
 }

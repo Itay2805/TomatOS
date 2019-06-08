@@ -146,4 +146,9 @@ uint8_t lapic_get_id();
  */
 error_t lapic_enable();
 
+/**
+ * Send an EOI to the Local APIC controller
+ */
+error_t lapic_send_eoi();
+
 #endif //TOMATKERNEL_LAPIC_H
