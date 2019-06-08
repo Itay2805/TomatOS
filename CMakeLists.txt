@@ -30,6 +30,7 @@ endif ()
 
 set(COMMON_SOURCE_FILES
         lib/common/cpu/cr.h
+        lib/common/cpu/cpuid.h
         lib/common/cpu/msr.h
         lib/common/cpu/rflags.h
         lib/common/buf.c
@@ -74,6 +75,11 @@ set(KERNEL_SOURCE_FILES
         src/drivers/acpi/rsdt.c
         src/drivers/acpi/rsdt.h
 
+        src/drivers/apic/apic.c
+        src/drivers/apic/apic.h
+        src/drivers/apic/lapic.c
+        src/drivers/apic/lapic.h
+
         src/drivers/pci/legacy.c
         src/drivers/pci/legacy.h
         src/drivers/pci/pci.c
@@ -98,6 +104,9 @@ set(KERNEL_SOURCE_FILES
         src/interrupts/isr.asm
         src/interrupts/isr.c
         src/interrupts/isr.h
+        src/interrupts/timer.asm
+        src/interrupts/timer.c
+        src/interrupts/timer.h
 
         src/logger/logger.c
         src/logger/logger.h
@@ -121,7 +130,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c lib/common/cpu/cpuid.h src/drivers/apic/apic.c src/drivers/apic/apic.h src/drivers/apic/lapic.c src/drivers/apic/lapic.h src/interrupts/timer.c src/interrupts/timer.h)
+        src/main.c)
 
 include_directories(src)
 include_directories(lib/libc)

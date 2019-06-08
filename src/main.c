@@ -75,7 +75,7 @@ void kernel_main(multiboot_info_t* info) {
     _sti();
 
     while(true) {
-        // _hlt();
+        _hlt();
     }
 
 cleanup:

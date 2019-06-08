@@ -9,9 +9,9 @@ typedef struct timer {
     interrupt_handler_f handler;
 } timer_t;
 
-static timer_t* timers;
+static timer_t* timers = NULL;
 
-static void interrupt_handler(registers_t regs) {
+void timer_interrupt_handler(registers_t regs) {
     error_t err = NO_ERROR;
 
     for(timer_t* timer = timers; timer < buf_end(timers); timer++) {
@@ -21,7 +21,6 @@ static void interrupt_handler(registers_t regs) {
             CHECK_AND_RETHROW(timer->handler(&regs));
         }
     }
-    log_info("Hello there");
 
     CHECK_AND_RETHROW(lapic_send_eoi());
 
@@ -37,6 +36,6 @@ cleanup:
 
 error_t timer_init() {
     log_info("Setting timer");
-    idt_set_entry(INTERRUPT_TIMER, interrupt_handler, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_TIMER, timer_interrupt_stub, IDT_INTERRUPT_GATE, 0);
     return NO_ERROR;
 }

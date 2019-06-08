@@ -14,4 +14,14 @@
  */
 error_t timer_init();
 
+/**
+ * The timer interrupt stub, calls the timer_interrupt_handler
+ */
+extern void timer_interrupt_stub();
+
+/**
+ * The timer interrupt handler, called from the stub
+ */
+void timer_interrupt_handler(registers_t regs);
+
 #endif //TOMATKERNEL_TIMER_H
