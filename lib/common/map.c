@@ -41,9 +41,15 @@ void map_grow(map_t *map, size_t new_cap) {
 
 void map_put_uint64_from_uint64(map_t *map, uint64_t key, uint64_t val) {
     // TODO: assert(key);
+
+    // if val is NULL will remove the entry
     if (!val) {
+        if(map_get_uint64_from_uint64(map, key)) {
+            map->len--;
+        }
         return;
     }
+
     if (2*map->len >= map->cap) {
         map_grow(map, 2*map->cap);
     }

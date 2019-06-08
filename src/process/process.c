@@ -2,6 +2,7 @@
 #include "thread.h"
 
 map_t processes;
+uint64_t pid;
 
 error_t process_create(process_t** process, void*(start_routine)(void*), int argc, const char* argv[]) {
     error_t err = NO_ERROR;
@@ -9,6 +10,7 @@ error_t process_create(process_t** process, void*(start_routine)(void*), int arg
 
     // create a new process
     process_t* new_process = calloc(1, sizeof(process_t));
+    new_process->pid = (int) ++pid;
 
     // create a thread
     CHECK_AND_RETHROW(thread_create(new_process, start_routine, NULL, &thread));
@@ -16,6 +18,9 @@ error_t process_create(process_t** process, void*(start_routine)(void*), int arg
     // set the main arguments
     thread->state.cpu.rdi = (uint64_t) argc;
     thread->state.cpu.rdi = (uint64_t) argv;
+
+
+    map_put_from_uint64(&processes, (uint64_t) new_process->pid, new_process);
 
     // finished!
     *process = new_process;
