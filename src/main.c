@@ -18,6 +18,7 @@
 
 #include <common.h>
 #include <error.h>
+#include <interrupts/timer.h>
 
 void kernel_main(multiboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -51,8 +52,11 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(acpi_init());
+
+    // interrupts related initialization
     CHECK_AND_RETHROW(pic8259_disable());
     CHECK_AND_RETHROW(apic_init());
+    CHECK_AND_RETHROW(timer_init());
 
     /*********************************************************
      * Driver initialization

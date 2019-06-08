@@ -107,6 +107,11 @@ typedef struct lapic_svr {
 // TODO: ICR, only needed for IPI
 
 /**
+ * This is the ticks per seconds of the timer
+ */
+extern uint32_t lapic_timer_ticks_per_second;
+
+/**
  * Initialize the Local APIC
  *
  * This will set the NMIs and Spurious interrupts

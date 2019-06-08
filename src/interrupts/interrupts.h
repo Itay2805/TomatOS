@@ -6,6 +6,10 @@
 #include <common.h>
 #include <error.h>
 
+// the different kind of interrupts we can handle
+#define INTERRUPT_TIMER     0x20
+#define INTERRUPT_IRQ_BASE  0x30
+
 /**
  * All of the registers pushed from the IDT
  */
