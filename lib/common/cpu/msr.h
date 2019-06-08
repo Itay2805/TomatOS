@@ -23,6 +23,8 @@
 #define MSR_GS_BASE 0xc0000101
 #define MSR_KERNEL_GS_BASE 0xc0000102
 
+#define IA32_APIC_BASE 0x1B
+
 static inline uint64_t _rdmsr(uint32_t msr) {
     uint32_t low, high;
     asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
