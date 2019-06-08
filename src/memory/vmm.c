@@ -254,10 +254,11 @@ error_t vmm_init(multiboot_info_t* info) {
     log_debug("mapping the physical memory");
     for(it = entries; (char*)it - (char*)entries < info->mmap_length; it++) {
         switch(it->type) {
-            case MULTIBOOT_MEMORY_AVAILABLE:
-            case MULTIBOOT_MEMORY_RESERVED:
-            case MULTIBOOT_MEMORY_NVS:
-            case MULTIBOOT_MEMORY_ACPI_RECLAIMABLE: {
+            /*
+             * We are going to only map the available pages, for any MMIO related stuff
+             * the driver will have to map it itself
+             */
+            case MULTIBOOT_MEMORY_AVAILABLE: {
                 // all these addresses should be mapped to higher half
                 for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
                     if(addr >= 0xFFFFFFFF00000000) {

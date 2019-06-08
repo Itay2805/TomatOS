@@ -3,6 +3,7 @@
 #include <drivers/vmdev/vmdev.h>
 #include <drivers/pic8259/pic.h>
 #include <drivers/acpi/acpi.h>
+#include <drivers/apic/apic.h>
 #include <drivers/pci/pci.h>
 
 #include <interrupts/interrupts.h>
@@ -51,6 +52,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(acpi_init());
     CHECK_AND_RETHROW(pic8259_disable());
+    CHECK_AND_RETHROW(apic_init());
 
     /*********************************************************
      * Driver initialization

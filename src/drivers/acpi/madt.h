@@ -3,10 +3,13 @@
 
 #include "rsdt.h"
 
-#define MADT_LAPIC              0
-#define MADT_IOAPIC             1
-#define MADT_ISO                2
-#define MADT_NMI                3
+#define MADT_TYPE_LAPIC             0
+#define MADT_TYPE_IOAPIC            1
+#define MADT_TYPE_ISO               2
+#define MADT_TYPE_NMI               4
+
+#define MADT_FLAG_ACTIVE_LOW        2
+#define MADT_FLAG_LEVEL_TRIGGERED   8
 
 typedef struct madt_lapic {
     uint8_t acpi_processor_id;

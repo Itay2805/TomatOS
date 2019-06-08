@@ -121,7 +121,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c lib/common/cpu/cpuid.h)
+        src/main.c lib/common/cpu/cpuid.h src/drivers/apic/apic.c src/drivers/apic/apic.h src/drivers/apic/lapic.c src/drivers/apic/lapic.h)
 
 include_directories(src)
 include_directories(lib/libc)

@@ -18,11 +18,17 @@ error_t rsdt_init() {
     if(rsdp->revision == 0) {
         rsdt = (rsdt_t *) PHYSICAL_ADDRESS(rsdp->rsdt_addr);
         hdr = &rsdt->header;
+        if(!vmm_is_mapped(kernel_address_space, (uintptr_t) rsdt)) {
+            CHECK_AND_RETHROW(vmm_map(kernel_address_space, rsdt, (void*)(uintptr_t)rsdp->rsdt_addr, 0));
+        }
 
         log_info("\tRSDT found (0x%016p)", (uintptr_t)rsdt - PHYSICAL_BASE);
     }else {
         xsdt = (xsdt_t *) PHYSICAL_ADDRESS(rsdp2->xsdt_addr);
         hdr = &xsdt->header;
+        if(!vmm_is_mapped(kernel_address_space, (uintptr_t) xsdt)) {
+            CHECK_AND_RETHROW(vmm_map(kernel_address_space, xsdt, (void*)(uintptr_t)rsdp2->xsdt_addr, 0));
+        }
 
 
         if(rsdp->revision != 2) {
@@ -57,22 +63,28 @@ error_t rsdt_init() {
     if(rsdt != NULL) {
         // rsdt iteration
         for(uint32_t* sdt = rsdt->sdts; sdt < (rsdt->sdts + ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4)); sdt++) {
-            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+            hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+            if(!vmm_is_mapped(kernel_address_space, (uintptr_t) hdr)) {
+                CHECK_AND_RETHROW(vmm_map(kernel_address_space, hdr, (void*)(uintptr_t)*sdt, 0));
+            }
             log_debug("\t\t\t%c%c%c%c"
-            , hdr->signature[0]
-            , hdr->signature[1]
-            , hdr->signature[2]
-            , hdr->signature[3]);
+                , hdr->signature[0]
+                , hdr->signature[1]
+                , hdr->signature[2]
+                , hdr->signature[3]);
         }
     }else {
         // xsdt iteration
         for(uint64_t* sdt = xsdt->sdts; sdt < (xsdt->sdts + ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8)); sdt++) {
-            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+            hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+            if(!vmm_is_mapped(kernel_address_space, (uintptr_t) hdr)) {
+                CHECK_AND_RETHROW(vmm_map(kernel_address_space, hdr, (void*)(uintptr_t)*sdt, 0));
+            }
             log_debug("\t\t\t%c%c%c%c"
-            , hdr->signature[0]
-            , hdr->signature[1]
-            , hdr->signature[2]
-            , hdr->signature[3]);
+                , hdr->signature[0]
+                , hdr->signature[1]
+                , hdr->signature[2]
+                , hdr->signature[3]);
         }
     }
 

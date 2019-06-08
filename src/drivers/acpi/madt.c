@@ -39,24 +39,24 @@ error_t madt_init() {
     madt_entry_t* cur = &madt->entries[0];
     for(uintptr_t addr = (uintptr_t) madt->entries; addr < (uintptr_t)madt->entries + (madt->header.length - sizeof(madt_t)); addr += cur->length, cur = (madt_entry_t *) addr) {
         switch(cur->type) {
-            case MADT_LAPIC: {
+            case MADT_TYPE_LAPIC: {
                 madt_lapic_t* lapic = &cur->lapic;
-                log_debug("\t\t\tLocal APIC #%d (0x%016p)", buf_len(madt_lapics), lapic);
+                log_debug("\t\t\tLocal APIC #%d (0x%016p)", buf_len(madt_lapics), (uintptr_t)lapic - PHYSICAL_BASE);
                 buf_push(madt_lapics, lapic);
             } break;
-            case MADT_IOAPIC: {
+            case MADT_TYPE_IOAPIC: {
                 madt_ioapic_t* ioapic = &cur->ioapic;
-                log_debug("\t\t\tI/O APIC #%d (0x%016p)", buf_len(madt_ioapics), ioapic);
+                log_debug("\t\t\tI/O APIC #%d (0x%016p)", buf_len(madt_ioapics), (uintptr_t)ioapic - PHYSICAL_BASE);
                 buf_push(madt_ioapics, ioapic);
             } break;
-            case MADT_ISO: {
+            case MADT_TYPE_ISO: {
                 madt_iso_t* iso = &cur->iso;
-                log_debug("\t\t\tISO #%d (0x%016p)", buf_len(madt_isos), iso);
+                log_debug("\t\t\tISO #%d (0x%016p)", buf_len(madt_isos), (uintptr_t)iso - PHYSICAL_BASE);
                 buf_push(madt_isos, iso);
             } break;
-            case MADT_NMI: {
+            case MADT_TYPE_NMI: {
                 madt_nmi_t* nmi = &cur->nmi;
-                log_debug("\t\t\tNMI #%d (0x%016p)", buf_len(madt_nmis), nmi);
+                log_debug("\t\t\tNMI #%d (0x%016p)", buf_len(madt_nmis), (uintptr_t)nmi - PHYSICAL_BASE);
                 buf_push(madt_nmis, nmi);
             } break;
             default:break;
