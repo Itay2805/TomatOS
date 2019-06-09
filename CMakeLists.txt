@@ -18,7 +18,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR
 
 # For debugging
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-    set(CMAKE_C_FLAGS "-g ${CMAKE_C_FLAGS}")
+    set(CMAKE_C_FLAGS "-g -fno-omit-frame-pointer ${CMAKE_C_FLAGS}")
     set(CMAKE_ASM_FLAGS "-g ${CMAKE_ASM_FLAGS}")
 endif ()
 
