@@ -26,7 +26,7 @@ static error_t mesure_ticks_per_second() {
             .delievery_mode = LAPIC_LVT_FIXED
     };
     lapic_write(LAPIC_REG_LVT_TIMER, *(uint32_t*)&lvt_timer);
-    lapic_write(LAPIC_REG_TIMER_DEVIDER, 0b111); // no divide
+    lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1); // no divide
 
     // wait till we reach a second
     CHECK_AND_RETHROW(rtc_unixtime(&start));
@@ -34,11 +34,12 @@ static error_t mesure_ticks_per_second() {
         CHECK_AND_RETHROW(rtc_unixtime(&end));
     } while(end - start != 1);
 
-    // set to max count
-    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, 0xFFFFFFFF);
 
     // sleep
     CHECK_AND_RETHROW(rtc_unixtime(&start));
+
+    // set to max count
+    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, 0xFFFFFFFF);
     do {
         CHECK_AND_RETHROW(rtc_unixtime(&end));
     } while(end - start != 1);
@@ -59,8 +60,8 @@ static error_t set_lapic_timer() {
             .delievery_mode = LAPIC_LVT_FIXED
     };
     lapic_write(LAPIC_REG_LVT_TIMER, *(uint32_t*)&lvt_timer);
-    lapic_write(LAPIC_REG_TIMER_DEVIDER, 0b111); // no divide
-    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, lapic_timer_ticks_per_second / 100);
+    lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1); // no divide
+    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, lapic_timer_ticks_per_second / 1000);
 
     return NO_ERROR;
 }

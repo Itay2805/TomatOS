@@ -22,7 +22,7 @@ static void do_context_switch(registers_t* regs, thread_t* new) {
     if(running_thread != NULL) {
         // save the state of the running thread
         running_thread->state.cpu = *regs;
-        _fxsave(running_thread->state.fpu);
+        // TODO: _fxsave(running_thread->state.fpu);
 
         // TODO: If switching to a different mode (user/supervisor) we will need to change the syscall registers
 
@@ -31,7 +31,7 @@ static void do_context_switch(registers_t* regs, thread_t* new) {
 
     // load the new thread state
     *regs = new->state.cpu;
-    _fxrstor(new->state.fpu);
+   // TODO: _fxrstor(new->state.fpu);
     new->status = THREAD_STATUS_RUNNING;
 
     // set the new as the running thread
@@ -42,8 +42,11 @@ static error_t scheduler_timer(registers_t* regs) {
     error_t err = NO_ERROR;
 
     // choose new thread
-    thread_t* new_thread = threads[i % buf_len(threads)];
-    i = (i + 1) % buf_len(threads);
+    thread_t* new_thread = NULL;
+    do {
+        new_thread = threads[i % buf_len(threads)];
+        i = (i + 1) % buf_len(threads);
+    } while(new_thread->status != THREAD_STATUS_READY);
 
     // do context switch
     do_context_switch(regs, new_thread);

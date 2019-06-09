@@ -1,5 +1,6 @@
 #include <buf.h>
 #include <memory/gdt.h>
+#include <cpu/rflags.h>
 #include "thread.h"
 
 #include "signal.h"
@@ -24,10 +25,18 @@ error_t thread_create(struct process* process, void*(*start_routine)(void*), voi
 
         // for kernel thread also allocate a stack
         new_thread->stack = malloc(MB(2));
+        new_thread->state.cpu.rsp = (uint64_t) new_thread->stack;
+        new_thread->state.cpu.rbp = (uint64_t) new_thread->stack;
+
+        // set the rflags
+        new_thread->state.cpu.rflags = RFLAGS_DEFAULT;
     }else {
         new_thread->state.cpu.cs = GDT_USER_CODE;
         new_thread->state.cpu.ds = GDT_USER_DATA;
         new_thread->state.cpu.ss = GDT_USER_DATA;
+
+        // set the rflags
+        new_thread->state.cpu.rflags = RFLAGS_DEFAULT_USER;
     }
 
     // set the start up

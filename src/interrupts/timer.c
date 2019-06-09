@@ -21,7 +21,7 @@ void timer_interrupt_handler(registers_t regs) {
     }
 
     for(timer_t* timer = timers; timer < buf_end(timers); timer++) {
-        timer->millis_left -= 10;
+        timer->millis_left -= 1;
         if(timer->millis_left <= 0) {
             timer->millis_left = timer->initial_millis;
             CHECK_AND_RETHROW(timer->handler(&regs));

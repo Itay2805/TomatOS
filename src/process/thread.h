@@ -88,6 +88,10 @@ error_t thread_register_syscalls();
 /**
  * This allows to create a new thread for the given process
  *
+ * @remark
+ * Will only set the stack for kernel threads!
+ * for user process the creator will have to set the stack.
+ *
  * @param process           [IN]    The parent process
  * @param start_routine     [IN]    The start routine (where we will jump to)
  * @param arg               [IN]    The argument to pass to the start routine

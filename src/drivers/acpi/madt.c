@@ -14,9 +14,9 @@ error_t madt_init() {
     error_t err = NO_ERROR;
 
     madt = (madt_t*) rsdt_search("APIC");
-    CHECK_ERROR_TRACE(madt, ERROR_NOT_FOUND, "MADT Not found");
+    CHECK_ERROR_TRACE(madt, ERROR_NOT_FOUND, "MADT (APIC) Not found");
 
-    log_info("\tMADT Found (0x%016p)", (uintptr_t)madt - PHYSICAL_BASE);
+    log_info("\tMADT (APIC) Found (0x%016p)", (uintptr_t)madt - PHYSICAL_BASE);
     log_debug("\t\tRevision: %d", madt->header.revision);
     log_debug("\t\tOEM ID: %c%c%c%c%c%c"
             , madt->header.oemid[0]
