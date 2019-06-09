@@ -29,7 +29,8 @@
 /**
  * Will initialize the exception interrupts
  *
- * Note: This will be called by the idt_init function, do not call this manually
+ * @remark
+ * This will be called by the idt_init function, do not call this manually
  */
 void isr_init();
 

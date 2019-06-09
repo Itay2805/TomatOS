@@ -24,14 +24,5 @@ error_t timer_init();
  */
 error_t timer_add(interrupt_handler_f handler, uint64_t time);
 
-/**
- * The timer interrupt stub, calls the timer_interrupt_handler
- */
-extern void timer_interrupt_stub();
-
-/**
- * The timer interrupt handler, called from the stub
- */
-void timer_interrupt_handler(registers_t regs);
 
 #endif //TOMATKERNEL_TIMER_H

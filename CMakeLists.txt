@@ -79,6 +79,8 @@ set(KERNEL_SOURCE_FILES
 
         src/drivers/apic/apic.c
         src/drivers/apic/apic.h
+        src/drivers/apic/ioapic.c
+        src/drivers/apic/ioapic.h
         src/drivers/apic/lapic.c
         src/drivers/apic/lapic.h
 
@@ -103,10 +105,12 @@ set(KERNEL_SOURCE_FILES
         src/interrupts/idt.c
         src/interrupts/idt.h
         src/interrupts/interrupts.h
+        src/interrupts/irq.asm
+        src/interrupts/irq.c
+        src/interrupts/irq.h
         src/interrupts/isr.asm
         src/interrupts/isr.c
         src/interrupts/isr.h
-        src/interrupts/timer.asm
         src/interrupts/timer.c
         src/interrupts/timer.h
 
@@ -133,7 +137,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c src/drivers/apic/ioapic.c src/drivers/apic/ioapic.h)
+        src/main.c)
 
 include_directories(src)
 include_directories(lib/libc)

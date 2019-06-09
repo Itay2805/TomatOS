@@ -1,6 +1,7 @@
 #include "idt.h"
 #include "interrupts.h"
 #include "isr.h"
+#include "irq.h"
 
 /**
  * The idt entries
@@ -17,6 +18,7 @@ static idt_t idt = {
 
 void idt_init() {
     isr_init();
+    irq_init();
 
     log_debug("Loading idt (entry size=%d)", (int) sizeof(idt_entry_t));
     _lidt(idt);

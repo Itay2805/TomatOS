@@ -55,8 +55,9 @@ cleanup:
 }
 
 static error_t set_lapic_timer() {
+    // TODO: Configureable vector
     lapic_lvt_t lvt_timer = {
-            .vector = INTERRUPT_TIMER,
+            .vector = INTERRUPT_IRQ_BASE + INTERRUPT_TIMER,
             .periodic = true,
             .delievery_mode = LAPIC_LVT_FIXED
     };
