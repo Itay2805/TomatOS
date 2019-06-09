@@ -1,6 +1,7 @@
 #ifndef TOMATKERNEL_IOAPIC_H
 #define TOMATKERNEL_IOAPIC_H
 
+#include <drivers/acpi/madt.h>
 #include <error.h>
 
 #define IOAPIC_REG_ID                           0x00
@@ -46,14 +47,24 @@ error_t ioapic_init();
  * @param reg       [IN] The register
  * @param value     [IN] The value
  */
-void ioapic_write(uint32_t reg, uint32_t value);
+void ioapic_write(madt_ioapic_t* ioapic, uint32_t reg, uint32_t value);
 
 /**
  * Read from a ioapic register
  *
  * @param reg       [IN] The register
  */
-uint32_t ioapic_read(uint32_t reg);
+uint32_t ioapic_read(madt_ioapic_t* ioapic, uint32_t reg);
+
+/**
+ * Will return the range of GSIs that this IOAPIC handles
+ */
+void ioapic_get_range(madt_ioapic_t* ioapic, uint32_t* gsi_start, uint32_t* gsi_end);
+
+/**
+ * Get the IOAPIC from the gsi
+ */
+madt_ioapic_t* ioapic_get_from_gsi(uint32_t gsi);
 
 /**
  * Redirect the given IRQ to a vector

@@ -22,6 +22,14 @@ extern void irq_12();
 extern void irq_13();
 extern void irq_14();
 extern void irq_15();
+extern void irq_16();
+extern void irq_17();
+extern void irq_18();
+extern void irq_19();
+extern void irq_20();
+extern void irq_21();
+extern void irq_22();
+extern void irq_23();
 
 void irq_init() {
     log_debug("Setting interrupt stubs");
@@ -41,6 +49,14 @@ void irq_init() {
     idt_set_entry(INTERRUPT_IRQ_BASE + 13, irq_13, IDT_INTERRUPT_GATE, 0);
     idt_set_entry(INTERRUPT_IRQ_BASE + 14, irq_14, IDT_INTERRUPT_GATE, 0);
     idt_set_entry(INTERRUPT_IRQ_BASE + 15, irq_15, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_IRQ_BASE + 16, irq_16, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_IRQ_BASE + 17, irq_17, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_IRQ_BASE + 18, irq_18, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_IRQ_BASE + 19, irq_19, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_IRQ_BASE + 20, irq_20, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_IRQ_BASE + 21, irq_21, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_IRQ_BASE + 22, irq_22, IDT_INTERRUPT_GATE, 0);
+    idt_set_entry(INTERRUPT_IRQ_BASE + 23, irq_23, IDT_INTERRUPT_GATE, 0);
 }
 
 void irq_common(registers_t regs) {

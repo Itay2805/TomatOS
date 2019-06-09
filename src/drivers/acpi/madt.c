@@ -49,7 +49,7 @@ error_t madt_init() {
                 madt_ioapic_t* ioapic = &cur->ioapic;
                 log_debug("\t\t\tI/O APIC #%d (0x%016p)", ioapic->id, (uintptr_t)ioapic - PHYSICAL_BASE);
                 log_debug("\t\t\t\tMMIO: 0x%016x", ioapic->mmio_base);
-                log_debug("\t\t\t\tGSI base: 0x%08x", ioapic->gsi);
+                log_debug("\t\t\t\tGSI base: 0x%08x", ioapic->gsi_base);
                 buf_push(madt_ioapics, ioapic);
             } break;
             case MADT_TYPE_ISO: {

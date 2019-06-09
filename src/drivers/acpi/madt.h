@@ -21,7 +21,7 @@ typedef struct madt_ioapic {
     uint8_t id;
     uint8_t reserved;
     uint32_t mmio_base;
-    uint32_t gsi;
+    uint32_t gsi_base;
 } __attribute__((packed)) madt_ioapic_t;
 
 // interrupt source override

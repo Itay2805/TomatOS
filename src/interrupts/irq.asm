@@ -18,6 +18,14 @@ GLOBAL irq_12
 GLOBAL irq_13
 GLOBAL irq_14
 GLOBAL irq_15
+GLOBAL irq_16
+GLOBAL irq_17
+GLOBAL irq_18
+GLOBAL irq_19
+GLOBAL irq_20
+GLOBAL irq_21
+GLOBAL irq_22
+GLOBAL irq_23
 
 irq_common_stub:
     push qword 0 ; cr3 (set by handler)
@@ -157,4 +165,44 @@ irq_14:
 irq_15:
     push qword 0 ; error_code
     push qword 15 ; int_num
+    jmp irq_common_stub
+
+irq_16:
+    push qword 0 ; error_code
+    push qword 16 ; int_num
+    jmp irq_common_stub
+
+irq_17:
+    push qword 0 ; error_code
+    push qword 17 ; int_num
+    jmp irq_common_stub
+
+irq_18:
+    push qword 0 ; error_code
+    push qword 18 ; int_num
+    jmp irq_common_stub
+
+irq_19:
+    push qword 0 ; error_code
+    push qword 19 ; int_num
+    jmp irq_common_stub
+
+irq_20:
+    push qword 0 ; error_code
+    push qword 20 ; int_num
+    jmp irq_common_stub
+
+irq_21:
+    push qword 0 ; error_code
+    push qword 21 ; int_num
+    jmp irq_common_stub
+
+irq_22:
+    push qword 0 ; error_code
+    push qword 22 ; int_num
+    jmp irq_common_stub
+
+irq_23:
+    push qword 0 ; error_code
+    push qword 23 ; int_num
     jmp irq_common_stub
