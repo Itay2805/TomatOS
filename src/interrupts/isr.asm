@@ -25,6 +25,8 @@ GLOBAL isr_alignment_check
 GLOBAL isr_security_exception
 
 isr_common_stub:
+    push qword 0 ; cr3 (set by handler)
+
      push rax
      push rbx
      push rcx
@@ -77,99 +79,99 @@ isr_common_stub:
     pop rax
 
     ; ignore the int and error code
-    add rsp, 16
+    add rsp, 8*3
 
     iretq
 
 
 isr_divide_by_zero:
-    push qword 0
-    push qword 0
+    push qword 0 ; error_code
+    push qword 0 ; int_num
     jmp isr_common_stub
 
 isr_debug:
-    push qword 0
-    push qword 1
+    push qword 0 ; error_code
+    push qword 1 ; int_num
     jmp isr_common_stub
 
 isr_non_maskable_interrupt:
-    push qword 0
-    push qword 2
+    push qword 0 ; error_code
+    push qword 2 ; int_num
     jmp isr_common_stub
 
 isr_breakpoint:
-    push qword 0
-    push qword 3
+    push qword 0 ; error_code
+    push qword 3 ; int_num
     jmp isr_common_stub
 
 isr_overflow:
-    push qword 0
-    push qword 4
+    push qword 0 ; error_code
+    push qword 4 ; int_num
     jmp isr_common_stub
 
 isr_bound_range_exceeded:
-    push qword 0
-    push qword 5
+    push qword 0 ; error_code
+    push qword 5 ; int_num
     jmp isr_common_stub
 
 isr_invalid_opcode:
-    push qword 0
-    push qword 6
+    push qword 0 ; error_code
+    push qword 6 ; int_num
     jmp isr_common_stub
 
 isr_device_not_available:
-    push qword 0
-    push qword 7
+    push qword 0 ; error_code
+    push qword 7 ; int_num
     jmp isr_common_stub
 
 isr_x87_floating_point_exception:
-    push qword 0
-    push qword 16
+    push qword 0 ; error_code
+    push qword 16 ; int_num
     jmp isr_common_stub
 
 isr_machine_check:
-    push qword 0
-    push qword 18
+    push qword 0 ; error_code
+    push qword 18 ; int_num
     jmp isr_common_stub
 
 isr_simd_floating_point_exception:
-    push qword 0
-    push qword 19
+    push qword 0 ; error_code
+    push qword 19 ; int_num
     jmp isr_common_stub
 
 isr_virtualization_exception:
-    push qword 0
-    push qword 20
+    push qword 0 ; error_code
+    push qword 20 ; int_num
     jmp isr_common_stub
 
 isr_double_fault:
-    push qword 8
+    push qword 8 ; int_num
     jmp isr_common_stub
 
 isr_invalid_tss:
-    push qword 10
+    push qword 10 ; int_num
     jmp isr_common_stub
 
 isr_segment_not_presented:
-    push qword 11
+    push qword 11 ; int_num
     jmp isr_common_stub
 
 isr_stack_segment_fault:
-    push qword 12
+    push qword 12 ; int_num
     jmp isr_common_stub
 
 isr_general_protection_fault:
-    push qword 13
+    push qword 13 ; int_num
     jmp isr_common_stub
 
 isr_page_fault:
-    push qword 14
+    push qword 14 ; int_num
     jmp isr_common_stub
 
 isr_alignment_check:
-    push qword 17
+    push qword 17 ; int_num
     jmp isr_common_stub
 
 isr_security_exception:
-    push qword 30
+    push qword 30 ; int_num
     jmp isr_common_stub

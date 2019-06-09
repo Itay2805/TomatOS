@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <common.h>
 #include <error.h>
+#include <memory/vmm.h>
 
 // the different kind of interrupts we can handle
 #define INTERRUPT_TIMER     0x20
@@ -33,6 +34,9 @@ typedef struct registers {
     uint64_t rcx;
     uint64_t rbx;
     uint64_t rax;
+
+    // address space to switch to
+    address_space_t cr3;
 
     // the interrupt number
     uint64_t int_num;

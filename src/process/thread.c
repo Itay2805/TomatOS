@@ -13,9 +13,11 @@ error_t thread_create(struct process* process, void*(*start_routine)(void*), voi
     thread_t* new_thread = calloc(1, sizeof(thread_t));
     new_thread->tid = ++process->next_tid;
     new_thread->status = THREAD_STATUS_READY;
+    new_thread->parent = process;
+    new_thread->priority = new_thread->parent->base_priority;
 
     // set the segments
-    if(kernel_address_space == process->address_space) {
+    if(process->address_space == kernel_address_space) {
         new_thread->state.cpu.cs = GDT_KERNEL_CODE;
         new_thread->state.cpu.ds = GDT_KERNEL_DATA;
         new_thread->state.cpu.ss = GDT_KERNEL_DATA;
@@ -31,9 +33,7 @@ error_t thread_create(struct process* process, void*(*start_routine)(void*), voi
     // set the start up
     new_thread->state.cpu.rdi = (uint64_t) arg;
     new_thread->state.cpu.rip = (uint64_t) start_routine;
-
-    // set the priority
-    new_thread->priority = new_thread->parent->base_priority;
+    new_thread->state.cpu.cr3 = new_thread->parent->address_space;
 
     // add the thread to the threads list of the process
     map_put_from_uint64(&process->threads, (uint64_t) new_thread->tid, new_thread);

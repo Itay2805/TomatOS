@@ -4,8 +4,9 @@ EXTERN timer_interrupt_handler
 
 GLOBAL timer_interrupt_stub
 timer_interrupt_stub:
-    push qword 0
-    push qword 32
+    push qword 0 ; error_code (ignored)
+    push qword 0x20 ; int_num
+    push qword 0 ; cr3 (set by handler)
 
     push rax
      push rbx
@@ -59,6 +60,6 @@ timer_interrupt_stub:
     pop rax
 
     ; ignore the int and error code
-    add rsp, 16
+    add rsp, 8*3
 
     iretq

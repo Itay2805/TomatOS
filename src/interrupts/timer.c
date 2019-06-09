@@ -13,6 +13,12 @@ static timer_t* timers = NULL;
 
 void timer_interrupt_handler(registers_t regs) {
     error_t err = NO_ERROR;
+    // save the address space
+    // and switch to kernel if needed
+    regs.cr3 = vmm_get();
+    if(regs.cr3 != kernel_address_space) {
+        vmm_set(kernel_address_space);
+    }
 
     for(timer_t* timer = timers; timer < buf_end(timers); timer++) {
         timer->millis_left -= 10;
@@ -31,6 +37,11 @@ cleanup:
         while(true) {
             _hlt();
         }
+    }
+
+    // restore the cr3 if needed
+    if(regs.cr3 != kernel_address_space) {
+        vmm_set(regs.cr3);
     }
 }
 

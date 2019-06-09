@@ -133,13 +133,13 @@ static void default_exception_handler(registers_t* regs) {
 
     // print registers
 
-    char _cf = ((regs->rflags & FLAGS_CARRY) != 0 ? 'C' : '-');
-    char _pf = ((regs->rflags & FLAGS_PARITY) != 0 ? 'P' : '-');
-    char _af = ((regs->rflags & FLAGS_ADJUST) != 0 ? 'A' : '-');
-    char _zf = ((regs->rflags & FLAGS_ZERO) != 0 ? 'Z' : '-');
-    char _sf = ((regs->rflags & FLAGS_CARRY) != 0 ? 'S' : '-');
-    char _tf = ((regs->rflags & FLAGS_TRAP) != 0 ? 'T' : '-');
-    char _if = ((regs->rflags & FLAGS_INTERRUPT_ENABLE) != 0 ? 'I' : '-');
+    char _cf = (char) ((regs->rflags & FLAGS_CARRY) != 0 ? 'C' : '-');
+    char _pf = (char) ((regs->rflags & FLAGS_PARITY) != 0 ? 'P' : '-');
+    char _af = (char) ((regs->rflags & FLAGS_ADJUST) != 0 ? 'A' : '-');
+    char _zf = (char) ((regs->rflags & FLAGS_ZERO) != 0 ? 'Z' : '-');
+    char _sf = (char) ((regs->rflags & FLAGS_CARRY) != 0 ? 'S' : '-');
+    char _tf = (char) ((regs->rflags & FLAGS_TRAP) != 0 ? 'T' : '-');
+    char _if = (char) ((regs->rflags & FLAGS_INTERRUPT_ENABLE) != 0 ? 'I' : '-');
 
     int cpl = (int) (regs->rflags & FLAGS_IOPL_3);
 
@@ -152,6 +152,7 @@ static void default_exception_handler(registers_t* regs) {
     log_info("CS =%04x DPL=%d", regs->cs & 0xFFF8, regs->cs & 0b11);
     log_info("DS =%04x DPL=%d", regs->ds & 0xFFF8, regs->ds & 0b11);
     log_info("SS =%04x DPL=%d", regs->ss & 0xFFF8, regs->ss & 0b11);
+    log_info("CR3=%016llx", regs->cr3);
 
     log_critical(":(");
     _cli();
@@ -161,6 +162,18 @@ static void default_exception_handler(registers_t* regs) {
 }
 
 void isr_common(registers_t regs) {
+    // save the address space
+    // and switch to kernel if needed
+    regs.cr3 = vmm_get();
+    if(regs.cr3 != kernel_address_space) {
+        vmm_set(kernel_address_space);
+    }
+
     // will simply set the stack so we will have a working space
     default_exception_handler(&regs);
+
+    // restore the cr3 if needed
+    if(regs.cr3 != kernel_address_space) {
+        vmm_set(regs.cr3);
+    }
 }

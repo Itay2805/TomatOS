@@ -130,7 +130,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c src/process/scheduler.c)
+        src/main.c src/process/scheduler.c lib/common/cpu/fpu.h)
 
 include_directories(src)
 include_directories(lib/libc)
