@@ -132,7 +132,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c)
+        src/main.c lib/common/cpu/fpu.c)
 
 include_directories(src)
 include_directories(lib/libc)

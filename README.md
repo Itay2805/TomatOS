@@ -5,8 +5,10 @@ TomatOS is a 64bit operating systems (currently just the kernel part of the os b
 ## Features
 
 * 64bit with all the basics (gdt, pmm, vmm...)
-* Processes (Kernel and Usermode with signal support (gotta do more testing)) 
-    * no scheduler yet so testing was very limited
+* SSE enabling is implemented but disabled (causes problem with saving context)
+* Processes (Kernel and Usermode)
+    * preserves fpu state
+    * including simple preemptive FIFS scheduler
 * ACPI table parsing
     * no AML yet
 * APIC support (Local APIC initialization only for now)

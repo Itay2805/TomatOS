@@ -38,6 +38,8 @@ typedef enum error {
     ERROR_THREAD_CANCELED,
     ERROR_THREAD_RUNNING,
 
+    ERROR_NOT_SUPPORTED,
+
     ERROR_COUNT
 } error_t;
 

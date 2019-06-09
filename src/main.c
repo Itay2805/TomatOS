@@ -21,6 +21,7 @@
 #include <interrupts/timer.h>
 #include <process/scheduler.h>
 #include <process/process.h>
+#include <cpu/fpu.h>
 
 static void* test_1(void* arg) {
     (void)arg;
@@ -69,6 +70,7 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pic8259_disable());
     CHECK_AND_RETHROW(apic_init());
     CHECK_AND_RETHROW(timer_init());
+    //CHECK_AND_RETHROW(fpu_init());
     CHECK_AND_RETHROW(thread_init());
     CHECK_AND_RETHROW(scheduler_init());
 
