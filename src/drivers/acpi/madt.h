@@ -12,29 +12,29 @@
 #define MADT_FLAG_LEVEL_TRIGGERED   8
 
 typedef struct madt_lapic {
-    uint8_t acpi_processor_id;
-    uint8_t apic_id;
+    uint8_t processor_id;
+    uint8_t id;
     uint32_t processor_enabled : 1;
 } __attribute__((packed)) madt_lapic_t;
 
 typedef struct madt_ioapic {
-    uint8_t ioapic_id;
+    uint8_t id;
     uint8_t reserved;
-    uint32_t ioapic_addr;
-    uint32_t global_system_interrupt_base;
+    uint32_t mmio_base;
+    uint32_t gsi;
 } __attribute__((packed)) madt_ioapic_t;
 
 // interrupt source override
 typedef struct madt_iso {
     uint8_t bus_source;
     uint8_t irq_source;
-    uint32_t global_system_interrupt;
+    uint32_t gsi;
     uint16_t flags;
 } __attribute__((packed)) madt_iso_t;
 
 // none mastkable interrupt
 typedef struct madt_nmi {
-    uint8_t acpi_processor_id;
+    uint8_t processor_id;
     uint16_t flags;
     uint8_t lint;
 } __attribute__((packed)) madt_nmi_t;

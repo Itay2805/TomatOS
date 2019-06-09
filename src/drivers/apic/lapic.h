@@ -84,34 +84,39 @@
     #define LAPIC_SPURIOUS_VECTOR   0xFF
 #endif
 
-typedef struct lapic_lvt {
-    // all
-    uint32_t vector : 8;
+typedef union lapic_lvt {
+    struct {
+        // all
+        uint32_t vector : 8;
 
-    // reserved in timer
-    uint32_t delievery_mode : 3;
+        // reserved in timer
+        uint32_t delievery_mode : 3;
 
-    // all
-    uint32_t reserved : 1;
-    uint32_t send_pending : 1;
+        // all
+        uint32_t reserved : 1;
+        uint32_t send_pending : 1;
 
-    // reserved in timer
-    uint32_t polarity : 1;
-    uint32_t remote_irr : 1;
-    uint32_t level_triggered : 1;
+        // reserved in timer
+        uint32_t polarity : 1;
+        uint32_t remote_irr : 1;
+        uint32_t level_triggered : 1;
 
-    // all
-    uint32_t masked : 1;
+        // all
+        uint32_t masked : 1;
 
-    // only for timer
-    uint32_t periodic : 1;
-} __attribute__((packed)) lapic_lvt_t;
+        // only for timer
+        uint32_t periodic : 1;
+    } __attribute__((packed));
+    uint32_t raw;
+} lapic_lvt_t;
 
-typedef struct lapic_svr {
-    uint32_t vector : 8;
-    uint32_t enabled : 1;
-    uint32_t focus : 1;
-} __attribute__((packed)) lapic_svr_t;
+typedef union lapic_svr {
+    struct {
+        uint32_t vector : 8;
+        uint32_t enabled : 1;
+    } __attribute__((packed));
+    uint32_t raw;
+} lapic_svr_t;
 
 // TODO: ICR, only needed for IPI
 

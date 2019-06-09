@@ -1,4 +1,5 @@
 #include "lapic.h"
+#include "apic.h"
 
 #include <drivers/acpi/madt.h>
 #include <memory/vmm.h>
@@ -25,7 +26,7 @@ static error_t mesure_ticks_per_second() {
             .periodic = false,
             .delievery_mode = LAPIC_LVT_FIXED
     };
-    lapic_write(LAPIC_REG_LVT_TIMER, *(uint32_t*)&lvt_timer);
+    lapic_write(LAPIC_REG_LVT_TIMER, lvt_timer.raw);
     lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1); // no divide
 
     // wait till we reach a second
@@ -59,10 +60,37 @@ static error_t set_lapic_timer() {
             .periodic = true,
             .delievery_mode = LAPIC_LVT_FIXED
     };
-    lapic_write(LAPIC_REG_LVT_TIMER, *(uint32_t*)&lvt_timer);
+    lapic_write(LAPIC_REG_LVT_TIMER, lvt_timer.raw);
     lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1); // no divide
     lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, lapic_timer_ticks_per_second / 1000);
 
+    return NO_ERROR;
+}
+
+static error_t set_nmis() {
+    error_t err = NO_ERROR;
+    uint64_t procid = apic_get_processor_id();
+
+    for(madt_nmi_t** it = madt_nmis; it < buf_end(madt_nmis); it++) {
+        madt_nmi_t* nmi = *it;
+        if(nmi->processor_id == 0xFF || nmi->processor_id == procid) {
+            lapic_lvt_t lvt = {
+                .vector = 0,
+                .delievery_mode = LAPIC_LVT_NMI,
+                .level_triggered = (uint32_t) (nmi->flags & MADT_FLAG_LEVEL_TRIGGERED),
+                .polarity = (uint32_t)(nmi->flags & MADT_FLAG_ACTIVE_LOW),
+            };
+
+            switch(nmi->lint) {
+                case 0: lapic_write(LAPIC_REG_LVT_LINT0, lvt.raw); break;
+                case 1: lapic_write(LAPIC_REG_LVT_LINT1, lvt.raw); break;
+                default:
+                    CHECK_FAIL_ERROR_TRACE(ERROR_NOT_SUPPORTED, "NMI had invalid lint (%d)", nmi->lint);
+            }
+        }
+    }
+
+cleanup:
     return NO_ERROR;
 }
 
@@ -79,6 +107,9 @@ error_t lapic_init() {
     log_debug("\t\tSetting Local APIC timer");
     CHECK_AND_RETHROW(mesure_ticks_per_second());
     CHECK_AND_RETHROW(set_lapic_timer());
+
+    log_debug("\t\tSetting NMIs");
+    CHECK_AND_RETHROW(set_nmis());
 
     log_debug("\t\tSetting SPR");
     CHECK_AND_RETHROW(lapic_enable());

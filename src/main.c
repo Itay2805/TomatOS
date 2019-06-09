@@ -25,13 +25,15 @@
 
 static void* test_1(void* arg) {
     (void)arg;
-    while(true) vmdev_write("1");
+    while(true);
+    vmdev_write("1");
     return NULL;
 }
 
 static void* test_2(void* arg) {
     (void)arg;
-    while(true) vmdev_write("2");
+    while(true);
+    vmdev_write("2");
     return NULL;
 }
 

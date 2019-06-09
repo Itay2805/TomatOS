@@ -3,8 +3,11 @@
 #include <drivers/acpi/madt.h>
 #include <memory/vmm.h>
 #include <cpu/msr.h>
+#include <buf.h>
 
 #include "lapic.h"
+
+uint32_t lapic_apic_map[255] = {};
 
 error_t apic_init() {
     error_t err = NO_ERROR;
@@ -18,8 +21,19 @@ error_t apic_init() {
     log_debug("\tEnabling APIC globally");
     _wrmsr(IA32_APIC_BASE, _rdmsr(IA32_APIC_BASE) | (1 << 11));
 
+    // create the map between lapic->procid
+    for(madt_lapic_t** it = madt_lapics; it < buf_end(madt_lapics); it++) {
+        madt_lapic_t* lapic = *it;
+        CHECK(lapic->id < 255);
+        lapic_apic_map[lapic->id] = lapic->processor_id;
+    }
+
     CHECK_AND_RETHROW(lapic_init());
 
 cleanup:
     return err;
+}
+
+uint64_t apic_get_processor_id() {
+    return lapic_apic_map[lapic_get_id()];
 }

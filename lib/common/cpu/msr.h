@@ -15,15 +15,14 @@
 #define EFER_TRANSLATION_CACHE_EXTENSION (1 << 15u)
 
 #define MSR_EFER 0xc0000080
-#define MSR_STAR 0xc0000081
-#define MSR_LSTAR 0xc0000082
-#define MSR_CSTAR 0xc0000083
-#define MSR_SFMASK 0xc0000084
-#define MSR_FS_BASE 0xc0000100
-#define MSR_GS_BASE 0xc0000101
-#define MSR_KERNEL_GS_BASE 0xc0000102
 
-#define IA32_APIC_BASE 0x1B
+// MSRs
+#define IA32_EFER       0xC0000080
+#define IA32_STAR       0xC0000081
+#define IA32_LSTAR      0xC0000082
+#define IA32_CSTAR      0xC0000083
+#define IA32_SFMASK     0xC0000084
+#define IA32_APIC_BASE  0x1B
 
 static inline uint64_t _rdmsr(uint32_t msr) {
     uint32_t low, high;

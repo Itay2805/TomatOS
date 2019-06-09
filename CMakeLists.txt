@@ -31,6 +31,7 @@ endif ()
 set(COMMON_SOURCE_FILES
         lib/common/cpu/cr.h
         lib/common/cpu/cpuid.h
+        lib/common/cpu/fpu.c
         lib/common/cpu/fpu.h
         lib/common/cpu/msr.h
         lib/common/cpu/rflags.h
@@ -132,7 +133,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c lib/common/cpu/fpu.c)
+        src/main.c src/drivers/apic/ioapic.c src/drivers/apic/ioapic.h)
 
 include_directories(src)
 include_directories(lib/libc)
