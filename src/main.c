@@ -66,11 +66,10 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(acpi_init());
-
-    // interrupts related initialization
     CHECK_AND_RETHROW(pic8259_disable());
     CHECK_AND_RETHROW(apic_init());
     CHECK_AND_RETHROW(timer_init());
+    CHECK_AND_RETHROW(thread_init());
     CHECK_AND_RETHROW(scheduler_init());
 
     /*********************************************************

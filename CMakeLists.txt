@@ -31,6 +31,7 @@ endif ()
 set(COMMON_SOURCE_FILES
         lib/common/cpu/cr.h
         lib/common/cpu/cpuid.h
+        lib/common/cpu/fpu.h
         lib/common/cpu/msr.h
         lib/common/cpu/rflags.h
         lib/common/buf.c
@@ -122,6 +123,7 @@ set(KERNEL_SOURCE_FILES
 
         src/process/process.c
         src/process/process.h
+        src/process/scheduler.c
         src/process/scheduler.h
         src/process/signal.asm
         src/process/signal.c
@@ -130,7 +132,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c src/process/scheduler.c lib/common/cpu/fpu.h)
+        src/main.c)
 
 include_directories(src)
 include_directories(lib/libc)

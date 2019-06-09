@@ -1,17 +1,32 @@
 #include <buf.h>
 #include <memory/gdt.h>
 #include <cpu/rflags.h>
+#include <cpu/fpu.h>
+#include <string.h>
+#include <memory/mm.h>
 #include "thread.h"
 
 #include "signal.h"
 #include "scheduler.h"
 #include "process.h"
 
+static uint8_t default_fpu_state[512] __attribute__((aligned(16)));
+
+error_t thread_init() {
+    // get the default state, so we can initialize with it new processes
+    _fxsave(default_fpu_state);
+    return NO_ERROR;
+}
+
 error_t thread_create(struct process* process, void*(*start_routine)(void*), void* arg, thread_t** thread) {
     error_t err = NO_ERROR;
 
     // allocate the thread
-    thread_t* new_thread = calloc(1, sizeof(thread_t));
+    // must be 16byte aligned, otherwise the fpu state will be broken and the scheduler will panic
+    thread_t* new_thread;
+    CHECK_AND_RETHROW(mm_allocate_aligned(sizeof(thread_t), 16, (void**)&new_thread));
+
+    // setup
     new_thread->tid = ++process->next_tid;
     new_thread->status = THREAD_STATUS_READY;
     new_thread->parent = process;
@@ -44,6 +59,9 @@ error_t thread_create(struct process* process, void*(*start_routine)(void*), voi
     new_thread->state.cpu.rip = (uint64_t) start_routine;
     new_thread->state.cpu.cr3 = new_thread->parent->address_space;
 
+    // set to the default fpu state
+    memcpy(new_thread->state.fpu, default_fpu_state, 512);
+
     // add the thread to the threads list of the process
     map_put_from_uint64(&process->threads, (uint64_t) new_thread->tid, new_thread);
 
@@ -52,10 +70,10 @@ error_t thread_create(struct process* process, void*(*start_routine)(void*), voi
 
     *thread = new_thread;
 
-//cleanup:
-//    if(err != NO_ERROR) {
-//        free(new_thread);
-//    }
+cleanup:
+    if(err != NO_ERROR) {
+        free(new_thread);
+    }
     return err;
 }
 

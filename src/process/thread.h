@@ -44,7 +44,7 @@ typedef struct thread {
     // the cpu/fpu state of this thread
     struct {
         registers_t cpu;
-        char fpu[512];
+        uint8_t fpu[512] __attribute__((aligned(16)));
     } state;
 
     // status specific stuff
@@ -71,6 +71,11 @@ typedef struct thread {
     // signal handlers
     signal_handler_t* signal_handlers;
 } thread_t;
+
+/**
+ * Initialize threading
+ */
+error_t thread_init();
 
 /**
  * Functions like:
