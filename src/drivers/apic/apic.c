@@ -6,6 +6,7 @@
 #include <buf.h>
 
 #include "lapic.h"
+#include "ioapic.h"
 
 uint32_t lapic_apic_map[255] = {};
 
@@ -29,6 +30,7 @@ error_t apic_init() {
     }
 
     CHECK_AND_RETHROW(lapic_init());
+    CHECK_AND_RETHROW(ioapic_init());
 
 cleanup:
     return err;
