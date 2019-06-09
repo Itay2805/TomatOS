@@ -20,10 +20,10 @@ error_t ioapic_init() {
 
     // setup all of the mmio stuff
     mmio_base = PHYSICAL_ADDRESS(ioapic->mmio_base);
-    ioregsel = PHYSICAL_ADDRESS(ioapic->mmio_base);
-    iowin = PHYSICAL_ADDRESS(ioapic->mmio_base + 0x10);
-    if(!vmm_is_mapped(kernel_address_space, (uintptr_t) PHYSICAL_ADDRESS(ioapic->mmio_base))) {
-        vmm_map(kernel_address_space, PHYSICAL_ADDRESS(ioapic->mmio_base), (void *)(uintptr_t)ioapic->mmio_base, PAGE_ATTR_WRITE);
+    ioregsel = (uint32_t *) mmio_base;
+    iowin = (uint32_t *) (mmio_base + 0x10);
+    if(!vmm_is_mapped(kernel_address_space, (uintptr_t) mmio_base)) {
+        vmm_map(kernel_address_space, mmio_base, (void *)(uintptr_t)ioapic->mmio_base, PAGE_ATTR_WRITE);
     }
 
 //cleanup:
@@ -46,7 +46,7 @@ error_t ioapic_redirect(uint32_t irq, uint8_t vector) {
     int flags = 0;
 
     // make sure the vector is valid
-    CHECK((uint32_t)vector + INTERRUPT_IRQ_BASE >= 255);
+    CHECK((uint32_t)vector + INTERRUPT_IRQ_BASE < 255);
 
     // check for any overrides
     for(madt_iso_t** it = madt_isos; it < buf_end(madt_isos); it++) {
@@ -60,11 +60,11 @@ error_t ioapic_redirect(uint32_t irq, uint8_t vector) {
 
     // set the parameters
     ioapic_redirection_entry_t redir = {
-            .vector = vector + INTERRUPT_IRQ_BASE,
-            .destination = lapic_get_id(),
-            .low_active = (uint64_t) ((flags & MADT_FLAG_ACTIVE_LOW) != 0),
-            .edge_sensitive = (uint64_t) ((flags & MADT_FLAG_LEVEL_TRIGGERED) != 0),
-            .delievery_mode = LAPIC_DELIEVERY_MODE_FIXED,
+        .vector = vector + INTERRUPT_IRQ_BASE,
+        .destination = lapic_get_id(),
+        .low_active = (uint64_t) ((flags & MADT_FLAG_ACTIVE_LOW) != 0),
+        .edge_sensitive = (uint64_t) ((flags & MADT_FLAG_LEVEL_TRIGGERED) != 0),
+        .delievery_mode = LAPIC_DELIEVERY_MODE_FIXED,
     };
 
     // write it out

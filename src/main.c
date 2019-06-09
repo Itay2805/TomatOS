@@ -22,17 +22,26 @@
 #include <process/scheduler.h>
 #include <process/process.h>
 #include <cpu/fpu.h>
+#include <interrupts/irq.h>
+#include <drivers/apic/ioapic.h>
 
 static void* test_1(void* arg) {
     (void)arg;
-    while(true) vmdev_write("1");
+    while(true);
+    vmdev_write("1");
     return NULL;
 }
 
 static void* test_2(void* arg) {
     (void)arg;
-    while(true) vmdev_write("2");
+    while(true);
+    vmdev_write("2");
     return NULL;
+}
+
+error_t keyboard_handler(registers_t* regs) {
+    log_info("KEYBOARD!");
+    return NO_ERROR;
 }
 
 void kernel_main(multiboot_info_t* info) {
@@ -73,6 +82,10 @@ void kernel_main(multiboot_info_t* info) {
     //CHECK_AND_RETHROW(fpu_init());
     CHECK_AND_RETHROW(thread_init());
     CHECK_AND_RETHROW(scheduler_init());
+
+    // test the keyboard interrupt
+    CHECK_AND_RETHROW(ioapic_redirect(1, 1));
+    irq_set_handler(1, keyboard_handler);
 
     /*********************************************************
      * Driver initialization
