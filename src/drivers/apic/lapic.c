@@ -32,7 +32,7 @@ static error_t mesure_ticks_per_second() {
     CHECK_AND_RETHROW(rtc_unixtime(&start));
     do {
         CHECK_AND_RETHROW(rtc_unixtime(&end));
-    } while(end - start == 1);
+    } while(end - start != 1);
 
     // set to max count
     lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, 0xFFFFFFFF);
@@ -41,7 +41,7 @@ static error_t mesure_ticks_per_second() {
     CHECK_AND_RETHROW(rtc_unixtime(&start));
     do {
         CHECK_AND_RETHROW(rtc_unixtime(&end));
-    } while(end - start == 1);
+    } while(end - start != 1);
 
     // read out the count
     lapic_timer_ticks_per_second = 0xFFFFFFFF - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT);
