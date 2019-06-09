@@ -18,7 +18,7 @@
 typedef union ioapic_redirection_entry {
     struct {
         uint64_t vector : 8;
-        uint64_t mode : 3;
+        uint64_t delievery_mode : 3;
         uint64_t logical_mode : 1;
         uint64_t pending : 1;
         uint64_t low_active : 1;
@@ -54,5 +54,17 @@ void ioapic_write(uint32_t reg, uint32_t value);
  * @param reg       [IN] The register
  */
 uint32_t ioapic_read(uint32_t reg);
+
+/**
+ * Redirect the given IRQ to a vector
+ *
+ * @remark
+ * The vector will be added the interrupt base just so we
+ * won't overlap with the rest of the exceptions/interrupts
+ *
+ * @param irq       [IN] The
+ * @param vector    [IN]
+ */
+error_t ioapic_redirect(uint32_t irq, uint8_t vector);
 
 #endif //TOMATKERNEL_IOAPIC_H
