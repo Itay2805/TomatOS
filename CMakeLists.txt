@@ -29,12 +29,16 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
 endif ()
 
 set(COMMON_SOURCE_FILES
+        lib/common/cpu/atomic.h
         lib/common/cpu/cr.h
         lib/common/cpu/cpuid.h
         lib/common/cpu/fpu.c
         lib/common/cpu/fpu.h
         lib/common/cpu/msr.h
         lib/common/cpu/rflags.h
+        lib/common/locks/spinlock.c
+        lib/common/locks/spinlock.h
+        lib/common/locks/preemption.h
         lib/common/buf.c
         lib/common/buf.h
         lib/common/common.h

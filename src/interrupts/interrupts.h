@@ -86,4 +86,12 @@ typedef error_t(*interrupt_handler_f)(registers_t* registers);
  */
 #define _lidt(addr) asm volatile("lidt %0" : : "m"(addr))
 
+static inline bool are_interrupts_enabled() {
+    unsigned long flags;
+    asm volatile ( "pushf\n\t"
+                   "pop %0"
+                : "=g"(flags) );
+    return (bool) (flags & (1 << 9));
+}
+
 #endif //TOMATKERNEL_INTERRUPTS_H

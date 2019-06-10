@@ -3,6 +3,7 @@
 #include <string.h>
 #include <interrupts/timer.h>
 #include <cpu/fpu.h>
+#include <locks/spinlock.h>
 #include "scheduler.h"
 #include "thread.h"
 #include "process.h"
@@ -11,6 +12,7 @@ thread_t* running_thread;
 
 static size_t i = 0;
 static thread_t** threads;
+static spinlock_t sched_lock;
 
 static error_t do_context_switch(registers_t* regs, thread_t* new) {
     error_t err = NO_ERROR;
@@ -61,6 +63,8 @@ cleanup:
 }
 
 error_t scheduler_add(thread_t* thread) {
+    lock_preemption(&sched_lock);
+
     // increment refcount
     thread->refcount++;
 
@@ -74,6 +78,7 @@ error_t scheduler_add(thread_t* thread) {
     buf_push(threads, thread);
 
 cleanup:
+    unlock_preemption(&sched_lock);
     return NO_ERROR;
 }
 

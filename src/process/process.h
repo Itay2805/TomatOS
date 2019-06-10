@@ -18,6 +18,8 @@ typedef struct process {
     // the next tid to give to the process
     int next_tid;
 
+    // TODO: Have lock for the thread map
+
     // holds a list of all threads
     map_t threads;
 

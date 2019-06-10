@@ -1,8 +1,12 @@
+#include <locks/spinlock.h>
 #include "process.h"
 #include "thread.h"
 
+
 map_t processes;
-uint64_t pid;
+
+static uint64_t last_pid = 0;
+static spinlock_t processes_map_lock;
 
 error_t process_create(process_t** process, void*(start_routine)(void*), int argc, const char* argv[]) {
     error_t err = NO_ERROR;
@@ -10,7 +14,7 @@ error_t process_create(process_t** process, void*(start_routine)(void*), int arg
 
     // create a new process
     process_t* new_process = calloc(1, sizeof(process_t));
-    new_process->pid = (int) ++pid;
+    new_process->pid = (int) ++last_pid;
     new_process->address_space = kernel_address_space;
     new_process->base_priority = 10;
 
@@ -23,7 +27,9 @@ error_t process_create(process_t** process, void*(start_routine)(void*), int arg
         thread->state.cpu.rdi = (uint64_t) argv;
     }
 
+    lock_preemption(&processes_map_lock);
     map_put_from_uint64(&processes, (uint64_t) new_process->pid, new_process);
+    unlock_preemption(&processes_map_lock);
 
     // finished!
     *process = new_process;

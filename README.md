@@ -9,7 +9,7 @@ TomatOS is a 64bit operating systems (currently just the kernel part of the os b
 * Processes (Kernel and Usermode)
     * preserves fpu state
     * including simple preemptive FIFS scheduler
-* ACPI table parsing
+* ACPI (Table parsing)
     * no AML yet
-* Uses APIC
+* APIC
 * PCI / PCIe support (with single abstraction layer)

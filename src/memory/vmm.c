@@ -7,6 +7,7 @@
 #include <elf64.h>
 #include <cpu/cr.h>
 #include <cpu/msr.h>
+#include <locks/spinlock.h>
 
 ////////////////////////////////////////////////////////////////////////////
 // Page attributes
@@ -68,6 +69,11 @@ char* physical_memory = 0;
  * we are going to copy from this.
  */
 address_space_t kernel_address_space;
+
+/*
+ * Global VMM lock (should probably have one lock per address space instead)
+ */
+static spinlock_t vmm_lock;
 
 ////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -310,6 +316,8 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
     uint64_t pt = 0;
     uint64_t* table = NULL;
 
+    lock_preemption(&vmm_lock);
+
     // get the page table
     CHECK_AND_RETHROW(get_or_create_pt(address_space, (uint64_t)virtual_address, attributes, &pt));
     table = (uint64_t *) &physical_memory[pt];
@@ -322,12 +330,15 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
     set_attributes(&table[PAGING_PTE_OFFSET(virtual_address)], attributes);
 
 cleanup:
+    unlock_preemption(&vmm_lock);
     return err;
 }
 
 error_t vmm_unmap(address_space_t address_space, void* virtual_address) {
     error_t err = NO_ERROR;
     uint64_t* table = NULL;
+
+    lock_preemption(&vmm_lock);
 
     // get the page table
     uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
@@ -341,12 +352,15 @@ error_t vmm_unmap(address_space_t address_space, void* virtual_address) {
     invlpg(addr);
 
 cleanup:
+    unlock_preemption(&vmm_lock);
     return err;
 }
 
 error_t vmm_allocate(address_space_t address_space, void* virtual_address, int attributes) {
     error_t err = NO_ERROR;
     uint64_t phys = 0;
+
+    lock_preemption(&vmm_lock);
 
     CHECK_AND_RETHROW(pmm_allocate(&phys));
     CHECK_AND_RETHROW(vmm_map(address_space, virtual_address, (void*)phys, attributes));
@@ -355,12 +369,15 @@ cleanup:
     if(err != NO_ERROR) {
         if(phys) pmm_free(phys);
     }
+    unlock_preemption(&vmm_lock);
     return err;
 }
 
 error_t vmm_free(address_space_t address_space, void* virtual_address) {
     error_t err = NO_ERROR;
     uint64_t* table = NULL;
+
+    lock_preemption(&vmm_lock);
 
     // get the page table
     uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
@@ -375,9 +392,11 @@ error_t vmm_free(address_space_t address_space, void* virtual_address) {
     invlpg(addr);
 
 cleanup:
+    unlock_preemption(&vmm_lock);
     return err;
 }
 
+// TODO: add locks (will need to not use internally)
 error_t vmm_virt_to_phys(address_space_t address_space, uintptr_t virtual_address, uintptr_t* physical_address) {
     error_t err = NO_ERROR;
     uint64_t* table = NULL;
@@ -399,15 +418,23 @@ cleanup:
 
 bool vmm_is_mapped(address_space_t address_space, uintptr_t virtual_address) {
     uint64_t* table = NULL;
+    bool is_mapped = false;
+
+    lock_preemption(&vmm_lock);
 
     // get the page table
     uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
-    if(!pt) return false;
+    if(!pt) goto cleanup;
     table = (uint64_t *) &physical_memory[pt];
 
     // get the address of the page
     uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
-    return addr != NULL;
+
+    is_mapped = addr != NULL;
+
+cleanup:
+    unlock_preemption(&vmm_lock);
+    return is_mapped;
 }
 
 static error_t copy_to_another(address_space_t address_space, const char* from, char* to, size_t len) {
@@ -466,7 +493,7 @@ static error_t copy_from_another(address_space_t address_space, const char* from
         }
     }
 
-    cleanup:
+cleanup:
     return err;
 }
 
@@ -475,6 +502,8 @@ error_t vmm_copy(address_space_t dst_addrspace, uintptr_t dst, address_space_t s
 
     CHECK_ERROR(dst_addrspace, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(src_addrspace, ERROR_INVALID_ARGUMENT);
+
+    lock_preemption(&vmm_lock);
 
     if(size == 0) goto cleanup;
 
@@ -505,5 +534,6 @@ error_t vmm_copy(address_space_t dst_addrspace, uintptr_t dst, address_space_t s
     }
 
 cleanup:
+    unlock_preemption(&vmm_lock);
     return err;
 }

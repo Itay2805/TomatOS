@@ -1,9 +1,15 @@
 #include <common.h>
+#include <locks/spinlock.h>
 #include "pmm.h"
 
 static uint64_t* addrs;
 static size_t stack_len = 0;
 static size_t stack_cap;
+
+/*
+ * Global PMM lock
+ */
+static spinlock_t pmm_lock;
 
 static const char* MMAP_TYPE[] = {
     [MULTIBOOT_MEMORY_AVAILABLE] = "Available",
@@ -74,6 +80,8 @@ error_t pmm_init() {
 error_t pmm_allocate(uint64_t* addr) {
     error_t err = NO_ERROR;
 
+    lock_preemption(&pmm_lock);
+
     CHECK_ERROR(addr, ERROR_INVALID_ARGUMENT);
 
     CHECK(addrs);
@@ -82,11 +90,14 @@ error_t pmm_allocate(uint64_t* addr) {
     *addr = addrs[--stack_len];
 
 cleanup:
+    unlock_preemption(&pmm_lock);
     return err;
 }
 
 error_t pmm_free(uint64_t addr) {
     error_t err = NO_ERROR;
+
+    lock_preemption(&pmm_lock);
 
     CHECK(addrs);
     CHECK(stack_len < stack_cap);
@@ -94,5 +105,6 @@ error_t pmm_free(uint64_t addr) {
     addrs[stack_len++] = addr;
 
 cleanup:
+    unlock_preemption(&pmm_lock);
     return err;
 }

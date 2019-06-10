@@ -1,5 +1,6 @@
 #include <common.h>
 #include <string.h>
+#include <locks/spinlock.h>
 #include "mm.h"
 #include "vmm.h"
 
@@ -35,6 +36,7 @@ static mm_block_t* last_block;
 static mm_block_t* free_block;
 static size_t total_size;
 static size_t used_size;
+static spinlock_t mm_lock;
 
 ////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -407,6 +409,8 @@ error_t mm_allocate_aligned(size_t size, size_t alignment, void** out_ptr) {
     void* ptr = NULL;
     mm_block_t* block;
 
+    lock_preemption(&mm_lock);
+
     CHECK_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
     CHECK_ERROR(out_ptr, ERROR_INVALID_ARGUMENT);
 
@@ -420,12 +424,15 @@ error_t mm_allocate_aligned(size_t size, size_t alignment, void** out_ptr) {
     *out_ptr = ptr;
 
 cleanup:
+    unlock_preemption(&mm_lock);
     return err;
 }
 
 error_t mm_free(void* ptr) {
     error_t err = NO_ERROR;
     mm_block_t* block = NULL;
+
+    lock_preemption(&mm_lock);
 
     CHECK_ERROR((void*)(last_block + last_block->size) > ptr && (void*)first_block < ptr, ERROR_INVALID_POINTER);
 
@@ -437,6 +444,7 @@ error_t mm_free(void* ptr) {
     CHECK_AND_RETHROW(verify_integrity());
 
 cleanup:
+    unlock_preemption(&mm_lock);
     return err;
 }
 
@@ -447,12 +455,14 @@ error_t mm_reallocate(void** ptr, size_t size) {
     void* new = NULL;
     size_t old_size = 0;
 
+    lock_preemption(&mm_lock);
+
     CHECK_ERROR(size > 0, ERROR_INVALID_ARGUMENT);
 
     CHECK_AND_RETHROW(verify_integrity());
 
     if(ptr == NULL) {
-        CHECK_AND_RETHROW(mm_allocate(size, new));
+        CHECK_AND_RETHROW(allocate_internal(size, block->alignment, &new, false, false));
     }else {
         CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
         // TODO: CHECK_ERROR(block->allocated, ERROR_ALREADY_FREED);
@@ -480,5 +490,6 @@ error_t mm_reallocate(void** ptr, size_t size) {
     *ptr = new;
 
 cleanup:
+    unlock_preemption(&mm_lock);
     return err;
 }
