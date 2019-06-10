@@ -1,0 +1,3 @@
+[submodule "lib/lai"]
+	path = lib/lai
+	url = git@github.com:qword-os/lai.git
