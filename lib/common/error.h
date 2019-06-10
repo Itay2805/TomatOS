@@ -74,6 +74,14 @@ extern const char* error_names[ERROR_COUNT];
         } \
     } while(0)
 
+#define CHECK_ERROR_SILENT(cond, error) \
+    do { \
+        if(!(cond)) { \
+            err = error; \
+            goto cleanup; \
+        } \
+    } while(0)
+
 #define CHECK_ERROR(cond, error) \
     CHECK_ERROR_LOG(cond, error, log_error)
 

@@ -10,6 +10,14 @@
 error_t acpi_init();
 
 /**
+ * Initialize the SCI handling
+ *
+ * @remark
+ * Must be done after the I/O APIC is initialized
+ */
+error_t acpi_sci_init();
+
+/**
  * Check if the checksum of an acpi table is correct
  */
 bool acpi_validate_checksum(const void* addr, size_t size);

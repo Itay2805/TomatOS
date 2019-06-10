@@ -28,6 +28,22 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_ASM_FLAGS "-O3 ${CMAKE_ASM_FLAGS}")
 endif ()
 
+set(LAI_SOURCE_FILES
+        lib/lai/src/eval.c
+        lib/lai/src/exec.c
+        lib/lai/src/exec2.c
+        lib/lai/src/execns.c
+        lib/lai/src/libc.c
+        lib/lai/src/ns.c
+        lib/lai/src/opregion.c
+        lib/lai/src/os_methods.c
+        lib/lai/src/pciroute.c
+        lib/lai/src/resource.c
+        lib/lai/src/sci.c
+        lib/lai/src/sleep.c
+        lib/lai/src/vsnprintf.c
+)
+
 set(COMMON_SOURCE_FILES
         lib/common/cpu/atomic.h
         lib/common/cpu/cr.h
@@ -141,13 +157,14 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c)
+        src/main.c src/drivers/acpi/lai_host.c src/drivers/acpi/fadt.h src/drivers/acpi/fadt.c)
 
 include_directories(src)
 include_directories(lib/libc)
+include_directories(lib/lai/include)
 include_directories(lib/common)
 
-add_executable(TomatKernel ${KERNEL_SOURCE_FILES} ${COMMON_SOURCE_FILES} ${LIBC_SOURCE_FILES})
+add_executable(TomatKernel ${KERNEL_SOURCE_FILES} ${COMMON_SOURCE_FILES} ${LIBC_SOURCE_FILES} ${LAI_SOURCE_FILES})
 add_custom_command(
         TARGET TomatKernel
         COMMAND mkdir -p ${CMAKE_BINARY_DIR}/iso/boot/grub

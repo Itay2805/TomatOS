@@ -181,10 +181,13 @@ static error_t get_block_from_ptr(void* ptr, mm_block_t** block) {
     error_t err = NO_ERROR;
     mm_block_t* assumed_block = ptr - offsetof(mm_block_t, data);
 
+    CHECK_ERROR(vmm_is_mapped(kernel_address_space, (uintptr_t) ptr), ERROR_NOT_MAPPED);
+
     int padding = 0;
     while(assumed_block->magic_front != MM_MAGIC) {
         assumed_block = (mm_block_t *) ((uintptr_t)assumed_block - 1);
         padding++;
+        CHECK_ERROR(vmm_is_mapped(kernel_address_space, (uintptr_t) assumed_block), ERROR_NOT_MAPPED);
     }
 
     CHECK_ERROR_LOG(padding == get_padding(assumed_block, assumed_block->alignment), ERROR_INVALID_POINTER, log_debug);
@@ -285,7 +288,7 @@ static error_t allocate_internal(size_t size, size_t alignment, void** ptr, bool
     CHECK(current != NULL);
 
     while(current != NULL) {
-        CHECK_ERROR_LOG(first || current != free_block, ERROR_OUT_OF_MEMORY, log_debug);
+        CHECK_ERROR_SILENT(first || current != free_block, ERROR_OUT_OF_MEMORY);
 
         if(!current->allocated && check_size_and_alignment(current, size, alignment)) {
             if(can_split(current, size, alignment)) {
@@ -437,6 +440,7 @@ error_t mm_free(void* ptr) {
     CHECK_ERROR((void*)(last_block + last_block->size) > ptr && (void*)first_block < ptr, ERROR_INVALID_POINTER);
 
     CHECK_AND_RETHROW(verify_integrity());
+    CHECK_ERROR(vmm_is_mapped(kernel_address_space, (uintptr_t) ptr), ERROR_NOT_MAPPED);
     CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
     CHECK_ERROR(block->allocated, ERROR_INVALID_POINTER);
 
