@@ -40,6 +40,6 @@ error_t rsdt_init();
  * @remark
  * Will search either rsdt or xsdt as needed
  */
-sdt_hdr_t* rsdt_search(char* signature);
+sdt_hdr_t* rsdt_search(char* signature, int index);
 
 #endif //TOMATKERNEL_RSDT_H

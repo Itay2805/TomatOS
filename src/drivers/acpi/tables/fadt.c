@@ -59,7 +59,7 @@ static error_t dsdt_init() {
 error_t fadt_init() {
     error_t err = NO_ERROR;
 
-    fadt = (fadt_t *) rsdt_search("FACP");
+    fadt = (fadt_t *) rsdt_search("FACP", 0);
     CHECK_ERROR_TRACE(fadt, ERROR_NOT_FOUND, "FADT (FACP) Not found");
     CHECK_ERROR_TRACE(acpi_validate_checksum(fadt, fadt->header.length), ERROR_NOT_FOUND, "FADT checksum incorrect");
 
