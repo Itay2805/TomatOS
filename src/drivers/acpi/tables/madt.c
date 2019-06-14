@@ -13,7 +13,7 @@ madt_nmi_t** madt_nmis;
 error_t madt_init() {
     error_t err = NO_ERROR;
 
-    madt = (madt_t*) rsdt_search("APIC");
+    madt = (madt_t*) rsdt_search("APIC", 0);
     CHECK_ERROR_TRACE(madt, ERROR_NOT_FOUND, "MADT (APIC) Not found");
     CHECK_ERROR_TRACE(acpi_validate_checksum(madt, madt->header.length), ERROR_NOT_FOUND, "MADT (APIC) checksum incorrect");
 

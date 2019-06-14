@@ -5,7 +5,7 @@
 mcfg_t* mcfg = NULL;
 
 void mcfg_init() {
-    mcfg = (mcfg_t *) rsdt_search("MCFG");
+    mcfg = (mcfg_t *) rsdt_search("MCFG", 0);
     if(mcfg) {
         log_info("\tMCFG Found (0x%016p):", (uintptr_t)mcfg - PHYSICAL_BASE);
         log_debug("\t\tRevision: %d", mcfg->header.revision);

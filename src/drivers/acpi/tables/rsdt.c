@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <string.h>
 
+// TODO: Instead of having both have a single uniform list
 rsdt_t* rsdt;
 xsdt_t* xsdt;
 
@@ -94,9 +95,9 @@ cleanup:
     return err;
 }
 
-sdt_hdr_t* xsdt_search(char* signature) {
-    for(uint64_t* sdt = xsdt->sdts; sdt < (xsdt->sdts + ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8)); sdt++) {
-        sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+sdt_hdr_t* xsdt_search(char* signature, int index) {
+    for(int i = index; i < ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8); i++) {
+        sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(xsdt->sdts[i]);
         if(memcmp(hdr->signature, signature, 4) == 0) {
             return hdr;
         }
@@ -105,18 +106,18 @@ sdt_hdr_t* xsdt_search(char* signature) {
     return NULL;
 }
 
-sdt_hdr_t* rsdt_search(char* signature) {
+sdt_hdr_t* rsdt_search(char* signature, int index) {
     if(rsdt != NULL) {
         // rsdt searching
-        for(uint32_t* sdt = rsdt->sdts; sdt < (rsdt->sdts + ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4)); sdt++) {
-            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(*sdt);
+        for(int i = index; i < ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4); i++) {
+            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(rsdt->sdts[i]);
             if(memcmp(hdr->signature, signature, 4) == 0) {
                 return hdr;
             }
         }
     }else {
         // xsdt searching
-        return xsdt_search(signature);
+        return xsdt_search(signature, index);
     }
 
     // not found
