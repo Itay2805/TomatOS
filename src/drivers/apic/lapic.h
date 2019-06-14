@@ -165,4 +165,19 @@ error_t lapic_enable();
  */
 error_t lapic_send_eoi();
 
+/**
+ * Sleep for a certain amount for milliseconds
+ *
+ * @remark
+ * This is a none-preemptive sleep! this means that you will suspend
+ * the whole CPU while performing this sleep
+ *
+ * @remark
+ * Even tho preemption will not work while in this sleep, normal
+ * interrupts will still fire if enabled
+ *
+ * @param millis    [IN] The time to sleep in seconds
+ */
+error_t lapic_sleep(uint32_t millis);
+
 #endif //TOMATKERNEL_LAPIC_H
