@@ -4,6 +4,8 @@
 #include <interrupts/interrupts.h>
 #include <drivers/portio.h>
 #include <drivers/pci/pci.h>
+#include <drivers/apic/lapic.h>
+#include <lai/core.h>
 #include "rsdt.h"
 #include "fadt.h"
 #include "rsdp.h"
@@ -105,7 +107,26 @@ uint32_t laihost_pci_read(uint8_t bus, uint8_t function, uint8_t device, uint16_
 }
 
 void laihost_sleep(uint64_t duration) {
-    laihost_panic("laihost_sleep is stub");
+
+    while(duration / UINT32_MAX > 0) {
+        lapic_sleep(UINT32_MAX);
+        duration -= UINT32_MAX;
+    }
+
+    // sleep the reminder
+    if(duration % UINT32_MAX != 0) {
+        lapic_sleep((uint32_t)(duration % UINT32_MAX));
+    }
 }
 
-void laihost_handle_amldebug(lai_object_t* obj) {}
+void laihost_handle_amldebug(lai_object_t* obj) {
+    switch(obj->type) {
+        case LAI_INTEGER: {
+            log_debug("amldebug: %lu", obj->integer);
+        } break;
+        case LAI_STRING: {
+            log_debug("amldebug: %s", obj->string);
+        } break;
+        default:break;
+    }
+}
