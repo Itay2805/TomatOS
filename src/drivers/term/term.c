@@ -1,5 +1,6 @@
 #include "term.h"
 #include "text.h"
+#include "graphics.h"
 
 static logger_t logger = {0};
 
@@ -21,7 +22,13 @@ void term_early_init(multiboot_info_t* info) {
         } break;
 
         case MULTIBOOT_FRAMEBUFFER_TYPE_RGB: {
-            log_warn("RGB framebuffer is not supported yet");
+            graphics_early_init(info);
+
+            term_init = graphics_init;
+            term_write = graphics_write;
+            term_clear = graphics_clear;
+            term_scroll = graphics_scroll;
+
         } break;
         case MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED: {
             log_warn("Indexed framebuffer is not supported");

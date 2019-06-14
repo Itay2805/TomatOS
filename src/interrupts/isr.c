@@ -155,16 +155,16 @@ static void default_exception_handler(registers_t* regs) {
     log_info("CR3=%016llx", regs->cr3);
 
     // only do the stack trace for kernel processes
-    if(regs->cr3 == kernel_address_space) {
-        uintptr_t* bp = (uintptr_t *) regs->rbp;
-        bp = (uintptr_t *)bp[0];
-        if (bp) {
-            log_info("call trace:");
-            for (uintptr_t ip = bp[1]; bp; ip = bp[1], bp = (uintptr_t *)bp[0]) {
-                log_info("\t%016lx", ip);
-            }
-        }
-    }
+//    if(regs->cr3 == kernel_address_space) {
+//        uintptr_t* bp = (uintptr_t *) regs->rbp;
+//        bp = (uintptr_t *)bp[0];
+//        if (bp) {
+//            log_info("call trace:");
+//            for (uintptr_t ip = bp[1]; bp; ip = bp[1], bp = (uintptr_t *)bp[0]) {
+//                log_info("\t%016lx", ip);
+//            }
+//        }
+//    }
 
     log_critical(":(");
     _cli();

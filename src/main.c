@@ -72,15 +72,13 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_early_init(info));
     CHECK_AND_RETHROW(vmm_init(info));
 
-    // initialize the term for vmm
-    term_init();
-
     /*********************************************************
      * Initialization of essentials
      *
      * we require everything in here to work
      *********************************************************/
     CHECK_AND_RETHROW(pmm_init());
+    term_init();
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(acpi_init());
     CHECK_AND_RETHROW(pic8259_disable());
