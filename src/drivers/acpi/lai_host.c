@@ -6,9 +6,10 @@
 #include <drivers/pci/pci.h>
 #include <drivers/apic/lapic.h>
 #include <lai/core.h>
-#include "rsdt.h"
-#include "fadt.h"
-#include "rsdp.h"
+
+#include "tables/rsdt.h"
+#include "tables/fadt.h"
+#include "tables/rsdp.h"
 
 #define SIGNATURE_CHECK(str1, str2) (str1[0] == str2[0] && str1[1] == str2[1] && str1[2] == str2[2] && str1[3] == str2[3])
 

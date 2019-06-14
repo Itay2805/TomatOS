@@ -158,7 +158,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c src/drivers/acpi/lai_host.c src/drivers/acpi/fadt.h src/drivers/acpi/fadt.c)
+        src/main.c src/drivers/acpi/lai_host.c src/drivers/acpi/tables/fadt.h src/drivers/acpi/tables/fadt.c)
 
 include_directories(src)
 include_directories(lib/libc)

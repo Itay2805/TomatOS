@@ -1,5 +1,4 @@
 #include "madt.h"
-#include "acpi.h"
 
 #include <drivers/acpi/acpi.h>
 #include <memory/vmm.h>

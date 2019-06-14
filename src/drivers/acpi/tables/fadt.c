@@ -1,7 +1,7 @@
 #include "fadt.h"
+#include "drivers/acpi/acpi.h"
 #include "rsdp.h"
 
-#include <drivers/acpi/acpi.h>
 #include <memory/vmm.h>
 #include <common.h>
 
@@ -52,7 +52,7 @@ static error_t dsdt_init() {
             , dsdt->oem_table_id[6]
             , dsdt->oem_table_id[7]);
 
-    cleanup:
+cleanup:
     return err;
 }
 
@@ -85,6 +85,6 @@ error_t fadt_init() {
     CHECK_AND_RETHROW(dsdt_init());
 
 
-    cleanup:
+cleanup:
     return err;
 }
