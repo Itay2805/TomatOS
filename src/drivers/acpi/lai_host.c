@@ -6,6 +6,7 @@
 #include <drivers/pci/pci.h>
 #include <drivers/apic/lapic.h>
 #include <lai/core.h>
+#include <string.h>
 
 #include "tables/rsdt.h"
 #include "tables/fadt.h"
@@ -25,16 +26,22 @@ void laihost_free(void* ptr) {
     return free(ptr);
 }
 
+static char buffer[1024];
+
 void laihost_log(int lvl, const char* str) {
+    strcpy(buffer, str);
+    buffer[strlen(buffer) - 1] = 0;
     switch(lvl) {
-        case LAI_DEBUG_LOG: log_debug(str); break;
-        case LAI_WARN_LOG: log_warn(str); break;
-        default: log_info(str); break;
+        case LAI_DEBUG_LOG: log_debug(buffer); break;
+        case LAI_WARN_LOG: log_warn(buffer); break;
+        default: log_info(buffer); break;
     }
 }
 
 void laihost_panic(const char* str) {
-    log_critical(str);
+    strcpy(buffer, str);
+    buffer[strlen(buffer) - 1] = 0;
+    log_critical(buffer);
     log_critical("Halting kernel :(");
     _cli();
     while(true) {
@@ -43,16 +50,10 @@ void laihost_panic(const char* str) {
 }
 
 void* laihost_scan(char* signature, size_t index) {
-    log_info(signature);
-    if(index == 0) {
-        if(SIGNATURE_CHECK(signature, "DSDT")) {
-            return dsdt;
-        }
-        return rsdt_search(signature);
-    }else {
-        log_warn("doesn't support more than the first index!");
+    if(SIGNATURE_CHECK(signature, "DSDT")) {
+        return dsdt;
     }
-    return NULL;
+    return rsdt_search(signature, (int) index);
 }
 
 void* laihost_map(size_t phys_addr, size_t count) {
@@ -89,14 +90,14 @@ uint32_t laihost_ind(uint16_t port) {
     return inl(port);
 }
 
-void laihost_pci_write(uint8_t bus, uint8_t function, uint8_t device, uint16_t offset, uint32_t data) {
-    pcidev_t dev;
-    dev.legacy.bus = bus;
-    dev.legacy.function = function;
-    dev.legacy.slot = device;
-
-    laihost_panic("laihost_pci_write is stub");
-}
+//void laihost_pci_write(uint8_t bus, uint8_t function, uint8_t device, uint16_t offset, uint32_t data) {
+//    pcidev_t dev;
+//    dev.legacy.bus = bus;
+//    dev.legacy.function = function;
+//    dev.legacy.slot = device;
+//
+//    laihost_panic("laihost_pci_write is stub");
+//}
 
 uint32_t laihost_pci_read(uint8_t bus, uint8_t function, uint8_t device, uint16_t offset) {
     pcidev_t dev;
