@@ -24,6 +24,7 @@
 #include <cpu/fpu.h>
 #include <interrupts/irq.h>
 #include <drivers/apic/ioapic.h>
+#include <drivers/term/term.h>
 
 static void* test_1(void* arg) {
     (void)arg;
@@ -53,12 +54,15 @@ void kernel_main(multiboot_info_t* info) {
      * basically setting a nice enviroment to work in
      *********************************************************/
 
-    // we start by creating a logger, allows us to actually log stuff
+    // vm logger can be initialized very early on
     vmdev_register_logger();
 
     // initialize the idt and gdt
     idt_init();
     gdt_init();
+
+    // now we can initialize the terminal
+    term_early_init(info);
 
     /*********************************************************
      * Early memory initialization
@@ -67,6 +71,9 @@ void kernel_main(multiboot_info_t* info) {
      *********************************************************/
     CHECK_AND_RETHROW(pmm_early_init(info));
     CHECK_AND_RETHROW(vmm_init(info));
+
+    // initialize the term for vmm
+    term_init();
 
     /*********************************************************
      * Initialization of essentials

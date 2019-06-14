@@ -145,7 +145,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c)
+        src/main.c src/drivers/term/term.c src/drivers/term/term.h src/drivers/term/text.c src/drivers/term/text.h)
 
 include_directories(src)
 include_directories(lib/libc)
