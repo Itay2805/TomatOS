@@ -16,6 +16,8 @@
 typedef struct logger {
     bool enabled;
     void(*write)(const char* str);
+    uint32_t (*set_text_color)(uint32_t);
+    uint32_t (*set_background_color)(uint32_t);
 } logger_t;
 
 /**
@@ -27,6 +29,7 @@ void logger_register(logger_t* logger);
 
 void log_debug_full(const char* filename, const char* function, int line, const char* fmt, ...);
 void log_info_full(const char* filename, const char* function, int line, const char* fmt, ...);
+void log_notice_full(const char* filename, const char* function, int line, const char* fmt, ...);
 void log_warn_full(const char* filename, const char* function, int line, const char* fmt, ...);
 void log_error_full(const char* filename, const char* function, int line, const char* fmt, ...);
 void log_critical_full(const char* filename, const char* function, int line, const char* fmt, ...);
@@ -34,6 +37,7 @@ void log_critical_full(const char* filename, const char* function, int line, con
 // TODO: Make this not pass nulls if we ever wanna allow for filename/function to be used in the log
 #define log_debug(fmt, ...) log_debug_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
 #define log_info(fmt, ...) log_info_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
+#define log_notice(fmt, ...) log_notice_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
 #define log_warn(fmt, ...) log_warn_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
 #define log_error(fmt, ...) log_error_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
 #define log_critical(fmt, ...) log_critical_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)

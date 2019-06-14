@@ -126,37 +126,41 @@ struct multiboot_info {
     multiboot_uint32_t apm_table;
 
     /* Video */
-    multiboot_uint32_t vbe_control_info;
-    multiboot_uint32_t vbe_mode_info;
-    multiboot_uint16_t vbe_mode;
-    multiboot_uint16_t vbe_interface_seg;
-    multiboot_uint16_t vbe_interface_off;
-    multiboot_uint16_t vbe_interface_len;
+    struct {
+        multiboot_uint32_t control_info;
+        multiboot_uint32_t mode_info;
+        multiboot_uint16_t mode;
+        multiboot_uint16_t interface_seg;
+        multiboot_uint16_t interface_off;
+        multiboot_uint16_t interface_len;
+    } __attribute__((packed)) vbe;
 
-    multiboot_uint64_t framebuffer_addr;
-    multiboot_uint32_t framebuffer_pitch;
-    multiboot_uint32_t framebuffer_width;
-    multiboot_uint32_t framebuffer_height;
-    multiboot_uint8_t framebuffer_bpp;
+    struct {
+        multiboot_uint64_t addr;
+        multiboot_uint32_t pitch;
+        multiboot_uint32_t width;
+        multiboot_uint32_t height;
+        multiboot_uint8_t bpp;
 #define MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED 0
 #define MULTIBOOT_FRAMEBUFFER_TYPE_RGB     1
 #define MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT     2
-    multiboot_uint8_t framebuffer_type;
-    union {
-        struct {
-            multiboot_uint32_t framebuffer_palette_addr;
-            multiboot_uint16_t framebuffer_palette_num_colors;
+        multiboot_uint8_t type;
+        union {
+            struct {
+                multiboot_uint32_t addr;
+                multiboot_uint16_t num_colors;
+            } __attribute__((packed)) palette;
+            struct {
+                multiboot_uint8_t red_field_position;
+                multiboot_uint8_t red_mask_size;
+                multiboot_uint8_t green_field_position;
+                multiboot_uint8_t green_mask_size;
+                multiboot_uint8_t blue_field_position;
+                multiboot_uint8_t blue_mask_size;
+            } __attribute__((packed)) rgb;
         };
-        struct {
-            multiboot_uint8_t framebuffer_red_field_position;
-            multiboot_uint8_t framebuffer_red_mask_size;
-            multiboot_uint8_t framebuffer_green_field_position;
-            multiboot_uint8_t framebuffer_green_mask_size;
-            multiboot_uint8_t framebuffer_blue_field_position;
-            multiboot_uint8_t framebuffer_blue_mask_size;
-        };
-    };
-};
+    } __attribute__((packed)) framebuffer;
+} __attribute__((packed));
 typedef struct multiboot_info multiboot_info_t;
 
 struct multiboot_color {

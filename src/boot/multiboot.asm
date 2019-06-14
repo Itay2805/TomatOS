@@ -5,10 +5,8 @@ DEFAULT rel
 ; Multiboot Header values
 ; ------------------------------------
 MAGIC equ 0x1badb002
-FLAGS equ ((1 << 0) | (1 << 1))
+FLAGS equ ((1 << 0) | (1 << 1) | (1 << 2))
 CHECKSUM equ -(MAGIC + FLAGS)
-
-; (1 << 2)
 
 ; ------------------------------------
 ; Actual Multiboot header
@@ -28,10 +26,10 @@ dd 0 ; bss_end_addr
 dd 0 ; entry_addr
 
 ; these are the graphics fields
-;dd 0    ; video mode
-;dd 1024 ; width
-;dd 768  ; height
-;dd 32   ; depth (bpp)
+dd 0    ; video mode
+dd 1024 ; width
+dd 768  ; height
+dd 32   ; depth (bpp)
 
 ; ====================================
 ;   Multiboot entry

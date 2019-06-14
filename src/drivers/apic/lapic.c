@@ -1,11 +1,13 @@
 #include "lapic.h"
 #include "apic.h"
 
-#include <drivers/acpi/madt.h>
+#include <drivers/acpi/tables/madt.h>
 #include <memory/vmm.h>
 #include <buf.h>
 #include <drivers/rtc/rtc.h>
 #include <interrupts/interrupts.h>
+#include <locks/spinlock.h>
+#include <cpu/atomic.h>
 
 static char* mmio_base;
 uint32_t lapic_timer_ticks_per_second;
@@ -148,5 +150,38 @@ error_t lapic_enable() {
 
 error_t lapic_send_eoi() {
     lapic_write(LAPIC_REG_EOI, 0);
+    return NO_ERROR;
+}
+
+error_t lapic_sleep(uint32_t millis) {
+    uint32_t ticks_to_wait = (uint32_t) (millis * (lapic_timer_ticks_per_second / 1000));
+
+    // save the state of the lapic
+    lapic_lvt_t old_lvt;
+    old_lvt.raw = lapic_read(LAPIC_REG_LVT_TIMER);
+    uint32_t initial = lapic_read(LAPIC_REG_TIMER_INITIAL_COUNT);
+    uint32_t divider = lapic_read(LAPIC_REG_TIMER_DEVIDER);
+
+    // set a new state for the timer
+    lapic_lvt_t timer_lvt = {
+        // we don't care about the actual interrupt
+        .vector = 0xff,
+        .delievery_mode = LAPIC_LVT_FIXED,
+        .periodic = false,
+        .masked = true,
+    };
+    lapic_write(LAPIC_REG_LVT_TIMER, timer_lvt.raw);
+    lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1);
+
+    // start the sleep
+    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, ticks_to_wait);
+    while(lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT) > 0) {
+        _pause();
+    }
+
+    // restore the timer state
+    lapic_write(LAPIC_REG_LVT_TIMER, old_lvt.raw);
+    lapic_write(LAPIC_REG_TIMER_DEVIDER, divider);
+    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, initial);
     return NO_ERROR;
 }

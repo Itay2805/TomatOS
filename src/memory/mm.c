@@ -190,7 +190,7 @@ static error_t get_block_from_ptr(void* ptr, mm_block_t** block) {
         CHECK_ERROR(vmm_is_mapped(kernel_address_space, (uintptr_t) assumed_block), ERROR_NOT_MAPPED);
     }
 
-    CHECK_ERROR_LOG(padding == get_padding(assumed_block, assumed_block->alignment), ERROR_INVALID_POINTER, log_debug);
+    CHECK_ERROR(padding == get_padding(assumed_block, assumed_block->alignment), ERROR_INVALID_POINTER);
 
     *block = assumed_block;
 
@@ -213,7 +213,7 @@ static error_t update_free(bool tried_join, bool tried_expand) {
     bool first = true;
 
     while(current->allocated) {
-        CHECK_ERROR_LOG(first || current != free_block, ERROR_OUT_OF_MEMORY, log_debug);
+        CHECK_ERROR_QUITE(first || current != free_block, ERROR_OUT_OF_MEMORY);
         current = current->next;
         first = false;
     }
@@ -223,11 +223,11 @@ static error_t update_free(bool tried_join, bool tried_expand) {
 cleanup:
     if(err == ERROR_OUT_OF_MEMORY) {
         if(!tried_join) {
-            CHECK_AND_RETHROW_LOG_LABEL(join(), log_debug, cleanup_failed);
-            CHECK_AND_RETHROW_LOG_LABEL(update_free(true, false), log_debug, cleanup_failed);
+            CHECK_AND_RETHROW_LABEL_QUITE(join(), cleanup_failed);
+            CHECK_AND_RETHROW_LABEL_QUITE(update_free(true, false), cleanup_failed);
         }else if(!tried_expand) {
-            CHECK_AND_RETHROW_LOG_LABEL(expand(sizeof(size_t) * 3), log_debug, cleanup_failed);
-            CHECK_AND_RETHROW_LOG_LABEL(update_free(true, true), log_debug, cleanup_failed);
+            CHECK_AND_RETHROW_LABEL_QUITE(expand(sizeof(size_t) * 3), cleanup_failed);
+            CHECK_AND_RETHROW_LABEL_QUITE(update_free(true, true), cleanup_failed);
         }
     }
 cleanup_failed:
@@ -288,7 +288,7 @@ static error_t allocate_internal(size_t size, size_t alignment, void** ptr, bool
     CHECK(current != NULL);
 
     while(current != NULL) {
-        CHECK_ERROR_SILENT(first || current != free_block, ERROR_OUT_OF_MEMORY);
+        CHECK_ERROR_QUITE(first || current != free_block, ERROR_OUT_OF_MEMORY);
 
         if(!current->allocated && check_size_and_alignment(current, size, alignment)) {
             if(can_split(current, size, alignment)) {
@@ -336,15 +336,15 @@ static error_t allocate_internal(size_t size, size_t alignment, void** ptr, bool
         current = current->next;
     }
 
-    CHECK_ERROR_LOG(allocated != NULL, ERROR_OUT_OF_MEMORY, log_debug);
+    CHECK_ERROR_QUITE(allocated != NULL, ERROR_OUT_OF_MEMORY);
     *ptr = allocated;
 
 cleanup:
     // attempt and recover by trying and join/allocate more memory
     if(err == ERROR_OUT_OF_MEMORY) {
         if(!tried_join) {
-            CHECK_AND_RETHROW_LOG_LABEL(join(), log_debug, cleanup_failed);
-            CHECK_AND_RETHROW_LOG_LABEL(allocate_internal(size, alignment, ptr, true, false), log_debug, cleanup_failed);
+            CHECK_AND_RETHROW_LABEL_QUITE(join(), cleanup_failed);
+            CHECK_AND_RETHROW_LABEL_QUITE(allocate_internal(size, alignment, ptr, true, false), cleanup_failed);
         }else if(!tried_expand) {
             size_t min;
             if(size > alignment) {
@@ -352,8 +352,8 @@ cleanup:
             }else {
                 min = alignment * 3;
             }
-            CHECK_AND_RETHROW_LOG_LABEL(expand(min), log_debug, cleanup_failed);
-            CHECK_AND_RETHROW_LOG_LABEL(allocate_internal(size, alignment, ptr, true, true), log_debug, cleanup_failed);
+            CHECK_AND_RETHROW_LABEL_QUITE(expand(min), cleanup_failed);
+            CHECK_AND_RETHROW_LABEL_QUITE(allocate_internal(size, alignment, ptr, true, true), cleanup_failed);
         }
     }
     CHECK_AND_RETHROW_LABEL(verify_integrity(), cleanup_failed);
@@ -418,7 +418,7 @@ error_t mm_allocate_aligned(size_t size, size_t alignment, void** out_ptr) {
     CHECK_ERROR(out_ptr, ERROR_INVALID_ARGUMENT);
 
     CHECK_AND_RETHROW(verify_integrity());
-    CHECK_AND_RETHROW(allocate_internal(size, alignment, &ptr, false, false));
+    CATCH(allocate_internal(size, alignment, &ptr, false, false), CHECK_FAIL_ERROR(err));
     CHECK(ptr != NULL);
     CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
     memset(ptr, 0, size);
@@ -465,25 +465,25 @@ error_t mm_reallocate(void** ptr, size_t size) {
 
     CHECK_AND_RETHROW(verify_integrity());
 
-    if(ptr == NULL) {
-        CHECK_AND_RETHROW(allocate_internal(size, block->alignment, &new, false, false));
+    if(ptr == NULL || *ptr == NULL) {
+        CATCH(allocate_internal(size, block->alignment, &new, false, false), CHECK_FAIL_ERROR(err));
     }else {
-        CHECK_AND_RETHROW(get_block_from_ptr(ptr, &block));
+        CHECK_AND_RETHROW(get_block_from_ptr(*ptr, &block));
         // TODO: CHECK_ERROR(block->allocated, ERROR_ALREADY_FREED);
 
         ptrdiff_t padding = get_padding(block, block->alignment);
         if(block->size - padding < (ptrdiff_t)size) {
             old_size = (size_t) (block->size - padding);
-            CHECK_AND_RETHROW(allocate_internal(size, block->alignment, &new, false, false));
+            CATCH(allocate_internal(size, block->alignment, &new, false, false), CHECK_FAIL_ERROR(err) );
         }else {
-            new = ptr;
+            new = *ptr;
         }
     }
     CHECK_AND_RETHROW(get_block_from_ptr(new, &new_block));
 
-    if(ptr != new) {
+    if(*ptr != new) {
         // copy the old memory, zero the new memory and free the new one
-        memcpy(new, ptr, old_size);
+        memcpy(new, *ptr, old_size);
         memset(new + old_size, 0, size - old_size);
 
         // free the block

@@ -1,6 +1,7 @@
 #include "madt.h"
 #include "acpi.h"
 
+#include <drivers/acpi/acpi.h>
 #include <memory/vmm.h>
 #include <buf.h>
 
@@ -15,7 +16,7 @@ error_t madt_init() {
 
     madt = (madt_t*) rsdt_search("APIC");
     CHECK_ERROR_TRACE(madt, ERROR_NOT_FOUND, "MADT (APIC) Not found");
-    CHECK_ERROR_TRACE(acpi_validate_checksum(madt, madt->header.length), ERROR_NOT_FOUND, "FADT checksum incorrect");
+    CHECK_ERROR_TRACE(acpi_validate_checksum(madt, madt->header.length), ERROR_NOT_FOUND, "MADT (APIC) checksum incorrect");
 
     log_info("\tMADT (APIC) Found (0x%016p)", (uintptr_t)madt - PHYSICAL_BASE);
     log_debug("\t\tRevision: %d", madt->header.revision);

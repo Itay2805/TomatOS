@@ -143,28 +143,28 @@ static void default_exception_handler(registers_t* regs) {
 
     int cpl = (int) (regs->rflags & FLAGS_IOPL_3);
 
-    log_info("RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx", regs->rax, regs->rbx, regs->rcx, regs->rdx);
-    log_info("RSI=%016llx RDI=%016llx RBP=%016llx RSP=%016llx", regs->rsi, regs->rdi, regs->rbp, regs->rsp);
-    log_info("R8 =%016llx R9 =%016llx R10=%016llx R11=%016llx", regs->r8, regs->r9, regs->r10, regs->r10);
-    log_info("R12=%016llx R13=%016llx R14=%016llx R15=%016llx", regs->r12, regs->r13, regs->r14, regs->r15);
-    log_info("RIP=%016llx RFL=%08lx [%c%c%c%c%c%c%c] CPL=%d", regs->rip, (uint32_t)regs->rflags,
+    log_error("RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx", regs->rax, regs->rbx, regs->rcx, regs->rdx);
+    log_error("RSI=%016llx RDI=%016llx RBP=%016llx RSP=%016llx", regs->rsi, regs->rdi, regs->rbp, regs->rsp);
+    log_error("R8 =%016llx R9 =%016llx R10=%016llx R11=%016llx", regs->r8, regs->r9, regs->r10, regs->r10);
+    log_error("R12=%016llx R13=%016llx R14=%016llx R15=%016llx", regs->r12, regs->r13, regs->r14, regs->r15);
+    log_error("RIP=%016llx RFL=%08lx [%c%c%c%c%c%c%c] CPL=%d", regs->rip, (uint32_t)regs->rflags,
              _if, _tf, _sf, _zf, _af, _pf, _cf, cpl);
-    log_info("CS =%04x DPL=%d", regs->cs & 0xFFF8, regs->cs & 0b11);
-    log_info("DS =%04x DPL=%d", regs->ds & 0xFFF8, regs->ds & 0b11);
-    log_info("SS =%04x DPL=%d", regs->ss & 0xFFF8, regs->ss & 0b11);
-    log_info("CR3=%016llx", regs->cr3);
+    log_error("CS =%04x DPL=%d", regs->cs & 0xFFF8, regs->cs & 0b11);
+    log_error("DS =%04x DPL=%d", regs->ds & 0xFFF8, regs->ds & 0b11);
+    log_error("SS =%04x DPL=%d", regs->ss & 0xFFF8, regs->ss & 0b11);
+    log_error("CR3=%016llx", regs->cr3);
 
-    // only do the stack trace for kernel processes
-    if(regs->cr3 == kernel_address_space) {
-        uintptr_t* bp = (uintptr_t *) regs->rbp;
-        bp = (uintptr_t *)bp[0];
-        if (bp) {
-            log_info("call trace:");
-            for (uintptr_t ip = bp[1]; bp; ip = bp[1], bp = (uintptr_t *)bp[0]) {
-                log_info("\t%016lx", ip);
-            }
-        }
-    }
+//     only do the stack trace for kernel processes
+//    if(regs->cr3 == kernel_address_space) {
+//        uintptr_t* bp = (uintptr_t *) regs->rbp;
+//        bp = (uintptr_t *)bp[0];
+//        if (bp) {
+//            log_info("call trace:");
+//            for (uintptr_t ip = bp[1]; bp; ip = bp[1], bp = (uintptr_t *)bp[0]) {
+//                log_info("\t%016lx", ip);
+//            }
+//        }
+//    }
 
     log_critical(":(");
     _cli();

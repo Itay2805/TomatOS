@@ -24,6 +24,7 @@
 #include <cpu/fpu.h>
 #include <interrupts/irq.h>
 #include <drivers/apic/ioapic.h>
+#include <drivers/term/term.h>
 
 static void* test_1(void* arg) {
     (void)arg;
@@ -53,12 +54,15 @@ void kernel_main(multiboot_info_t* info) {
      * basically setting a nice enviroment to work in
      *********************************************************/
 
-    // we start by creating a logger, allows us to actually log stuff
+    // vm logger can be initialized very early on
     vmdev_register_logger();
 
     // initialize the idt and gdt
     idt_init();
     gdt_init();
+
+    // now we can initialize the terminal
+    term_early_init(info);
 
     /*********************************************************
      * Early memory initialization
@@ -74,6 +78,7 @@ void kernel_main(multiboot_info_t* info) {
      * we require everything in here to work
      *********************************************************/
     CHECK_AND_RETHROW(pmm_init());
+    term_init();
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(acpi_init());
     CHECK_AND_RETHROW(pic8259_disable());
@@ -95,7 +100,7 @@ void kernel_main(multiboot_info_t* info) {
     /*********************************************************
      * Initialization completed
      *********************************************************/
-    log_info("initialization finished");
+    log_notice("initialization finished");
 
     process_t* process = NULL;
     thread_t* thread_1 = NULL;
@@ -103,8 +108,6 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(process_create(&process, NULL, 0, NULL));
     CHECK_AND_RETHROW(thread_create(process, test_1, NULL, &thread_1));
     CHECK_AND_RETHROW(thread_create(process, test_2, NULL, &thread_2));
-
-
 
     // TODO: start the scheduler
     _sti();

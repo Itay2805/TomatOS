@@ -1,6 +1,6 @@
 #include "rsdp.h"
 
-#include "acpi.h"
+#include "drivers/acpi/acpi.h"
 
 #include <memory/vmm.h>
 

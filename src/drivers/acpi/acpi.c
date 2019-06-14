@@ -4,20 +4,21 @@
 #include <interrupts/irq.h>
 #include "acpi.h"
 
-#include "rsdp.h"
-#include "rsdt.h"
-#include "mcfg.h"
-#include "madt.h"
-#include "fadt.h"
+#include "tables/rsdp.h"
+#include "tables/rsdt.h"
+#include "tables/mcfg.h"
+#include "tables/madt.h"
+#include "tables/fadt.h"
 
 error_t acpi_init() {
     error_t err = NO_ERROR;
 
-    log_info("Initializing ACPI");
+    log_notice("Initializing ACPI");
     CHECK_AND_RETHROW(rsdp_init());
     CHECK_AND_RETHROW(rsdt_init());
     CHECK_AND_RETHROW(fadt_init());
     CHECK_AND_RETHROW(madt_init());
+    CHECK_AND_RETHROW(fadt_init());
 
     mcfg_init();
 
