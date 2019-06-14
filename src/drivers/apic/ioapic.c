@@ -1,4 +1,4 @@
-#include <drivers/acpi/madt.h>
+#include <drivers/acpi/tables/madt.h>
 #include <memory/vmm.h>
 #include <interrupts/interrupts.h>
 #include <buf.h>

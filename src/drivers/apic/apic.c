@@ -1,6 +1,6 @@
 #include "apic.h"
 
-#include <drivers/acpi/madt.h>
+#include <drivers/acpi/tables/madt.h>
 #include <memory/vmm.h>
 #include <cpu/msr.h>
 #include <buf.h>

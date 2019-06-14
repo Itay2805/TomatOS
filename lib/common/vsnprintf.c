@@ -1,17 +1,13 @@
-#include "vsnprintf.h"
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <ctype.h>
 
-// Taken from
-// https://gitlab.com/qookei/quack/blob/master/kernel/vsnprintf.c
-
-#define FMT_PUT(dst, len, c) \
-    do {\
-        if(len) { \
-            *(dst)++ = (c); \
-            len--; \
-        } \
-        total_len++; \
-    } while(0)
+#define FMT_PUT(dst, len, c) {\
+				if(!(len)) goto end; \
+				*(dst)++ = (c); \
+				len--; \
+			}
 
 static const char *digits_upper = "0123456789ABCDEF";
 static const char *digits_lower = "0123456789abcdef";
@@ -47,10 +43,8 @@ static char *num_fmt(uint64_t i, int base, int padding, char pad_with, int handl
     return ptr;
 }
 
-size_t vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
+void vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
     uint64_t i;
-    size_t total_len = 0;
-    char* buf_end = buf + len;
     char *s;
 
     while(*fmt && len) {
@@ -85,7 +79,7 @@ size_t vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
         switch (*fmt) {
             case 'c': {
                 i = (uint64_t) va_arg(arg, int);
-                FMT_PUT(buf, len, i);
+                FMT_PUT(buf, len, i)
                 break;
             }
 
@@ -160,18 +154,9 @@ size_t vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
 
             case 's': {
                 s = va_arg(arg, char *);
-                if(s == NULL) {
-                    FMT_PUT(buf, len, '(');
-                    FMT_PUT(buf, len, 'n');
-                    FMT_PUT(buf, len, 'u');
-                    FMT_PUT(buf, len, 'l');
-                    FMT_PUT(buf, len, 'l');
-                    FMT_PUT(buf, len, ')');
-                }else {
-                    while (*s) {
-                        FMT_PUT(buf, len, *s);
-                        s++;
-                    }
+                while (*s) {
+                    FMT_PUT(buf, len, *s);
+                    s++;
                 }
                 break;
             }
@@ -180,20 +165,19 @@ size_t vsnprintf(char *buf, size_t len, const char *fmt, va_list arg) {
                 FMT_PUT(buf, len, '%');
                 break;
             }
-            default:
-                break;
-        }
 
-        if (!len && buf_end != buf) {
-            *buf++ = '.';	// requires extra reserved space
-            *buf++ = '.';
-            *buf++ = '.';
+            default:break;
         }
 
         fmt++;
     }
 
-    *buf++ = '\0';
+    end:
+    if (!len) {
+        *buf++ = '.';	// requires extra reserved space
+        *buf++ = '.';
+        *buf++ = '.';
+    }
 
-    return total_len;
+    *buf++ = '\0';
 }

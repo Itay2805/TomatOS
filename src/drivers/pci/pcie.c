@@ -1,7 +1,7 @@
 #include "pcie.h"
 #include "pci.h"
 
-#include <drivers/acpi/mcfg.h>
+#include <drivers/acpi/tables/mcfg.h>
 #include <memory/vmm.h>
 #include <buf.h>
 

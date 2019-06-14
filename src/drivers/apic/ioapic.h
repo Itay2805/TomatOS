@@ -1,7 +1,7 @@
 #ifndef TOMATKERNEL_IOAPIC_H
 #define TOMATKERNEL_IOAPIC_H
 
-#include <drivers/acpi/madt.h>
+#include <drivers/acpi/tables/madt.h>
 #include <error.h>
 
 #define IOAPIC_REG_ID                           0x00

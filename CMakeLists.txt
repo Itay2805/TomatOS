@@ -72,14 +72,18 @@ set(KERNEL_SOURCE_FILES
 
         src/drivers/acpi/acpi.c
         src/drivers/acpi/acpi.h
-        src/drivers/acpi/madt.c
-        src/drivers/acpi/madt.h
-        src/drivers/acpi/mcfg.c
-        src/drivers/acpi/mcfg.h
-        src/drivers/acpi/rdsp.c
-        src/drivers/acpi/rsdp.h
-        src/drivers/acpi/rsdt.c
-        src/drivers/acpi/rsdt.h
+        src/drivers/acpi/aml/aml.c
+        src/drivers/acpi/aml/aml.h
+        src/drivers/acpi/tables/fadt.c
+        src/drivers/acpi/tables/fadt.h
+        src/drivers/acpi/tables/madt.c
+        src/drivers/acpi/tables/madt.h
+        src/drivers/acpi/tables/mcfg.c
+        src/drivers/acpi/tables/mcfg.h
+        src/drivers/acpi/tables/rdsp.c
+        src/drivers/acpi/tables/rsdp.h
+        src/drivers/acpi/tables/rsdt.c
+        src/drivers/acpi/tables/rsdt.h
 
         src/drivers/apic/apic.c
         src/drivers/apic/apic.h
