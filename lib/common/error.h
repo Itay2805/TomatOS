@@ -49,33 +49,27 @@ typedef enum error {
 
 extern const char* error_names[ERROR_COUNT];
 
-#define CHECK_ERROR_LOGGER_TRACE(cond, error, log_func, fmt, ...) \
+#define CHECK_ERROR_TRACE(cond, error, fmt, ...) \
     do { \
         if(!(cond)) { \
             err = error; \
-            log_func("error `%s`: " fmt, error_names[err], ## __VA_ARGS__); \
-            log_func("thrown (%s:%d), trace:", __FILENAME__, __LINE__); \
+            log_error("error `%s`: " fmt, error_names[err], ## __VA_ARGS__); \
+            log_error("thrown (%s:%d), trace:", __FILENAME__, __LINE__); \
             goto cleanup; \
         } \
     } while(0)
-
-#define CHECK_ERROR_TRACE(cond, error, fmt, ...) \
-    CHECK_ERROR_LOGGER_TRACE(cond, error, log_error, fmt, ## __VA_ARGS__)
 
 #define CHECK_TRACE(cond, fmt, ...) \
     CHECK_ERROR_TRACE(cond, ERROR_CHECK_FAILED, fmt, ## __VA_ARGS__)
 
-#define CHECK_ERROR_LOG(cond, error, log_func) \
+#define CHECK_ERROR(cond, error) \
     do { \
         if(!(cond)) { \
             err = error; \
-            log_func("error `%s` thrown (%s:%d)", error_names[err], __FILENAME__, __LINE__); \
+            log_error("error `%s` thrown (%s:%d)", error_names[err], __FILENAME__, __LINE__); \
             goto cleanup; \
         } \
     } while(0)
-
-#define CHECK_ERROR(cond, error) \
-    CHECK_ERROR_LOG(cond, error, log_error)
 
 #define CHECK(cond) \
     CHECK_ERROR(cond, ERROR_CHECK_FAILED)
@@ -89,29 +83,51 @@ extern const char* error_names[ERROR_COUNT];
 #define CHECK_FAIL_ERROR_TRACE(error, fmt, ...) \
     CHECK_ERROR_TRACE(false, error, fmt, ## __VA_ARGS__)
 
-#define CHECK_AND_RETHROW_LOG_LABEL(error, log_func, label) \
+#define CHECK_AND_RETHROW_LABEL(error, label) \
     do { \
         err = (error); \
         if(err != NO_ERROR) { \
-            log_func("\trethrown (%s:%d)", __FILENAME__, __LINE__); \
+            log_error("\trethrown (%s:%d)", __FILENAME__, __LINE__); \
             goto label; \
         } \
     } while(0)
 
-#define CHECK_AND_RETHROW_LABEL(error, label) \
-    CHECK_AND_RETHROW_LOG_LABEL(error, log_error, label)
-
-#define CHECK_AND_RETHROW_LOG(error) \
-    CHECK_AND_RETHROW_LOG_LABEL(error, log_error)
-
 #define CHECK_AND_RETHROW(error) \
-    CHECK_AND_RETHROW_LOG_LABEL(error, log_error, cleanup)
+    CHECK_AND_RETHROW_LABEL(error, cleanup)
 
-#define CATCH(err) \
+#define CATCH(err, ...) \
     do { \
         if((err) != NO_ERROR) { \
-            log_warn("\tcatched (%s:%d)", __FILENAME__, __LINE__); \
+            log_warn("catched `%s` (%s:%d)", error_names[err], __FILENAME__, __LINE__); \
+            __VA_ARGS__; \
         } \
     } while(0)
+
+/*********************************************************
+* Quite version of these functions
+*********************************************************/
+
+#define CHECK_ERROR_QUITE(cond, error) \
+    do { \
+        if(!(cond)) { \
+            err = error; \
+            goto cleanup; \
+        } \
+    } while(0)
+
+#define CHECK_QUITE(cond) \
+    CHECK_ERROR_QUITE(cond, ERROR_CHECK_FAILED)
+
+#define CHECK_AND_RETHROW_LABEL_QUITE(error, label) \
+    do { \
+        err = (error); \
+        if(err != NO_ERROR) { \
+            goto label; \
+        } \
+    } while(0)
+
+#define CHECK_AND_RETHROW_QUITE(error) \
+    CHECK_AND_RETHROW_LABEL_QUITE(error, cleanup)
+
 
 #endif //TOMATKERNEL_ERROR_H
