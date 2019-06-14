@@ -11,22 +11,10 @@ set(CMAKE_ASM_COMPILER /usr/bin/nasm)
 set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <SOURCE> <FLAGS> -o <OBJECT>")
 
 # Setup compilation flags
-set(CMAKE_C_FLAGS "-z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
+set(CMAKE_C_FLAGS "-g -z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
 set(CMAKE_ASM_FLAGS "-F dwarf -f elf64")
 set(CMAKE_EXE_LINKER_FLAGS "-z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${CMAKE_SOURCE_DIR}/config/multiboot.ld")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
-
-# For debugging
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-    set(CMAKE_C_FLAGS "-g -fno-omit-frame-pointer ${CMAKE_C_FLAGS}")
-    set(CMAKE_ASM_FLAGS "-g ${CMAKE_ASM_FLAGS}")
-endif ()
-
-# For release
-if (CMAKE_BUILD_TYPE MATCHES Release)
-    set(CMAKE_C_FLAGS "-O3 ${CMAKE_C_FLAGS}")
-    set(CMAKE_ASM_FLAGS "-O3 ${CMAKE_ASM_FLAGS}")
-endif ()
 
 set(COMMON_SOURCE_FILES
         lib/common/cpu/atomic.h
@@ -102,6 +90,15 @@ set(KERNEL_SOURCE_FILES
         src/drivers/pic8259/pic.c
         src/drivers/pic8259/pic.h
 
+        src/drivers/term/font.c
+        src/drivers/term/font.h
+        src/drivers/term/graphics.c
+        src/drivers/term/graphics.h
+        src/drivers/term/term.c
+        src/drivers/term/term.h
+        src/drivers/term/text.c
+        src/drivers/term/text.h
+
         src/drivers/vmdev/vmdev.c
         src/drivers/vmdev/vmdev.h
 
@@ -145,7 +142,7 @@ set(KERNEL_SOURCE_FILES
         src/process/thread.c
         src/process/thread.h
 
-        src/main.c src/drivers/term/term.c src/drivers/term/term.h src/drivers/term/text.c src/drivers/term/text.h src/drivers/term/graphics.c src/drivers/term/graphics.h src/drivers/term/font.c src/drivers/term/font.h)
+        src/main.c)
 
 include_directories(src)
 include_directories(lib/libc)

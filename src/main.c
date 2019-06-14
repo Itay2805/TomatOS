@@ -112,8 +112,6 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(thread_create(process, test_1, NULL, &thread_1));
     CHECK_AND_RETHROW(thread_create(process, test_2, NULL, &thread_2));
 
-
-
     // TODO: start the scheduler
     _sti();
 

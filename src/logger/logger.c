@@ -63,7 +63,7 @@ static uint32_t FG_COLORS[] = {
 static void write_to_loggers(int level, const char* str) {
     for(logger_t** logger = loggers; logger < loggers + LOGGER_COUNT; logger++) {
         if(*logger != NULL && (*logger)->enabled) {
-            uint32_t fg;
+            uint32_t fg = 0;
             if((*logger)->set_text_color) fg = (*logger)->set_text_color(FG_COLORS[level]);
             (*logger)->write(str);
             if((*logger)->set_text_color) (*logger)->set_text_color(fg);

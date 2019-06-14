@@ -8,8 +8,6 @@
 #include <common.h>
 
 static uint32_t* vram;
-static int cols;
-static int rows;
 static int width;
 static int height;
 static int cur_x = 0, cur_y = 0;
@@ -31,9 +29,9 @@ static void draw_char(int chr) {
             int scrn_x = x + cur_x * 8;
             int index = x + y * 8;
             if((letter[index / 8] & (1 << index % 8)) != 0) {
-                vram[scrn_x + scrn_y * width] = fg_color;
+                vram[scrn_x + scrn_y * width * 8] = fg_color;
             }else {
-                vram[scrn_x + scrn_y * width] = bg_color;
+                vram[scrn_x + scrn_y * width * 8] = bg_color;
             }
         }
     }
@@ -42,15 +40,12 @@ static void draw_char(int chr) {
 void graphics_early_init(multiboot_info_t* info) {
     vram = (uint32_t*)info->framebuffer.addr;
 
-    width = info->framebuffer.width;
-    height = info->framebuffer.height;
-
-    cols = info->framebuffer.width / 8;
-    rows = info->framebuffer.height / 8;
+    width = info->framebuffer.width / 8;
+    height = info->framebuffer.height / 8;
 }
 
 void graphics_init() {
-    for(uint64_t addr = ALIGN_DOWN(vram, KB(4)); addr < ALIGN_UP((uint64_t)vram + width * height * 32, KB(4)); addr += KB(4)) {
+    for(uint64_t addr = ALIGN_DOWN(vram, KB(4)); addr < ALIGN_UP((uint64_t)vram + width * height * 8 * 8 * 4, KB(4)); addr += KB(4)) {
         if(!vmm_is_mapped(kernel_address_space, (uintptr_t) PHYSICAL_ADDRESS(addr))) {
             vmm_map(kernel_address_space, PHYSICAL_ADDRESS(addr), (void *) addr, PAGE_ATTR_WRITE);
         }
@@ -79,13 +74,13 @@ void graphics_write(const char* text) {
                 cur_x++;
                 break;
         }
-        if(cur_x >= cols) {
+        if(cur_x >= width) {
             cur_x = 0;
             cur_y++;
         }
-        if(cur_y >= rows) {
+        if(cur_y >= height) {
             term_scroll(1);
-            cur_y = rows - 1;
+            cur_y = height - 1;
         }
     }
 }
@@ -99,11 +94,10 @@ void graphics_clear() {
 
 void graphics_scroll(uint16_t n) {
     if(!enabled) return;
-    n *= 8;
-    for(size_t i = 0; i <  (height - n) * width; i++) {
-        vram[i] = vram[i + (n * height)];
+    for(size_t i = 0; i <  (height - n) * width * 8 * 8; i++) {
+        vram[i] = vram[i + (n * width * 8 * 8)];
     }
-    for(int i = (height - n) * width; i <  width * height; i++) {
+    for(int i = (height - n) * width * 8 * 8; i <  width * height * 8 * 8; i++) {
         vram[i] = bg_color;
     }
 }
