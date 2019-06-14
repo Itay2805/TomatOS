@@ -107,3 +107,19 @@ void graphics_scroll(uint16_t n) {
         vram[i] = bg_color;
     }
 }
+
+void graphics_set_background_color(uint32_t col) {
+    bg_color = col;
+}
+
+void graphics_set_foreground_color(uint32_t col) {
+    fg_color = col;
+}
+
+uint32_t graphics_get_background_color() {
+    return bg_color;
+}
+
+uint32_t graphics_get_foreground_color() {
+    return fg_color;
+}

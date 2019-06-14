@@ -15,7 +15,7 @@ error_t pci_init() {
 
     if(pcie_supported()) {
         pcitype = PCI_TYPE_PCIE;
-        log_info("PCIe is supported");
+        log_notice("PCIe is supported");
 
         // set the config read/write
         pci_config_read_64 = pcie_config_read_64;
@@ -27,7 +27,7 @@ error_t pci_init() {
         CHECK_AND_RETHROW(pcie_init());
     }else if(pci_legacy_supported()) {
         pcitype = PCI_TYPE_LEGACY;
-        log_info("Legacy PCI is supported");
+        log_notice("Legacy PCI is supported");
 
         // set the config read/write
         pci_config_read_64 = pci_legacy_config_read_64;

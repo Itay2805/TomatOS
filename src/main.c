@@ -103,7 +103,7 @@ void kernel_main(multiboot_info_t* info) {
     /*********************************************************
      * Initialization completed
      *********************************************************/
-    log_info("initialization finished");
+    log_notice("initialization finished");
 
     process_t* process = NULL;
     thread_t* thread_1 = NULL;

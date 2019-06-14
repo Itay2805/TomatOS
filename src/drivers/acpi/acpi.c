@@ -10,7 +10,7 @@
 error_t acpi_init() {
     error_t err = NO_ERROR;
 
-    log_info("Initializing ACPI");
+    log_notice("Initializing ACPI");
     CHECK_AND_RETHROW(rsdp_init());
     CHECK_AND_RETHROW(rsdt_init());
     CHECK_AND_RETHROW(madt_init());
