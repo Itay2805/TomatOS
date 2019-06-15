@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <boot/multiboot.h>
 #include <common.h>
+#include <locks/spinlock.h>
 
 static uint32_t* vram;
 static int width;
@@ -13,6 +14,7 @@ static int height;
 static int cur_x = 0, cur_y = 0;
 static uint32_t bg_color = 0x000000, fg_color = 0xD3D7CF;
 static bool enabled = false;
+static spinlock_t gfx_lock;
 
 static void draw_char(int chr) {
     char* letter;
@@ -37,6 +39,19 @@ static void draw_char(int chr) {
     }
 }
 
+/**
+ * The main reason we have this is because this will not lock,
+ * while the other scroll will lock
+ */
+static void scroll_internal(uint16_t n) {
+    for(size_t i = 0; i <  (height - n) * width * 8 * 8; i++) {
+        vram[i] = vram[i + (n * width * 8 * 8)];
+    }
+    for(int i = (height - n) * width * 8 * 8; i <  width * height * 8 * 8; i++) {
+        vram[i] = bg_color;
+    }
+}
+
 void graphics_early_init(multiboot_info_t* info) {
     vram = (uint32_t*)info->framebuffer.addr;
 
@@ -57,6 +72,8 @@ void graphics_init() {
 
 void graphics_write(const char* text) {
     if(!enabled) return;
+
+    lock_preemption(&gfx_lock);
     while(*text) {
         char chr = *text++;
         switch(chr) {
@@ -83,6 +100,7 @@ void graphics_write(const char* text) {
             cur_y = height - 1;
         }
     }
+    unlock_preemption(&gfx_lock);
 }
 
 void graphics_clear() {
@@ -94,20 +112,21 @@ void graphics_clear() {
 
 void graphics_scroll(uint16_t n) {
     if(!enabled) return;
-    for(size_t i = 0; i <  (height - n) * width * 8 * 8; i++) {
-        vram[i] = vram[i + (n * width * 8 * 8)];
-    }
-    for(int i = (height - n) * width * 8 * 8; i <  width * height * 8 * 8; i++) {
-        vram[i] = bg_color;
-    }
+    lock_preemption(&gfx_lock);
+    scroll_internal(n);
+    unlock_preemption(&gfx_lock);
 }
 
 void graphics_set_background_color(uint32_t col) {
+    lock_preemption(&gfx_lock);
     bg_color = col;
+    unlock_preemption(&gfx_lock);
 }
 
 void graphics_set_foreground_color(uint32_t col) {
+    lock_preemption(&gfx_lock);
     fg_color = col;
+    unlock_preemption(&gfx_lock);
 }
 
 uint32_t graphics_get_background_color() {

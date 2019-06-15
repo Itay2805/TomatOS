@@ -90,8 +90,6 @@ static void do_log(const char* filename, const char* function, int line, int lev
     write_to_loggers(level, LEVEL_NAMES[level]);
     write_to_loggers(level, str);
     write_to_loggers(level, "\n");
-
-
 }
 
 void log_info_full(const char* filename, const char* function, int line, const char* fmt, ...) {
