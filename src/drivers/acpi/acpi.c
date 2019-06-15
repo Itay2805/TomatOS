@@ -2,6 +2,7 @@
 #include <lai/core.h>
 #include <drivers/apic/ioapic.h>
 #include <interrupts/irq.h>
+#include <stdlib.h>
 #include "acpi.h"
 
 #include "tables/rsdp.h"

@@ -7,6 +7,7 @@
 #include <drivers/apic/lapic.h>
 #include <lai/core.h>
 #include <string.h>
+#include <memory/mm.h>
 
 #include "tables/rsdt.h"
 #include "tables/fadt.h"
@@ -15,15 +16,41 @@
 #define SIGNATURE_CHECK(str1, str2) (str1[0] == str2[0] && str1[1] == str2[1] && str1[2] == str2[2] && str1[3] == str2[3])
 
 void* laihost_malloc(size_t size) {
-    return malloc(size);
+    error_t err = NO_ERROR;
+    void* out_ptr;
+
+    CHECK_AND_RETHROW(mm_allocate_aligned(size, 8, &out_ptr));
+
+cleanup:
+    if(err) {
+        laihost_panic("Malloc failed");
+    }
+    return out_ptr;
 }
 
 void* laihost_realloc(void* ptr, size_t size) {
-    return realloc(ptr, size);
+    error_t err = NO_ERROR;
+    void* tmp = ptr;
+
+    CHECK_AND_RETHROW(mm_reallocate(&tmp, size));
+
+cleanup:
+    if(err) {
+        laihost_panic("Realloc failed");
+    }
+
+    return tmp;
 }
 
 void laihost_free(void* ptr) {
-    return free(ptr);
+    error_t err = NO_ERROR;
+
+    CHECK_AND_RETHROW(mm_free(ptr));
+
+cleanup:
+    if(err) {
+        laihost_panic("Free failed");
+    }
 }
 
 static char buffer[1024];

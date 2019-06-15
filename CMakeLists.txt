@@ -76,8 +76,6 @@ set(KERNEL_SOURCE_FILES
 
         src/drivers/acpi/acpi.c
         src/drivers/acpi/acpi.h
-        src/drivers/acpi/aml/aml.c
-        src/drivers/acpi/aml/aml.h
         src/drivers/acpi/tables/fadt.c
         src/drivers/acpi/tables/fadt.h
         src/drivers/acpi/tables/madt.c
