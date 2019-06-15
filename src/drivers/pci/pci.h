@@ -4,9 +4,6 @@
 #include <stdint.h>
 #include <error.h>
 
-#include "pcie.h"
-#include "legacy.h"
-
 /**************************************************************
  * PCI types
  **************************************************************/
@@ -35,18 +32,21 @@
  **************************************************************/
 
 typedef struct pcidev {
-    // must be first
-    union {
-        pcidev_legacy_t legacy;
-        pcidev_pcie_t pcie;
-    };
-
     // some static info per device
     uint16_t vendor_id;
     uint16_t device_id;
     uint8_t class;
     uint8_t subclass;
     uint8_t prog_if;
+
+    // device info
+    uint8_t segment;
+    uint8_t bus;
+    uint8_t device;
+    uint8_t function;
+
+    // only valid for PCIe
+    char* mmio_base;
 } pcidev_t;
 
 /**
@@ -80,7 +80,9 @@ extern uint32_t(*pci_config_read_32)(pcidev_t* dev, uint16_t offset);
 extern uint16_t(*pci_config_read_16)(pcidev_t* dev, uint16_t offset);
 extern uint8_t(*pci_config_read_8)(pcidev_t* dev, uint16_t offset);
 
-
-
+extern void(*pci_config_write_64)(pcidev_t* dev, uint16_t offset, uint64_t value);
+extern void(*pci_config_write_32)(pcidev_t* dev, uint16_t offset, uint32_t value);
+extern void(*pci_config_write_16)(pcidev_t* dev, uint16_t offset, uint16_t value);
+extern void(*pci_config_write_8)(pcidev_t* dev, uint16_t offset, uint8_t value);
 
 #endif //TOMATKERNEL_PCI_H

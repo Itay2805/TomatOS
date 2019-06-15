@@ -3,15 +3,7 @@
 
 #include <stdbool.h>
 #include <error.h>
-
-/**
- * Includes whatever is needed to communicate with legacy pci device
- */
-typedef struct pcidev_legacy {
-    uint8_t bus;
-    uint8_t slot;
-    uint8_t function;
-} pcidev_legacy_t;
+#include "pci.h"
 
 /**
  * Will check if legacy PCI is supported
@@ -27,13 +19,14 @@ bool pci_legacy_supported();
  */
 error_t pci_legacy_init();
 
-// forward declare
-struct pcidev;
+uint64_t pci_legacy_config_read_64(pcidev_t* dev, uint16_t offset);
+uint32_t pci_legacy_config_read_32(pcidev_t* dev, uint16_t offset);
+uint16_t pci_legacy_config_read_16(pcidev_t* dev, uint16_t offset);
+uint8_t pci_legacy_config_read_8(pcidev_t* dev, uint16_t offset);
 
-uint64_t pci_legacy_config_read_64(struct pcidev* dev, uint16_t offset);
-uint32_t pci_legacy_config_read_32(struct pcidev* dev, uint16_t offset);
-uint16_t pci_legacy_config_read_16(struct pcidev* dev, uint16_t offset);
-uint8_t pci_legacy_config_read_8(struct pcidev* dev, uint16_t offset);
-
+void pci_legacy_config_write_64(pcidev_t* dev, uint16_t offset, uint64_t value);
+void pci_legacy_config_write_32(pcidev_t* dev, uint16_t offset, uint32_t value);
+void pci_legacy_config_write_16(pcidev_t* dev, uint16_t offset, uint16_t value);
+void pci_legacy_config_write_8(pcidev_t* dev, uint16_t offset, uint8_t value);
 
 #endif //TOMATKERNEL_LEGACY_H

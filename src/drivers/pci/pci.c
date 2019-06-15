@@ -1,5 +1,7 @@
 #include <common.h>
 #include "pci.h"
+#include "pcie.h"
+#include "legacy.h"
 
 uint8_t pcitype = NULL;
 pcidev_t* pcidevs = NULL;
@@ -9,6 +11,10 @@ uint32_t(*pci_config_read_32)(pcidev_t* dev, uint16_t offset);
 uint16_t(*pci_config_read_16)(pcidev_t* dev, uint16_t offset);
 uint8_t(*pci_config_read_8)(pcidev_t* dev, uint16_t offset);
 
+void(*pci_config_write_64)(pcidev_t* dev, uint16_t offset, uint64_t value);
+void(*pci_config_write_32)(pcidev_t* dev, uint16_t offset, uint32_t value);
+void(*pci_config_write_16)(pcidev_t* dev, uint16_t offset, uint16_t value);
+void(*pci_config_write_8)(pcidev_t* dev, uint16_t offset, uint8_t value);
 
 error_t pci_init() {
     error_t err = NO_ERROR;
@@ -23,6 +29,11 @@ error_t pci_init() {
         pci_config_read_16 = pcie_config_read_16;
         pci_config_read_8 = pcie_config_read_8;
 
+        pci_config_write_64 = pcie_config_write_64;
+        pci_config_write_32 = pcie_config_write_32;
+        pci_config_write_16 = pcie_config_write_16;
+        pci_config_write_8 = pcie_config_write_8;
+
         // initialize the driver
         CHECK_AND_RETHROW(pcie_init());
     }else if(pci_legacy_supported()) {
@@ -34,6 +45,11 @@ error_t pci_init() {
         pci_config_read_32 = pci_legacy_config_read_32;
         pci_config_read_16 = pci_legacy_config_read_16;
         pci_config_read_8 = pci_legacy_config_read_8;
+
+        pci_config_write_64 = pci_legacy_config_write_64;
+        pci_config_write_32 = pci_legacy_config_write_32;
+        pci_config_write_16 = pci_legacy_config_write_16;
+        pci_config_write_8 = pci_legacy_config_write_8;
 
 
         // initialize the driver

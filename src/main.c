@@ -56,7 +56,7 @@ void kernel_main(multiboot_info_t* info) {
      *********************************************************/
 
     // vm logger can be initialized very early on
-    vmdev_register_logger();
+    // vmdev_register_logger();
 
     // initialize the idt and gdt
     idt_init();
@@ -80,23 +80,18 @@ void kernel_main(multiboot_info_t* info) {
      *********************************************************/
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
-    term_init();
+    term_init(); // only now we can init the term
     CHECK_AND_RETHROW(acpi_init());
     CHECK_AND_RETHROW(pic8259_disable());
     CHECK_AND_RETHROW(apic_init());
-    CHECK_AND_RETHROW(acpi_sci_init());
     CHECK_AND_RETHROW(timer_init());
     //CHECK_AND_RETHROW(fpu_init());
+    pci_init();
+    CHECK_AND_RETHROW(acpi_sci_init());    // we need to run this after pci is inited
+
+    // finally initialize the threading and scheduler
     CHECK_AND_RETHROW(thread_init());
     CHECK_AND_RETHROW(scheduler_init());
-
-    /*********************************************************
-     * Driver initialization
-     *
-     * anything in here might not be loaded depending
-     * on the computer configuration
-     *********************************************************/
-    pci_init();
 
     /*********************************************************
      * Initialization completed

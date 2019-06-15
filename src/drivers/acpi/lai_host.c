@@ -8,6 +8,8 @@
 #include <lai/core.h>
 #include <string.h>
 #include <memory/mm.h>
+#include <drivers/pci/legacy.h>
+#include <buf.h>
 
 #include "tables/rsdt.h"
 #include "tables/fadt.h"
@@ -19,11 +21,15 @@ void* laihost_malloc(size_t size) {
     error_t err = NO_ERROR;
     void* out_ptr;
 
+    if(size == 0) {
+        size = 1;
+    }
+
     CHECK_AND_RETHROW(mm_allocate_aligned(size, 8, &out_ptr));
 
 cleanup:
     if(err) {
-        laihost_panic("Malloc failed");
+        laihost_panic("laihost_malloc failed");
     }
     return out_ptr;
 }
@@ -36,7 +42,7 @@ void* laihost_realloc(void* ptr, size_t size) {
 
 cleanup:
     if(err) {
-        laihost_panic("Realloc failed");
+        laihost_panic("laihost_realloc failed");
     }
 
     return tmp;
@@ -49,7 +55,7 @@ void laihost_free(void* ptr) {
 
 cleanup:
     if(err) {
-        laihost_panic("Free failed");
+        laihost_panic("laihost_free failed");
     }
 }
 
@@ -67,7 +73,9 @@ void laihost_log(int lvl, const char* str) {
 
 void laihost_panic(const char* str) {
     strcpy(buffer, str);
-    buffer[strlen(buffer) - 1] = 0;
+    if(buffer[strlen(buffer) - 1] == '\n') {
+        buffer[strlen(buffer) - 1] = 0;
+    }
     log_critical(buffer);
     log_critical("Halting kernel :(");
     _cli();
@@ -117,26 +125,50 @@ uint32_t laihost_ind(uint16_t port) {
     return inl(port);
 }
 
-//void laihost_pci_write(uint8_t bus, uint8_t function, uint8_t device, uint16_t offset, uint32_t data) {
-//    pcidev_t dev;
-//    dev.legacy.bus = bus;
-//    dev.legacy.function = function;
-//    dev.legacy.slot = device;
-//
-//    laihost_panic("laihost_pci_write is stub");
-//}
+void laihost_pci_write(uint8_t bus, uint8_t device, uint8_t function, uint16_t offset, uint32_t data) {
+    error_t err = NO_ERROR;
 
-uint32_t laihost_pci_read(uint8_t bus, uint8_t function, uint8_t device, uint16_t offset) {
-    pcidev_t dev;
-    dev.legacy.bus = bus;
-    dev.legacy.function = function;
-    dev.legacy.slot = device;
+    // find the device
+    pcidev_t* dev = NULL;
+    for(pcidev_t* it = pcidevs; it < buf_end(pcidevs); it++) {
+        if(it->bus == bus && it->function == function && it->device == device && it->segment == 0) {
+            dev = it;
+        }
+    }
 
-    return pci_legacy_config_read_32(&dev, offset);
+    // do the write
+    CHECK_ERROR(dev, ERROR_NOT_FOUND);
+    pci_config_write_32(dev, offset, data);
+
+cleanup:
+    if(err != NO_ERROR) {
+        laihost_panic("laihost_pci_write failed");
+    }
+}
+
+uint32_t laihost_pci_read(uint8_t bus, uint8_t device, uint8_t function, uint16_t offset) {
+    error_t err = NO_ERROR;
+
+    // find the device
+    pcidev_t* dev = NULL;
+    for(pcidev_t* it = pcidevs; it < buf_end(pcidevs); it++) {
+        if(it->bus == bus && it->function == function && it->device == device && it->segment == 0) {
+            dev = it;
+        }
+    }
+
+    // do the read
+    CHECK_ERROR(dev, ERROR_NOT_FOUND);
+    uint32_t res = pci_config_read_32(dev, offset);
+
+cleanup:
+    if(err != NO_ERROR) {
+        laihost_panic("laihost_pci_read failed");
+    }
+    return res;
 }
 
 void laihost_sleep(uint64_t duration) {
-
     while(duration / UINT32_MAX > 0) {
         lapic_sleep(UINT32_MAX);
         duration -= UINT32_MAX;
