@@ -73,7 +73,7 @@ static void check_function(pcidev_t* dev) {
     dev->subclass = pci_config_read_8(dev, PCI_SUBCLASS);
     dev->prog_if = pci_config_read_8(dev, PCI_PROG_IF);
 
-    log_info("\t%d:%d:%d -> %s", dev->bus, dev->device, dev->function, pci_get_name(dev));
+    log_info("\t%x.%x.%x -> %s", dev->bus, dev->device, dev->function, pci_get_name(dev));
     buf_push(pcidevs, *dev);
 }
 

@@ -142,7 +142,8 @@ void laihost_pci_write(uint8_t bus, uint8_t device, uint8_t function, uint16_t o
 
 cleanup:
     if(err != NO_ERROR) {
-        laihost_panic("laihost_pci_write failed");
+        log_error("laihost_pci_write(0x%x, 0x%x, 0x%x, %d, 0x%x)", bus, device, function, offset, data);
+        laihost_panic("failed");
     }
 }
 
@@ -163,7 +164,8 @@ uint32_t laihost_pci_read(uint8_t bus, uint8_t device, uint8_t function, uint16_
 
 cleanup:
     if(err != NO_ERROR) {
-        laihost_panic("laihost_pci_read failed");
+        log_error("laihost_pci_read(0x%x, 0x%x, 0x%x, %d)", bus, device, function, offset);
+        laihost_panic("failed");
     }
     return res;
 }
