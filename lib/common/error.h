@@ -95,8 +95,9 @@ extern const char* error_names[ERROR_COUNT];
 #define CHECK_AND_RETHROW(error) \
     CHECK_AND_RETHROW_LABEL(error, cleanup)
 
-#define CATCH(err, ...) \
+#define CATCH(error, ...) \
     do { \
+        err = (error); \
         if((err) != NO_ERROR) { \
             log_warn("catched `%s` (%s:%d)", error_names[err], __FILENAME__, __LINE__); \
             __VA_ARGS__; \

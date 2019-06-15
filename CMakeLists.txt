@@ -12,15 +12,14 @@ set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <SOURCE> <FLAGS> -o <OBJECT>"
 
 # Setup compilation flags
 set(CMAKE_C_FLAGS "-g -O3 -z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
-set(CMAKE_ASM_FLAGS "-F dwarf -f elf64")
-set(CMAKE_EXE_LINKER_FLAGS "-flto -z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${CMAKE_SOURCE_DIR}/config/multiboot.ld")
+set(CMAKE_ASM_FLAGS "-g -F dwarf -f elf64")
+set(CMAKE_EXE_LINKER_FLAGS "-z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${CMAKE_SOURCE_DIR}/config/multiboot.ld")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
 set(LAI_SOURCE_FILES
         lib/lai/src/eval.c
         lib/lai/src/exec.c
         lib/lai/src/exec2.c
-        lib/lai/src/execns.c
         lib/lai/src/libc.c
         lib/lai/src/ns.c
         lib/lai/src/opregion.c

@@ -4,18 +4,20 @@
 #include <error.h>
 
 /**
- * Initialize ACPI by searching for the needed tables
- * @return
+ * Will search and parse all the needed ACPI tables
  */
-error_t acpi_init();
+error_t acpi_tables_init();
 
 /**
- * Initialize the SCI handling
+ * This will initialize everything related to the ACPI namespace
  *
  * @remark
- * Must be done after the I/O APIC is initialized
+ * Must be ran after the acpi tables have been found
+ *
+ * @remark
+ * Must be ran after the I/O APIC has been initialized
  */
-error_t acpi_sci_init();
+error_t acpi_init();
 
 /**
  * Check if the checksum of an acpi table is correct
