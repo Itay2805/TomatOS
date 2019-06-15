@@ -71,8 +71,8 @@ error_t ioapic_redirect(uint32_t irq, uint8_t vector) {
     }
 
     // get the correct ioapic
-    madt_ioapic_t* ioapic = ioapic_get_from_gsi(irq);
-    CHECK_ERROR_TRACE(ioapic, ERROR_NOT_SUPPORTED, "Given IRQ can not be handled by any of the I/O APICs");
+    madt_ioapic_t* ioapic = ioapic_get_from_gsi(gsi);
+    CHECK_ERROR_TRACE(ioapic, ERROR_NOT_SUPPORTED, "Given IRQ can not be handled by any of the I/O APICs (%d)", gsi);
 
     // set the parameters
     ioapic_redirection_entry_t redir = {

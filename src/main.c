@@ -79,8 +79,8 @@ void kernel_main(multiboot_info_t* info) {
      * we require everything in here to work
      *********************************************************/
     CHECK_AND_RETHROW(pmm_init());
-    term_init();
     CHECK_AND_RETHROW(mm_init());
+    term_init();
     CHECK_AND_RETHROW(acpi_init());
     CHECK_AND_RETHROW(pic8259_disable());
     CHECK_AND_RETHROW(apic_init());

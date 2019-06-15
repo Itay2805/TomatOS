@@ -43,6 +43,7 @@ error_t acpi_sci_init() {
     irq_set_handler(10, sci_handler);
     CHECK_AND_RETHROW(ioapic_redirect(fadt->sci_irq, 10));
 
+    lai_enable_tracing(true);
     lai_enable_acpi(true);
 
 cleanup:

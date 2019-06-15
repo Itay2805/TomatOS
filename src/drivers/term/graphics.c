@@ -7,8 +7,11 @@
 #include <boot/multiboot.h>
 #include <common.h>
 #include <locks/spinlock.h>
+#include <stdlib.h>
+#include <string.h>
 
 static uint32_t* vram;
+static uint32_t* backbuffer;
 static int width;
 static int height;
 static int cur_x = 0, cur_y = 0;
@@ -31,8 +34,10 @@ static void draw_char(int chr) {
             int scrn_x = x + cur_x * 8;
             int index = x + y * 8;
             if((letter[index / 8] & (1 << index % 8)) != 0) {
+                backbuffer[scrn_x + scrn_y * width * 8] = fg_color;
                 vram[scrn_x + scrn_y * width * 8] = fg_color;
             }else {
+                backbuffer[scrn_x + scrn_y * width * 8] = bg_color;
                 vram[scrn_x + scrn_y * width * 8] = bg_color;
             }
         }
@@ -45,9 +50,12 @@ static void draw_char(int chr) {
  */
 static void scroll_internal(uint16_t n) {
     for(size_t i = 0; i <  (height - n) * width * 8 * 8; i++) {
-        vram[i] = vram[i + (n * width * 8 * 8)];
+        uint32_t col = backbuffer[i + (n * width * 8 * 8)];
+        backbuffer[i] = col;
+        vram[i] = col;
     }
     for(int i = (height - n) * width * 8 * 8; i <  width * height * 8 * 8; i++) {
+        backbuffer[i] = bg_color;
         vram[i] = bg_color;
     }
 }
@@ -67,6 +75,7 @@ void graphics_init() {
     }
     vram = PHYSICAL_ADDRESS(vram);
     graphics_clear();
+    backbuffer = malloc((size_t) (width * height * 8 * 8 * 4));
     enabled = true;
 }
 
@@ -100,6 +109,7 @@ void graphics_write(const char* text) {
             cur_y = height - 1;
         }
     }
+
     unlock_preemption(&gfx_lock);
 }
 
