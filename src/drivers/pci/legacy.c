@@ -110,10 +110,8 @@ void check_bus(pcidev_t* dev) {
 }
 
 static void check_all_buses() {
-    pcidev_t dev = {};
-    dev.bus = 0;
-    dev.device = 0;
-    dev.function = 0;
+    pcidev_t dev = {0};
+    dev.segment = 0;
 
     if((pci_config_read_8(&dev, PCI_HEADER_TYPE) & 0x80) == 0) {
         check_bus(&dev);

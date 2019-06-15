@@ -142,8 +142,14 @@ void laihost_pci_write(uint8_t bus, uint8_t device, uint8_t function, uint16_t o
 
 cleanup:
     if(err != NO_ERROR) {
-        log_error("laihost_pci_write(0x%x, 0x%x, 0x%x, %d, 0x%x)", bus, device, function, offset, data);
-        laihost_panic("failed");
+        log_warn("not found 0.%x.%x.%x, falling back on direct legacy pci for laihost_pci_write", bus, device, function);
+        pcidev_t pcidev = {
+                .function = function,
+                .device = device,
+                .bus = bus,
+                .segment = 0,
+        };
+        pci_legacy_config_write_32(&pcidev, offset, data);
     }
 }
 
@@ -153,7 +159,7 @@ uint32_t laihost_pci_read(uint8_t bus, uint8_t device, uint8_t function, uint16_
     // find the device
     pcidev_t* dev = NULL;
     for(pcidev_t* it = pcidevs; it < buf_end(pcidevs); it++) {
-        if(it->bus == bus && it->function == function && it->device == device && it->segment == 0) {
+        if(it->segment == 0 && it->bus == bus && it->device == device && it->function == function) {
             dev = it;
         }
     }
@@ -164,8 +170,14 @@ uint32_t laihost_pci_read(uint8_t bus, uint8_t device, uint8_t function, uint16_
 
 cleanup:
     if(err != NO_ERROR) {
-        log_error("laihost_pci_read(0x%x, 0x%x, 0x%x, %d)", bus, device, function, offset);
-        laihost_panic("failed");
+        log_warn("not found 0.%x.%x.%x, falling back on direct legacy pci for laihost_pci_read", bus, device, function);
+        pcidev_t pcidev = {
+            .function = function,
+            .device = device,
+            .bus = bus,
+            .segment = 0,
+        };
+        res = pci_legacy_config_read_32(&pcidev, offset);
     }
     return res;
 }

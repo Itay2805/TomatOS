@@ -40,7 +40,7 @@ typedef struct pcidev {
     uint8_t prog_if;
 
     // device info
-    uint8_t segment;
+    uint16_t segment;
     uint8_t bus;
     uint8_t device;
     uint8_t function;

@@ -127,6 +127,7 @@ static void check_segment(mcfg_entry_t* entry) {
     current = entry;
     for(uint8_t bus = entry->start_pci_bus; bus < entry->end_pci_bus; bus++) {
         pcidev_t dev = {0};
+        dev.segment = current->segment;
         dev.bus = bus;
         check_bus(&dev);
     }
