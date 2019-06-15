@@ -83,14 +83,11 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(acpi_init());
     CHECK_AND_RETHROW(pic8259_disable());
     CHECK_AND_RETHROW(apic_init());
+    CHECK_AND_RETHROW(acpi_sci_init());
     CHECK_AND_RETHROW(timer_init());
     //CHECK_AND_RETHROW(fpu_init());
     CHECK_AND_RETHROW(thread_init());
     CHECK_AND_RETHROW(scheduler_init());
-
-    // test the keyboard interrupt
-    CHECK_AND_RETHROW(ioapic_redirect(1, 1));
-    irq_set_handler(1, keyboard_handler);
 
     /*********************************************************
      * Driver initialization
