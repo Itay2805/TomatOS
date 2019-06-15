@@ -62,7 +62,7 @@ void graphics_early_init(multiboot_info_t* info) {
 void graphics_init() {
     for(uint64_t addr = ALIGN_DOWN(vram, KB(4)); addr < ALIGN_UP((uint64_t)vram + width * height * 8 * 8 * 4, KB(4)); addr += KB(4)) {
         if(!vmm_is_mapped(kernel_address_space, (uintptr_t) PHYSICAL_ADDRESS(addr))) {
-            vmm_map(kernel_address_space, PHYSICAL_ADDRESS(addr), (void *) addr, PAGE_ATTR_WRITE);
+            vmm_map(kernel_address_space, PHYSICAL_ADDRESS(addr), (void *) addr, PAGE_ATTR_WRITE | PAGE_ATTR_WRITE_THROUGH);
         }
     }
     vram = PHYSICAL_ADDRESS(vram);

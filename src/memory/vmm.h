@@ -5,9 +5,10 @@
 #include <boot/multiboot.h>
 #include <stddef.h>
 
-#define PAGE_ATTR_EXECUTE    (1 << 0)
-#define PAGE_ATTR_USER       (1 << 1)
-#define PAGE_ATTR_WRITE      (1 << 2)
+#define PAGE_ATTR_EXECUTE           (1 << 0)
+#define PAGE_ATTR_USER              (1 << 1)
+#define PAGE_ATTR_WRITE             (1 << 2)
+#define PAGE_ATTR_WRITE_THROUGH     (1 << 3)
 
 #define PHYSICAL_BASE           0xFFFF800000000000
 #define PHYSICAL_ADDRESS(addr) ((void*)((uintptr_t)addr + PHYSICAL_BASE))

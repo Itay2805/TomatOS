@@ -16,6 +16,7 @@
 #define PAGING_PRESENT_BIT (1ul << 0ul)
 #define PAGING_READ_WRITE_BIT (1ul << 1ul)
 #define PAGING_USER_BIT (1ul << 2ul)
+#define PAGING_PAGE_LEVEL_WRITETHROUH_BIT (1ul << 2ul)
 #define PAGING_ACCESSED_BIT (1ul << 5ul)
 #define PAGING_DIRTY_BIT (1ul << 6ul)
 #define PAGING_PAGE_SIZE_BIT (1ul << 7ul)
@@ -100,6 +101,9 @@ static inline void set_attributes(uint64_t* entry, int attributes) {
     }
     if((*entry & PAGING_NO_EXECUTE_BIT) && (attributes & PAGE_ATTR_EXECUTE)) {
         *entry &= ~PAGING_NO_EXECUTE_BIT;
+    }
+    if(!(*entry & PAGING_PAGE_LEVEL_WRITETHROUH_BIT) && (attributes & PAGE_ATTR_WRITE_THROUGH)) {
+        *entry |= PAGING_PAGE_LEVEL_WRITETHROUH_BIT;
     }
 }
 
