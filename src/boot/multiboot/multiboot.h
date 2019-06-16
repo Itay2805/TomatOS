@@ -19,6 +19,10 @@
 *  IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#ifndef __BOOT_MULTIBOOT_1__
+    #error Kernel not compiled with multiboot 1!
+#endif
+
 #ifndef MULTIBOOT_HEADER
 #define MULTIBOOT_HEADER 1
 

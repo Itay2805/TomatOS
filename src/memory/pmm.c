@@ -12,33 +12,28 @@ static size_t stack_cap;
 static spinlock_t pmm_lock;
 
 static const char* MMAP_TYPE[] = {
-    [MULTIBOOT_MEMORY_AVAILABLE] = "Available",
-    [MULTIBOOT_MEMORY_RESERVED] = "Reserved",
-    [MULTIBOOT_MEMORY_ACPI_RECLAIMABLE] = "ACPI Reclaimable",
-    [MULTIBOOT_MEMORY_NVS] = "Non-Volatile memory",
-    [MULTIBOOT_MEMORY_BADRAM] = "Bad ram",
+    [MMAP_AVAILABLE] = "Available",
+    [MMAP_RESERVED] = "Reserved",
+    [MMAP_ACPI_RELAIMABLE] = "ACPI Reclaimable",
+    [MMAP_ACPI_NVS] = "Non-Volatile memory",
+    [MMAP_BAD_MEMORY] = "Bad memory",
 };
 
-error_t pmm_early_init(multiboot_info_t* info) {
+error_t pmm_early_init(boot_info_t* info) {
     error_t err = NO_ERROR;
     size_t top_address = 0;
     size_t total_available_size = 0;
-    multiboot_memory_map_t* entries = (multiboot_memory_map_t*)(uintptr_t)info->mmap_addr;
-    multiboot_memory_map_t* it;
 
-    CHECK_TRACE(info->flags & MULTIBOOT_INFO_MEMORY, "mem lower/upper not found in multiboot info!");
-    CHECK_TRACE(info->flags & MULTIBOOT_INFO_MEM_MAP, "mmap not found in multiboot info!");
-
-    for(it = entries; (char*)it - (char*)entries < info->mmap_length; it++) {
-        if(it->addr + it->len > top_address) {
-            top_address = it->addr + it->len;
+    for(mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
+        if(it->addr + it->size > top_address) {
+            top_address = it->addr + it->size;
         }
-        if(it->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            total_available_size += it->len;
+        if(it->type == MMAP_AVAILABLE) {
+            total_available_size += it->size;
         }
     }
 
-    log_debug("Physical Memory: %lld/%lld", total_available_size, (info->mem_lower + info->mem_upper) * 1024);
+    log_debug("Physical Memory: %lld/%lld", total_available_size, info->total_mem);
 
     stack_cap = ALIGN_UP(total_available_size, KB(4))  / KB(4);
     size_t total_size_for_stack = (stack_cap) * sizeof(uint64_t);
@@ -48,10 +43,10 @@ error_t pmm_early_init(multiboot_info_t* info) {
     uintptr_t kernel_end = ALIGN_UP(ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)) + KB(4) + total_size_for_stack, KB(4));
 
     log_debug("Memory map:");
-    for(it = entries; (char*)it - (char*)entries < info->mmap_length; it++) {
-        log_debug("\t0x%016p-0x%016p: %s", it->addr, it->addr + it->len, MMAP_TYPE[it->type]);
-        if(it->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
+    for(mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
+        log_debug("\t0x%016p-0x%016p: %s", it->addr, it->addr + it->size, MMAP_TYPE[it->type]);
+        if(it->type == MMAP_AVAILABLE) {
+            for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->size, KB(4)); addr += KB(4)) {
                 // only use physical memory from the kernel upwards
                 if(addr <= kernel_end)  continue;
 

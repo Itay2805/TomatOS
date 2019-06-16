@@ -1,14 +1,13 @@
 #ifndef TOMATKERNEL_VMM_H
 #define TOMATKERNEL_VMM_H
 
-#include <error.h>
-#include <boot/multiboot.h>
+#include <boot/boot.h>
 #include <stddef.h>
+#include <error.h>
 
 #define PAGE_ATTR_EXECUTE           (1 << 0)
 #define PAGE_ATTR_USER              (1 << 1)
 #define PAGE_ATTR_WRITE             (1 << 2)
-#define PAGE_ATTR_WRITE_THROUGH     (1 << 3)
 
 #define PHYSICAL_BASE           0xFFFF800000000000
 #define PHYSICAL_ADDRESS(addr) ((void*)((uintptr_t)addr + PHYSICAL_BASE))
@@ -25,7 +24,7 @@ extern address_space_t kernel_address_space;
 /**
  * Initialize the virtual memory manager
  */
-error_t vmm_init(multiboot_info_t* info);
+error_t vmm_init(boot_info_t* info);
 
 /**
  * Set the address space

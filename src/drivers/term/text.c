@@ -1,8 +1,7 @@
 #include <drivers/portio.h>
-#include <boot/multiboot.h>
+#include <memory/vmm.h>
 #include <stddef.h>
 #include <common.h>
-#include <memory/vmm.h>
 #include "text.h"
 
 /*****************************************************************
@@ -32,26 +31,20 @@ static int width;
 static int height;
 static int x;
 static int y;
-static bool enabled = false;
 
-void text_early_init(multiboot_info_t* info) {
+void text_init(boot_info_t* info) {
     vmem = (short *) info->framebuffer.addr;
-    width = info->framebuffer.width;
-    height = info->framebuffer.height;
+    width = (int) info->framebuffer.width;
+    height = (int) info->framebuffer.height;
     vga_cursor_disable();
-}
-
-void text_init() {
     text_clear();
     if(!vmm_is_mapped(kernel_address_space, (uintptr_t) PHYSICAL_ADDRESS(vmem))) {
         vmm_map(kernel_address_space, PHYSICAL_ADDRESS(vmem), vmem, PAGE_ATTR_WRITE);
     }
     vmem = PHYSICAL_ADDRESS(vmem);
-    enabled = true;
 }
 
 void text_write(const char* str) {
-    if(!enabled) return;
     while(*str) {
         char c = *str++;
         switch (c) {
@@ -90,15 +83,12 @@ void text_write(const char* str) {
 }
 
 void text_clear() {
-    if(!enabled) return;
     for (short* i = vmem; i < vmem + width * height; i += 2) {
         *i = 0;
     }
 }
 
 void text_scroll(uint16_t n) {
-    if(!enabled) return;
-
     int length_copy = ((height - n) * width);
     int length_remove = (n * width);
 
@@ -109,5 +99,4 @@ void text_scroll(uint16_t n) {
     for (int i = 0; i < length_remove; i++) {
         vmem[length_copy + i] = 0;
     }
-
 }

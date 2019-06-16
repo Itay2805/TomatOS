@@ -4,7 +4,6 @@
 
 static logger_t logger = {0};
 
-term_init_f term_init = NULL;
 term_write_f term_write = NULL;
 term_clear_f term_clear = NULL;
 term_scroll_f term_scroll = NULL;
@@ -41,12 +40,11 @@ static uint32_t logger_set_background_color(uint32_t col) {
     return old;
 }
 
-void term_early_init(multiboot_info_t* info) {
+void term_init(boot_info_t* info) {
     switch(info->framebuffer.type) {
-        case MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT: {
-            text_early_init(info);
+        case FRAMEBUFFER_TEXT_MODE: {
+            text_init(info);
 
-            term_init = text_init;
             term_write = text_write;
             term_clear = text_clear;
             term_scroll = text_scroll;
@@ -59,22 +57,20 @@ void term_early_init(multiboot_info_t* info) {
 
         } break;
 
-        case MULTIBOOT_FRAMEBUFFER_TYPE_RGB: {
-            graphics_early_init(info);
+        case FRAMEBUFFER_GRAPHICS_MODE: {
+            graphics_init(info);
 
-            term_init = graphics_init;
             term_write = graphics_write;
             term_clear = graphics_clear;
             term_scroll = graphics_scroll;
+
             term_set_background_color = graphics_set_background_color;
             term_set_foreground_color = graphics_set_foreground_color;
             term_get_background_color = graphics_get_background_color;
             term_get_foreground_color = graphics_get_foreground_color;
 
         } break;
-        case MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED: {
-            log_warn("Indexed framebuffer is not supported");
-        } break;
+        case FRAMEBUFFER_NOT_SUPPORTED:
         default: {
             log_warn("Unknown framebuffer type");
         } break;

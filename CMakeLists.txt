@@ -11,11 +11,13 @@ set(CMAKE_ASM_COMPILER /usr/bin/nasm)
 set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <SOURCE> <FLAGS> -o <OBJECT>")
 
 # Setup compilation flags
-set(CMAKE_C_FLAGS "-g -O3 -z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
+set(CMAKE_C_FLAGS "-g -z max-page-size=4096 -fPIC -Wall -std=gnu99 -nostdinc -fno-builtin -fno-stack-protector -mno-sse -mno-red-zone  -march=x86-64")
 set(CMAKE_ASM_FLAGS "-g -F dwarf -f elf64")
 set(CMAKE_EXE_LINKER_FLAGS "-z max-page-size=4096 -no-pie -nostdlib -nodefaultlibs -nostartfiles -T ${CMAKE_SOURCE_DIR}/config/multiboot.ld")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
+# Lai source files
+# TODO: Make lai optional (?)
 set(LAI_SOURCE_FILES
         lib/lai/src/eval.c
         lib/lai/src/exec.c
@@ -31,6 +33,7 @@ set(LAI_SOURCE_FILES
         lib/lai/src/vsnprintf.c
 )
 
+# Common library source files
 set(COMMON_SOURCE_FILES
         lib/common/cpu/atomic.h
         lib/common/cpu/cr.h
@@ -45,8 +48,6 @@ set(COMMON_SOURCE_FILES
         lib/common/buf.c
         lib/common/buf.h
         lib/common/common.h
-        lib/common/elf64.h
-        lib/common/elf_common.h
         lib/common/error.c
         lib/common/error.h
         lib/common/hash.h
@@ -56,6 +57,7 @@ set(COMMON_SOURCE_FILES
         lib/common/vsnprintf.h
 )
 
+# Libc source files
 set(LIBC_SOURCE_FILES
         lib/libc/stdarg.h
         lib/libc/stdbool.h
@@ -68,10 +70,36 @@ set(LIBC_SOURCE_FILES
         lib/libc/string.h
 )
 
+set(NAME_INCLUDE "default value" CACHE FILEPATH "description")
+
+# By default we are going to build multiboot1 binary,
+# but optionally we have the option to build multiboot 2 binaries
+# set(BOOT_MULTIBOOT_2 "")
+IF(DEFINED BOOT_MULTIBOOT_2)
+    # Multiboot 2 stuff
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__BOOT_MULTIBOOT_2__")
+    set(BOOT_SOURCE_FILES
+        src/boot/multiboot2/multiboot2.asm
+        src/boot/multiboot2/multiboot2.h
+        src/boot/multiboot2/multiboot2.c
+        )
+
+ELSE()
+    # Multiboot 1 stuff
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__BOOT_MULTIBOOT_1__")
+    set(BOOT_SOURCE_FILES
+        src/boot/multiboot/multiboot.asm
+        src/boot/multiboot/multiboot.h
+        src/boot/multiboot/multiboot.c
+        )
+ENDIF()
+
+
 # Setup kernel sources
 set(KERNEL_SOURCE_FILES
-        src/boot/multiboot.asm
-        src/boot/multiboot.h
+        src/boot/allocator.c
+        src/boot/allocator.h
+        src/boot/boot.h
 
         src/drivers/acpi/acpi.c
         src/drivers/acpi/acpi.h
@@ -163,11 +191,23 @@ include_directories(lib/libc)
 include_directories(lib/lai/include)
 include_directories(lib/common)
 
-add_executable(TomatKernel ${KERNEL_SOURCE_FILES} ${COMMON_SOURCE_FILES} ${LIBC_SOURCE_FILES} ${LAI_SOURCE_FILES})
-add_custom_command(
+add_executable(TomatKernel ${BOOT_SOURCE_FILES} ${KERNEL_SOURCE_FILES} ${COMMON_SOURCE_FILES} ${LIBC_SOURCE_FILES} ${LAI_SOURCE_FILES})
+
+# Check what we need to do to create an image
+IF(DEFINED BOOT_MULTIBOOT_2)
+    add_custom_command(
+        TARGET TomatKernel
+        COMMAND mkdir -p ${CMAKE_BINARY_DIR}/iso/boot/grub
+        COMMAND cp ${CMAKE_BINARY_DIR}/TomatKernel ${CMAKE_BINARY_DIR}/iso/boot/TomatKernel
+        COMMAND cp ${CMAKE_SOURCE_DIR}/config/multiboot2.grub.cfg ${CMAKE_BINARY_DIR}/iso/boot/grub/grub.cfg
+        COMMAND grub-mkrescue -o ${CMAKE_SOURCE_DIR}/tomatos.iso ${CMAKE_BINARY_DIR}/iso
+    )
+ELSE()
+    add_custom_command(
         TARGET TomatKernel
         COMMAND mkdir -p ${CMAKE_BINARY_DIR}/iso/boot/grub
         COMMAND cp ${CMAKE_BINARY_DIR}/TomatKernel ${CMAKE_BINARY_DIR}/iso/boot/TomatKernel
         COMMAND cp ${CMAKE_SOURCE_DIR}/config/multiboot.grub.cfg ${CMAKE_BINARY_DIR}/iso/boot/grub/grub.cfg
         COMMAND grub-mkrescue -o ${CMAKE_SOURCE_DIR}/tomatos.iso ${CMAKE_BINARY_DIR}/iso
-)
+    )
+ENDIF()

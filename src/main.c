@@ -1,13 +1,18 @@
-#include <boot/multiboot.h>
-
 #include <drivers/vmdev/vmdev.h>
+#include <drivers/apic/ioapic.h>
 #include <drivers/pic8259/pic.h>
+#include <drivers/term/term.h>
 #include <drivers/acpi/acpi.h>
 #include <drivers/apic/apic.h>
 #include <drivers/pci/pci.h>
 
+#include <process/scheduler.h>
+#include <process/process.h>
+
 #include <interrupts/interrupts.h>
+#include <interrupts/timer.h>
 #include <interrupts/idt.h>
+#include <interrupts/irq.h>
 
 #include <logger/logger.h>
 
@@ -16,15 +21,11 @@
 #include <memory/vmm.h>
 #include <memory/mm.h>
 
+#include <boot/boot.h>
+#include <cpu/fpu.h>
 #include <common.h>
 #include <error.h>
-#include <interrupts/timer.h>
-#include <process/scheduler.h>
-#include <process/process.h>
-#include <cpu/fpu.h>
-#include <interrupts/irq.h>
-#include <drivers/apic/ioapic.h>
-#include <drivers/term/term.h>
+
 
 static void* test_1(void* arg) {
     (void)arg;
@@ -46,7 +47,7 @@ error_t keyboard_handler(registers_t* regs) {
     return NO_ERROR;
 }
 
-void kernel_main(multiboot_info_t* info) {
+void kernel_main(boot_info_t* info) {
     error_t err = NO_ERROR;
 
     /*********************************************************
@@ -56,14 +57,11 @@ void kernel_main(multiboot_info_t* info) {
      *********************************************************/
 
     // vm logger can be initialized very early on
-    // vmdev_register_logger();
+    vmdev_register_logger();
 
     // initialize the idt and gdt
     idt_init();
     gdt_init();
-
-    // now we can initialize the terminal
-    term_early_init(info);
 
     /*********************************************************
      * Early memory initialization
@@ -73,6 +71,12 @@ void kernel_main(multiboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_early_init(info));
     CHECK_AND_RETHROW(vmm_init(info));
 
+    // convert to direct mapping
+    info = PHYSICAL_ADDRESS(info);
+    info->rsdp_ptr = (uint64_t) PHYSICAL_ADDRESS(info->rsdp_ptr);
+    info->framebuffer.addr = (uint64_t) PHYSICAL_ADDRESS(info->framebuffer.addr);
+    info->mmap.entries = PHYSICAL_ADDRESS(info->mmap.entries);
+
     /*********************************************************
      * Initialization of essentials
      *
@@ -80,8 +84,8 @@ void kernel_main(multiboot_info_t* info) {
      *********************************************************/
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
-    term_init();
-    CHECK_AND_RETHROW(acpi_tables_init());
+    term_init(info);
+    CHECK_AND_RETHROW(acpi_tables_init(info));
     CATCH(pci_init());
     CHECK_AND_RETHROW(pic8259_disable());
     CHECK_AND_RETHROW(apic_init());

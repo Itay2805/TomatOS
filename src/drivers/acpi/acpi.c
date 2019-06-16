@@ -11,11 +11,11 @@
 #include "tables/madt.h"
 #include "tables/fadt.h"
 
-error_t acpi_tables_init() {
+error_t acpi_tables_init(boot_info_t* info) {
     error_t err = NO_ERROR;
 
     log_notice("Initializing ACPI tables");
-    CHECK_AND_RETHROW(rsdp_init());
+    CHECK_AND_RETHROW(rsdp_init(info));
     CHECK_AND_RETHROW(rsdt_init());
     CHECK_AND_RETHROW(fadt_init());
     CHECK_AND_RETHROW(madt_init());

@@ -27,8 +27,8 @@ dd 0 ; entry_addr
 
 ; these are the graphics fields
 dd 0    ; video mode
-dd 1024 ; width
-dd 768  ; height
+dd 0    ; width (no preference)
+dd 0    ; height (no preference)
 dd 32   ; depth (bpp)
 
 ; ====================================
@@ -41,10 +41,14 @@ PDPE_KERNEL_OFFSET equ ((KERNEL_VIRTUAL_ADDRESS >> 30) & 0x1FF)
 
 SECTION .multiboot.text
 
-GLOBAL multiboot_main
-multiboot_main:
+GLOBAL multiboot_entry
+multiboot_entry:
 
-    ; TODO: Check that we were loaded from multiboot
+; Make sure this is a good multiboot loader
+.check:
+    cmp eax, 0x1BADB002
+    je .continue
+.continue:
 
     ; TODO: Check we have PSE & long mode support
 
@@ -100,13 +104,13 @@ multiboot_main:
     jmp 8:multiboot_64bit
 
 BITS 64
-    extern kernel_main
+    extern multiboot_main
     multiboot_64bit:
         mov rsp, kernel_stack
         mov rbp, kernel_stack
         mov rdi, rbx
 
-        call kernel_main
+        call multiboot_main
 
         ; halt if we reach here
         cli

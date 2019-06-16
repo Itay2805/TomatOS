@@ -2,11 +2,12 @@
 #define TOMATKERNEL_ACPI_H
 
 #include <error.h>
+#include <boot/boot.h>
 
 /**
  * Will search and parse all the needed ACPI tables
  */
-error_t acpi_tables_init();
+error_t acpi_tables_init(boot_info_t* info);
 
 /**
  * This will initialize everything related to the ACPI namespace

@@ -1,6 +1,7 @@
 #ifndef TOMATKERNEL_RSDP_H
 #define TOMATKERNEL_RSDP_H
 
+#include <boot/boot.h>
 #include <stdint.h>
 #include <error.h>
 
@@ -28,6 +29,6 @@ extern rsdp_t* rsdp;
 /**
  * Will search for the rsdp
  */
-error_t rsdp_init();
+error_t rsdp_init(boot_info_t* info);
 
 #endif //TOMATKERNEL_RSDP_H

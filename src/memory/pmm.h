@@ -9,17 +9,16 @@
  * will either switch to a buddy allocator or just to a bitmap allocator.
  */
 
-#include <boot/multiboot.h>
-
 #include <error.h>
 #include <stddef.h>
+#include <boot/boot.h>
 
 // TODO: Add locks to all of these
 
 /**
  * Called at the start, will initialize stuff assuming that we still have the first gb identity mapped
  */
-error_t pmm_early_init(multiboot_info_t* info);
+error_t pmm_early_init(boot_info_t* info);
 
 /**
  * Will finalize everything to work assumning that we now have proper mappings and that the physical

@@ -1,7 +1,7 @@
 #ifndef TOMATKERNEL_RSDT_H
 #define TOMATKERNEL_RSDT_H
 
-#include <elf64.h>
+#include <stdint.h>
 #include <error.h>
 
 typedef struct sdt_hdr {

@@ -2,11 +2,10 @@
 #include "font.h"
 #include "term.h"
 
+#include <locks/spinlock.h>
 #include <memory/vmm.h>
 #include <stdbool.h>
-#include <boot/multiboot.h>
 #include <common.h>
-#include <locks/spinlock.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,7 +15,6 @@ static int width;
 static int height;
 static int cur_x = 0, cur_y = 0;
 static uint32_t bg_color = 0x000000, fg_color = 0xD3D7CF;
-static bool enabled = false;
 static spinlock_t gfx_lock;
 
 static void draw_char(int chr) {
@@ -60,28 +58,20 @@ static void scroll_internal(uint16_t n) {
     }
 }
 
-void graphics_early_init(multiboot_info_t* info) {
+void graphics_init(boot_info_t* info) {
     vram = (uint32_t*)info->framebuffer.addr;
-
-    width = info->framebuffer.width / 8;
-    height = info->framebuffer.height / 8;
-}
-
-void graphics_init() {
+    width = (int) (info->framebuffer.width / 8);
+    height = (int) (info->framebuffer.height / 8);
     for(uint64_t addr = ALIGN_DOWN(vram, KB(4)); addr < ALIGN_UP((uint64_t)vram + width * height * 8 * 8 * 4, KB(4)); addr += KB(4)) {
-        if(!vmm_is_mapped(kernel_address_space, (uintptr_t) PHYSICAL_ADDRESS(addr))) {
-            vmm_map(kernel_address_space, PHYSICAL_ADDRESS(addr), (void *) addr, PAGE_ATTR_WRITE | PAGE_ATTR_WRITE_THROUGH);
+        if(!vmm_is_mapped(kernel_address_space, (uintptr_t) addr)) {
+            vmm_map(kernel_address_space, (void *) addr, (void *) addr - PHYSICAL_BASE, PAGE_ATTR_WRITE);
         }
     }
-    vram = PHYSICAL_ADDRESS(vram);
     graphics_clear();
     backbuffer = malloc((size_t) (width * height * 8 * 8 * 4));
-    enabled = true;
 }
 
 void graphics_write(const char* text) {
-    if(!enabled) return;
-
     lock_preemption(&gfx_lock);
     while(*text) {
         char chr = *text++;
@@ -114,14 +104,12 @@ void graphics_write(const char* text) {
 }
 
 void graphics_clear() {
-    if(!enabled) return;
     for(int i = 0; i < width * height; i++) {
         vram[i] = bg_color;
     }
 }
 
 void graphics_scroll(uint16_t n) {
-    if(!enabled) return;
     lock_preemption(&gfx_lock);
     scroll_internal(n);
     unlock_preemption(&gfx_lock);
