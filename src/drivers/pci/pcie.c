@@ -61,28 +61,19 @@ void pcie_config_write_8(pcidev_t* dev, uint16_t offset, uint8_t value) {
  * Iterating the devices
  **************************************************************/
 
-static void check_bus(pcidev_t* dev);
-
 /**
  * Will check the functions
  */
 static void check_function(pcidev_t* dev) {
+    // set the pci device with this pci device
+    dev->vendor_id = pci_config_read_16(dev, PCI_VENDOR_ID);
+    dev->device_id = pci_config_read_16(dev, PCI_DEVICE_ID);
     dev->class = pci_config_read_8(dev, PCI_CLASS_CODE);
     dev->subclass = pci_config_read_8(dev, PCI_SUBCLASS);
-    if(dev->class == 0x06 && dev->subclass == 0x04) {
-        // this is a bridge
-        dev->bus = pci_config_read_8(dev, PCI_TO_PCI_SECONDARY_BUS);
-        check_bus(dev);
-    }else {
-        // set the pci device with this pci device
-        dev->vendor_id = pci_config_read_16(dev, PCI_VENDOR_ID);
-        dev->device_id = pci_config_read_16(dev, PCI_DEVICE_ID);
-        dev->prog_if = pci_config_read_8(dev, PCI_PROG_IF);
+    dev->prog_if = pci_config_read_8(dev, PCI_PROG_IF);
 
-        log_info("\t%x.%x.%x.%x (0x%016p) -> %s", dev->segment, dev->bus, dev->device, dev->function,
-                 dev->mmio_base - PHYSICAL_BASE, pci_get_name(dev));
-        buf_push(pcidevs, *dev);
-    }
+    log_info("\t%x.%x.%x.%x (0x%016p) -> %s", dev->segment, dev->bus, dev->device, dev->function, dev->mmio_base - PHYSICAL_BASE, pci_get_name(dev));
+    buf_push(pcidevs, *dev);
 }
 
 /**
