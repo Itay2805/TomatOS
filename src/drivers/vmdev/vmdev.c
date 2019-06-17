@@ -4,10 +4,14 @@
 #define BOCHS_LOG_PORT  0xE9
 #define VBOX_LOG_PORT   0x504
 
+static bool log_e9 = false;
+
 error_t vmdev_write(const char *str) {
     while(*str) {
-        // Bochs/Qemu
-        outb(BOCHS_LOG_PORT, (uint8_t) *str);
+        if(log_e9 ) {
+            // Bochs/Qemu
+            outb(BOCHS_LOG_PORT, (uint8_t) *str);
+        }
 
         // VirtualBox
         outb(VBOX_LOG_PORT, (uint8_t) *str);
@@ -28,5 +32,9 @@ static logger_t logger = (logger_t) {
 void vmdev_register_logger() {
     logger_register(&logger);
 
-    log_info("VM logger started!");
+    if(inb(BOCHS_LOG_PORT) == 0xe9) {
+        log_e9 = true;
+    }
+
+    log_info("VM logger started! (e9=%s)", log_e9 ? "true" : "false");
 }
