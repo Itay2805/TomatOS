@@ -59,24 +59,16 @@ cleanup:
     }
 }
 
-static char buffer[1024];
-
 void laihost_log(int lvl, const char* str) {
-    strcpy(buffer, str);
-    buffer[strlen(buffer) - 1] = 0;
     switch(lvl) {
-        case LAI_DEBUG_LOG: log_debug(buffer); break;
-        case LAI_WARN_LOG: log_warn(buffer); break;
-        default: log_info(buffer); break;
+        case LAI_DEBUG_LOG: log_debug(str); break;
+        case LAI_WARN_LOG: log_warn(str); break;
+        default: log_info(str); break;
     }
 }
 
 void laihost_panic(const char* str) {
-    strcpy(buffer, str);
-    if(buffer[strlen(buffer) - 1] == '\n') {
-        buffer[strlen(buffer) - 1] = 0;
-    }
-    log_critical(buffer);
+    log_critical(str);
     log_critical("Halting kernel :(");
     _cli();
     while(true) {

@@ -73,7 +73,7 @@ void kernel_main(boot_info_t* info) {
 
     // convert to direct mapping
     info = PHYSICAL_ADDRESS(info);
-    info->rsdp_ptr = (uint64_t) PHYSICAL_ADDRESS(info->rsdp_ptr);
+    info->rsdp_ptr = PHYSICAL_ADDRESS(info->rsdp_ptr);
     info->framebuffer.addr = (uint64_t) PHYSICAL_ADDRESS(info->framebuffer.addr);
     info->mmap.entries = PHYSICAL_ADDRESS(info->mmap.entries);
 

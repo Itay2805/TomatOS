@@ -107,7 +107,7 @@ void multiboot_main(multiboot_info_t* info) {
             }
 
             // found rsdp
-            new->rsdp_ptr = (uint64_t) cur;
+            new->rsdp_ptr = cur;
             break;
         }
     }

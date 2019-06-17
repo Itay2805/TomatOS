@@ -74,7 +74,7 @@ set(NAME_INCLUDE "default value" CACHE FILEPATH "description")
 
 # By default we are going to build multiboot1 binary,
 # but optionally we have the option to build multiboot 2 binaries
-# set(BOOT_MULTIBOOT_2 "")
+set(BOOT_MULTIBOOT_2 "")
 IF(DEFINED BOOT_MULTIBOOT_2)
     # Multiboot 2 stuff
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__BOOT_MULTIBOOT_2__")
