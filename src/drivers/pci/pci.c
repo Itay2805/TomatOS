@@ -129,14 +129,36 @@ const char* pci_get_name(pcidev_t* dev) {
                 case 0x02: return "3D Controller (Non VGA-Compatible)";
                 default: return "Display Controller";
             }
-        case 0x04: return "Multimedia Controller";
+        case 0x04: {
+            switch(dev->subclass) {
+                case 0x00: return "Multimedia Video Controller";
+                case 0x01: return "Multimedia Audio Controller";
+                case 0x02: return "Computer Telephony Device";
+                case 0x03: return "Audio Device";
+                default: return "Multimedia Controller";
+            }
+        }
         case 0x05:
             switch(dev->subclass) {
                 case 0x00: return "RAM Controller";
                 case 0x01: return "Flash Controller";
                 default: return "Memory Controller";
             }
-        case 0x06: return "Bridge Device";
+        case 0x06: {
+            switch(dev->subclass) {
+                case 0x00: return "Host bridge";
+                case 0x01: return "ISA bridge";
+                case 0x02: return "EISA bridge";
+                case 0x04: return "PCI-to-PCI bridge";
+                case 0x05: return "PCMCIA bridge";
+                case 0x06: return "NuBus bridge";
+                case 0x07: return "CardBus bridge";
+                case 0x08: return "RACEway bridge";
+                case 0x09: return "PCI-to-PCI bridge";
+                case 0x0A: return "InfiniBand-to-PCI Host bridge";
+                default: return "Bridge Device";
+            }
+        }
         case 0x07: return "Simple Communication Controller";
         case 0x08:
             switch(dev->subclass) {
@@ -230,7 +252,18 @@ const char* pci_get_name(pcidev_t* dev) {
                 case 0x09: return "Serial Bus Controller (CANbus)";
                 default: return "Serial Bus Controller";
             }
-        case 0x0D: return "Wireless Controller";
+        case 0x0D: {
+            switch(dev->subclass) {
+                case 0x00: return "iRAD Compatible Controller";
+                case 0x01: return "Consumer IR Controller";
+                case 0x10: return "RF Controller";
+                case 0x11: return "Bluetooth Controller";
+                case 0x12: return "Broadband Controller";
+                case 0x20: return "Ethernet Controller (802.1a)";
+                case 0x21: return "Ethernet Controller (802.1b)";
+                default: return "Wireless Controller";
+            }
+        }
         case 0x0E:
             switch(dev->subclass) {
                 case 0x00: return "Intelligent Controller (I20)";
@@ -238,7 +271,15 @@ const char* pci_get_name(pcidev_t* dev) {
             }
         case 0x0F: return "Satellite Communication Controller";
         case 0x10: return "Encryption Controller";
-        case 0x11: return "Signal Processing Controller";
+        case 0x11: {
+            switch(dev->subclass) {
+                case 0x00: return "DPIO Modules";
+                case 0x01: return "Performance Counters";
+                case 0x10: return "Communication Synchronizer";
+                case 0x20: return "Signal Processing Management";
+                default: return "Signal Processing Controller";
+            }
+        }
         case 0x12: return "Processing Accelarator";
         case 0x13: return "Non-Essential Instrumentation";
         case 0x40: return "Co-Processor";

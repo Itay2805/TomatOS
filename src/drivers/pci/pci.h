@@ -26,6 +26,11 @@
 #define PCI_CLASS_CODE          11
 #define PCI_HEADER_TYPE         14
 
+/**************************************************************
+ * PCI-to-PCI bridge offsets
+ **************************************************************/
+#define PCI_TO_PCI_SECONDARY_BUS    19
+
 
 /**************************************************************
  * General structures for pci
