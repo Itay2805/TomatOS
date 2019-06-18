@@ -96,10 +96,15 @@ cleanup:
 }
 
 sdt_hdr_t* xsdt_search(char* signature, int index) {
+    int actual_index = 0;
     for(int i = index; i < ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8); i++) {
         sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(xsdt->sdts[i]);
         if(memcmp(hdr->signature, signature, 4) == 0) {
-            return hdr;
+            if(actual_index == index) {
+                return hdr;
+            }else {
+                actual_index++;
+            }
         }
     }
 
@@ -109,10 +114,15 @@ sdt_hdr_t* xsdt_search(char* signature, int index) {
 sdt_hdr_t* rsdt_search(char* signature, int index) {
     if(rsdt != NULL) {
         // rsdt searching
-        for(int i = index; i < ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4); i++) {
+        int actual_index = 0;
+        for(int i = 0; i < ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4); i++) {
             sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_ADDRESS(rsdt->sdts[i]);
             if(memcmp(hdr->signature, signature, 4) == 0) {
-                return hdr;
+                if(actual_index == index) {
+                    return hdr;
+                }else {
+                    actual_index++;
+                }
             }
         }
     }else {

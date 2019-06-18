@@ -37,13 +37,13 @@ error_t acpi_init() {
     error_t err = NO_ERROR;
 
     log_info("Starting ACPI namespace");
+    //lai_enable_tracing(true);
     lai_create_namespace();
 
     log_info("Setting SCI handler");
     irq_set_handler(10, sci_handler);
     CHECK_AND_RETHROW(ioapic_redirect(fadt->sci_irq, 10));
 
-//    lai_enable_tracing(true);
     lai_enable_acpi(true);
 
 cleanup:

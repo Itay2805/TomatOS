@@ -287,3 +287,25 @@ const char* pci_get_name(pcidev_t* dev) {
             return "Unknown";
     }
 }
+
+const char* pci_get_vendor_name(pcidev_t* dev) {
+    switch(dev->vendor_id) {
+        case 0x8086: return "Intel";
+        case 0x10dE: return "NVidia Corporation";
+        case 0x1022: return "Advanced Micro Devices";
+        case 0x1414: return "Microsoft";
+        case 0x106B: return "Apple Computer";
+        case 0x1043: return "Asustek Computer, Inc.";
+        case 0x1458: return "Giga-Byte Technology Co., Ltd.";
+        case 0x15AD: return "Vmware, Inc.";
+        case 0x108E: return "Oracle";
+        case 0x1028: return "Dell Computer Corporation";
+        case 0x103C: return "Hewlett Packard";
+        case 0x1590: return "Hewlett Packard Enterprise";
+        case 0x10EC: return "Realtek Semiconductor Corporation";
+        case 0x101E: return "American Megatrends Inc.";
+        case 0x1AE0: return "Google, Inc.";
+        case 0x1234: return "Qemu (Unofficial)";
+        default: return NULL;
+    }
+}

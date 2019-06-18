@@ -39,6 +39,9 @@ error_t rsdt_init();
  *
  * @remark
  * Will search either rsdt or xsdt as needed
+ *
+ * @param signature [IN] The signature of the table
+ * @param index     [IN] The number of the table (for this specific signature)
  */
 sdt_hdr_t* rsdt_search(char* signature, int index);
 

@@ -73,7 +73,11 @@ static void check_function(pcidev_t* dev) {
     dev->subclass = pci_config_read_8(dev, PCI_SUBCLASS);
     dev->prog_if = pci_config_read_8(dev, PCI_PROG_IF);
 
-    log_info("\t%x.%x.%x -> %s", dev->bus, dev->device, dev->function, pci_get_name(dev));
+    if(pci_get_vendor_name(dev) == NULL) {
+        log_info("\t%x.%x.%x -> %s", dev->bus, dev->device, dev->function, pci_get_name(dev));
+    }else {
+        log_info("\t%x.%x.%x -> %s %s", dev->bus, dev->device, dev->function, pci_get_vendor_name(dev), pci_get_name(dev));
+    }
     buf_push(pcidevs, *dev);
 
     if(dev->class == 0x06 && dev->subclass == 0x04) {

@@ -76,6 +76,12 @@ error_t pci_init();
  */
 const char* pci_get_name(pcidev_t* dev);
 
+/**
+ * Get the name of the vendor (very small list compared to how
+ * many vendors there are)
+ */
+const char* pci_get_vendor_name(pcidev_t* dev);
+
 /**************************************************************
  * Helper functions to read from the PCI configuration space
  **************************************************************/
