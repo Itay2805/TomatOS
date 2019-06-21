@@ -164,6 +164,7 @@ set(KERNEL_SOURCE_FILES
         src/logger/logger.c
         src/logger/logger.h
 
+        src/memory/cpu_local.h
         src/memory/gdt.c
         src/memory/gdt.h
         src/memory/pmm.c

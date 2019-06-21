@@ -307,6 +307,22 @@ cleanup:
     return err;
 }
 
+error_t vmm_per_core_init() {
+    error_t err = NO_ERROR;
+
+    // enable whatever features we wanna use
+    log_info("Enabling features");
+    log_info("\t* No execute");
+    efer_t efer = (efer_t){.raw = _rdmsr(IA32_EFER)};
+    efer.no_execute_enable = true;
+    _wrmsr(IA32_EFER, efer.raw);
+
+    vmm_set(kernel_address_space);
+
+//cleanup:
+    return err;
+}
+
 void vmm_set(address_space_t address_space) {
     set_cr3(address_space);
 }

@@ -25,6 +25,7 @@
 #include <cpu/fpu.h>
 #include <common.h>
 #include <error.h>
+#include <drivers/apic/lapic.h>
 
 
 static void* test_1(void* arg) {
@@ -47,6 +48,28 @@ error_t keyboard_handler(registers_t* regs) {
     return NO_ERROR;
 }
 
+/**
+ * This is the per core initialization sequence
+ */
+void per_core_kernel_main() {
+    error_t err = NO_ERROR;
+
+    // start with some low level initialization
+    idt_init();
+    gdt_init();
+
+    CHECK_AND_RETHROW(vmm_per_core_init());
+    CHECK_AND_RETHROW(lapic_init());
+
+cleanup:
+    log_critical("Error during core initialization :(");
+    while(true);
+}
+
+/**
+ * This is the main core initialization sequence
+ * @param info
+ */
 void kernel_main(boot_info_t* info) {
     error_t err = NO_ERROR;
 

@@ -27,6 +27,11 @@ extern address_space_t kernel_address_space;
 error_t vmm_init(boot_info_t* info);
 
 /**
+ * Does per core initialization
+ */
+error_t vmm_per_core_init();
+
+/**
  * Set the address space
  *
  * @remark
