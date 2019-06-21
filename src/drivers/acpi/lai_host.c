@@ -22,6 +22,7 @@ void* laihost_malloc(size_t size) {
     void* out_ptr;
 
     if(size == 0) {
+        log_warn("lai attempts to allocate 0 bytes, allocating 1 instead");
         size = 1;
     }
 
@@ -37,6 +38,11 @@ cleanup:
 void* laihost_realloc(void* ptr, size_t size) {
     error_t err = NO_ERROR;
     void* tmp = ptr;
+
+    if(size == 0) {
+        log_warn("lai attempts to allocate 0 bytes, allocating 1 instead");
+        size = 1;
+    }
 
     CHECK_AND_RETHROW(mm_reallocate(&tmp, size));
 

@@ -19,7 +19,7 @@
 typedef union efer {
     struct {
         // Syscall enable
-        uint64_t syscall_enable;
+        uint64_t syscall_enable : 1;
         uint64_t _reserved1 : 7;
         uint64_t long_mode_enable : 1;
         uint64_t _reserved2 : 1;
