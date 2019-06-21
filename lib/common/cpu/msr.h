@@ -5,24 +5,30 @@
 
 #include <stdint.h>
 
-#define EFER_SYSCALL (1 << 0u)
-#define EFER_LONG_MODE_ENABLE (1 << 8u)
-#define EFER_LONG_MODE_ACTIVE (1 << 10u)
-#define EFER_NO_EXECUTE_ENABLE (1 << 11u)
-#define EFER_SECURE_VIRTUAL_MACHINE_ENABLE (1 << 12u)
-#define EFER_LONG_MODE_SEGMENT_LIMIT_ENABLE (1 << 13u)
-#define EFER_FAST_FXSAVE_FXSTOR (1 << 14u)
-#define EFER_TRANSLATION_CACHE_EXTENSION (1 << 15u)
-
-#define MSR_EFER 0xc0000080
-
 // MSRs
-#define IA32_EFER       0xC0000080
-#define IA32_STAR       0xC0000081
-#define IA32_LSTAR      0xC0000082
-#define IA32_CSTAR      0xC0000083
-#define IA32_SFMASK     0xC0000084
 #define IA32_APIC_BASE  0x1B
+#define IA32_EFER           0xC0000080
+#define IA32_STAR           0xC0000081
+#define IA32_LSTAR          0xC0000082
+#define IA32_CSTAR          0xC0000083
+#define IA32_FMASK          0xC0000084
+#define IA32_FS_BASE        0xC0000100
+#define IA32_GS_BASE        0xC0000101
+#define IA32_KERNEL_GS_BASE 0xC0000102
+
+typedef union efer {
+    struct {
+        // Syscall enable
+        uint64_t syscall_enable;
+        uint64_t _reserved1 : 7;
+        uint64_t long_mode_enable : 1;
+        uint64_t _reserved2 : 1;
+        uint64_t long_mode_active : 1;
+        uint64_t no_execute_enable : 1;
+        uint64_t _reserved3 : 52;
+    } __attribute__((packed));
+    uint64_t raw;
+} efer_t;
 
 static inline uint64_t _rdmsr(uint32_t msr) {
     uint32_t low, high;

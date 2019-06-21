@@ -244,7 +244,9 @@ error_t vmm_init(boot_info_t* info) {
     // enable whatever features we wanna use
     log_info("Enabling features");
     log_info("\t* No execute");
-    _wrmsr(MSR_EFER, _rdmsr(MSR_EFER) | EFER_NO_EXECUTE_ENABLE);
+    efer_t efer = (efer_t){.raw = _rdmsr(IA32_EFER)};
+    efer.no_execute_enable = true;
+    _wrmsr(IA32_EFER, efer.raw);
 
     physical_memory = 0;
 
