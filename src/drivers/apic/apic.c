@@ -8,7 +8,7 @@
 #include "lapic.h"
 #include "ioapic.h"
 
-uint32_t lapic_apic_map[255] = {};
+static uint32_t lapic_apic_map[255] = {};
 
 error_t apic_init() {
     error_t err = NO_ERROR;

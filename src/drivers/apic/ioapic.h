@@ -9,30 +9,31 @@
 #define IOAPIC_REG_ARBITRATION_ID               0x02
 #define IOAPIC_REG_REDIRECTION_TABLE_BASE       0x10
 
-#define LAPIC_DELIEVERY_MODE_FIXED              0b000
-#define LAPIC_DELIEVERY_MODE_LOWEST_PRIORITY    0b001
-#define LAPIC_DELIEVERY_MODE_SMI                0b010
-#define LAPIC_DELIEVERY_MODE_NMI                0b100
-#define LAPIC_DELIEVERY_MODE_INIT               0b101
-#define LAPIC_DELIEVERY_MODE_ExtINT             0b111
+#define IOAPIC_DELIVERY_MODE_FIXED              0
+#define IOAPIC_DELIVERY_MODE_LOWEST_PRIORITY    1
+#define IOAPIC_DELIVERY_MODE_SMI                2
+#define IOAPIC_DELIVERY_MODE_NMI                4
+#define IOAPIC_DELIVERY_MODE_INIT               5
+#define IOAPIC_DELIVERY_MODE_EXTINT             7
 
 typedef union ioapic_redirection_entry {
     struct {
         uint64_t vector : 8;
         uint64_t delievery_mode : 3;
-        uint64_t logical_mode : 1;
-        uint64_t pending : 1;
-        uint64_t low_active : 1;
+        uint64_t destination_mode : 1;
+        uint64_t delivery_status : 1;
+        uint64_t polarity : 1;
         uint64_t remote_irr : 1;
-        uint64_t edge_sensitive : 1;
-        uint64_t masked : 1;
+        uint64_t trigger_mode : 1;
+        uint64_t mask : 1;
         uint64_t _reserved : 39;
-        uint64_t destination : 8;
+        uint64_t destination_id : 8;
     } __attribute__((packed));
     struct {
         uint32_t raw_low;
         uint32_t raw_high;
     } __attribute__((packed));
+    uint64_t raw;
 } ioapic_redirection_entry_t;
 
 /**

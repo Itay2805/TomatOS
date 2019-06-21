@@ -23,10 +23,9 @@ static error_t mesure_ticks_per_second() {
     if(lapic_timer_ticks_per_second != 0) goto cleanup;
 
     // set the timer vector (none-periodic at the start)
-    lapic_lvt_t lvt_timer = {
+    lapic_lvt_timer_t lvt_timer = {
             .vector = 0,
-            .periodic = false,
-            .delievery_mode = LAPIC_LVT_FIXED
+            .timer_mode = LAPIC_TIMER_MODE_ONE_SHOT,
     };
     lapic_write(LAPIC_REG_LVT_TIMER, lvt_timer.raw);
     lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1); // no divide
@@ -58,10 +57,9 @@ cleanup:
 
 static error_t set_lapic_timer() {
     // TODO: Configureable vector
-    lapic_lvt_t lvt_timer = {
+    lapic_lvt_timer_t lvt_timer = {
             .vector = INTERRUPT_IRQ_BASE + INTERRUPT_TIMER,
-            .periodic = true,
-            .delievery_mode = LAPIC_LVT_FIXED
+            .timer_mode = LAPIC_TIMER_MODE_PERIODIC,
     };
     lapic_write(LAPIC_REG_LVT_TIMER, lvt_timer.raw);
     lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1); // no divide
@@ -77,11 +75,11 @@ static error_t set_nmis() {
     for(madt_nmi_t** it = madt_nmis; it < buf_end(madt_nmis); it++) {
         madt_nmi_t* nmi = *it;
         if(nmi->processor_id == 0xFF || nmi->processor_id == procid) {
-            lapic_lvt_t lvt = {
+            lapic_lvt_lint_t lvt = {
                 .vector = 0,
-                .delievery_mode = LAPIC_LVT_NMI,
-                .level_triggered = (uint32_t) (nmi->flags & MADT_FLAG_LEVEL_TRIGGERED),
-                .polarity = (uint32_t)(nmi->flags & MADT_FLAG_ACTIVE_LOW),
+                .delivery_mode = LAPIC_DELIVERY_MODE_NMI,
+                .trigger_mode = (uint32_t) (nmi->flags & MADT_FLAG_LEVEL_TRIGGERED),
+                .input_pin_polarity = (uint32_t)(nmi->flags & MADT_FLAG_ACTIVE_LOW),
             };
 
             switch(nmi->lint) {
@@ -140,11 +138,10 @@ uint8_t lapic_get_id() {
 }
 
 error_t lapic_enable() {
-    uint32_t reg = lapic_read(LAPIC_REG_SIVR);
-    lapic_svr_t* svr = (lapic_svr_t *) &reg;
-    svr->enabled = true;
-    svr->vector = LAPIC_SPURIOUS_VECTOR;
-    lapic_write(LAPIC_REG_SIVR, reg);
+    lapic_svr_t svr = {.raw = lapic_read(LAPIC_REG_SIVR)};
+    svr.software_enable = true;
+    svr.spurious_vector = LAPIC_SPURIOUS_VECTOR;
+    lapic_write(LAPIC_REG_SIVR, svr.raw);
     return NO_ERROR;
 }
 
@@ -157,18 +154,16 @@ error_t lapic_sleep(uint32_t millis) {
     uint32_t ticks_to_wait = (uint32_t) (millis * (lapic_timer_ticks_per_second / 1000));
 
     // save the state of the lapic
-    lapic_lvt_t old_lvt;
-    old_lvt.raw = lapic_read(LAPIC_REG_LVT_TIMER);
+    lapic_lvt_timer_t old_lvt = {.raw = lapic_read(LAPIC_REG_LVT_TIMER)};
     uint32_t initial = lapic_read(LAPIC_REG_TIMER_INITIAL_COUNT);
     uint32_t divider = lapic_read(LAPIC_REG_TIMER_DEVIDER);
 
     // set a new state for the timer
-    lapic_lvt_t timer_lvt = {
+    lapic_lvt_timer_t timer_lvt = {
         // we don't care about the actual interrupt
         .vector = 0xff,
-        .delievery_mode = LAPIC_LVT_FIXED,
-        .periodic = false,
-        .masked = true,
+        .timer_mode = LAPIC_TIMER_MODE_ONE_SHOT,
+        .mask = true,
     };
     lapic_write(LAPIC_REG_LVT_TIMER, timer_lvt.raw);
     lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1);

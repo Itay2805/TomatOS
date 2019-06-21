@@ -77,10 +77,10 @@ error_t ioapic_redirect(uint32_t irq, uint8_t vector) {
     // set the parameters
     ioapic_redirection_entry_t redir = {
         .vector = vector + INTERRUPT_IRQ_BASE,
-        .destination = lapic_get_id(),
-        .low_active = (uint64_t) ((flags & MADT_FLAG_ACTIVE_LOW) != 0),
-        .edge_sensitive = (uint64_t) ((flags & MADT_FLAG_LEVEL_TRIGGERED) != 0),
-        .delievery_mode = LAPIC_DELIEVERY_MODE_FIXED,
+        .destination_id = lapic_get_id(),
+        .polarity  = (uint64_t) ((flags & MADT_FLAG_ACTIVE_LOW) != 0),
+        .trigger_mode = (uint64_t) ((flags & MADT_FLAG_LEVEL_TRIGGERED) != 0),
+        .delievery_mode = IOAPIC_DELIVERY_MODE_FIXED,
     };
 
     // write it out

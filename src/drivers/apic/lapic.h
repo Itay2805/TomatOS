@@ -65,60 +65,90 @@
 #define LAPIC_REG_TIMER_CURRENT_COUNT   0x390
 #define LAPIC_REG_TIMER_DEVIDER         0x3E0
 
-#define LAPIC_LVT_FIXED     0b000
-#define LAPIC_LVT_SMI       0b010
-#define LAPIC_LVT_NMI       0b100
-#define LAPIC_LVT_ExtINT    0b111
-#define LAPIC_LVT_INIT      0b101
+#define LAPIC_DELIVERY_MODE_FIXED           0
+#define LAPIC_DELIVERY_MODE_LOWEST_PRIORITY 1
+#define LAPIC_DELIVERY_MODE_SMI             2
+#define LAPIC_DELIVERY_MODE_NMI             4
+#define LAPIC_DELIVERY_MODE_INIT            5
+#define LAPIC_DELIVERY_MODE_STARTUP         6
+#define LAPIC_DELIVERY_MODE_EXTINT          7
 
-#define LAPIC_TIMER_DIVIDER_2    0b000
-#define LAPIC_TIMER_DIVIDER_4    0b001
-#define LAPIC_TIMER_DIVIDER_8    0b010
-#define LAPIC_TIMER_DIVIDER_16   0b011
-#define LAPIC_TIMER_DIVIDER_32   0b100
-#define LAPIC_TIMER_DIVIDER_64   0b101
-#define LAPIC_TIMER_DIVIDER_128  0b110
-#define LAPIC_TIMER_DIVIDER_1    0b111
+#define LAPIC_TIMER_DIVIDER_2    0b0000
+#define LAPIC_TIMER_DIVIDER_4    0b0001
+#define LAPIC_TIMER_DIVIDER_8    0b0010
+#define LAPIC_TIMER_DIVIDER_16   0b0011
+#define LAPIC_TIMER_DIVIDER_32   0b1000
+#define LAPIC_TIMER_DIVIDER_64   0b1001
+#define LAPIC_TIMER_DIVIDER_128  0b1010
+#define LAPIC_TIMER_DIVIDER_1    0b1011
 
 #ifndef LAPIC_SPURIOUS_VECTOR
     #define LAPIC_SPURIOUS_VECTOR   0xFF
 #endif
 
-typedef union lapic_lvt {
+#define LAPIC_TIMER_MODE_ONE_SHOT   0
+#define LAPIC_TIMER_MODE_PERIODIC   1
+
+typedef union lapic_lvt_timer {
     struct {
-        // all
         uint32_t vector : 8;
-
-        // reserved in timer
-        uint32_t delievery_mode : 3;
-
-        // all
-        uint32_t reserved : 1;
-        uint32_t send_pending : 1;
-
-        // reserved in timer
-        uint32_t polarity : 1;
-        uint32_t remote_irr : 1;
-        uint32_t level_triggered : 1;
-
-        // all
-        uint32_t masked : 1;
-
-        // only for timer
-        uint32_t periodic : 1;
+        uint32_t _reserved1 : 4;
+        uint32_t delivery_status : 1;
+        uint32_t _reserved2 : 3;
+        uint32_t mask : 1;
+        uint32_t timer_mode : 1;
+        uint32_t _reserved3 : 14;
     } __attribute__((packed));
     uint32_t raw;
-} lapic_lvt_t;
+} lapic_lvt_timer_t;
+
+typedef union lapic_lvt_lint {
+    struct {
+        uint32_t vector : 8;
+        uint32_t delivery_mode : 3;
+        uint32_t _reserved1 : 1;
+        uint32_t delivery_status : 1;
+        uint32_t input_pin_polarity : 1;
+        uint32_t remote_irr : 1;
+        uint32_t trigger_mode : 1;
+        uint32_t mask : 1;
+        uint32_t _reserved2 : 15;
+    } __attribute__((packed));
+    uint32_t raw;
+} lapic_lvt_lint_t;
+
 
 typedef union lapic_svr {
     struct {
-        uint32_t vector : 8;
-        uint32_t enabled : 1;
+        uint32_t spurious_vector : 8;
+        uint32_t software_enable : 1;
+        uint32_t focus_processor_checking : 1;
+        uint32_t _reserved1 : 2;
+        uint32_t eoi_broadcast_suppression : 1;
+        uint32_t _reserved2 : 19;
     } __attribute__((packed));
     uint32_t raw;
 } lapic_svr_t;
 
-// TODO: ICR, only needed for IPI
+typedef union lapic_icr {
+    struct {
+        uint64_t vector : 8;
+        uint64_t delivery_mode : 3;
+        uint64_t destination_mode : 1;
+        uint64_t _reserved0 : 1;
+        uint64_t level : 1;
+        uint64_t trigger_mode : 1;
+        uint64_t _reserved2 : 2;
+        uint64_t destination_shothand : 2;
+        uint64_t _reserved3 : 36;
+        uint64_t destination : 8;
+    } __attribute__((packed));
+    struct {
+        uint32_t raw_low;
+        uint32_t raw_high;
+    } __attribute__((packed));
+    uint64_t raw;
+} lapic_icr_t;
 
 /**
  * This is the ticks per seconds of the timer
