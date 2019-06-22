@@ -193,13 +193,5 @@ void laihost_sleep(uint64_t duration) {
 }
 
 void laihost_handle_amldebug(lai_object_t* obj) {
-    switch(obj->type) {
-        case LAI_INTEGER: {
-            log_debug("amldebug: %lu", obj->integer);
-        } break;
-        case LAI_STRING: {
-            log_debug("amldebug: %s", obj->string);
-        } break;
-        default:break;
-    }
+    // TODO: this
 }
