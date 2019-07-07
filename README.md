@@ -1,5 +1,7 @@
 # TomatOS
 
+***[Note: I have moved to work on another project as of that I will not continue working on this probably](https://github.com/kretlim/kretlim-kernel)***
+
 TomatOS is a 64bit operating systems (currently just the kernel part of the os but still).
 
 ## Features
