@@ -66,6 +66,6 @@ typedef struct tss64 {
 
 // TODO: Will need some kind of per core init
 
-void gdt_init();
+error_t per_cpu_gdt_and_tss_init();
 
 #endif //TOMATKERNEL_GDT_H

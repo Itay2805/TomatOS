@@ -4,11 +4,11 @@
 #include <memory/vmm.h>
 #include <stb/stb_ds.h>
 
-madt_t* madt;
-madt_lapic_t** madt_lapics;
-madt_ioapic_t** madt_ioapics;
-madt_iso_t** madt_isos;
-madt_nmi_t** madt_nmis;
+madt_t* madt = NULL;
+madt_lapic_t** madt_lapics = NULL;
+madt_ioapic_t** madt_ioapics = NULL;
+madt_iso_t** madt_isos = NULL;
+madt_nmi_t** madt_nmis = NULL;
 
 error_t madt_init() {
     error_t err = NO_ERROR;
@@ -19,8 +19,8 @@ error_t madt_init() {
 
     log_info("\tMADT (APIC) Found (0x%016p)", (uintptr_t)madt - DIRECT_MAPPING_BASE);
     log_debug("\t\tRevision: %d", madt->header.revision);
-    log_debug("\t\tOEM ID: %6s", madt->header.oemid);
-    log_debug("\t\tOEM TABLE ID: %8s", madt->header.oem_table_id);
+    log_debug("\t\tOEM ID: %.6s", madt->header.oemid);
+    log_debug("\t\tOEM TABLE ID: %.8s", madt->header.oem_table_id);
 
     log_debug("\t\tentries:");
     madt_entry_t* cur = &madt->entries[0];

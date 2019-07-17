@@ -138,8 +138,7 @@ static error_t get_or_create_page(uint64_t *entry, int attributes, uint64_t *out
         memset(&physical_memory[new_page], 0, KB(4));
 
         // set the entry
-        // no execute by default
-        *entry = PAGING_PRESENT_BIT | PAGING_NO_EXECUTE_BIT | (new_page & PAGING_4KB_ADDR_MASK);
+        *entry = PAGING_PRESENT_BIT | (new_page & PAGING_4KB_ADDR_MASK);
         set_attributes(entry, attributes);
     }
 
@@ -256,14 +255,9 @@ error_t vmm_init(tboot_info_t* info) {
     memset((void *)kpml4, 0, KB(4));
 
     // TODO: Use large pages as optimization
-    log_debug("mapping the physical memory");
+    log_debug("creating direct memory map");
     for(tboot_mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
         switch(it->type) {
-            /*
-             * This might not be all of the memory we will need,
-             * so in drivers always check if should map and then
-             * map if needed
-             */
             case TBOOT_MEMORY_TYPE_USABLE:
             case TBOOT_MEMORY_TYPE_ACPI_NVS:
             case TBOOT_MEMORY_TYPE_ACPI_RECLAIM:
@@ -274,11 +268,7 @@ error_t vmm_init(tboot_info_t* info) {
                         log_error("Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", addr, ALIGN_DOWN(it->addr + it->len, KB(4)));
                         break;
                     }
-                    int attr = 0;
-                    if(it->type != TBOOT_MEMORY_TYPE_ACPI_NVS) {
-                        attr = PAGE_ATTR_WRITE;
-                    }
-                    CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (addr + 0xFFFF800000000000), (void *) (addr), attr));
+                    CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (addr + 0xFFFF800000000000), (void *) (addr), PAGE_ATTR_WRITE));
                 }
             } break;
             default: break;
@@ -289,9 +279,6 @@ error_t vmm_init(tboot_info_t* info) {
     // TODO: Use the kernel elf header to set the attributes correctly
     for(uint64_t addr = ALIGN_DOWN(KERNEL_PHYSICAL_START, KB(4)); addr < ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)); addr += KB(4)) {
         int attr = PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE;
-        if(addr >= KERNEL_USER_TEXT_START && addr < KERNEL_USER_TEXT_END) {
-            attr |= PAGE_ATTR_USER;
-        }
         CHECK_AND_RETHROW(vmm_map(kpml4, (void *)(addr + 0xFFFFFFFFC0000000), (void *) (addr), attr));
     }
 
@@ -303,22 +290,6 @@ error_t vmm_init(tboot_info_t* info) {
 cleanup:
     // we are not doing to clean anything because failing this stage
     // means we can not continue running
-    return err;
-}
-
-error_t vmm_per_core_init() {
-    error_t err = NO_ERROR;
-
-    // enable whatever features we wanna use
-    log_info("Enabling features");
-    log_info("\t* No execute");
-    efer_t efer = (efer_t){.raw = _rdmsr(IA32_EFER)};
-    efer.no_execute_enable = true;
-    _wrmsr(IA32_EFER, efer.raw);
-
-    vmm_set(kernel_address_space);
-
-//cleanup:
     return err;
 }
 

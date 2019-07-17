@@ -41,8 +41,8 @@ error_t rsdt_init() {
 
     CHECK_TRACE(acpi_validate_checksum(hdr, hdr->length), "Invalid SDT checksum!");
     log_debug("\t\tRevision: %d", hdr->revision);
-    log_debug("\t\tOEM ID: %6s", hdr->oemid);
-    log_debug("\t\tOEM TABLE ID: %8s", hdr->oem_table_id);
+    log_debug("\t\tOEM ID: %6.s", hdr->oemid);
+    log_debug("\t\tOEM TABLE ID: %.8s", hdr->oem_table_id);
 
 
     // just for debugging
@@ -54,7 +54,7 @@ error_t rsdt_init() {
             if(!vmm_is_mapped(kernel_address_space, (uintptr_t) hdr)) {
                 CHECK_AND_RETHROW(vmm_map(kernel_address_space, hdr, (void*)(uintptr_t)*sdt, 0));
             }
-            log_debug("\t\t\t%4s", hdr->signature);
+            log_debug("\t\t\t%.4s", hdr->signature);
         }
     }else {
         // xsdt iteration
@@ -63,7 +63,7 @@ error_t rsdt_init() {
             if(!vmm_is_mapped(kernel_address_space, (uintptr_t) hdr)) {
                 CHECK_AND_RETHROW(vmm_map(kernel_address_space, hdr, (void*)(uintptr_t)*sdt, 0));
             }
-            log_debug("\t\t\t%4s", hdr->signature);
+            log_debug("\t\t\t%.4s", hdr->signature);
         }
     }
 

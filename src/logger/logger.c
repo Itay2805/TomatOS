@@ -16,8 +16,7 @@ enum {
     LOG_LEVEL_DEBUG,
 };
 
-logger_t* loggers[LOGGER_COUNT] = {};
-
+static logger_t* loggers[LOGGER_COUNT] = {0};
 static int log_count = 0;
 
 void logger_register(logger_t* logger) {

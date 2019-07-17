@@ -21,7 +21,7 @@ error_t apic_init() {
     CHECK_ERROR_TRACE(madt_ioapics, ERROR_NOT_FOUND, "No I/O APICs found");
 
     if(pic8259_available()) {
-        log_info("Found PIC8259, disabling");
+        log_info("\tFound PIC8259, disabling");
         pic8259_disable();
     }
 

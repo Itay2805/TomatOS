@@ -27,6 +27,7 @@ static void vmdev_log_wrapper(const char* str) {
 
 static logger_t logger = (logger_t) {
     .write = vmdev_log_wrapper,
+    .enabled = true,
 };
 
 void vmdev_register_logger() {

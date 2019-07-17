@@ -13,7 +13,7 @@ static error_t dsdt_init() {
 
     // get the correct dsdt
     if(rsdp) {
-        dsdt = (sdt_hdr_t*)(uintptr_t)CONVERT_TO_DIRECT(fadt->dsdt);
+        dsdt = (sdt_hdr_t*)CONVERT_TO_DIRECT((uintptr_t)fadt->dsdt);
     }else if(rsdp2) {
         dsdt = (sdt_hdr_t*)CONVERT_TO_DIRECT(fadt->acpi2.x_dsdt);
     }else {
@@ -26,7 +26,7 @@ static error_t dsdt_init() {
     }
 
     // now we can map the rest (skipping the first page)
-    for(uintptr_t addr = ALIGN_DOWN(dsdt, KB(4)) + KB(4); addr < ALIGN_UP((uintptr_t)dsdt + dsdt->length * KB(4), KB(4)); addr += KB(4)) {
+    for(uintptr_t addr = ALIGN_DOWN(dsdt, KB(4)) + KB(4); addr < ALIGN_UP((uintptr_t)dsdt + dsdt->length, KB(4)); addr += KB(4)) {
         if(!vmm_is_mapped(kernel_address_space, addr)) {
             CHECK_AND_RETHROW(vmm_map(kernel_address_space, (void*)addr, (void *) addr - DIRECT_MAPPING_BASE, PAGE_ATTR_WRITE));
         }
@@ -35,8 +35,8 @@ static error_t dsdt_init() {
     CHECK_ERROR_TRACE(acpi_validate_checksum(dsdt, dsdt->length), ERROR_NOT_FOUND, "DSDT checksum incorrect");
     log_info("\tDSDT Found (0x%016p)", (uintptr_t)dsdt - DIRECT_MAPPING_BASE);
     log_debug("\t\tRevision: %d", dsdt->revision);
-    log_debug("\t\tOEM ID: %6s", dsdt->oemid);
-    log_debug("\t\tOEM TABLE ID: %8s", dsdt->oem_table_id);
+    log_debug("\t\tOEM ID: %.6s", dsdt->oemid);
+    log_debug("\t\tOEM TABLE ID: %.8s", dsdt->oem_table_id);
 
 cleanup:
     return err;
@@ -51,8 +51,10 @@ error_t fadt_init() {
 
     log_info("\tFADT (FACP) Found (0x%016p)", (uintptr_t)fadt - DIRECT_MAPPING_BASE);
     log_debug("\t\tRevision: %d", fadt->header.revision);
-    log_debug("\t\tOEM ID: %6s", fadt->header.oemid);
-    log_debug("\t\tOEM TABLE ID: %8s", fadt->header.oem_table_id);
+    log_debug("\t\tOEM ID: %.6s", fadt->header.oemid);
+    log_debug("\t\tOEM TABLE ID: %.8s", fadt->header.oem_table_id);
+
+
 
     CHECK_AND_RETHROW(dsdt_init());
 

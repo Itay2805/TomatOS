@@ -19,8 +19,8 @@
 
 #define ALIGN_DOWN(n, a) (((uint64_t)n) & ~((a) - 1))
 #define ALIGN_UP(n, a) ALIGN_DOWN(((uint64_t)n) + (a) - 1, (a))
-#define ALIGN_DOWN_PTR(p, a) ((void *)ALIGN_DOWN((uintptr_t)(p), (a)))
-#define ALIGN_UP_PTR(p, a) ((void *)ALIGN_UP((uintptr_t)(p), (a)))
+#define ALIGN_PAGE_DOWN(n) ALIGN_DOWN(n, KB(4))
+#define ALIGN_PAGE_UP(n) ALIGN_UP(n, KB(4))
 
 ////////////////////////////////////////////////////////////////////////////
 // Unit conversion
@@ -41,19 +41,11 @@
 // Kernel information
 ////////////////////////////////////////////////////////////////////////////
 
-extern void* kernel_stack;
 extern void* kernel_physical_end;
 extern void* kernel_physical_start;
-extern void* kernel_user_text_start;
-extern void* kernel_user_text_end;
-
-#define KERNEL_STACK ((uint64_t)&kernel_stack)
 
 #define KERNEL_PHYSICAL_START ((uint64_t)&kernel_physical_start)
 #define KERNEL_PHYSICAL_END ((uint64_t)&kernel_physical_end)
-
-#define KERNEL_USER_TEXT_START ((uint64_t)&kernel_user_text_start)
-#define KERNEL_USER_TEXT_END ((uint64_t)&kernel_user_text_end)
 
 
 #endif //TOMATKERNEL_COMMON_H

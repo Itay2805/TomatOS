@@ -42,21 +42,26 @@ static uint32_t logger_set_background_color(uint32_t col) {
 // Init
 ////////////////////////////////////////////////
 
-void term_early_init(tboot_info_t* info) {
+void term_init(tboot_info_t* info) {
+    // set everything
     vram = (uint32_t*)info->framebuffer.addr;
     width = info->framebuffer.width;
     full_height = info->framebuffer.height;
     height = full_height - full_height % font->yAdvance;
-    backbuffer = kmalloc(width * height * sizeof(uint32_t));
+    backbuffer = kmalloc(width * full_height * 4u);
 
+    // map the framebuffer
+    for(uintptr_t addr = ALIGN_PAGE_DOWN(vram); addr < ALIGN_PAGE_UP(vram + width * full_height * 4); addr += KB(4)) {
+        if(!vmm_is_mapped(kernel_address_space, addr)) {
+            vmm_map(kernel_address_space, (void *) addr, (void *) (addr - DIRECT_MAPPING_BASE), PAGE_ATTR_WRITE);
+        }
+    }
+
+    // register logger
     logger.write = term_write;
     logger.set_text_color = logger_set_text_color,
     logger.set_background_color = logger_set_background_color,
     logger_register(&logger);
-}
-
-void term_init() {
-    vram = CONVERT_TO_DIRECT(vram);
 }
 
 ////////////////////////////////////////////////
@@ -75,6 +80,10 @@ static void render_characer(const GFXglyph* const glyph, uint8_t* bitmap)  {
             uint32_t screen_x = cur_x + glyph->xOffset + x_index;
             uint32_t screen_y = (cur_y + font->yAdvance) + glyph->yOffset + y_index;
 
+            // don't write outside of buffer
+            if(screen_x + screen_y * width >= width * full_height) continue;
+
+            // actual writing to buffer
             if(segment & 0x80) {
                 backbuffer[screen_x + screen_y * width] = fg_color;
                 vram[screen_x + screen_y * width] = fg_color;
@@ -89,12 +98,12 @@ static void render_characer(const GFXglyph* const glyph, uint8_t* bitmap)  {
 }
 
 static void scroll() {
-    for(size_t i = 0; i <  (full_height - font->yAdvance + 5) * width; i++) {
+    for(size_t i = 0; i < (full_height * width) - (font->yAdvance * width); i++) {
         uint32_t col = backbuffer[i + (font->yAdvance * width)];
         backbuffer[i] = col;
         vram[i] = col;
     }
-    for(int i = (height - font->yAdvance + 5) * width; i <  width * full_height; i++) {
+    for(int i = (full_height * width) - (font->yAdvance * width); i <  width * full_height; i++) {
         backbuffer[i] = bg_color;
         vram[i] = bg_color;
     }
@@ -134,6 +143,8 @@ void term_write(const char* str) {
         }else if(*str == '\n') {
             // got a new line!
             new_line();
+        }else if(*str == '\t') {
+            term_write("  ");
         }
 
         str++;
@@ -164,4 +175,8 @@ uint32_t term_get_background_color() {
 
 uint32_t term_get_foreground_color() {
     return fg_color;
+}
+
+void term_disable() {
+    logger.enabled = false;
 }

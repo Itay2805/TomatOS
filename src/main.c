@@ -9,6 +9,7 @@
 #include <logger/vmdev/vmdev.h>
 #include <logger/term/term.h>
 #include <pci/pci.h>
+#include <smp/cpustorage.h>
 
 /**
  * This is the main core initialization sequence
@@ -19,25 +20,25 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // register the early loggers
     vmdev_register_logger();
-    term_early_init(info);
 
     // setup the basic
-    gdt_init();
     idt_init();
 
     // full memory initialization
     CHECK_AND_RETHROW(pmm_early_init(info));
     CHECK_AND_RETHROW(vmm_init(info));
 
-    // anything which needs to convert the addresses to the direct mapping
-    term_init();
+    info = CONVERT_TO_DIRECT(info);
+    info->framebuffer.addr = CONVERT_TO_DIRECT(info->framebuffer.addr);
+    info->mmap.entries = CONVERT_TO_DIRECT(info->mmap.entries);
+    info->rsdp = CONVERT_TO_DIRECT(info->rsdp);
 
     // finish memory initialization
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
 
-    // convert the boot info the the direct mapping
-    info->framebuffer.addr = CONVERT_TO_DIRECT(info->framebuffer.addr);
+    term_init(info);
+    term_clear();
 
     // start doing the late early initialization
     CHECK_AND_RETHROW(acpi_tables_init(info)); // full ACPI will be set later
@@ -47,6 +48,11 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(pci_init());
     // TODO: HPET init
 
+    // initialize the per cpu storage and do the main cpu init
+    // the rest will follow on SMP bootstrap
+    CHECK_AND_RETHROW(per_cpu_storage_init());
+    CHECK_AND_RETHROW(set_cpu_storage(0));
+    CHECK_AND_RETHROW(per_cpu_gdt_and_tss_init());
     // TODO: SMP
 
     // TODO: Objects Manager init

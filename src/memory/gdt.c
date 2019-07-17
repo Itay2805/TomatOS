@@ -1,4 +1,5 @@
 #include <logger/logger.h>
+#include <smp/cpustorage.h>
 #include "gdt.h"
 
 static gdt_entries_t gdt_entries = {
@@ -55,7 +56,8 @@ static gdt_entries_t gdt_entries = {
     }
 };
 
-static gdt_t gdt = {
+// we want this none-static since we are going to use it in the tboot stub
+gdt_t gdt = {
     .size = sizeof(gdt_entries),
     .entries = &gdt_entries
 };
@@ -64,26 +66,30 @@ static tss64_t tss64 = {
         .iopb_offset = sizeof(tss64_t)
 };
 
-void gdt_init() {
+error_t per_cpu_gdt_and_tss_init() {
     // set the tss address
-    gdt.entries->tss.low = (uint16_t) (((uint64_t)&tss64) & 0xFFFF);
-    gdt.entries->tss.mid = (uint8_t) (((uint64_t)&tss64 >> 16) & 0xFF);
-    gdt.entries->tss.high = (uint8_t) (((uint64_t)&tss64 >> 24) & 0xFF);
-    gdt.entries->tss.upper32 = (uint32_t)(((uint64_t)&tss64 >> 32) & 0xFFFFFFFF);
+    gdt.entries->tss.low = (uint16_t) (((uint64_t) &tss64) & 0xFFFF);
+    gdt.entries->tss.mid = (uint8_t) (((uint64_t) &tss64 >> 16) & 0xFF);
+    gdt.entries->tss.high = (uint8_t) (((uint64_t) &tss64 >> 24) & 0xFF);
+    gdt.entries->tss.upper32 = (uint32_t) (((uint64_t) &tss64 >> 32) & 0xFFFFFFFF);
 
-    // set everything to use the kernel stack for now
-    tss64.rsp0 = KERNEL_STACK;
-    tss64.rsp1 = KERNEL_STACK;
-    tss64.rsp2 = KERNEL_STACK;
-    tss64.ist1 = KERNEL_STACK;
-    tss64.ist2 = KERNEL_STACK;
-    tss64.ist3 = KERNEL_STACK;
-    tss64.ist4 = KERNEL_STACK;
-    tss64.ist5 = KERNEL_STACK;
-    tss64.ist6 = KERNEL_STACK;
-    tss64.ist7 = KERNEL_STACK;
+    // use the per cpu kernel stack
+    tss64.rsp0 = cpu_get_kernel_stack();
+    tss64.rsp1 = cpu_get_kernel_stack();
+    tss64.rsp2 = cpu_get_kernel_stack();
 
-    log_info("loading new gdt and tss (tss size=%d)", sizeof(tss64_t));
+    // TODO: Maybe have a different value for these (?)
+    tss64.ist1 = cpu_get_kernel_stack();
+    tss64.ist2 = cpu_get_kernel_stack();
+    tss64.ist3 = cpu_get_kernel_stack();
+    tss64.ist4 = cpu_get_kernel_stack();
+    tss64.ist5 = cpu_get_kernel_stack();
+    tss64.ist6 = cpu_get_kernel_stack();
+    tss64.ist7 = cpu_get_kernel_stack();
+
+    log_info("loading new gdt and tss on cpu #%d", cpu_get_index());
     _lgdt(gdt);
     _ltr(GDT_TSS);
+
+    return NO_ERROR;
 }

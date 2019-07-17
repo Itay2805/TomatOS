@@ -48,6 +48,8 @@ CFLAGS += \
 	-fno-stack-protector \
 	-mno-red-zone \
 	-mcmodel=kernel \
+	-fno-omit-frame-pointer \
+	-mno-omit-leaf-frame-pointer \
 	-fno-pie \
 	-static \
 	-g
@@ -112,7 +114,7 @@ image: bin/tomatboot.img
 bin/tomatos.img: $(TOMATBOOT_UEFI_DIR_BIN)/BOOTX64.EFI $(TOMATBOOT_SHUTDOWN_DIR_BIN)/shutdown.elf bin/image/tomatos.elf bin/image/kbootcfg.bin tools/image-builder.py tools/tomatboot-config.py
 	cd bin && ../tools/image-builder.py ../config/image.yaml
 
-bin/image/kbootcfg.bin: config/boot-config.yaml tools/tomatboot-config.py
+bin/image/kbootcfg.bin: config/boot.yaml tools/tomatboot-config.py
 	./tools/tomatboot-config.py config/boot.yaml bin/image/kbootcfg.bin
 
 #########################
@@ -136,7 +138,10 @@ tools/tomatboot-config.py:
 
 # Run qemu
 qemu: tools/OVMF.fd $(TOMATBOOT_UEFI_DIR_BIN)/BOOTX64.EFI $(TOMATBOOT_SHUTDOWN_DIR_BIN)/shutdown.elf bin/image/tomatos.elf bin/image/kbootcfg.bin
-	qemu-system-x86_64 -drive if=pflash,format=raw,readonly,file=tools/OVMF.fd -net none -drive file=fat:rw:bin/image,media=disk,format=raw -no-reboot -no-shutdown -d int
+	qemu-system-x86_64 -drive if=pflash,format=raw,readonly,file=tools/OVMF.fd -net none -drive file=fat:rw:bin/image,media=disk,format=raw -no-reboot -no-shutdown -debugcon stdio
+
+qemu-debug: tools/OVMF.fd $(TOMATBOOT_UEFI_DIR_BIN)/BOOTX64.EFI $(TOMATBOOT_SHUTDOWN_DIR_BIN)/shutdown.elf bin/image/tomatos.elf bin/image/kbootcfg.bin
+	qemu-system-x86_64 -drive if=pflash,format=raw,readonly,file=tools/OVMF.fd -net none -drive file=fat:rw:bin/image,media=disk,format=raw -no-reboot -no-shutdown -s -S -monitor stdio -d int
 
 # Get the bios
 tools/OVMF.fd:

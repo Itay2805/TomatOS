@@ -466,7 +466,7 @@ error_t mm_reallocate(void** ptr, size_t size) {
     CHECK_AND_RETHROW(verify_integrity());
 
     if(ptr == NULL || *ptr == NULL) {
-        CATCH(allocate_internal(size, block->alignment, &new, false, false), CHECK_FAIL_ERROR(err));
+        CATCH(allocate_internal(size, 8, &new, false, false), CHECK_FAIL_ERROR(err));
     }else {
         CHECK_AND_RETHROW(get_block_from_ptr(*ptr, &block));
         // TODO: CHECK_ERROR(block->allocated, ERROR_ALREADY_FREED);
@@ -481,7 +481,7 @@ error_t mm_reallocate(void** ptr, size_t size) {
     }
     CHECK_AND_RETHROW(get_block_from_ptr(new, &new_block));
 
-    if(*ptr != new) {
+    if(*ptr != new && block != NULL) {
         // copy the old memory, zero the new memory and free the new one
         memcpy(new, *ptr, old_size);
         memset(new + old_size, 0, size - old_size);

@@ -4,9 +4,9 @@
 
 #include <memory/gdt.h>
 
-idt_entry_t idt_entries[0xFF];
+static idt_entry_t idt_entries[0xFF];
 
-idt_t idt = {
+static idt_t idt = {
     .limit = sizeof(idt_entries),
     .base = idt_entries
 };
@@ -16,6 +16,9 @@ static void set_idt_entry(uint8_t i, void(*handler)()) {
     idt_entries[i].handler_high = (uint64_t) ((uintptr_t)handler >> 16);
     idt_entries[i].gate_type = IDT_TYPE_INTERRUPT_32;
     idt_entries[i].selector = GDT_KERNEL_CODE;
+    idt_entries[i].present = true;
+    idt_entries[i].ring = 3;
+    idt_entries[i].ist = 0;
 }
 
 void idt_init() {
