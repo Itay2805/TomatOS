@@ -8,9 +8,14 @@ TomatOS is a 64bit operating systems (currently just the kernel part of the os b
 * Uses [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI)
 * ACPI
     * Mostly reading tables
-    * AML Interpreter provided with [lai](https://github.com/qword-os/lai)
-* APIC
+* APIC for interrupt handling
 * PCI / PCIe support (with single abstraction layer)
-* Processes (Kernel and Usermode:tm:)
-    * preserves fpu state
-    * including simple preemptive FIFS scheduler
+
+### Working on
+* Refactoring and getting this back to work
+
+### TODO:
+* Get processes back
+* Implement the object system
+* Readd LAI
+* SMP:tm:
