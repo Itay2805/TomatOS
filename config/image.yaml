@@ -1,0 +1,9 @@
+file: 'tpmatos.img'
+size: 38M
+type: gpt
+partitions:
+  - fs: fat32
+    size: 36M
+    bootable: true
+    content: 'image'
+    label: boot

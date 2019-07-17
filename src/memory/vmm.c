@@ -238,7 +238,7 @@ static inline void invlpg(uintptr_t addr) {
 // Implementation
 ////////////////////////////////////////////////////////////////////////////
 
-error_t vmm_init(boot_info_t* info) {
+error_t vmm_init(tboot_info_t* info) {
     error_t err = NO_ERROR;
 
     // enable whatever features we wanna use
@@ -257,26 +257,25 @@ error_t vmm_init(boot_info_t* info) {
 
     // TODO: Use large pages as optimization
     log_debug("mapping the physical memory");
-    for(mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
+    for(tboot_mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
         switch(it->type) {
             /*
              * This might not be all of the memory we will need,
              * so in drivers always check if should map and then
              * map if needed
              */
-            case MMAP_MMIO:
-            case MMAP_RESERVED:
-            case MMAP_ACPI_RELAIMABLE:
-            case MMAP_ACPI_NVS:
-            case MMAP_AVAILABLE: {
+            case TBOOT_MEMORY_TYPE_USABLE:
+            case TBOOT_MEMORY_TYPE_ACPI_NVS:
+            case TBOOT_MEMORY_TYPE_ACPI_RECLAIM:
+            case TBOOT_MEMORY_TYPE_RESERVED: {
                 // all these addresses should be mapped to higher half
-                for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->size, KB(4)); addr += KB(4)) {
+                for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
                     if(addr >= 0xFFFFFFFF00000000) {
-                        log_error("Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", addr, ALIGN_DOWN(it->addr + it->size, KB(4)));
+                        log_error("Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", addr, ALIGN_DOWN(it->addr + it->len, KB(4)));
                         break;
                     }
                     int attr = 0;
-                    if(it->type != MMAP_ACPI_NVS) {
+                    if(it->type != TBOOT_MEMORY_TYPE_ACPI_NVS) {
                         attr = PAGE_ATTR_WRITE;
                     }
                     CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (addr + 0xFFFF800000000000), (void *) (addr), attr));

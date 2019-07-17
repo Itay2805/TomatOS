@@ -1,138 +1,64 @@
-#include <drivers/vmdev/vmdev.h>
-#include <drivers/apic/ioapic.h>
-#include <drivers/pic8259/pic.h>
-#include <drivers/term/term.h>
-#include <drivers/acpi/acpi.h>
-#include <drivers/apic/apic.h>
-#include <drivers/pci/pci.h>
-
-#include <process/scheduler.h>
-#include <process/process.h>
-
+#include <common/error.h>
+#include <tboot/tboot.h>
 #include <interrupts/interrupts.h>
-#include <interrupts/timer.h>
-#include <interrupts/idt.h>
-#include <interrupts/irq.h>
-
-#include <logger/logger.h>
-
-#include <memory/gdt.h>
 #include <memory/pmm.h>
-#include <memory/vmm.h>
 #include <memory/mm.h>
-
-#include <boot/boot.h>
-#include <cpu/fpu.h>
-#include <common.h>
-#include <error.h>
-#include <drivers/apic/lapic.h>
-
-
-static void* test_1(void* arg) {
-    (void)arg;
-    while(true) {
-    }
-    return NULL;
-}
-
-static void* test_2(void* arg) {
-    (void)arg;
-    while(true)  {
-
-    }
-    return NULL;
-}
-
-error_t keyboard_handler(registers_t* regs) {
-    log_info("KEYBOARD!");
-    return NO_ERROR;
-}
-
-/**
- * This is the per core initialization sequence
- */
-void per_core_kernel_main() {
-    error_t err = NO_ERROR;
-
-    // start with some low level initialization
-    idt_init();
-    gdt_init();
-
-    CHECK_AND_RETHROW(vmm_per_core_init());
-    CHECK_AND_RETHROW(lapic_init());
-
-cleanup:
-    log_critical("Error during core initialization :(");
-    while(true);
-}
+#include <memory/gdt.h>
+#include <interrupts/idt.h>
+#include <acpi/acpi.h>
+#include <logger/vmdev/vmdev.h>
+#include <logger/term/term.h>
+#include <pci/pci.h>
 
 /**
  * This is the main core initialization sequence
  * @param info
  */
-void kernel_main(boot_info_t* info) {
+void kernel_main(uint32_t magic, tboot_info_t* info) {
     error_t err = NO_ERROR;
 
-    /*********************************************************
-     * Early initialization
-     *
-     * basically setting a nice enviroment to work in
-     *********************************************************/
-
-    // vm logger can be initialized very early on
+    // register the early loggers
     vmdev_register_logger();
+    term_early_init(info);
 
-    // initialize the idt and gdt
-    idt_init();
+    // setup the basic
     gdt_init();
+    idt_init();
 
-    /*********************************************************
-     * Early memory initialization
-     *
-     * can start using errors
-     *********************************************************/
+    // full memory initialization
     CHECK_AND_RETHROW(pmm_early_init(info));
     CHECK_AND_RETHROW(vmm_init(info));
 
-    // convert to direct mapping
-    info = PHYSICAL_ADDRESS(info);
-    info->rsdp_ptr = PHYSICAL_ADDRESS(info->rsdp_ptr);
-    info->framebuffer.addr = (uint64_t) PHYSICAL_ADDRESS(info->framebuffer.addr);
-    info->mmap.entries = PHYSICAL_ADDRESS(info->mmap.entries);
+    // anything which needs to convert the addresses to the direct mapping
+    term_init();
 
-    /*********************************************************
-     * Initialization of essentials
-     *
-     * we require everything in here to work
-     *********************************************************/
+    // finish memory initialization
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
-    term_init(info);
-    CHECK_AND_RETHROW(acpi_tables_init(info));
-    CATCH(pci_init());
-    CHECK_AND_RETHROW(pic8259_disable());
-    CHECK_AND_RETHROW(apic_init());
-    CHECK_AND_RETHROW(timer_init());
-    CHECK_AND_RETHROW(acpi_init());
-    //CHECK_AND_RETHROW(fpu_init());
 
-    // finally initialize the threading and scheduler
-    CHECK_AND_RETHROW(thread_init());
-    CHECK_AND_RETHROW(scheduler_init());
+    // convert the boot info the the direct mapping
+    info->framebuffer.addr = CONVERT_TO_DIRECT(info->framebuffer.addr);
 
-    /*********************************************************
-     * Initialization completed
-     *********************************************************/
-    log_notice("initialization finished");
+    // start doing the late early initialization
+    CHECK_AND_RETHROW(acpi_tables_init(info)); // full ACPI will be set later
+    CHECK_AND_RETHROW(interrupts_init());
 
-    process_t* process = NULL;
-    thread_t* thread_1 = NULL;
-    thread_t* thread_2 = NULL;
-    CHECK_AND_RETHROW(process_create(&process, NULL, 0, NULL));
-    CHECK_AND_RETHROW(thread_create(process, test_1, NULL, &thread_1));
-    CHECK_AND_RETHROW(thread_create(process, test_2, NULL, &thread_2));
+    // start getting the basic drivers
+    CHECK_AND_RETHROW(pci_init());
+    // TODO: HPET init
 
-    // TODO: start the scheduler
+    // TODO: SMP
+
+    // TODO: Objects Manager init
+
+    // TODO: Create initial kernel thread
+    // TODO: Kick start processes
+    // TODO:    - start ACPI namespace
+    // TODO:    - start driver loading
+    // TODO:    - load the init process
+    // TODO:    - ???
+    // TODO:    - profit!
+
     _sti();
 
     while(true) {

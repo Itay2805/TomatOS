@@ -1,10 +1,12 @@
 iso
 cmake*
 CMake*
-Makefile
 TomatKernel
 
 *.iso
 
 .vscode
 .idea
+
+bin
+build

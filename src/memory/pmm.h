@@ -11,14 +11,14 @@
 
 #include <error.h>
 #include <stddef.h>
-#include <boot/boot.h>
+#include <tboot/tboot.h>
 
-// TODO: Add locks to all of these
+// TODO: Convert back to the bitmap pmm
 
 /**
  * Called at the start, will initialize stuff assuming that we still have the first gb identity mapped
  */
-error_t pmm_early_init(boot_info_t* info);
+error_t pmm_early_init(tboot_info_t* info);
 
 /**
  * Will finalize everything to work assumning that we now have proper mappings and that the physical

@@ -5,10 +5,7 @@ TomatOS is a 64bit operating systems (currently just the kernel part of the os b
 ## Features
 
 * 64bit with all the basics (gdt, pmm, vmm...)
-* Boot abstraction 
-    * multiboot 1
-    * multiboot 2
-    * [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI)
+* Uses [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI)
 * ACPI
     * Mostly reading tables
     * AML Interpreter provided with [lai](https://github.com/qword-os/lai)

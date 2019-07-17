@@ -64,6 +64,8 @@ typedef struct tss64 {
 #define _lgdt(addr) asm volatile("lgdt %0" : : "m"(addr))
 #define _ltr(seg) asm volatile("ltr %%ax" : : "a"(seg))
 
+// TODO: Will need some kind of per core init
+
 void gdt_init();
 
 #endif //TOMATKERNEL_GDT_H

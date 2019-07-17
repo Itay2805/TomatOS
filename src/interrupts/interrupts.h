@@ -8,8 +8,7 @@
 #include <memory/vmm.h>
 
 // the different kind of interrupts we can handle
-#define INTERRUPT_IRQ_BASE  0x20
-#define INTERRUPT_TIMER     0
+#define INTERRUPT_VECTOR_BASE  0x20
 
 /**
  * All of the registers pushed from the IDT
@@ -86,6 +85,9 @@ typedef error_t(*interrupt_handler_f)(registers_t* registers);
  */
 #define _lidt(addr) asm volatile("lidt %0" : : "m"(addr))
 
+/**
+ * Quick way to check if interrupts are enabled in this context
+ */
 static inline bool are_interrupts_enabled() {
     unsigned long flags;
     asm volatile ( "pushf\n\t"
@@ -93,5 +95,21 @@ static inline bool are_interrupts_enabled() {
                 : "=g"(flags) );
     return (bool) (flags & (1 << 9));
 }
+
+/**
+ * Initialize the interrupts
+ *
+ * @remark
+ * Must be done after memory initialization
+ */
+error_t interrupts_init();
+
+/**
+ * Will register an interrupt handler
+ *
+ * @param vector    [IN] The interrupt vector
+ * @param handler   [IN] The handler we should call
+ */
+error_t interrupt_register(uint8_t vector, interrupt_handler_f handler);
 
 #endif //TOMATKERNEL_INTERRUPTS_H

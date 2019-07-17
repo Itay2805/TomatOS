@@ -2,7 +2,7 @@
 #include <memory/mm.h>
 #include "stdlib.h"
 
-void* malloc(size_t size) {
+void* kmalloc(size_t size) {
     error_t err = NO_ERROR;
     void* ptr = NULL;
 

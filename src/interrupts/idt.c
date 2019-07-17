@@ -1,35 +1,280 @@
 #include "idt.h"
+#include "isrs.h"
 #include "interrupts.h"
-#include "isr.h"
-#include "irq.h"
 
-/**
- * The idt entries
- */
-static idt_entry_t idt_entries[256] = {0};
+#include <memory/gdt.h>
 
-/**
- * The idt itself
- */
-static idt_t idt = {
-        .size = sizeof(idt_entries),
-        .entries = idt_entries
+idt_entry_t idt_entries[0xFF];
+
+idt_t idt = {
+    .limit = sizeof(idt_entries),
+    .base = idt_entries
 };
 
-void idt_init() {
-    isr_init();
-    irq_init();
-
-    log_debug("Loading idt (entry size=%d)", (int) sizeof(idt_entry_t));
-    _lidt(idt);
+static void set_idt_entry(uint8_t i, void(*handler)()) {
+    idt_entries[i].handler_low = (uint16_t) ((uintptr_t)handler & 0xFFFF);
+    idt_entries[i].handler_high = (uint64_t) ((uintptr_t)handler >> 16);
+    idt_entries[i].gate_type = IDT_TYPE_INTERRUPT_32;
+    idt_entries[i].selector = GDT_KERNEL_CODE;
 }
 
-void idt_set_entry(int num, idt_handler_f handler, int type, int ist) {
-    idt_entries[num].present = 1;
-    idt_entries[num].handler_low = (uintptr_t)handler & 0xFFFF;
-    idt_entries[num].handler_high = ((uintptr_t)handler >> 16) & 0xFFFFFFFFFFFF;
-    idt_entries[num].gate_type = (uint64_t) type;
-    idt_entries[num].selector = 8;
-    idt_entries[num].ring = 3;
-    idt_entries[num].ist = (uint64_t) ist;
+void idt_init() {
+    set_idt_entry(0x00,handle_interrupt_request_00);
+    set_idt_entry(0x01,handle_interrupt_request_01);
+    set_idt_entry(0x02,handle_interrupt_request_02);
+    set_idt_entry(0x03,handle_interrupt_request_03);
+    set_idt_entry(0x04,handle_interrupt_request_04);
+    set_idt_entry(0x05,handle_interrupt_request_05);
+    set_idt_entry(0x06,handle_interrupt_request_06);
+    set_idt_entry(0x07,handle_interrupt_request_07);
+    set_idt_entry(0x08,handle_interrupt_request_08);
+    set_idt_entry(0x09,handle_interrupt_request_09);
+    set_idt_entry(0x0a,handle_interrupt_request_0a);
+    set_idt_entry(0x0b,handle_interrupt_request_0b);
+    set_idt_entry(0x0c,handle_interrupt_request_0c);
+    set_idt_entry(0x0d,handle_interrupt_request_0d);
+    set_idt_entry(0x0e,handle_interrupt_request_0e);
+    set_idt_entry(0x0f,handle_interrupt_request_0f);
+    set_idt_entry(0x10,handle_interrupt_request_10);
+    set_idt_entry(0x11,handle_interrupt_request_11);
+    set_idt_entry(0x12,handle_interrupt_request_12);
+    set_idt_entry(0x13,handle_interrupt_request_13);
+    set_idt_entry(0x14,handle_interrupt_request_14);
+    set_idt_entry(0x15,handle_interrupt_request_15);
+    set_idt_entry(0x16,handle_interrupt_request_16);
+    set_idt_entry(0x17,handle_interrupt_request_17);
+    set_idt_entry(0x18,handle_interrupt_request_18);
+    set_idt_entry(0x19,handle_interrupt_request_19);
+    set_idt_entry(0x1a,handle_interrupt_request_1a);
+    set_idt_entry(0x1b,handle_interrupt_request_1b);
+    set_idt_entry(0x1c,handle_interrupt_request_1c);
+    set_idt_entry(0x1d,handle_interrupt_request_1d);
+    set_idt_entry(0x1e,handle_interrupt_request_1e);
+    set_idt_entry(0x1f,handle_interrupt_request_1f);
+    set_idt_entry(0x20,handle_interrupt_request_20);
+    set_idt_entry(0x21,handle_interrupt_request_21);
+    set_idt_entry(0x22,handle_interrupt_request_22);
+    set_idt_entry(0x23,handle_interrupt_request_23);
+    set_idt_entry(0x24,handle_interrupt_request_24);
+    set_idt_entry(0x25,handle_interrupt_request_25);
+    set_idt_entry(0x26,handle_interrupt_request_26);
+    set_idt_entry(0x27,handle_interrupt_request_27);
+    set_idt_entry(0x28,handle_interrupt_request_28);
+    set_idt_entry(0x29,handle_interrupt_request_29);
+    set_idt_entry(0x2a,handle_interrupt_request_2a);
+    set_idt_entry(0x2b,handle_interrupt_request_2b);
+    set_idt_entry(0x2c,handle_interrupt_request_2c);
+    set_idt_entry(0x2d,handle_interrupt_request_2d);
+    set_idt_entry(0x2e,handle_interrupt_request_2e);
+    set_idt_entry(0x2f,handle_interrupt_request_2f);
+    set_idt_entry(0x30,handle_interrupt_request_30);
+    set_idt_entry(0x31,handle_interrupt_request_31);
+    set_idt_entry(0x32,handle_interrupt_request_32);
+    set_idt_entry(0x33,handle_interrupt_request_33);
+    set_idt_entry(0x34,handle_interrupt_request_34);
+    set_idt_entry(0x35,handle_interrupt_request_35);
+    set_idt_entry(0x36,handle_interrupt_request_36);
+    set_idt_entry(0x37,handle_interrupt_request_37);
+    set_idt_entry(0x38,handle_interrupt_request_38);
+    set_idt_entry(0x39,handle_interrupt_request_39);
+    set_idt_entry(0x3a,handle_interrupt_request_3a);
+    set_idt_entry(0x3b,handle_interrupt_request_3b);
+    set_idt_entry(0x3c,handle_interrupt_request_3c);
+    set_idt_entry(0x3d,handle_interrupt_request_3d);
+    set_idt_entry(0x3e,handle_interrupt_request_3e);
+    set_idt_entry(0x3f,handle_interrupt_request_3f);
+    set_idt_entry(0x40,handle_interrupt_request_40);
+    set_idt_entry(0x41,handle_interrupt_request_41);
+    set_idt_entry(0x42,handle_interrupt_request_42);
+    set_idt_entry(0x43,handle_interrupt_request_43);
+    set_idt_entry(0x44,handle_interrupt_request_44);
+    set_idt_entry(0x45,handle_interrupt_request_45);
+    set_idt_entry(0x46,handle_interrupt_request_46);
+    set_idt_entry(0x47,handle_interrupt_request_47);
+    set_idt_entry(0x48,handle_interrupt_request_48);
+    set_idt_entry(0x49,handle_interrupt_request_49);
+    set_idt_entry(0x4a,handle_interrupt_request_4a);
+    set_idt_entry(0x4b,handle_interrupt_request_4b);
+    set_idt_entry(0x4c,handle_interrupt_request_4c);
+    set_idt_entry(0x4d,handle_interrupt_request_4d);
+    set_idt_entry(0x4e,handle_interrupt_request_4e);
+    set_idt_entry(0x4f,handle_interrupt_request_4f);
+    set_idt_entry(0x50,handle_interrupt_request_50);
+    set_idt_entry(0x51,handle_interrupt_request_51);
+    set_idt_entry(0x52,handle_interrupt_request_52);
+    set_idt_entry(0x53,handle_interrupt_request_53);
+    set_idt_entry(0x54,handle_interrupt_request_54);
+    set_idt_entry(0x55,handle_interrupt_request_55);
+    set_idt_entry(0x56,handle_interrupt_request_56);
+    set_idt_entry(0x57,handle_interrupt_request_57);
+    set_idt_entry(0x58,handle_interrupt_request_58);
+    set_idt_entry(0x59,handle_interrupt_request_59);
+    set_idt_entry(0x5a,handle_interrupt_request_5a);
+    set_idt_entry(0x5b,handle_interrupt_request_5b);
+    set_idt_entry(0x5c,handle_interrupt_request_5c);
+    set_idt_entry(0x5d,handle_interrupt_request_5d);
+    set_idt_entry(0x5e,handle_interrupt_request_5e);
+    set_idt_entry(0x5f,handle_interrupt_request_5f);
+    set_idt_entry(0x60,handle_interrupt_request_60);
+    set_idt_entry(0x61,handle_interrupt_request_61);
+    set_idt_entry(0x62,handle_interrupt_request_62);
+    set_idt_entry(0x63,handle_interrupt_request_63);
+    set_idt_entry(0x64,handle_interrupt_request_64);
+    set_idt_entry(0x65,handle_interrupt_request_65);
+    set_idt_entry(0x66,handle_interrupt_request_66);
+    set_idt_entry(0x67,handle_interrupt_request_67);
+    set_idt_entry(0x68,handle_interrupt_request_68);
+    set_idt_entry(0x69,handle_interrupt_request_69);
+    set_idt_entry(0x6a,handle_interrupt_request_6a);
+    set_idt_entry(0x6b,handle_interrupt_request_6b);
+    set_idt_entry(0x6c,handle_interrupt_request_6c);
+    set_idt_entry(0x6d,handle_interrupt_request_6d);
+    set_idt_entry(0x6e,handle_interrupt_request_6e);
+    set_idt_entry(0x6f,handle_interrupt_request_6f);
+    set_idt_entry(0x70,handle_interrupt_request_70);
+    set_idt_entry(0x71,handle_interrupt_request_71);
+    set_idt_entry(0x72,handle_interrupt_request_72);
+    set_idt_entry(0x73,handle_interrupt_request_73);
+    set_idt_entry(0x74,handle_interrupt_request_74);
+    set_idt_entry(0x75,handle_interrupt_request_75);
+    set_idt_entry(0x76,handle_interrupt_request_76);
+    set_idt_entry(0x77,handle_interrupt_request_77);
+    set_idt_entry(0x78,handle_interrupt_request_78);
+    set_idt_entry(0x79,handle_interrupt_request_79);
+    set_idt_entry(0x7a,handle_interrupt_request_7a);
+    set_idt_entry(0x7b,handle_interrupt_request_7b);
+    set_idt_entry(0x7c,handle_interrupt_request_7c);
+    set_idt_entry(0x7d,handle_interrupt_request_7d);
+    set_idt_entry(0x7e,handle_interrupt_request_7e);
+    set_idt_entry(0x7f,handle_interrupt_request_7f);
+    set_idt_entry(0x80,handle_interrupt_request_80);
+    set_idt_entry(0x81,handle_interrupt_request_81);
+    set_idt_entry(0x82,handle_interrupt_request_82);
+    set_idt_entry(0x83,handle_interrupt_request_83);
+    set_idt_entry(0x84,handle_interrupt_request_84);
+    set_idt_entry(0x85,handle_interrupt_request_85);
+    set_idt_entry(0x86,handle_interrupt_request_86);
+    set_idt_entry(0x87,handle_interrupt_request_87);
+    set_idt_entry(0x88,handle_interrupt_request_88);
+    set_idt_entry(0x89,handle_interrupt_request_89);
+    set_idt_entry(0x8a,handle_interrupt_request_8a);
+    set_idt_entry(0x8b,handle_interrupt_request_8b);
+    set_idt_entry(0x8c,handle_interrupt_request_8c);
+    set_idt_entry(0x8d,handle_interrupt_request_8d);
+    set_idt_entry(0x8e,handle_interrupt_request_8e);
+    set_idt_entry(0x8f,handle_interrupt_request_8f);
+    set_idt_entry(0x90,handle_interrupt_request_90);
+    set_idt_entry(0x91,handle_interrupt_request_91);
+    set_idt_entry(0x92,handle_interrupt_request_92);
+    set_idt_entry(0x93,handle_interrupt_request_93);
+    set_idt_entry(0x94,handle_interrupt_request_94);
+    set_idt_entry(0x95,handle_interrupt_request_95);
+    set_idt_entry(0x96,handle_interrupt_request_96);
+    set_idt_entry(0x97,handle_interrupt_request_97);
+    set_idt_entry(0x98,handle_interrupt_request_98);
+    set_idt_entry(0x99,handle_interrupt_request_99);
+    set_idt_entry(0x9a,handle_interrupt_request_9a);
+    set_idt_entry(0x9b,handle_interrupt_request_9b);
+    set_idt_entry(0x9c,handle_interrupt_request_9c);
+    set_idt_entry(0x9d,handle_interrupt_request_9d);
+    set_idt_entry(0x9e,handle_interrupt_request_9e);
+    set_idt_entry(0x9f,handle_interrupt_request_9f);
+    set_idt_entry(0xa0,handle_interrupt_request_a0);
+    set_idt_entry(0xa1,handle_interrupt_request_a1);
+    set_idt_entry(0xa2,handle_interrupt_request_a2);
+    set_idt_entry(0xa3,handle_interrupt_request_a3);
+    set_idt_entry(0xa4,handle_interrupt_request_a4);
+    set_idt_entry(0xa5,handle_interrupt_request_a5);
+    set_idt_entry(0xa6,handle_interrupt_request_a6);
+    set_idt_entry(0xa7,handle_interrupt_request_a7);
+    set_idt_entry(0xa8,handle_interrupt_request_a8);
+    set_idt_entry(0xa9,handle_interrupt_request_a9);
+    set_idt_entry(0xaa,handle_interrupt_request_aa);
+    set_idt_entry(0xab,handle_interrupt_request_ab);
+    set_idt_entry(0xac,handle_interrupt_request_ac);
+    set_idt_entry(0xad,handle_interrupt_request_ad);
+    set_idt_entry(0xae,handle_interrupt_request_ae);
+    set_idt_entry(0xaf,handle_interrupt_request_af);
+    set_idt_entry(0xb0,handle_interrupt_request_b0);
+    set_idt_entry(0xb1,handle_interrupt_request_b1);
+    set_idt_entry(0xb2,handle_interrupt_request_b2);
+    set_idt_entry(0xb3,handle_interrupt_request_b3);
+    set_idt_entry(0xb4,handle_interrupt_request_b4);
+    set_idt_entry(0xb5,handle_interrupt_request_b5);
+    set_idt_entry(0xb6,handle_interrupt_request_b6);
+    set_idt_entry(0xb7,handle_interrupt_request_b7);
+    set_idt_entry(0xb8,handle_interrupt_request_b8);
+    set_idt_entry(0xb9,handle_interrupt_request_b9);
+    set_idt_entry(0xba,handle_interrupt_request_ba);
+    set_idt_entry(0xbb,handle_interrupt_request_bb);
+    set_idt_entry(0xbc,handle_interrupt_request_bc);
+    set_idt_entry(0xbd,handle_interrupt_request_bd);
+    set_idt_entry(0xbe,handle_interrupt_request_be);
+    set_idt_entry(0xbf,handle_interrupt_request_bf);
+    set_idt_entry(0xc0,handle_interrupt_request_c0);
+    set_idt_entry(0xc1,handle_interrupt_request_c1);
+    set_idt_entry(0xc2,handle_interrupt_request_c2);
+    set_idt_entry(0xc3,handle_interrupt_request_c3);
+    set_idt_entry(0xc4,handle_interrupt_request_c4);
+    set_idt_entry(0xc5,handle_interrupt_request_c5);
+    set_idt_entry(0xc6,handle_interrupt_request_c6);
+    set_idt_entry(0xc7,handle_interrupt_request_c7);
+    set_idt_entry(0xc8,handle_interrupt_request_c8);
+    set_idt_entry(0xc9,handle_interrupt_request_c9);
+    set_idt_entry(0xca,handle_interrupt_request_ca);
+    set_idt_entry(0xcb,handle_interrupt_request_cb);
+    set_idt_entry(0xcc,handle_interrupt_request_cc);
+    set_idt_entry(0xcd,handle_interrupt_request_cd);
+    set_idt_entry(0xce,handle_interrupt_request_ce);
+    set_idt_entry(0xcf,handle_interrupt_request_cf);
+    set_idt_entry(0xd0,handle_interrupt_request_d0);
+    set_idt_entry(0xd1,handle_interrupt_request_d1);
+    set_idt_entry(0xd2,handle_interrupt_request_d2);
+    set_idt_entry(0xd3,handle_interrupt_request_d3);
+    set_idt_entry(0xd4,handle_interrupt_request_d4);
+    set_idt_entry(0xd5,handle_interrupt_request_d5);
+    set_idt_entry(0xd6,handle_interrupt_request_d6);
+    set_idt_entry(0xd7,handle_interrupt_request_d7);
+    set_idt_entry(0xd8,handle_interrupt_request_d8);
+    set_idt_entry(0xd9,handle_interrupt_request_d9);
+    set_idt_entry(0xda,handle_interrupt_request_da);
+    set_idt_entry(0xdb,handle_interrupt_request_db);
+    set_idt_entry(0xdc,handle_interrupt_request_dc);
+    set_idt_entry(0xdd,handle_interrupt_request_dd);
+    set_idt_entry(0xde,handle_interrupt_request_de);
+    set_idt_entry(0xdf,handle_interrupt_request_df);
+    set_idt_entry(0xe0,handle_interrupt_request_e0);
+    set_idt_entry(0xe1,handle_interrupt_request_e1);
+    set_idt_entry(0xe2,handle_interrupt_request_e2);
+    set_idt_entry(0xe3,handle_interrupt_request_e3);
+    set_idt_entry(0xe4,handle_interrupt_request_e4);
+    set_idt_entry(0xe5,handle_interrupt_request_e5);
+    set_idt_entry(0xe6,handle_interrupt_request_e6);
+    set_idt_entry(0xe7,handle_interrupt_request_e7);
+    set_idt_entry(0xe8,handle_interrupt_request_e8);
+    set_idt_entry(0xe9,handle_interrupt_request_e9);
+    set_idt_entry(0xea,handle_interrupt_request_ea);
+    set_idt_entry(0xeb,handle_interrupt_request_eb);
+    set_idt_entry(0xec,handle_interrupt_request_ec);
+    set_idt_entry(0xed,handle_interrupt_request_ed);
+    set_idt_entry(0xee,handle_interrupt_request_ee);
+    set_idt_entry(0xef,handle_interrupt_request_ef);
+    set_idt_entry(0xf0,handle_interrupt_request_f0);
+    set_idt_entry(0xf1,handle_interrupt_request_f1);
+    set_idt_entry(0xf2,handle_interrupt_request_f2);
+    set_idt_entry(0xf3,handle_interrupt_request_f3);
+    set_idt_entry(0xf4,handle_interrupt_request_f4);
+    set_idt_entry(0xf5,handle_interrupt_request_f5);
+    set_idt_entry(0xf6,handle_interrupt_request_f6);
+    set_idt_entry(0xf7,handle_interrupt_request_f7);
+    set_idt_entry(0xf8,handle_interrupt_request_f8);
+    set_idt_entry(0xf9,handle_interrupt_request_f9);
+    set_idt_entry(0xfa,handle_interrupt_request_fa);
+    set_idt_entry(0xfb,handle_interrupt_request_fb);
+    set_idt_entry(0xfc,handle_interrupt_request_fc);
+    set_idt_entry(0xfd,handle_interrupt_request_fd);
+    set_idt_entry(0xfe,handle_interrupt_request_fe);
+    set_idt_entry(0xff,handle_interrupt_request_ff);
+
+    _lidt(idt);
 }

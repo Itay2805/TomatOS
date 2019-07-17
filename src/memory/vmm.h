@@ -1,7 +1,7 @@
 #ifndef TOMATKERNEL_VMM_H
 #define TOMATKERNEL_VMM_H
 
-#include <boot/boot.h>
+#include <tboot/tboot.h>
 #include <stddef.h>
 #include <error.h>
 
@@ -9,8 +9,8 @@
 #define PAGE_ATTR_USER              (1 << 1)
 #define PAGE_ATTR_WRITE             (1 << 2)
 
-#define PHYSICAL_BASE           0xFFFF800000000000
-#define PHYSICAL_ADDRESS(addr) ((void*)((uintptr_t)addr + PHYSICAL_BASE))
+#define DIRECT_MAPPING_BASE           0xFFFF800000000000
+#define CONVERT_TO_DIRECT(addr) ((typeof(addr))((uintptr_t)addr + DIRECT_MAPPING_BASE))
 
 // TODO: Add locks to all of these
 
@@ -24,7 +24,7 @@ extern address_space_t kernel_address_space;
 /**
  * Initialize the virtual memory manager
  */
-error_t vmm_init(boot_info_t* info);
+error_t vmm_init(tboot_info_t* info);
 
 /**
  * Does per core initialization

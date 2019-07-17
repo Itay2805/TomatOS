@@ -1,10 +1,6 @@
-//
-// Created by Itay on 31/05/2019.
-//
-
 #include "logger.h"
 
-#include <vsnprintf.h>
+#include <stb/stb_sprintf.h>
 #include <drivers/rtc/rtc.h>
 
 ///////////////////////////////////////////////////////
@@ -81,7 +77,7 @@ static void print_prefix(int level) {
 
     rtc_time(&time);
     //snprintf(buffer, sizeof(buffer), "#%03d 20%02d-%02d-%02d %02d:%02d:%02d ", count, time.year, time.month, time.day, time.hours, time.minutes, time.seconds);
-    snprintf(buffer, sizeof(buffer), "#%03d %02d:%02d:%02d ", count, time.hours, time.minutes, time.seconds);
+    stbsp_snprintf(buffer, sizeof(buffer), "#%03d %02d:%02d:%02d ", count, time.hours, time.minutes, time.seconds);
     write_to_loggers(level, buffer);
 }
 
@@ -96,7 +92,7 @@ void log_info_full(const char* filename, const char* function, int line, const c
     char buffer[LOGGER_BUFFER_SIZE];
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
+    stbsp_vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
     do_log(filename, function, line, LOG_LEVEL_INFO, buffer);
     va_end(ap);
 }
@@ -105,7 +101,7 @@ void log_notice_full(const char* filename, const char* function, int line, const
     char buffer[LOGGER_BUFFER_SIZE];
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
+    stbsp_vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
     do_log(filename, function, line, LOG_LEVEL_NOTICE, buffer);
     va_end(ap);
 }
@@ -114,7 +110,7 @@ void log_debug_full(const char* filename, const char* function, int line, const 
     char buffer[LOGGER_BUFFER_SIZE];
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
+    stbsp_vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
     do_log(filename, function, line, LOG_LEVEL_DEBUG, buffer);
     va_end(ap);
 }
@@ -123,7 +119,7 @@ void log_warn_full(const char* filename, const char* function, int line, const c
     char buffer[LOGGER_BUFFER_SIZE];
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
+    stbsp_vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
     do_log(filename, function, line, LOG_LEVEL_WARNING, buffer);
     va_end(ap);
 }
@@ -132,7 +128,7 @@ void log_error_full(const char* filename, const char* function, int line, const 
     char buffer[LOGGER_BUFFER_SIZE];
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
+    stbsp_vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
     do_log(filename, function, line, LOG_LEVEL_ERROR, buffer);
     va_end(ap);
 }
@@ -141,7 +137,7 @@ void log_critical_full(const char* filename, const char* function, int line, con
     char buffer[LOGGER_BUFFER_SIZE];
     va_list ap;
     va_start(ap, fmt);
-    vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
+    stbsp_vsnprintf(buffer, LOGGER_BUFFER_SIZE, fmt, ap);
     do_log(filename, function, line, LOG_LEVEL_CRITICAL, buffer);
     va_end(ap);
 }
