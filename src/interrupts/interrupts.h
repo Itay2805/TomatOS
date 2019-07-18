@@ -112,4 +112,28 @@ error_t interrupts_init();
  */
 error_t interrupt_register(uint8_t vector, interrupt_handler_f handler);
 
+/**
+ * Will allocate an interrupt which a driver can use
+ *
+ * @remark
+ * Will only give interrupts in the range of 0x20 < vector < 0xf0
+ *
+ * The rest are considered preserved
+ */
+uint8_t interrupt_allocate();
+
+/**
+ * Will set the given vector as used, and we will try to not use it if possible
+ *
+ * @param vector
+ */
+void interrupt_set(uint8_t vector);
+
+/**
+ * Will release the interrupt
+ *
+ * @param vector
+ */
+void interrupt_free(uint8_t vector);
+
 #endif //TOMATKERNEL_INTERRUPTS_H

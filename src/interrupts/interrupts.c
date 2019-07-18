@@ -225,3 +225,61 @@ cleanup:
         // TODO: Panic
     }
 }
+
+//////////////////////////////////////////////////////////////////
+// Interrupt allocation
+//////////////////////////////////////////////////////////////////
+
+#define INTERRUPT_VECTOR_SIZE (0xff - 0x20 - 1)
+static int interrupt_vector[INTERRUPT_VECTOR_SIZE];
+static int index = 0;
+
+uint8_t interrupt_allocate() {
+    int vec = index;
+    for(int i = index; i < INTERRUPT_VECTOR_SIZE; i++) {
+        if(interrupt_vector[i] < interrupt_vector[vec]) {
+            vec = i;
+
+            // if has zero uses we can just return it
+            if(interrupt_vector[vec] == 0) goto found;
+        }
+    }
+
+    // we could not find a completely free one
+    // try to search from the start for one
+    if(index != 0) {
+        for(int i = 0; i < index; i++) {
+            if(interrupt_vector[i] < interrupt_vector[vec]) {
+                vec = i;
+
+                // if has zero uses we can just return it
+                if(interrupt_vector[vec] == 0) goto found;
+            }
+        }
+    }
+
+    // if we could still not find a good one, just use whatever
+    // we got
+
+found:
+    // increment the usage count, set the
+    // new index to start from, and return
+    // the correct number
+    interrupt_vector[vec]++;
+    index = (vec + 1) % INTERRUPT_VECTOR_SIZE;
+    return (uint8_t) (vec + 0x20);
+}
+
+void interrupt_set(uint8_t vector) {
+    if(vector <= 0x20 || vector >= 0xf0) return;
+    vector -= 0x20;
+    interrupt_vector[vector]++;
+}
+
+void interrupt_free(uint8_t vector) {
+    if(vector <= 0x20 || vector >= 0xf0) return;
+    vector -= 0x20;
+    if(interrupt_vector[vector] > 0) {
+        interrupt_vector[vector]--;
+    }
+}
