@@ -1,4 +1,4 @@
-file: 'tpmatos.img'
+file: 'tomatos.img'
 size: 38M
 type: gpt
 partitions:
