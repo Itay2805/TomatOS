@@ -1,3 +1,4 @@
+#include <acpi/tables/hpet.h>
 #include "acpi.h"
 
 #include "acpi/tables/rsdp.h"
@@ -16,6 +17,8 @@ error_t acpi_tables_init(tboot_info_t* info) {
     CHECK_AND_RETHROW(madt_init());
     CHECK_AND_RETHROW(fadt_init());
 
+    // these tables are optional
+    CHECK_AND_RETHROW(hpet_search());
     mcfg_init();
 
 cleanup:

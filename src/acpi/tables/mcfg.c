@@ -1,6 +1,7 @@
 #include "mcfg.h"
 
 #include <memory/vmm.h>
+#include <acpi/acpi.h>
 
 mcfg_t* mcfg = NULL;
 

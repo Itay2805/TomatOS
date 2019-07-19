@@ -230,9 +230,9 @@ cleanup:
 // Interrupt allocation
 //////////////////////////////////////////////////////////////////
 
-#define INTERRUPT_VECTOR_SIZE (0xff - 0x20 - 1)
+#define INTERRUPT_VECTOR_SIZE (0xff - 0x20 - 0xf)
 static int interrupt_vector[INTERRUPT_VECTOR_SIZE];
-static int index = 0;
+static int index = 17;
 
 uint8_t interrupt_allocate() {
     int vec = index;
