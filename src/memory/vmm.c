@@ -219,6 +219,27 @@ cleanup:
     return err;
 }
 
+static error_t internal_map(address_space_t address_space, void* virtual_address, void* physical_address, int attributes) {
+    error_t err = NO_ERROR;
+    uint64_t pt = 0;
+    uint64_t* table = NULL;
+
+    // get the page table
+    CHECK_AND_RETHROW(get_or_create_pt(address_space, (uint64_t)virtual_address, attributes, &pt));
+    table = (uint64_t *) &physical_memory[pt];
+
+    // make sure nothing has mapped this page
+    CHECK_ERROR(!(table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_PRESENT_BIT), ERROR_ALREADY_MAPPED);
+
+    // set the entry
+    table[PAGING_PTE_OFFSET(virtual_address)] = PAGING_PRESENT_BIT | ((uint64_t)physical_address & PAGING_4KB_ADDR_MASK);
+    set_attributes(&table[PAGING_PTE_OFFSET(virtual_address)], attributes);
+
+cleanup:
+    return err;
+
+}
+
 /**
  * Invalidate a page
  *
@@ -308,16 +329,7 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
 
     lock_preemption(&vmm_lock);
 
-    // get the page table
-    CHECK_AND_RETHROW(get_or_create_pt(address_space, (uint64_t)virtual_address, attributes, &pt));
-    table = (uint64_t *) &physical_memory[pt];
-
-    // make sure nothing has mapped this page
-    CHECK_ERROR(!(table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_PRESENT_BIT), ERROR_ALREADY_MAPPED);
-
-    // set the entry
-    table[PAGING_PTE_OFFSET(virtual_address)] = PAGING_PRESENT_BIT | ((uint64_t)physical_address & PAGING_4KB_ADDR_MASK);
-    set_attributes(&table[PAGING_PTE_OFFSET(virtual_address)], attributes);
+    CHECK_AND_RETHROW(internal_map(address_space, virtual_address, physical_address, attributes));
 
 cleanup:
     unlock_preemption(&vmm_lock);
@@ -353,7 +365,7 @@ error_t vmm_allocate(address_space_t address_space, void* virtual_address, int a
     lock_preemption(&vmm_lock);
 
     CHECK_AND_RETHROW(pmm_allocate(&phys));
-    CHECK_AND_RETHROW(vmm_map(address_space, virtual_address, (void*)phys, attributes));
+    CHECK_AND_RETHROW(internal_map(address_space, virtual_address, (void*)phys, attributes));
 
 cleanup:
     if(err != NO_ERROR) {
