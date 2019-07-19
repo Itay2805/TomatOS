@@ -10,6 +10,7 @@
 #include <logger/term/term.h>
 #include <pci/pci.h>
 #include <smp/cpustorage.h>
+#include <timer/timer.h>
 
 /**
  * This is the main core initialization sequence
@@ -46,7 +47,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // start getting the basic drivers
     CHECK_AND_RETHROW(pci_init());
-    // TODO: HPET init
+    CHECK_AND_RETHROW(timer_init());
 
     // initialize the per cpu storage and do the main cpu init
     // the rest will follow on SMP bootstrap

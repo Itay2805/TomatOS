@@ -27,6 +27,6 @@ extern mcfg_t* mcfg;
  * order for the os to work (only needed for PCIe)
  *
  */
-void mcfg_init();
+void mcfg_search();
 
 #endif //TOMATKERNEL_MCFG_H

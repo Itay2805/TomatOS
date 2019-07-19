@@ -24,6 +24,6 @@ extern hpet_t* hpet;
 /**
  * Will find and map the hpet table
  */
-error_t hpet_search();
+void hpet_search();
 
 #endif //TOMATKERNEL_HPET_H

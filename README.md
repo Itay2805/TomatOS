@@ -21,3 +21,7 @@ TomatOS is a 64bit operating systems (currently just the kernel part of the os b
 * Implement the object system
 * Readd LAI
 * SMP:tm:
+
+#### Maybe todo
+* Support LAPIC timer for timer?
+* Support PIT8254 for timer?
