@@ -47,7 +47,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // start getting the basic drivers
     CHECK_AND_RETHROW(pci_init());
-    CHECK_AND_RETHROW(timer_init());
+    // TODO: setup early
 
     // initialize the per cpu storage and do the main cpu init
     // the rest will follow on SMP bootstrap

@@ -2,6 +2,9 @@
 
 TomatOS is a 64bit operating systems (currently just the kernel part of the os but still).
 
+The goal is to make TomatOS a quite modern hobby os in the sense that we are not going to support legacy hardware at 
+all.
+
 ## Features
 
 * 64bit with all the basics (gdt, pmm, vmm...)
@@ -11,17 +14,12 @@ TomatOS is a 64bit operating systems (currently just the kernel part of the os b
 * APIC for interrupt handling
 * PCI / PCIe support (with single abstraction layer)
 
-### Working on
-* Making the logger make more sense
-* Refactor the PCI API
-	- make so it will be in a proper segment -> bus -> device -> function tree
+## Working on 
+* Getting an HPET driver with stall and 1ms interrupt
 
-### TODO:
-* Get processes back
-* Implement the object system
-* Readd LAI
-* SMP:tm:
-
-#### Maybe todo
-* Support LAPIC timer for timer?
-* Support PIT8254 for timer?
+#### TODO
+* Get LAPIC calibrated with the HPET stall for 100ms
+* Add SMP and do the lapic stuff per core
+* Remove the portio PCI support
+* Get back processes, schedule with the lapic timer
+* Add back LAI for doing cool AML stuff
