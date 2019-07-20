@@ -10,7 +10,6 @@
 #include <logger/term/term.h>
 #include <pci/pci.h>
 #include <smp/cpustorage.h>
-#include <timer/timer.h>
 
 /**
  * This is the main core initialization sequence

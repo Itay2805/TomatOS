@@ -3,7 +3,7 @@
 
 #include "rsdt.h"
 
-typedef struct hpet {
+typedef struct hpet_table {
     sdt_hdr_t header;
 
     uint8_t hardware_id;
@@ -17,13 +17,13 @@ typedef struct hpet {
     uint8_t hpet_id;
     uint16_t clock_tick;
     uint8_t page_protection;
-} __attribute__((packed)) hpet_t;
+} __attribute__((packed)) hpet_table_t;
 
-extern hpet_t* hpet;
+extern hpet_table_t* hpet_table;
 
 /**
  * Will find and map the hpet table
  */
-void hpet_search();
+error_t hpet_table_init();
 
 #endif //TOMATKERNEL_HPET_H

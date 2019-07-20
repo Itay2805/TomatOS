@@ -18,7 +18,7 @@ error_t acpi_tables_init(tboot_info_t* info) {
     CHECK_AND_RETHROW(fadt_init());
 
     // these tables are optional
-    hpet_search();
+    CHECK_AND_RETHROW(hpet_table_init());
     mcfg_search();
 
 cleanup:

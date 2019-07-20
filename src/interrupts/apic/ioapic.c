@@ -78,11 +78,13 @@ error_t ioapic_redirect(uint32_t irq, uint8_t vector) {
     // set the parameters
     ioapic_redirection_entry_t redir = {
         .vector = vector,
-        .destination_id = lapic_get_id(),
+        .destination_id = 0xF,  // all lapics
         .polarity  = (uint64_t) ((flags & MADT_FLAG_ACTIVE_LOW) != 0),
         .trigger_mode = (uint64_t) ((flags & MADT_FLAG_LEVEL_TRIGGERED) != 0),
         .delievery_mode = IOAPIC_DELIVERY_MODE_FIXED,
     };
+
+    // TODO: Maybe make so this will give to lapic with lowest priority
 
     // write it out
     ioapic_write(ioapic, IOAPIC_REG_REDIRECTION_TABLE_BASE + gsi * 2 + 0, redir.raw_low);
