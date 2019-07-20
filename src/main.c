@@ -10,6 +10,7 @@
 #include <logger/term/term.h>
 #include <pci/pci.h>
 #include <smp/cpustorage.h>
+#include <drivers/hpet/hpet.h>
 
 /**
  * This is the main core initialization sequence
@@ -45,8 +46,11 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(interrupts_init());
 
     // start getting the basic drivers
+    CHECK_AND_RETHROW(hpet_init());
+
+    hpet_stall(10000);
+
     CHECK_AND_RETHROW(pci_init());
-    // TODO: setup early
 
     // initialize the per cpu storage and do the main cpu init
     // the rest will follow on SMP bootstrap

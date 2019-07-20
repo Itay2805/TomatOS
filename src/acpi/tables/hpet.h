@@ -1,19 +1,20 @@
-#ifndef TOMATKERNEL_HPET_H
-#define TOMATKERNEL_HPET_H
+#ifndef TOMATKERNEL_ACPI_TABLE_HPET_H
+#define TOMATKERNEL_ACPI_TABLE_HPET_H
 
 #include "rsdt.h"
+#include <acpi/acpi.h>
 
 typedef struct hpet_table {
     sdt_hdr_t header;
 
     uint8_t hardware_id;
-    uint8_t comparator_count : 5;
+    uint8_t timer_count : 5;
     uint8_t counter_size : 1;
     uint8_t _reserved : 1;
     uint8_t legacy_replacement_capable : 1;
     uint16_t pci_vendor;
 
-    uint32_t base_addr;
+    acpi_generic_address_t addr;
     uint8_t hpet_id;
     uint16_t clock_tick;
     uint8_t page_protection;
@@ -26,4 +27,4 @@ extern hpet_table_t* hpet_table;
  */
 error_t hpet_table_init();
 
-#endif //TOMATKERNEL_HPET_H
+#endif //TOMATKERNEL_ACPI_TABLE_HPET_H

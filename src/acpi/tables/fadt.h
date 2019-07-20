@@ -2,11 +2,8 @@
 #define TOMATKERNEL_FADT_H
 
 #include <error.h>
+#include <acpi/acpi.h>
 #include "rsdt.h"
-
-typedef struct generic_address {
-
-} __attribute__((packed)) generic_address_t;
 
 typedef struct fadt {
     sdt_hdr_t header;
@@ -51,21 +48,21 @@ typedef struct fadt {
         uint8_t _reserved2;
         uint32_t flags;
 
-        generic_address_t reset_register;
+        acpi_generic_address_t reset_register;
         uint8_t reset_command;
         uint8_t _reserved3[3];
 
         uint64_t x_firmware_control;
         uint64_t x_dsdt;
 
-        generic_address_t x_pm1a_event_block;
-        generic_address_t x_pm1b_event_block;
-        generic_address_t x_pm1a_control_block;
-        generic_address_t x_pm1b_control_block;
-        generic_address_t x_pm2_control_block;
-        generic_address_t x_pm_timer_block;
-        generic_address_t x_gpe0_block;
-        generic_address_t x_gpe1_block;
+        acpi_generic_address_t x_pm1a_event_block;
+        acpi_generic_address_t x_pm1b_event_block;
+        acpi_generic_address_t x_pm1a_control_block;
+        acpi_generic_address_t x_pm1b_control_block;
+        acpi_generic_address_t x_pm2_control_block;
+        acpi_generic_address_t x_pm_timer_block;
+        acpi_generic_address_t x_gpe0_block;
+        acpi_generic_address_t x_gpe1_block;
     } __attribute__((packed)) acpi2;
 } __attribute__((packed)) fadt_t;
 

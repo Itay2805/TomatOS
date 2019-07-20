@@ -17,6 +17,12 @@ tboot_main:
     ;       more then this might break stuff :shrug:
     ;
 
+	; disable the wp bit
+	mov rax, cr0
+	and rax, ~(1 << 16)
+	mov cr0, rax
+
+
     ; get the cr3
     mov rax, cr3
 

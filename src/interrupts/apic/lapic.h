@@ -150,6 +150,33 @@ typedef union lapic_icr {
     uint64_t raw;
 } lapic_icr_t;
 
+typedef union lapic_msi_address {
+    struct {
+        uint32_t _reserved0 : 2;
+        uint32_t destination_mode : 1;
+        uint32_t redirection_hint : 1;
+        uint32_t _reserved1 : 8;
+        uint32_t destination_id : 8;
+        uint32_t base_address : 12; // 0x0FEE
+    } __attribute__((packed));
+    uint32_t raw;
+} lapic_msi_address_t;
+
+typedef union lapic_msi_data {
+    struct {
+        uint8_t vector;
+
+        uint8_t delivery_mode : 3;
+        uint8_t _reserved0 : 3;
+        uint8_t level : 1;
+        uint8_t trigger_mode : 1;
+
+        uint16_t _reserved1;
+    } __attribute__((packed));
+    uint32_t raw;
+} lapic_msi_data_t;
+
+
 /**
  * Initialize the Local APIC
  *
