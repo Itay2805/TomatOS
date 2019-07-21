@@ -128,4 +128,9 @@ typedef error_t (*hpet_timeout_handler_f)(registers_t* regs, void* user);
  */
 error_t hpet_set_timeout(hpet_timeout_handler_f handler, void* user, uint64_t millis);
 
+/**
+ * Will get the millis since the hpet started
+ */
+uint64_t hpet_get_millis();
+
 #endif //TOMATKERNEL_HPET_H

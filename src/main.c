@@ -11,6 +11,18 @@
 #include <pci/pci.h>
 #include <smp/cpustorage.h>
 #include <drivers/hpet/hpet.h>
+#include <common/locks/spinlock.h>
+#include <acpi/tables/madt.h>
+#include <stb/stb_ds.h>
+#include <common/locks/event.h>
+#include <smp/smp.h>
+
+////////////////////////////////////////////////
+// SMP startup related variables
+////////////////////////////////////////////////
+
+
+
 
 /**
  * This is the main core initialization sequence
@@ -47,22 +59,14 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // start getting the basic drivers
     CHECK_AND_RETHROW(hpet_init());
+    //CHECK_AND_RETHROW(pci_init()); // TODO: Maybe move pci init to later in the boot process
 
-    hpet_stall(10000);
-
-    CHECK_AND_RETHROW(pci_init());
-
-    // initialize the per cpu storage and do the main cpu init
-    // the rest will follow on SMP bootstrap
-    CHECK_AND_RETHROW(per_cpu_storage_init());
-    CHECK_AND_RETHROW(set_cpu_storage(0));
-    CHECK_AND_RETHROW(per_cpu_gdt_and_tss_init());
-    // TODO: SMP
-
-    // TODO: Objects Manager init
+    // we are now ready to startup SMP
+    CHECK_AND_RETHROW(smp_init());
 
     // TODO: Create initial kernel thread
     // TODO: Kick start processes
+    // TODO:    - do PCI iteration and driver loading
     // TODO:    - start ACPI namespace
     // TODO:    - start driver loading
     // TODO:    - load the init process
@@ -77,5 +81,5 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
 cleanup:
     log_critical("Error during kernel initialization :(");
-    while(true);
+    _cli(); while(true) _hlt();
 }

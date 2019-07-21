@@ -8,8 +8,10 @@
 #include <cpu/atomic.h>
 #include <memory/vmm.h>
 #include <stb/stb_ds.h>
+#include <drivers/hpet/hpet.h>
 
 static char* mmio_base;
+static uint8_t timer_vector;
 
 static error_t set_nmis() {
     error_t err = NO_ERROR;
@@ -38,6 +40,39 @@ cleanup:
     return NO_ERROR;
 }
 
+static error_t calibrate_timer() {
+    error_t err = NO_ERROR;
+
+    // mask the interrupt
+    lapic_lvt_timer_t timer = {
+            .vector = timer_vector,
+            .mask = true,
+            .timer_mode = LAPIC_TIMER_MODE_ONE_SHOT
+    };
+    lapic_write(LAPIC_REG_LVT_TIMER, timer.raw);
+
+    // set the counter to highest possible and stall
+    lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1);
+    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, UINT32_MAX);
+
+    // stall
+    CHECK_AND_RETHROW(hpet_stall(1));
+
+    // read the current count
+    uint64_t ticks = UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT);
+
+    // set the initial count to the ticks and enable it
+    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, (uint32_t) ticks);
+
+    // enable interrupt
+    timer.mask = false;
+    timer.timer_mode = LAPIC_TIMER_MODE_PERIODIC;
+    lapic_write(LAPIC_REG_LVT_TIMER, timer.raw);
+
+cleanup:
+    return err;
+}
+
 error_t lapic_init() {
     error_t err = NO_ERROR;
 
@@ -48,12 +83,15 @@ error_t lapic_init() {
 
     log_info("\tInitializing Local APIC #%d", lapic_get_id());
 
+    timer_vector = interrupt_allocate();
+    log_debug("\t\tSetting timer for 1ms (Vector #%d)", timer_vector);
+    CHECK_AND_RETHROW(calibrate_timer());
+
     log_debug("\t\tSetting NMIs");
     CHECK_AND_RETHROW(set_nmis());
 
     log_debug("\t\tSetting SPR");
     CHECK_AND_RETHROW(lapic_enable());
-
 
 cleanup:
     return err;

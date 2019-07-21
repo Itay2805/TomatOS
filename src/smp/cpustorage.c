@@ -27,7 +27,7 @@ error_t per_cpu_storage_init() {
 }
 
 error_t set_cpu_storage(size_t index) {
-    log_info("set per cpu storage on cpu #%d", index);
+    log_info("\tset per cpu storage");
     _wrmsr(IA32_GS_BASE, (uint64_t) &per_cpu_storage[index]);
     return NO_ERROR;
 }

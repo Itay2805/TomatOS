@@ -36,7 +36,6 @@ error_t apic_init() {
         lapic_apic_map[lapic->id] = lapic->processor_id;
     }
 
-    CHECK_AND_RETHROW(lapic_init());
     CHECK_AND_RETHROW(ioapic_init());
 
 cleanup:

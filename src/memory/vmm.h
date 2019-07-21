@@ -9,8 +9,8 @@
 #define PAGE_ATTR_USER              (1 << 1)
 #define PAGE_ATTR_WRITE             (1 << 2)
 
-#define DIRECT_MAPPING_BASE           0xFFFF800000000000
-#define CONVERT_TO_DIRECT(addr) ((typeof(addr))((uintptr_t)addr + DIRECT_MAPPING_BASE))
+#define DIRECT_MAPPING_BASE           0xFFFF800000000000ul
+#define CONVERT_TO_DIRECT(addr) ((typeof(addr))(((uintptr_t)(addr)) + DIRECT_MAPPING_BASE))
 
 // TODO: Add locks to all of these
 

@@ -14,11 +14,7 @@ all.
 * APIC for interrupt handling
 * PCI / PCIe support (with single abstraction layer)
 
-## Working on 
-* Getting an HPET driver with stall and 1ms interrupt
-
 #### TODO
-* Get LAPIC calibrated with the HPET stall for 100ms
 * Add SMP and do the lapic stuff per core
 * Remove the portio PCI support
 * Get back processes, schedule with the lapic timer

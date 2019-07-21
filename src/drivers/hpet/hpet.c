@@ -111,3 +111,8 @@ error_t hpet_set_timeout(hpet_timeout_handler_f handler, void* user, uint64_t mi
     return ERROR_NOT_IMPLEMENTED;
 }
 
+uint64_t hpet_get_millis() {
+    // use the first hpet
+    hpet_t* hpet = &hpets[0];
+    return FEMTO_TO_MILLIS(hpet_read(hpet, HPET_REG_MAIN_COUNTER_VALUE) * hpet->femto_per_tick);
+}

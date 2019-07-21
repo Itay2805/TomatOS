@@ -64,8 +64,8 @@ void do_lock_preemption(spinlock_t *spinlock, char* file, int line);
  */
 void do_unlock_preemption(spinlock_t *spinlock, char* file, int line);
 
-#define lock(spinlock) lock(spinlock, __FILENAME__, __LINE__)
-#define unlock(spinlock) unlock(spinlock, __FILENAME__, __LINE__)
+#define lock(spinlock) do_lock(spinlock, __FILENAME__, __LINE__)
+#define unlock(spinlock) do_unlock(spinlock, __FILENAME__, __LINE__)
 #define try_lock(spinlock) do_try_lock(spinlock, __FILENAME__, __LINE__)
 #define lock_preemption(spinlock) do_lock_preemption(spinlock, __FILENAME__, __LINE__)
 #define unlock_preemption(spinlock) do_unlock_preemption(spinlock, __FILENAME__, __LINE__)

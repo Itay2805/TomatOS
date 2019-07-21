@@ -63,8 +63,13 @@ gdt_t gdt = {
 };
 
 static tss64_t tss64 = {
-        .iopb_offset = sizeof(tss64_t)
+    .iopb_offset = sizeof(tss64_t)
 };
+
+/**
+ * Will set the gdt segments so they will be correct with the new segments we set
+ */
+extern void gdt_fix_segments();
 
 error_t per_cpu_gdt_and_tss_init() {
     // set the tss address
@@ -87,9 +92,13 @@ error_t per_cpu_gdt_and_tss_init() {
     tss64.ist6 = cpu_get_kernel_stack();
     tss64.ist7 = cpu_get_kernel_stack();
 
-    log_info("loading new gdt and tss on cpu #%d", cpu_get_index());
+    // set the gdt and tss
+    log_info("\tloading new gdt and tss");
     _lgdt(gdt);
     _ltr(GDT_TSS);
+
+    // fix the segments
+    gdt_fix_segments();
 
     return NO_ERROR;
 }

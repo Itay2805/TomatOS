@@ -14,8 +14,8 @@
 static const char* ISR_NAMES[] = {
         "Divide by zero",
         "Debug",
-        "Breakpoint",
         "Non-Maskable Interrupt (NMI)",
+        "Breakpoint",
         "Overflow",
         "Bound Range Exceeded",
         "Invalid opcode",
@@ -48,7 +48,7 @@ static const char* ISR_NAMES[] = {
 };
 
 static void default_exception_handler(registers_t* regs) {
-    term_disable();
+    // term_disable();
 
     // print error name
     const char* name = 0;
@@ -100,7 +100,7 @@ static void default_exception_handler(registers_t* regs) {
                 log_critical("Selector(processor=%s, table=%s, index=%d)",
                              PROCESSOR_NAME[regs->error_code & 0b1],
                              TABLE_NAME[(regs->error_code >> 1) & 0b11],
-                             (int) (regs->error_code & 0xFFF8) / 16);
+                             (int) (regs->error_code & 0xFFF8));
             }
             break;
         case 14: // page fault
