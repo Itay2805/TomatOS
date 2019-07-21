@@ -15,7 +15,7 @@
 // relative to timer base
 #define HPET_REG_TIMER_CONFIGURATION        0x00
 #define HPET_REG_TIMER_COMPARATOR_VALUE     0x08
-#define HPET_REG_TIMER_FSB_INTERRUPT        0x10
+#define HPET_REG_TIMER_MSI_CONFIG        0x10
 
 #define HPET_TIMER_BASE_OFFSET(n) (0x100u + n * 0x20u)
 
@@ -70,8 +70,8 @@ typedef union hpet_reg_timer_config {
 
         uint8_t timer_32bit_mode : 1;
         uint8_t INT_ROUTE_CNF : 5;
-        uint8_t fsb_interrupt_enable : 1;
-        uint8_t fsb_interrupt_supported : 1;
+        uint8_t msi_enable : 1;
+        uint8_t supports_msi : 1;
 
         uint16_t _reserved2;
 
@@ -86,7 +86,7 @@ typedef union hpet_reg_timer_fsb_interrupt_route {
         lapic_msi_data_t data;
     } __attribute__((packed));
     uint64_t raw;
-} hpet_reg_timer_fsb_interrupt_route_t;
+} hpet_reg_timer_msi_config_t;
 
 typedef struct hpet_timer {
     size_t id;
@@ -94,7 +94,7 @@ typedef struct hpet_timer {
 } hpet_timer_t;
 
 typedef struct hpet {
-    uintptr_t addr;
+    volatile uintptr_t addr;
     hpet_timer_t* timers;
 } hpet_t;
 

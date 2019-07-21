@@ -10,11 +10,23 @@
 static hpet_t* hpets;
 
 static void hpet_write(hpet_t* hpet, size_t offset, uint64_t value) {
+    _barrier();
     POKE64(hpet->addr + offset) = value;
 }
 
 static uint64_t hpet_read(hpet_t* hpet, size_t offset) {
+    _barrier();
     return POKE64(hpet->addr + offset);
+}
+
+static void hpet_timer_write(hpet_t* hpet, hpet_timer_t* timer, size_t offset, uint64_t value) {
+    _barrier();
+    hpet_write(hpet, HPET_TIMER_BASE_OFFSET(timer->id) + offset, value);
+}
+
+static uint64_t hpet_timer_read(hpet_t* hpet, hpet_timer_t* timer, size_t offset) {
+    _barrier();
+    return hpet_read(hpet, HPET_TIMER_BASE_OFFSET(timer->id) + offset);
 }
 
 /**
@@ -24,15 +36,15 @@ static uint64_t hpet_read(hpet_t* hpet, size_t offset) {
  * @param timer     [IN]
  * @param millis    [IN]
  */
-static error_t hpet_timer_set(hpet_t* hpet, int timer, uint64_t millis) {
+static error_t hpet_timer_set(hpet_t* hpet, hpet_timer_t* timer, uint64_t millis) {
     // set the interval
-    hpet_write(hpet, HPET_TIMER_BASE_OFFSET(hpet->timers[timer].id) + HPET_REG_TIMER_COMPARATOR_VALUE, MILLIS_TO_FEMTO(millis));
+    hpet_timer_write(hpet, timer, HPET_REG_TIMER_COMPARATOR_VALUE, MILLIS_TO_FEMTO(millis));
 
     // set the actual config
-    hpet_reg_timer_config_t conf = { .raw = hpet_read(hpet, HPET_TIMER_BASE_OFFSET(hpet->timers[timer].id) + HPET_REG_TIMER_CONFIGURATION) };
-    conf.fsb_interrupt_enable = true;
+    hpet_reg_timer_config_t conf = { .raw = hpet_timer_read(hpet, timer, HPET_REG_TIMER_CONFIGURATION) };
+    conf.msi_enable = true;
     conf.type = HPET_TIMER_TYPE_ONE_TIME;
-    hpet_write(hpet, HPET_TIMER_BASE_OFFSET(hpet->timers[timer].id) + HPET_REG_TIMER_CONFIGURATION, conf.raw);
+    hpet_timer_write(hpet, timer, HPET_REG_TIMER_CONFIGURATION, conf.raw);
     return NO_ERROR;
 }
 
@@ -72,7 +84,6 @@ error_t hpet_init() {
             "We only support MMIO as access mechanism for HPET currently");
 
     uint64_t base_addr = hpet_table->addr.address;
-    log_info("Initializing HPET #%d (0x%016p, vendor %04x)", hpet_table->hpet_id, base_addr, hpet_table->pci_vendor);
 
     // map it
     if(!vmm_is_mapped(kernel_address_space, CONVERT_TO_DIRECT(base_addr))) {
@@ -88,17 +99,21 @@ error_t hpet_init() {
         .timers = NULL
     };
 
-    log_info("\tHas total of %d timers", hpet_table->timer_count + 1);
+    hpet_reg_general_cap_t hpet_cap = { .raw = hpet_read(&hpet, HPET_REG_GENERAL_CAPS) };
+    log_info("Initializing HPET #%d (0x%016p, vendor %04x)", hpet_table->hpet_id, base_addr, hpet_cap.vendor_id);
+
+    log_info("\tHas total of %d timers", hpet_cap.timer_count + 1);
 
     // find all the timers we are gonna support
-    for(int i = 0; i < hpet_table->timer_count + 1; i++) {
-        hpet_reg_timer_config_t conf = { .raw = hpet_read(&hpet, HPET_TIMER_BASE_OFFSET(i) + HPET_REG_TIMER_CONFIGURATION) };
-
-        if(conf.fsb_interrupt_supported) {
-            log_info("\tTimer #%d is supported", i);
-            hpet_timer_t timer = {
+    for(int i = 0; i < hpet_cap.timer_count + 1; i++) {
+        hpet_timer_t timer = {
                 .id = (size_t) i
-            };
+        };
+
+        hpet_reg_timer_config_t conf = { .raw = hpet_timer_read(&hpet, &timer, HPET_REG_TIMER_CONFIGURATION) };
+
+        if(conf.supports_msi) {
+            log_info("\tTimer #%d is supported", i);
             arrpush(hpet.timers, timer);
         }else {
             log_warn("\tTimer #%d does not support MSIs, ignoring", i, hpet_table->hpet_id);
@@ -110,7 +125,7 @@ error_t hpet_init() {
 
     // set the interrupt route
     hpet.timers[0].vector = interrupt_allocate();
-    hpet_reg_timer_fsb_interrupt_route_t route = {
+    hpet_reg_timer_msi_config_t route = {
         .address = {
             .destination_id = 0xF,
             .destination_mode = 0,
@@ -123,7 +138,7 @@ error_t hpet_init() {
             .level = 0
         }
     };
-    hpet_write(&hpet, HPET_TIMER_BASE_OFFSET(hpet.timers[0].id) + HPET_REG_TIMER_CONFIGURATION, route.raw);
+    hpet_timer_write(&hpet, &hpet.timers[0], HPET_REG_TIMER_MSI_CONFIG, route.raw);
 
     // set the timeout
     hpet_timer_set(&hpets[0], 0, 1);
