@@ -15,9 +15,9 @@
 // relative to timer base
 #define HPET_REG_TIMER_CONFIGURATION        0x00
 #define HPET_REG_TIMER_COMPARATOR_VALUE     0x08
-#define HPET_REG_TIMER_MSI_CONFIG        0x10
+#define HPET_REG_TIMER_MSI_CONFIG           0x10
 
-#define HPET_TIMER_BASE_OFFSET(n) (0x100u + n * 0x20u)
+#define HPET_TIMER_BASE_OFFSET(n)           (0x100u + n * 0x20u)
 
 #define FEMTO_TO_MILLIS(n) (n / 1000000000000)
 #define MILLIS_TO_FEMTO(n) (n * 1000000000000)

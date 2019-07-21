@@ -102,6 +102,12 @@ error_t hpet_init() {
     hpet_reg_general_cap_t hpet_cap = { .raw = hpet_read(&hpet, HPET_REG_GENERAL_CAPS) };
     log_info("Initializing HPET #%d (0x%016p, vendor %04x)", hpet_table->hpet_id, base_addr, hpet_cap.vendor_id);
 
+    // enable the HPET
+    hpet_reg_general_config_t gen_conf = { .raw = hpet_read(&hpet, HPET_REG_GENERAL_CONFIG) };
+    gen_conf.enable = true;
+    gen_conf.legacy_replacement = false;
+    hpet_write(&hpet, HPET_REG_GENERAL_CONFIG, gen_conf.raw);
+
     log_info("\tHas total of %d timers", hpet_cap.timer_count + 1);
 
     // find all the timers we are gonna support
@@ -111,6 +117,8 @@ error_t hpet_init() {
         };
 
         hpet_reg_timer_config_t conf = { .raw = hpet_timer_read(&hpet, &timer, HPET_REG_TIMER_CONFIGURATION) };
+
+        log_info("%llx", conf.raw);
 
         if(conf.supports_msi) {
             log_info("\tTimer #%d is supported", i);
@@ -146,12 +154,6 @@ error_t hpet_init() {
     // register the interrupt
     interrupt_register(hpet.timers[0].vector, handle_timer_interrupt);
     log_info("Configured Timer %d.%d to 1ms periodic timer", hpet_table->hpet_id, hpet.timers[0].id);
-
-    // enable the HPET
-    hpet_reg_general_config_t gen_conf = { .raw = hpet_read(&hpet, HPET_REG_GENERAL_CONFIG) };
-    gen_conf.enable = true;
-    gen_conf.legacy_replacement = false;
-    hpet_write(&hpet, HPET_REG_GENERAL_CONFIG, gen_conf.raw);
 
     arrpush(hpets, hpet);
 
