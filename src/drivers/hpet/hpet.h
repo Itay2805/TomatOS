@@ -33,7 +33,7 @@ typedef union hpet_reg_general_cap {
 
         uint16_t vendor_id;
 
-        uint32_t counter_period_femto;
+        uint32_t femto_per_Tick;
     }  __attribute__((packed));
     uint64_t raw;
 } hpet_reg_general_cap_t;
@@ -94,7 +94,8 @@ typedef struct hpet_timer {
 } hpet_timer_t;
 
 typedef struct hpet {
-    volatile uintptr_t addr;
+    volatile uint64_t* mmio;
+    uint64_t femto_per_tick;
     hpet_timer_t* timers;
 } hpet_t;
 
