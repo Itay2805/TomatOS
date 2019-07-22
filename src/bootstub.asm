@@ -17,6 +17,10 @@ tboot_main:
     ;       more then this might break stuff :shrug:
     ;
 
+    ; just in case
+    cld
+    cli
+
 	; disable the wp bit
 	mov rax, cr0
 	and rax, ~(1 << 16)

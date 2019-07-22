@@ -47,5 +47,6 @@ extern void* kernel_physical_start;
 #define KERNEL_PHYSICAL_START ((uint64_t)&kernel_physical_start)
 #define KERNEL_PHYSICAL_END ((uint64_t)&kernel_physical_end)
 
+#define BIT(n) (1 << n)
 
 #endif //TOMATKERNEL_COMMON_H

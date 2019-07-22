@@ -19,7 +19,7 @@ error_t acpi_tables_init(tboot_info_t* info) {
 
     // these tables are optional
     CHECK_AND_RETHROW(hpet_table_init());
-    mcfg_search();
+    CHECK_AND_RETHROW(mcfg_init());
 
 cleanup:
     return err;

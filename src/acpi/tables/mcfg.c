@@ -5,14 +5,17 @@
 
 mcfg_t* mcfg = NULL;
 
-void mcfg_search() {
+error_t mcfg_init() {
+    error_t err = NO_ERROR;
+
     mcfg = (mcfg_t *) rsdt_search("MCFG", 0);
-    if(mcfg) {
-        log_info("\tMCFG Found (0x%016p):", (uintptr_t)mcfg - DIRECT_MAPPING_BASE);
-        log_debug("\t\tRevision: %d", mcfg->header.revision);
-        log_debug("\t\tOEM ID: %.6s", mcfg->header.oemid);
-        log_debug("\t\tOEM TABLE ID: %.8s", mcfg->header.oem_table_id);
-    }else {
-        log_warn("\tMCFG not found");
-    }
+    CHECK_ERROR_TRACE(mcfg != NULL, ERROR_NOT_FOUND, "MCFG not found");
+
+    log_info("\tMCFG Found (0x%016p):", (uintptr_t)mcfg - DIRECT_MAPPING_BASE);
+    log_debug("\t\tRevision: %d", mcfg->header.revision);
+    log_debug("\t\tOEM ID: %.6s", mcfg->header.oemid);
+    log_debug("\t\tOEM TABLE ID: %.8s", mcfg->header.oem_table_id);
+
+cleanup:
+    return err;
 }

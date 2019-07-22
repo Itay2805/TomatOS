@@ -1,68 +1,22 @@
-#include <common.h>
+#include <libc/stdlib.h>
+#include <acpi/tables/mcfg.h>
+#include <memory/vmm.h>
+#include <stb/stb_ds.h>
+#include <common/common.h>
 #include "pci.h"
-#include "pcie.h"
-#include "conventional.h"
+#include "pci_common_spec.h"
+#include "pci_bridge_spec.h"
+#include "pci_device_spec.h"
+#include "pci_ids.h"
 
-uint8_t pcitype = NULL;
-pcidev_t* pcidevs = NULL;
+// used
+pci_dev_t** pci_devices;
 
-uint64_t(*pci_config_read_64)(pcidev_t* dev, uint16_t offset);
-uint32_t(*pci_config_read_32)(pcidev_t* dev, uint16_t offset);
-uint16_t(*pci_config_read_16)(pcidev_t* dev, uint16_t offset);
-uint8_t(*pci_config_read_8)(pcidev_t* dev, uint16_t offset);
+// used to set the current parent
+static pci_dev_t** bus_stack;
 
-void(*pci_config_write_64)(pcidev_t* dev, uint16_t offset, uint64_t value);
-void(*pci_config_write_32)(pcidev_t* dev, uint16_t offset, uint32_t value);
-void(*pci_config_write_16)(pcidev_t* dev, uint16_t offset, uint16_t value);
-void(*pci_config_write_8)(pcidev_t* dev, uint16_t offset, uint8_t value);
-
-error_t pci_init() {
-    error_t err = NO_ERROR;
-
-    if(pcie_supported()) {
-        pcitype = PCI_TYPE_PCIE;
-        log_notice("PCIe is supported");
-
-        // set the config read/write
-        pci_config_read_64 = pcie_config_read_64;
-        pci_config_read_32 = pcie_config_read_32;
-        pci_config_read_16 = pcie_config_read_16;
-        pci_config_read_8 = pcie_config_read_8;
-
-        pci_config_write_64 = pcie_config_write_64;
-        pci_config_write_32 = pcie_config_write_32;
-        pci_config_write_16 = pcie_config_write_16;
-        pci_config_write_8 = pcie_config_write_8;
-
-        // initialize the driver
-        CHECK_AND_RETHROW(pcie_init());
-    }else if(pci_conventional_supported()) {
-        pcitype = PCI_TYPE_LEGACY;
-        log_notice("Conventional PCI is supported");
-
-        // set the config read/write
-        pci_config_read_64 = pci_conventional_config_read_64;
-        pci_config_read_32 = pci_conventional_config_read_32;
-        pci_config_read_16 = pci_conventional_config_read_16;
-        pci_config_read_8 = pci_conventional_config_read_8;
-
-        pci_config_write_64 = pci_conventional_config_write_64;
-        pci_config_write_32 = pci_conventional_config_write_32;
-        pci_config_write_16 = pci_conventional_config_write_16;
-        pci_config_write_8 = pci_conventional_config_write_8;
-
-
-        // initialize the driver
-        CHECK_AND_RETHROW(pci_conventional_init());
-    }else {
-        CHECK_FAIL_ERROR_TRACE(ERROR_NOT_IMPLEMENTED, "No PCI controller found!");
-    }
-
-cleanup:
-    return err;
-}
-
-const char* pci_get_name(pcidev_t* dev) {
+// quick switch to get the name of a pci device class/subclass
+const char* pci_get_name(pci_dev_t* dev) {
     switch(dev->class) {
         case 0x00:
             switch(dev->subclass) {
@@ -288,24 +242,218 @@ const char* pci_get_name(pcidev_t* dev) {
     }
 }
 
-const char* pci_get_vendor_name(pcidev_t* dev) {
-    switch(dev->vendor_id) {
-        case 0x8086: return "Intel";
-        case 0x10dE: return "NVidia Corporation";
-        case 0x1022: return "Advanced Micro Devices";
-        case 0x1414: return "Microsoft";
-        case 0x106B: return "Apple Computer";
-        case 0x1043: return "Asustek Computer, Inc.";
-        case 0x1458: return "Giga-Byte Technology Co., Ltd.";
-        case 0x15AD: return "Vmware, Inc.";
-        case 0x108E: return "Oracle";
-        case 0x1028: return "Dell Computer Corporation";
-        case 0x103C: return "Hewlett Packard";
-        case 0x1590: return "Hewlett Packard Enterprise";
-        case 0x10EC: return "Realtek Semiconductor Corporation";
-        case 0x101E: return "American Megatrends Inc.";
-        case 0x1AE0: return "Google, Inc.";
-        case 0x1234: return "Qemu (Unofficial)";
-        default: return NULL;
+////////////////////////////////////////////////////////////
+// Recursive scanning related
+////////////////////////////////////////////////////////////
+
+// forward declare
+static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, uint8_t function);
+
+/**
+ * Will check the bus for all devices
+ *
+ * @param segment   [IN] The segment
+ * @param bus       [IN] The bus
+ */
+static error_t scan_bus(uint16_t segment, uint8_t bus) {
+    error_t err = NO_ERROR;
+
+    for(uint8_t device = 0; device < 32; device++) {
+        // this will init the device with function 0, will also check to see if has any other functions to initialize
+        CHECK_AND_RETHROW(init_pci_device(segment, bus, device, 0));
     }
+
+cleanup:
+    return err;
+}
+
+/**
+ * Will init the pci function
+ *
+ * if this is a bridge we will also recursively iterate it
+ *
+ * @param segment
+ * @param bus
+ * @param device
+ * @param function
+ */
+static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, uint8_t function) {
+    error_t err = NO_ERROR;
+    pci_dev_t* dev = NULL;
+
+    // get the base address
+    char* mmio = NULL;
+    CHECK_AND_RETHROW(pci_get_and_map_mmio(segment, bus, device, function, &mmio));
+
+    // check if valid
+    if(POKE16(mmio + PCI_REG_VENDOR_ID) == 0xFFFF) {
+        // no such device
+        vmm_unmap(kernel_address_space, mmio);
+        goto cleanup;
+    }
+
+    // initial setup
+    dev = kmalloc(sizeof(pci_dev_t));
+    dev->segment = segment;
+    dev->bus = bus;
+    dev->device = device;
+    dev->function = function;
+    dev->mmio = mmio;
+    dev->vendor_id = pci_read_16(dev, PCI_REG_VENDOR_ID);
+    dev->device_id = pci_read_16(dev, PCI_REG_DEVICE_ID);
+    dev->class = pci_read_8(dev, PCI_REG_CLASS_CODE);
+    dev->subclass = pci_read_8(dev, PCI_REG_SUBCLASS_CODE);
+    dev->prog_if = pci_read_8(dev, PCI_REG_PROGRAM_INTERFACE);
+
+    // log it
+    log_info("\t%x.%x.%x.%x (0x%016llp) -> %s (%x:%x)",
+            segment, bus, device, function,
+            dev->mmio - DIRECT_MAPPING_BASE,
+            pci_get_name(dev),
+            dev->vendor_id, dev->device_id);
+
+    // set the parent if there is one
+    if(arrlen(bus_stack) > 0) {
+        dev->parent = arrlast(bus_stack);
+    }
+
+     // TODO: check the caps
+
+     // get the bars depending on the header
+    uint8_t header_type = (uint8_t) (pci_read_8(dev, PCI_REG_HEADER_TYPE) & ~0x80);
+    if(header_type == 1) {
+        // TODO: check the bars
+    } else if (header_type == 0) {
+        // TODO: check the bars
+    }
+
+    // function scanning
+    if(dev->class == PCI_CLASS_BRIDGE_DEVICE && dev->subclass == PCI_SUBCLASS_HOST_BRIDGE) {
+        /*
+         * For the host bridge each of the functions is a possible bus
+         */
+        bool multi_function = (bool) (pci_read_8(dev, PCI_REG_HEADER_TYPE) & 0x80);
+        if(multi_function) {
+            // scan each of the other functions
+            for(int i = 1; i < 8; i++) {
+                CHECK_AND_RETHROW(scan_bus(segment, i));
+            }
+        }
+    }else {
+        /*
+         * For a normal device each function is a
+         * different device
+         */
+        if(function == 0) {
+            for(int i = 1; i < 8; i++) {
+                CHECK_AND_RETHROW(init_pci_device(segment, bus, device, i));
+            }
+        }
+    }
+
+    /*
+     * If this is a pci to pci bridge we should
+     * scan that secondary bus
+     */
+    if(dev->class == PCI_CLASS_BRIDGE_DEVICE && dev->subclass == PCI_SUBCLASS_PCI_TO_PCI_BRIDGE) {
+        // push this as the parent
+        arrpush(bus_stack, dev);
+
+        // initialize the secondary bus
+        uint8_t new_bus = pci_read_8(dev, PCI_BRIDGE_REG_SECONDARY_BUS_NUMBER);
+        CHECK_AND_RETHROW(scan_bus(segment, new_bus));
+
+        // pop this since this is no longer the parent
+        arrpop(bus_stack);
+    }
+
+    // add to the device list :)
+    arrpush(pci_devices, dev);
+
+cleanup:
+    if(err != NO_ERROR) {
+        if(dev) kfree(dev);
+        vmm_unmap(kernel_address_space, mmio);
+    }
+    return err;
+}
+
+//////////////////////////////////////////
+// Init
+//////////////////////////////////////////
+
+error_t pci_init() {
+    error_t err = NO_ERROR;
+
+    // init the host bridge (always at 0.0.0.0)
+    // this will recursively init all other devices as well
+    for(int i = 0; i < ((mcfg->header.length - sizeof(mcfg_t)) / sizeof(mcfg_entry_t)); i++) {
+        mcfg_entry_t *entry = &mcfg->entries[i];
+        CHECK_AND_RETHROW(scan_bus(entry->segment, entry->start_pci_bus));
+    }
+
+cleanup:
+    return err;
+}
+
+//////////////////////////////////////////
+// The read and write functions
+//////////////////////////////////////////
+
+uint64_t pci_read_64(pci_dev_t* dev, uint16_t offset) {
+    return *(uint64_t*)&dev->mmio[offset];
+}
+
+uint32_t pci_read_32(pci_dev_t* dev, uint16_t offset) {
+    return *(uint32_t*)&dev->mmio[offset];
+}
+
+uint16_t pci_read_16(pci_dev_t* dev, uint16_t offset) {
+    return *(uint16_t*)&dev->mmio[offset];
+}
+
+uint8_t pci_read_8(pci_dev_t* dev, uint16_t offset) {
+    return (uint8_t)dev->mmio[offset];
+}
+
+void pci_write_64(pci_dev_t* dev, uint16_t offset, uint64_t value) {
+    *(uint64_t*)&dev->mmio[offset] = value;
+}
+
+void pci_write_32(pci_dev_t* dev, uint16_t offset, uint32_t value) {
+    *(uint32_t*)&dev->mmio[offset] = value;
+}
+
+void pci_write_16(pci_dev_t* dev, uint16_t offset, uint16_t value) {
+    *(uint16_t*)&dev->mmio[offset] = value;
+}
+
+void pci_write_8(pci_dev_t* dev, uint16_t offset, uint8_t value) {
+    dev->mmio[offset] = value;
+}
+
+/////////////////////////////////////////////
+// Helper functions
+/////////////////////////////////////////////
+
+error_t pci_get_and_map_mmio(uint16_t segment, uint8_t bus, uint8_t device, uint8_t function, char** mmio) {
+    error_t err = NO_ERROR;
+
+    CHECK(mcfg);
+    CHECK(mmio);
+
+    for(int i = 0; i < ((mcfg->header.length - sizeof(mcfg_t)) / sizeof(mcfg_entry_t)); i++) {
+        mcfg_entry_t* entry = &mcfg->entries[i];
+        if(entry->segment == segment && entry->start_pci_bus <= bus && entry->end_pci_bus >= bus) {
+            uintptr_t phys = entry->base + (((bus - entry->start_pci_bus) << 20) | (device << 15) | function << 12);
+            if(!vmm_is_mapped(kernel_address_space, CONVERT_TO_DIRECT(phys))) {
+                CHECK_AND_RETHROW(vmm_map(kernel_address_space, (void*)CONVERT_TO_DIRECT(phys), (void*)phys, PAGE_ATTR_WRITE));
+            }
+            *mmio = (char*)CONVERT_TO_DIRECT(phys);
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    return err;
 }

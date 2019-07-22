@@ -1,0 +1,37 @@
+#ifndef TOMATKERNEL_PCI_BRIDGE_SPEC_H
+#define TOMATKERNEL_PCI_BRIDGE_SPEC_H
+
+#define PCI_BRIDGE_REG_BASE_ADDRESS_REGISTER_0      0x10
+#define PCI_BRIDGE_REG_BASE_ADDRESS_REGISTER_1      0x14
+#define PCI_BRIDGE_REG_PRIMARY_BUS_NUMBER           0x18
+#define PCI_BRIDGE_REG_SECONDARY_BUS_NUMBER         0x19
+#define PCI_BRIDGE_REG_SUBORDINATE_BUS_NUMBER       0x1A
+#define PCI_BRIDGE_REG_SECONDARY_LATENCY_TIMER      0x1B
+#define PCI_BRIDGE_REG_IO_BASE                      0x1C
+#define PCI_BRIDGE_REG_IO_LIMIT                     0x1D
+#define PCI_BRIDGE_REG_SECONDARY_STATUS             0x1E
+#define PCI_BRIDGE_REG_MEMORY_BASE                  0x20
+#define PCI_BRIDGE_REG_MEMORY_LIMIT                 0x22
+#define PCI_BRIDGE_REG_PREFETCHABLE_MEMORY_BASE     0x24
+#define PCI_BRIDGE_REG_PREFETCHABLE_MEMORY_LIMIT    0x26
+#define PCI_BRIDGE_REG_PREFETCHABLE_BASE_UPPER      0x28
+#define PCI_BRIDGE_REG_PREFETCHABLE_LIMIT_UPPER     0x2C
+#define PCI_BRIDGE_REG_IO_BASE_UPPER                0x30
+#define PCI_BRIDGE_REG_IO_LIMIT_UPPER               0x32
+#define PCI_BRIDGE_REG_EXPANSION_ROM_BASE_ADDRESS   0x38
+#define PCI_BRIDGE_REG_CONTROL                      0x
+
+// secondary status register bits is same as the status register
+
+// control register bits
+#define PCI_BRIDGE_CONTROL_PARITY_ERROR_RESPONSE_ENABLE             BIT(0)
+#define PCI_BRIDGE_CONTROL_SERR_ENABLE                              BIT(1)
+#define PCI_BRIDGE_CONTROL_MASTER_ABORT_MODE                        BIT(5)
+#define PCI_BRIDGE_CONTROL_SECONDARY_BUS_RESET                      BIT(6)
+#define PCI_BRIDGE_CONTROL_FAST_BACK_TO_BACK_TRANSACTIONS_ENABLE    BIT(7)
+#define PCI_BRIDGE_PRIMARY_DISCARD_TIMER                            BIT(8)
+#define PCI_BRIDGE_SECONDARY_DISCARD_TIMER                          BIT(9)
+#define PCI_BRIDGE_DISCARD_TIMER_STATUS                             BIT(10)
+#define PCI_BRDIGE_DISCARD_TIMER_SERR_ENABLE                        BIT(11)
+
+#endif //TOMATKERNEL_PCI_BRIDGE_SPEC_H

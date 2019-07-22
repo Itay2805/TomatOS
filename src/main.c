@@ -59,7 +59,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // start getting the basic drivers
     CHECK_AND_RETHROW(hpet_init());
-    //CHECK_AND_RETHROW(pci_init()); // TODO: Maybe move pci init to later in the boot process
+    CHECK_AND_RETHROW(pci_init());
 
     // we are now ready to startup SMP
     CHECK_AND_RETHROW(smp_init());

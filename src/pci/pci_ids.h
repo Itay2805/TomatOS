@@ -1,0 +1,9 @@
+#ifndef TOMATKERNEL_PCI_IDS_H
+#define TOMATKERNEL_PCI_IDS_H
+
+// Bridge device ids
+#define PCI_CLASS_BRIDGE_DEVICE         0x06
+#define PCI_SUBCLASS_HOST_BRIDGE        0x00
+#define PCI_SUBCLASS_PCI_TO_PCI_BRIDGE  0x04
+
+#endif //TOMATKERNEL_PCI_IDS_H

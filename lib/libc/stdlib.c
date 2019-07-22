@@ -34,7 +34,7 @@ cleanup:
     return ptr;
 }
 
-void free(void* ptr) {
+void kfree(void *ptr) {
     error_t err = NO_ERROR;
 
     if(ptr) {

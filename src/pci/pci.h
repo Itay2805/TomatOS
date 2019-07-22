@@ -1,99 +1,53 @@
 #ifndef TOMATKERNEL_PCI_H
 #define TOMATKERNEL_PCI_H
 
-#include <stdint.h>
-#include <error.h>
+#include <libc/stdint.h>
+#include <common/error.h>
 
-/**************************************************************
- * PCI types
- **************************************************************/
+typedef struct pci_bar {
+    char* mmio;
+} pci_bar_t;
 
-#define PCI_TYPE_UNSUPPORTED    0
-#define PCI_TYPE_PCIE           1
-#define PCI_TYPE_LEGACY         2
+typedef struct pci_cap {
+    uint8_t cap_id;
+    char* data;
+} pci_cap_t;
 
-/**************************************************************
- * Generic PCI offsets
- **************************************************************/
+typedef struct pci_dev {
+    struct pci_dev* parent;
 
-#define PCI_VENDOR_ID           0
-#define PCI_DEVICE_ID           2
-#define PCI_COMMAND             4
-#define PCI_STATUS              6
-#define PCI_REVISION_ID         8
-#define PCI_PROG_IF             9
-#define PCI_SUBCLASS            10
-#define PCI_CLASS_CODE          11
-#define PCI_HEADER_TYPE         14
-
-/**************************************************************
- * PCI-to-PCI bridge offsets
- **************************************************************/
-#define PCI_TO_PCI_SECONDARY_BUS    19
-
-
-/**************************************************************
- * General structures for pci
- **************************************************************/
-
-typedef struct pcidev {
-    // some static info per device
-    uint16_t vendor_id;
-    uint16_t device_id;
-    uint8_t class;
-    uint8_t subclass;
-    uint8_t prog_if;
-
-    // device info
+    // the address
     uint16_t segment;
     uint8_t bus;
     uint8_t device;
     uint8_t function;
 
-    // only valid for PCIe
-    char* mmio_base;
-} pcidev_t;
+    // id
+    uint16_t vendor_id;
+    uint16_t device_id;
 
-/**
- * What pci driver are we actually using (PCIe/Legacy PCI)
- */
-extern uint8_t pcitype;
+    // class
+    uint8_t class;
+    uint8_t subclass;
+    uint8_t prog_if;
 
-/**
- * Stretchy buffer of all pci devices
- */
-extern pcidev_t* pcidevs;
+    // other extracted info
+    pci_bar_t* bars;
+    pci_cap_t* caps;
+    uint8_t irq;
 
-/**
- * Initialize the PCI abstraction
- *
- * Supports both PCIe and Legacy PCI
- */
+    // the mmio base address
+    char* mmio;
+} pci_dev_t;
+
+// read the mmio space
+uint64_t pci_read_64(pci_dev_t* dev, uint16_t offset);
+uint32_t pci_read_32(pci_dev_t* dev, uint16_t offset);
+uint16_t pci_read_16(pci_dev_t* dev, uint16_t offset);
+uint8_t pci_read_8(pci_dev_t* dev, uint16_t offset);
+
+error_t pci_get_and_map_mmio(uint16_t segment, uint8_t bus, uint8_t device, uint8_t function, char** mmio);
+
 error_t pci_init();
-
-/**
- * Get the name of the pci device
- */
-const char* pci_get_name(pcidev_t* dev);
-
-/**
- * Get the name of the vendor (very small list compared to how
- * many vendors there are)
- */
-const char* pci_get_vendor_name(pcidev_t* dev);
-
-/**************************************************************
- * Helper functions to read from the PCI configuration space
- **************************************************************/
-
-extern uint64_t(*pci_config_read_64)(pcidev_t* dev, uint16_t offset);
-extern uint32_t(*pci_config_read_32)(pcidev_t* dev, uint16_t offset);
-extern uint16_t(*pci_config_read_16)(pcidev_t* dev, uint16_t offset);
-extern uint8_t(*pci_config_read_8)(pcidev_t* dev, uint16_t offset);
-
-extern void(*pci_config_write_64)(pcidev_t* dev, uint16_t offset, uint64_t value);
-extern void(*pci_config_write_32)(pcidev_t* dev, uint16_t offset, uint32_t value);
-extern void(*pci_config_write_16)(pcidev_t* dev, uint16_t offset, uint16_t value);
-extern void(*pci_config_write_8)(pcidev_t* dev, uint16_t offset, uint8_t value);
 
 #endif //TOMATKERNEL_PCI_H
