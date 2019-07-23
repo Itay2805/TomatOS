@@ -8,14 +8,15 @@ all.
 ## Features
 
 * 64bit with all the basics (gdt, pmm, vmm...)
-* Uses [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI)
+* Uses UEFI for starting (with [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI))
 * ACPI
     * Mostly reading tables
 * APIC for interrupt handling
-* PCI / PCIe support (with single abstraction layer)
+* PCI support (MCFG only)
 
-#### TODO
-* Add SMP and do the lapic stuff per core
-* Remove the portio PCI support
-* Get back processes, schedule with the lapic timer
-* Add back LAI for doing cool AML stuff
+#### Roadmap
+* Finish SMP support (basically stop being lazy and write real mode -> long mode trampoline, everything else around it 
+  is finished already)
+* Get processes back
+* Implement back LAI
+

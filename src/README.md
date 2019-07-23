@@ -50,9 +50,6 @@ This contains the code to deal with PCI/PCIe
 This will manage everything from the devices, the bars to the interrupts of each PCI device. just to make it easier on 
 the driver.
 
-I am going to remove the support for portio based pci access and only support the mmio based pci access, with the 
-reason being simplicity and any modern computer should support the mmio access.
-
 ## processes (soon)
 This will handle everything to do with processes.
 
