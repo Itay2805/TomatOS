@@ -27,7 +27,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     error_t err = NO_ERROR;
 
     // register the early loggers
-    vmdev_register_logger();
+    //vmdev_register_logger();
     term_early_init(info);
 
     // setup the basic

@@ -38,7 +38,7 @@ void laihost_panic(const char* str) {
 
 void* laihost_scan(char* signature, size_t index) {
     if(strncmp(signature, "DSDT", 4) == 0) {
-        return fadt;
+        return dsdt;
     }else {
         return rsdt_search(signature, (int) index);
     }
