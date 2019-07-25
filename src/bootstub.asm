@@ -65,5 +65,5 @@ tboot_main:
 ; and kick start the scheduler
 ;
 SECTION .bss
-resb 512 * 1024
+resb 1024 * 1024 * 2
 tmp_kernel_stack:

@@ -263,7 +263,6 @@ GLOBAL handle_interrupt_request_fb
 GLOBAL handle_interrupt_request_fc
 GLOBAL handle_interrupt_request_fd
 GLOBAL handle_interrupt_request_fe
-GLOBAL handle_interrupt_request_ff
 
 common_stub:
     push qword 0 ; cr3
@@ -1343,8 +1342,4 @@ handle_interrupt_request_fd:
 handle_interrupt_request_fe:
     push qword 0
     push qword 0xfe
-    jmp common_stub
-handle_interrupt_request_ff:
-    push qword 0
-    push qword 0xff
     jmp common_stub

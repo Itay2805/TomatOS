@@ -113,14 +113,44 @@ const char* pci_get_name(pci_dev_t* dev) {
                 default: return "Bridge Device";
             }
         }
-        case 0x07: return "Simple Communication Controller";
+        case 0x07: {
+            switch(dev->subclass) {
+                case 0x00: {
+                    switch(dev->prog_if) {
+                        case 0x00: return "Serial controller (8250)";
+                        case 0x01: return "Serial controller (16450)";
+                        case 0x02: return "Serial controller (16550)";
+                        case 0x03: return "Serial controller (16650)";
+                        case 0x04: return "Serial controller (16750)";
+                        case 0x05: return "Serial controller (16850)";
+                        case 0x06: return "Serial controller (16950)";
+                        default: return "Serial controller";
+                    }
+                }
+                case 0x01: {
+                    switch(dev->prog_if) {
+                        case 0x00: return "Parallel controller (SPP)";
+                        case 0x01: return "Parallel controller (BiDir)";
+                        case 0x02: return "Parallel controller (ECP)";
+                        case 0x03: return "Parallel controller (IEEE1284)";
+                        case 0xfe: return "Parallel controller (IEEE1284 Target)";
+                        default: return "Parallel controller";
+                    }
+                }
+                case 0x02: return "Multiport serial controller";
+                case 0x03: return "Modem";
+                case 0x04: return "GPIB controller";
+                case 0x05: return "Smard Card controller";
+                default: return "Communication controller";
+            }
+        };
         case 0x08:
             switch(dev->subclass) {
                 case 0x00:
                     switch(dev->prog_if) {
-                        case 0x00: return "PIC (Generic 8259-Compatible)";
-                        case 0x01: return "PIC (ISA-Compatible)";
-                        case 0x02: return "PIC (EISA-Compatible)";
+                        case 0x00: return "PIC 8259";
+                        case 0x01: return "ISA PIC";
+                        case 0x02: return "EISA PIC";
                         case 0x10: return "I/O APIC Interrupt Controller";
                         case 0x20: return "I/O(x) APIC Interrupt Controller";
                         default: return "PIC";
@@ -144,12 +174,12 @@ const char* pci_get_name(pci_dev_t* dev) {
                     switch(dev->prog_if) {
                         case 0x00: return "Generic RTC";
                         case 0x01: return "RTC (ISA-Compatible)";
-                        default: return "RTC Controller";
+                        default: return "RTC";
                     }
                 case 0x04: return "PCI Hot-Plug Controller";
                 case 0x05: return "SD Host Controller";
                 case 0x06: return "IOMMU";
-                default: return "Base System Peripheral";
+                default: return "System peripheral";
             }
         case 0x09:
             switch(dev->subclass) {
@@ -306,7 +336,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     dev->prog_if = pci_read_8(dev, PCI_REG_PROGRAM_INTERFACE);
 
     // log it
-    log_info("\t%x.%x.%x.%x (0x%016llp) -> %s (%x:%x)",
+    log_info("\t%x.%x.%x.%x (0x%llx) -> %s (%x:%x)",
             segment, bus, device, function,
             dev->mmio - DIRECT_MAPPING_BASE,
             pci_get_name(dev),

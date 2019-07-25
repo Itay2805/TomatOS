@@ -277,7 +277,6 @@ void idt_init() {
     set_idt_entry(0xfc,handle_interrupt_request_fc);
     set_idt_entry(0xfd,handle_interrupt_request_fd);
     set_idt_entry(0xfe,handle_interrupt_request_fe);
-    set_idt_entry(0xff,handle_interrupt_request_ff);
 
     _lidt(idt);
 }
