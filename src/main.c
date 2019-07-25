@@ -16,13 +16,7 @@
 #include <stb/stb_ds.h>
 #include <common/locks/event.h>
 #include <smp/smp.h>
-
-////////////////////////////////////////////////
-// SMP startup related variables
-////////////////////////////////////////////////
-
-
-
+#include <drivers/portio.h>
 
 /**
  * This is the main core initialization sequence
@@ -32,10 +26,17 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     error_t err = NO_ERROR;
 
     // register the early loggers
-    vmdev_register_logger();
+    //vmdev_register_logger();
+    term_early_init(info);
 
     // setup the basic
     idt_init();
+
+    log_info("Well hello there :)");
+
+    // check the params
+    CHECK_TRACE(magic == TBOOT_MAGIC, "tboot magic is invalid!");
+    CHECK_TRACE(info, "tboot info is null!");
 
     // full memory initialization
     CHECK_AND_RETHROW(pmm_early_init(info));
@@ -50,7 +51,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
 
-    term_init(info);
+    term_init();
     term_clear();
 
     // start doing the late early initialization

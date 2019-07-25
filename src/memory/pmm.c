@@ -1,5 +1,7 @@
 #include <common.h>
 #include <locks/spinlock.h>
+#include <drivers/portio.h>
+#include <tboot/tboot.h>
 #include "pmm.h"
 
 static uint64_t* addrs;
@@ -23,6 +25,9 @@ error_t pmm_early_init(tboot_info_t* info) {
     error_t err = NO_ERROR;
     size_t top_address = 0;
     size_t total_available_size = 0;
+
+    CHECK(info->mmap.entries != NULL);
+    CHECK(info->mmap.count > 0);
 
     for(tboot_mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
         if(it->addr + it->len > top_address) {

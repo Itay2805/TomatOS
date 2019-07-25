@@ -7,12 +7,17 @@
 // TODO Comment
 
 /**
+ * Will initialize an early, slower version of the terminal logger
+ */
+void term_early_init(tboot_info_t* info);
+
+/**
  * Will initialize the framebuffer logger
  *
  * @remark
  * Must be done after the memory manager have been initialized!
  */
-void term_init(tboot_info_t* info);
+void term_init();
 
 void term_write(const char* str);
 void term_clear();

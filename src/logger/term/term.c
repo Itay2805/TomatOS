@@ -3,6 +3,7 @@
 #include <tboot/tboot.h>
 #include <libc/stdlib.h>
 #include <memory/vmm.h>
+#include <string.h>
 
 #include "font/gfxfont.h"
 #include "font/font_DejaVuSansMono.h"
@@ -42,13 +43,23 @@ static uint32_t logger_set_background_color(uint32_t col) {
 // Init
 ////////////////////////////////////////////////
 
-void term_init(tboot_info_t* info) {
+void term_early_init(tboot_info_t* info) {
     // set everything
     vram = (uint32_t*)info->framebuffer.addr;
     width = info->framebuffer.width;
     full_height = info->framebuffer.height;
     height = full_height - full_height % font->yAdvance;
-    backbuffer = kmalloc(width * full_height * 4u);
+    backbuffer = vram;
+
+    // register logger
+    logger.write = term_write;
+    logger.set_text_color = logger_set_text_color,
+    logger.set_background_color = logger_set_background_color,
+    logger_register(&logger);
+}
+
+void term_init() {
+    vram = CONVERT_TO_DIRECT(vram);
 
     // map the framebuffer
     for(uintptr_t addr = ALIGN_PAGE_DOWN(vram); addr < ALIGN_PAGE_UP(vram + width * full_height * 4); addr += KB(4)) {
@@ -57,11 +68,10 @@ void term_init(tboot_info_t* info) {
         }
     }
 
-    // register logger
-    logger.write = term_write;
-    logger.set_text_color = logger_set_text_color,
-    logger.set_background_color = logger_set_background_color,
-    logger_register(&logger);
+    // allocate a proper backbuffer
+    uint32_t* tmp_backbuffer = kmalloc(width * full_height * 4u);
+    memcpy(tmp_backbuffer, vram, width * full_height * 4u);
+    backbuffer = tmp_backbuffer;
 }
 
 ////////////////////////////////////////////////

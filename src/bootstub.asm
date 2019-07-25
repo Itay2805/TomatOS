@@ -10,6 +10,7 @@ DATA_SEGMENT equ 16
 
 EXTERN kernel_main
 EXTERN gdt
+EXTERN gdt_fix_segments
 GLOBAL tboot_main
 tboot_main:
     ;
@@ -25,7 +26,6 @@ tboot_main:
 	mov rax, cr0
 	and rax, ~(1 << 16)
 	mov cr0, rax
-
 
     ; get the cr3
     mov rax, cr3
@@ -45,12 +45,12 @@ tboot_main:
     mov rax, [rbx]
     mov [rbx + 511 * 8], rax
 
-    ; reload, just in case
-    mov rax, cr3
-    mov cr3, rax
+    ; wait for it...
+    mfence
 
-	; load the gdt
+	; load the gdt and fix the segments
 	lgdt [gdt]
+	call gdt_fix_segments
 
 	; setup proper stack
 	mov rsp, tmp_kernel_stack
