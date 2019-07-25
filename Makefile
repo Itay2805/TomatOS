@@ -35,6 +35,7 @@ OBJDIRS := $(dir $(OBJS))
 INCLUDE_DIRS += lib/
 INCLUDE_DIRS += lib/libc
 INCLUDE_DIRS += lib/common
+INCLUDE_DIRS += lib/lai/include
 INCLUDE_DIRS += src/
 
 # Set the flags

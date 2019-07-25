@@ -17,6 +17,7 @@
 #include <common/locks/event.h>
 #include <smp/smp.h>
 #include <drivers/portio.h>
+#include <lai/core.h>
 
 /**
  * This is the main core initialization sequence
@@ -62,7 +63,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(hpet_init());
     CHECK_AND_RETHROW(pci_init());
 
-    while(true);
+    lai_create_namespace();
 
     // we are now ready to startup SMP
     CHECK_AND_RETHROW(smp_init());
