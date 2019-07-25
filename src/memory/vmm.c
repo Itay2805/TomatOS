@@ -46,10 +46,10 @@
 // Index addresses
 ////////////////////////////////////////////////////////////////////////////
 
-#define PAGING_PML4_OFFSET(addr) (((uint64_t)(addr) >> 39u) & 0x1FF)
-#define PAGING_PDPE_OFFSET(addr) (((uint64_t)(addr) >> 30u) & 0x1FF)
-#define PAGING_PDE_OFFSET(addr) (((uint64_t)(addr) >> 21u) & 0x1FF)
-#define PAGING_PTE_OFFSET(addr) (((uint64_t)(addr) >> 12u) & 0x1FF)
+#define PAGING_PML4E_OFFSET(addr) (((uint64_t)(addr) >> 39u) & 0x1FF)
+#define PAGING_PML3E_OFFSET(addr) (((uint64_t)(addr) >> 30u) & 0x1FF)
+#define PAGING_PML2E_OFFSET(addr) (((uint64_t)(addr) >> 21u) & 0x1FF)
+#define PAGING_PML1E_OFFSET(addr) (((uint64_t)(addr) >> 12u) & 0x1FF)
 #define PAGING_PAGE_OFFSET(addr) (((uint64_t)(addr) & 0xFFF))
 
 ////////////////////////////////////////////////////////////////////////////
@@ -113,7 +113,7 @@ static inline void set_attributes(uint64_t* entry, int attributes) {
  * @return 0 if not found, otherwise the address of the table
  */
 static uint64_t get_page(uint64_t *entry, int attributes) {
-    if(*entry & PAGING_PRESENT_BIT) {
+    if((*entry & PAGING_PRESENT_BIT) != 0) {
         set_attributes(entry, attributes);
         return *entry & PAGING_4KB_ADDR_MASK;
     }else {
@@ -157,26 +157,26 @@ cleanup:
  *
  * @return The physical address of the page table
  */
-static uint64_t get_pt(uint64_t pml4, uint64_t virt_addr, int attributes) {
+static uint64_t get_pml1(uint64_t pml4, uint64_t virt_addr, int attributes) {
     uint64_t* table = (uint64_t *) &physical_memory[pml4];
 
     // get pdp
     {
-        uint64_t next = get_page(&table[PAGING_PML4_OFFSET(virt_addr)], attributes);
+        uint64_t next = get_page(&table[PAGING_PML4E_OFFSET(virt_addr)], attributes);
         if(next == 0) return NULL;
         table = (uint64_t *) &physical_memory[next];
     }
 
     // get the pd
     {
-        uint64_t next = get_page(&table[PAGING_PDPE_OFFSET(virt_addr)], attributes);
+        uint64_t next = get_page(&table[PAGING_PML3E_OFFSET(virt_addr)], attributes);
         if(next == 0) return NULL;
         table = (uint64_t *) &physical_memory[next];
     }
 
     // get the pt
     {
-        uint64_t next = get_page(&table[PAGING_PDE_OFFSET(virt_addr)], attributes);
+        uint64_t next = get_page(&table[PAGING_PML2E_OFFSET(virt_addr)], attributes);
         return next;
     }
 }
@@ -189,7 +189,7 @@ static uint64_t get_pt(uint64_t pml4, uint64_t virt_addr, int attributes) {
  * @param attributes    [IN]    The attributes to give until the page table
  * @param pt            [OUT]   The physical address of the new page table
  */
-static error_t get_or_create_pt(uint64_t pml4, uint64_t virt_addr, int attributes, uint64_t* pt) {
+static error_t get_or_create_pml1(uint64_t pml4, uint64_t virt_addr, int attributes, uint64_t *pt) {
     error_t err = NO_ERROR;
 
     uint64_t* table = (uint64_t*)&physical_memory[pml4];
@@ -197,21 +197,21 @@ static error_t get_or_create_pt(uint64_t pml4, uint64_t virt_addr, int attribute
     // get pdp
     {
         uint64_t next = 0;
-        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML4_OFFSET(virt_addr)], attributes, &next));
+        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML4E_OFFSET(virt_addr)], attributes, &next));
         table = (uint64_t *) &physical_memory[next];
     }
 
     // get the pd
     {
         uint64_t next = 0;
-        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PDPE_OFFSET(virt_addr)], attributes, &next));
+        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML3E_OFFSET(virt_addr)], attributes, &next));
         table = (uint64_t*) &physical_memory[next];
     }
 
     // get the pt
     {
         uint64_t next = 0;
-        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PDE_OFFSET(virt_addr)], attributes, &next));
+        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML2E_OFFSET(virt_addr)], attributes, &next));
         *pt = (uint64_t) next;
     }
 
@@ -225,15 +225,15 @@ static error_t internal_map(address_space_t address_space, void* virtual_address
     uint64_t* table = NULL;
 
     // get the page table
-    CHECK_AND_RETHROW(get_or_create_pt(address_space, (uint64_t)virtual_address, attributes, &pt));
+    CHECK_AND_RETHROW(get_or_create_pml1(address_space, (uint64_t) virtual_address, attributes, &pt));
     table = (uint64_t *) &physical_memory[pt];
 
     // make sure nothing has mapped this page
-    CHECK_ERROR(!(table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_PRESENT_BIT), ERROR_ALREADY_MAPPED);
+    CHECK_ERROR((table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT) == 0, ERROR_ALREADY_MAPPED);
 
     // set the entry
-    table[PAGING_PTE_OFFSET(virtual_address)] = PAGING_PRESENT_BIT | ((uint64_t)physical_address & PAGING_4KB_ADDR_MASK);
-    set_attributes(&table[PAGING_PTE_OFFSET(virtual_address)], attributes);
+    table[PAGING_PML1E_OFFSET(virtual_address)] = PAGING_PRESENT_BIT | ((uint64_t)physical_address & PAGING_4KB_ADDR_MASK);
+    set_attributes(&table[PAGING_PML1E_OFFSET(virtual_address)], attributes);
 
 cleanup:
     return err;
@@ -329,6 +329,10 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
 
     lock_preemption(&vmm_lock);
 
+    if(physical_address == 0) {
+        log_warn("Mapping physical address 0!");
+    }
+
     CHECK_AND_RETHROW(internal_map(address_space, virtual_address, physical_address, attributes));
 
 cleanup:
@@ -343,14 +347,14 @@ error_t vmm_unmap(address_space_t address_space, void* virtual_address) {
     lock_preemption(&vmm_lock);
 
     // get the page table
-    uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
+    uint64_t pt = get_pml1(address_space, (uint64_t) virtual_address, 0);
     CHECK_ERROR(pt, ERROR_NOT_MAPPED);
     table = (uint64_t *) &physical_memory[pt];
 
     // unset the given page
-    uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
-    CHECK_ERROR(table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_PRESENT_BIT, ERROR_NOT_MAPPED);
-    table[PAGING_PTE_OFFSET(virtual_address)] = 0;
+    uint64_t addr = table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
+    CHECK_ERROR(table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT, ERROR_NOT_MAPPED);
+    table[PAGING_PML1E_OFFSET(virtual_address)] = 0;
     invlpg(addr);
 
 cleanup:
@@ -382,15 +386,15 @@ error_t vmm_free(address_space_t address_space, void* virtual_address) {
     lock_preemption(&vmm_lock);
 
     // get the page table
-    uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
+    uint64_t pt = get_pml1(address_space, (uint64_t) virtual_address, 0);
     CHECK_ERROR(pt, ERROR_NOT_MAPPED);
     table = (uint64_t *) &physical_memory[pt];
 
     // unset the given page
-    uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
-    CHECK_ERROR(table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_PRESENT_BIT, ERROR_NOT_MAPPED);
+    uint64_t addr = table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
+    CHECK_ERROR(table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT, ERROR_NOT_MAPPED);
     CATCH(pmm_free(addr));
-    table[PAGING_PTE_OFFSET(virtual_address)] = 0;
+    table[PAGING_PML1E_OFFSET(virtual_address)] = 0;
     invlpg(addr);
 
 cleanup:
@@ -404,12 +408,13 @@ error_t vmm_virt_to_phys(address_space_t address_space, uintptr_t virtual_addres
     uint64_t* table = NULL;
 
     // get the page table
-    uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
+    uint64_t pt = get_pml1(address_space, (uint64_t) virtual_address, 0);
     CHECK_ERROR(pt, ERROR_NOT_MAPPED);
+    CHECK_ERROR((table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT) != 0, ERROR_NOT_MAPPED);
     table = (uint64_t *) &physical_memory[pt];
 
     // get the address of the page
-    uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
+    uint64_t addr = table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
     CHECK_ERROR(addr, ERROR_NOT_MAPPED);
 
     if(physical_address) *physical_address = addr;
@@ -425,14 +430,11 @@ bool vmm_is_mapped(address_space_t address_space, uintptr_t virtual_address) {
     lock_preemption(&vmm_lock);
 
     // get the page table
-    uint64_t pt = get_pt(address_space, (uint64_t)virtual_address, 0);
+    uint64_t pt = get_pml1(address_space, (uint64_t) virtual_address, 0);
     if(!pt) goto cleanup;
     table = (uint64_t *) &physical_memory[pt];
 
-    // get the address of the page
-    uint64_t addr = table[PAGING_PTE_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
-
-    is_mapped = addr != NULL;
+    is_mapped = (table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT) != 0;
 
 cleanup:
     unlock_preemption(&vmm_lock);

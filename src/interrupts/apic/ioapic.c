@@ -14,7 +14,8 @@ error_t ioapic_init() {
     // make sure all the ioapics are mapped
     for(madt_ioapic_t** it = madt_ioapics; it < madt_ioapics + arrlen(madt_ioapics); it++) {
         madt_ioapic_t* ioapic = *it;
-        if(!vmm_is_mapped(kernel_address_space, (uintptr_t) CONVERT_TO_DIRECT(ioapic->mmio_base))) {
+        log_info("\t\tMapping #%d IOAPIC (0x%p)", ioapic->id, ioapic->mmio_base);
+        if(!vmm_is_mapped(kernel_address_space, CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base))) {
             CHECK_AND_RETHROW(vmm_map(kernel_address_space, (char*)CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base), (void *)(uintptr_t)ioapic->mmio_base, PAGE_ATTR_WRITE));
         }
     }
