@@ -62,6 +62,10 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(hpet_init());
     CHECK_AND_RETHROW(pci_init());
 
+    log_warn("before");
+    asm("int $3");
+    log_warn("after");
+
     // we are now ready to startup SMP
     CHECK_AND_RETHROW(smp_init());
 

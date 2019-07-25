@@ -12,9 +12,9 @@ error_t mcfg_init() {
     CHECK_ERROR_TRACE(mcfg != NULL, ERROR_NOT_FOUND, "MCFG not found");
 
     log_info("\tMCFG Found (0x%016p):", (uintptr_t)mcfg - DIRECT_MAPPING_BASE);
-    log_debug("\t\tRevision: %d", mcfg->header.revision);
-    log_debug("\t\tOEM ID: %.6s", mcfg->header.oemid);
-    log_debug("\t\tOEM TABLE ID: %.8s", mcfg->header.oem_table_id);
+    log_info("\t\tRevision: %d", mcfg->header.revision);
+    log_info("\t\tOEM ID: %.6s", mcfg->header.oemid);
+    log_info("\t\tOEM TABLE ID: %.8s", mcfg->header.oem_table_id);
 
 cleanup:
     return err;

@@ -10,7 +10,7 @@
 error_t acpi_tables_init(tboot_info_t* info) {
     error_t err = NO_ERROR;
 
-    log_notice("Initializing ACPI tables");
+    log_info("Initializing ACPI tables");
     CHECK_AND_RETHROW(rsdp_init(info));
     CHECK_AND_RETHROW(rsdt_init());
     CHECK_AND_RETHROW(fadt_init());

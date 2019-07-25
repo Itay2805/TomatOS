@@ -34,9 +34,9 @@ static error_t dsdt_init() {
 
     CHECK_ERROR_TRACE(acpi_validate_checksum(dsdt, dsdt->length), ERROR_NOT_FOUND, "DSDT checksum incorrect");
     log_info("\tDSDT Found (0x%016p)", (uintptr_t)dsdt - DIRECT_MAPPING_BASE);
-    log_debug("\t\tRevision: %d", dsdt->revision);
-    log_debug("\t\tOEM ID: %.6s", dsdt->oemid);
-    log_debug("\t\tOEM TABLE ID: %.8s", dsdt->oem_table_id);
+    log_info("\t\tRevision: %d", dsdt->revision);
+    log_info("\t\tOEM ID: %.6s", dsdt->oemid);
+    log_info("\t\tOEM TABLE ID: %.8s", dsdt->oem_table_id);
 
 cleanup:
     return err;
@@ -50,9 +50,9 @@ error_t fadt_init() {
     CHECK_ERROR_TRACE(acpi_validate_checksum(fadt, fadt->header.length), ERROR_NOT_FOUND, "FADT checksum incorrect");
 
     log_info("\tFADT (FACP) Found (0x%016p)", (uintptr_t)fadt - DIRECT_MAPPING_BASE);
-    log_debug("\t\tRevision: %d", fadt->header.revision);
-    log_debug("\t\tOEM ID: %.6s", fadt->header.oemid);
-    log_debug("\t\tOEM TABLE ID: %.8s", fadt->header.oem_table_id);
+    log_info("\t\tRevision: %d", fadt->header.revision);
+    log_info("\t\tOEM ID: %.6s", fadt->header.oemid);
+    log_info("\t\tOEM TABLE ID: %.8s", fadt->header.oem_table_id);
 
 
 

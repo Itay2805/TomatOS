@@ -203,6 +203,7 @@ void common_interrupt_handler(registers_t regs) {
     if(interrupt_handlers != NULL) {
         hi = shgeti(interrupt_handlers, regs.int_num);
     }
+
     if(hi != -1) {
         // we got a handler, call all handlers
         interrupt_handler_f* handlers = interrupt_handlers[hi].value;

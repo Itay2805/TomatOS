@@ -22,8 +22,8 @@ error_t rsdp_init(tboot_info_t* info) {
     }
 
     log_info("\tRSDP found (0x%016p)", (uintptr_t)rsdp - DIRECT_MAPPING_BASE);
-    log_debug("\t\tRevision: %d", rsdp->revision);
-    log_debug("\t\tOEM ID: %.6s", rsdp->oemid);
+    log_info("\t\tRevision: %d", rsdp->revision);
+    log_info("\t\tOEM ID: %.6s", rsdp->oemid);
 
 cleanup:
     return err;

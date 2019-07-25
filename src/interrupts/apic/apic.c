@@ -15,7 +15,7 @@ error_t apic_init() {
     error_t err = NO_ERROR;
 
     // make sure we have everything we need
-    log_notice("Initializing APIC");
+    log_info("Initializing APIC");
     CHECK_ERROR_TRACE(madt, ERROR_NOT_FOUND, "APIC table not found!");
     CHECK_ERROR_TRACE(madt_lapics, ERROR_NOT_FOUND, "No Local APICs found");
     CHECK_ERROR_TRACE(madt_ioapics, ERROR_NOT_FOUND, "No I/O APICs found");
@@ -25,7 +25,7 @@ error_t apic_init() {
         pic8259_disable();
     }
 
-    log_debug("\tEnabling APIC globally");
+    log_info("\tEnabling APIC globally");
     _wrmsr(IA32_APIC_BASE, _rdmsr(IA32_APIC_BASE) | (1 << 11));
 
     // create the map between lapic->procid

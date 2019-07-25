@@ -38,18 +38,18 @@ error_t pmm_early_init(tboot_info_t* info) {
         }
     }
 
-    log_debug("Physical Memory: %lld/%lld", total_available_size, top_address);
+    log_info("Physical Memory: %lld/%lld", total_available_size, top_address);
 
     stack_cap = ALIGN_UP(total_available_size, KB(4))  / KB(4);
     size_t total_size_for_stack = (stack_cap) * sizeof(uint64_t);
-    log_debug("PMM stack size %lld bytes (%lld entries)", total_size_for_stack, stack_cap);
+    log_info("PMM stack size %lld bytes (%lld entries)", total_size_for_stack, stack_cap);
 
     addrs = (uint64_t *) (ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)) + KB(4));
     uintptr_t kernel_end = ALIGN_UP(ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)) + KB(4) + total_size_for_stack, KB(4));
 
-    log_debug("Memory map:");
+    log_info("Memory map:");
     for(tboot_mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
-        log_debug("\t0x%016p-0x%016p: %s", it->addr, it->addr + it->len, MMAP_TYPE[it->type]);
+        log_info("\t0x%016p-0x%016p: %s", it->addr, it->addr + it->len, MMAP_TYPE[it->type]);
         if(it->type == TBOOT_MEMORY_TYPE_USABLE) {
             for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
                 // only use physical memory from the kernel upwards

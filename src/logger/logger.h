@@ -13,6 +13,14 @@
     #define LOGGER_BUFFER_SIZE 1024
 #endif
 
+typedef enum logger_level {
+    LOGGER_LEVEL_DEBUG,
+    LOGGER_LEVEL_INFO,
+    LOGGER_LEVEL_WARN,
+    LOGGER_LEVEL_ERROR,
+    LOGGER_LEVEL_CRITICAL
+} logger_level_t;
+
 typedef struct logger {
     bool enabled;
     void(*write)(const char* str);
@@ -27,19 +35,12 @@ typedef struct logger {
  */
 void logger_register(logger_t* logger);
 
-void log_debug_full(const char* filename, const char* function, int line, const char* fmt, ...);
-void log_info_full(const char* filename, const char* function, int line, const char* fmt, ...);
-void log_notice_full(const char* filename, const char* function, int line, const char* fmt, ...);
-void log_warn_full(const char* filename, const char* function, int line, const char* fmt, ...);
-void log_error_full(const char* filename, const char* function, int line, const char* fmt, ...);
-void log_critical_full(const char* filename, const char* function, int line, const char* fmt, ...);
+void logger_log(logger_level_t level, const char* function, const char* filename, int line, const char* fmt, ...);
 
-// TODO: Make this not pass nulls if we ever wanna allow for filename/function to be used in the log
-#define log_debug(fmt, ...) log_debug_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
-#define log_info(fmt, ...) log_info_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
-#define log_notice(fmt, ...) log_notice_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
-#define log_warn(fmt, ...) log_warn_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
-#define log_error(fmt, ...) log_error_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
-#define log_critical(fmt, ...) log_critical_full(NULL, NULL, __LINE__, fmt, ## __VA_ARGS__)
+#define log_debug(fmt, ...) logger_log(LOGGER_LEVEL_DEBUG, __FUNCTION__, __FILENAME__, __LINE__, fmt, ## __VA_ARGS__)
+#define log_info(fmt, ...) logger_log(LOGGER_LEVEL_INFO, __FUNCTION__, __FILENAME__, __LINE__, fmt, ## __VA_ARGS__)
+#define log_warn(fmt, ...) logger_log(LOGGER_LEVEL_WARN, __FUNCTION__, __FILENAME__, __LINE__, fmt, ## __VA_ARGS__)
+#define log_error(fmt, ...) logger_log(LOGGER_LEVEL_ERROR, __FUNCTION__, __FILENAME__, __LINE__, fmt, ## __VA_ARGS__)
+#define log_critical(fmt, ...) logger_log(LOGGER_LEVEL_CRITICAL, __FUNCTION__, __FILENAME__, __LINE__, fmt, ## __VA_ARGS__)
 
 #endif //TOMATKERNEL_LOGGER_H

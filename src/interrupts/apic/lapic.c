@@ -84,13 +84,13 @@ error_t lapic_init() {
     log_info("\tInitializing Local APIC #%d", lapic_get_id());
 
     timer_vector = interrupt_allocate();
-    log_debug("\t\tSetting timer for 1ms (Vector #%d)", timer_vector);
+    log_info("\t\tSetting timer for 1ms (Vector #%d)", timer_vector);
     CHECK_AND_RETHROW(calibrate_timer());
 
-    log_debug("\t\tSetting NMIs");
+    log_info("\t\tSetting NMIs");
     CHECK_AND_RETHROW(set_nmis());
 
-    log_debug("\t\tSetting SPR");
+    log_info("\t\tSetting SPR");
     CHECK_AND_RETHROW(lapic_enable());
 
 cleanup:

@@ -276,7 +276,7 @@ error_t vmm_init(tboot_info_t* info) {
     memset((void *)kpml4, 0, KB(4));
 
     // TODO: Use large pages as optimization
-    log_debug("creating direct memory map");
+    log_info("creating direct memory map");
     for(tboot_mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
         switch(it->type) {
             case TBOOT_MEMORY_TYPE_USABLE:
@@ -296,7 +296,7 @@ error_t vmm_init(tboot_info_t* info) {
         }
     }
 
-    log_debug("mapping the kernel");
+    log_info("mapping the kernel");
     // TODO: Use the kernel elf header to set the attributes correctly
     for(uint64_t addr = ALIGN_DOWN(KERNEL_PHYSICAL_START, KB(4)); addr < ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)); addr += KB(4)) {
         int attr = PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE;
