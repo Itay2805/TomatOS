@@ -3,6 +3,7 @@
 #include <lai/helpers/sci.h>
 #include <interrupts/apic/ioapic.h>
 #include <interrupts/interrupts.h>
+#include <lai/helpers/sleep.h>
 #include "acpi.h"
 
 #include "acpi/tables/rsdp.h"
@@ -30,26 +31,29 @@ cleanup:
 }
 
 static error_t sci_handler(registers_t* registers) {
+    error_t err = NO_ERROR;
+
     // get the event
     uint16_t sci_event = lai_get_sci_event();
     if(sci_event & ACPI_POWER_BUTTON) {
         log_info("Shutting down...");
-
-        // TODO: do it
+        CHECK(lai_enter_sleep(5) == 0);
     }
 
     if(sci_event & ACPI_SLEEP_BUTTON) {
         log_info("Going to sleep...");
-
+        log_warn("TODO: ACPI_SLEEP_BUTTON");
         // TODO: do it
     }
 
     if(sci_event & ACPI_WAKE) {
         log_info("Woke up!");
-
-        // TODO: do it
+        log_warn("TODO");
+        log_warn("TODO: ACPI_WAKE");
+        // TODO: now what
     }
 
+cleanup:
     return NO_ERROR;
 }
 
