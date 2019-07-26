@@ -36,11 +36,11 @@ void logger_register(logger_t* logger) {
 ///////////////////////////////////////////////////////
 
 static char* level_names[] = {
-        "DEBUG",
+        "DEBG",
         "INFO",
-        "WARNING",
-        "ERROR",
-        "CRITICAL"
+        "WARN",
+        "EROR",
+        "CRIT"
 };
 
 static uint32_t colors[] = {
