@@ -4,6 +4,14 @@
 #include <libc/stdint.h>
 #include <common/error.h>
 
+typedef struct pci_bar {
+    bool io;
+    union {
+        char* mmio;
+        uint32_t port;
+    };
+} pci_bar_t;
+
 typedef struct pci_cap {
     uint8_t cap_id;
     char* data;
@@ -28,7 +36,7 @@ typedef struct pci_dev {
     uint8_t prog_if;
 
     // other extracted info
-    char** bars;
+    pci_bar_t* bars;
     pci_cap_t* caps;
     uint8_t irq;
 

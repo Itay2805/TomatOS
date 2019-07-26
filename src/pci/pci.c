@@ -333,6 +333,10 @@ cleanup:
     return err;
 }
 
+uint32_t pci_read_32(pci_dev_t* dev, uint16_t offset) {
+    return *(uint32_t*)&dev->mmio[offset];
+}
+
 /**
  * Will init the pci function
  *
@@ -370,6 +374,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     dev->class = pci_read_8(dev, PCI_REG_CLASS_CODE);
     dev->subclass = pci_read_8(dev, PCI_REG_SUBCLASS_CODE);
     dev->prog_if = pci_read_8(dev, PCI_REG_PROGRAM_INTERFACE);
+    arrsetcap(dev->bars, 4);
 
     // log it
     log_info("\t%x.%x.%x.%x (0x%llx) -> %s (%x:%x)",
@@ -391,31 +396,45 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
         // TODO: check the bars
     } else if (header_type == 0) {
         for(uint16_t offset = PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS; offset < PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS_END; offset++) {
-            uint64_t bar = pci_read_64(dev, offset);
-            if(PCI_BAR_TYPE(bar) == PCI_BAR_TYPE_IO) {
-                log_warn("\t\tGot IO bar, ignoring");
-            }else {
-                switch(PCI_BAR_SIZE(bar)) {
+            uint32_t bar = pci_read_32(dev, offset);
+            pci_bar_t new_bar = {0};
+
+            // parse the bar and log it
+            if (PCI_BAR_TYPE(bar) == PCI_BAR_TYPE_IO) {
+                new_bar.io = true;
+                new_bar.port = bar & ~0b11;
+                log_info("\t\tIO  %llu", new_bar.port);
+
+                offset += 4;
+
+                if (new_bar.port != 0) {
+                    log_info("\t\tIO  #%d", new_bar.port);
+                }
+            } else {
+                new_bar.io = false;
+                switch (PCI_BAR_SIZE(bar)) {
                     case PCI_BAR_16BIT: {
-                        bar = (PCI_BAR_MEM_BASE(bar) & 0xFFFF);
+                        offset += 2;
+                        new_bar.mmio = (char *)(uintptr_t)(PCI_BAR_MEM_BASE(bar) & 0xFFFF);
                     } break;
                     case PCI_BAR_32BIT: {
-                        bar = (PCI_BAR_MEM_BASE(bar) & 0xFFFFFFFF);
+                        offset += 4;
+                        new_bar.mmio = (char *)(uintptr_t)PCI_BAR_MEM_BASE(bar);
                     } break;
                     case PCI_BAR_64BIT: {
-                        bar = PCI_BAR_MEM_BASE(bar);
+                        offset += 8;
+                        CHECK_FAIL();
                     } break;
                     default: break;
                 }
 
-                // only add if none-zero
-                if(bar != 0) {
-                    arrpush(dev->bars, (char*)bar);
-                    log_info("\t\tBAR 0x%p", arrlast(dev->bars));
+                if (new_bar.mmio != 0) {
+                    log_info("\t\tBAR 0x%p", new_bar.mmio);
                 }
             }
-            offset += PCI_BAR_SIZE(bar) == PCI_BAR_64BIT ? 8 :
-                      PCI_BAR_SIZE(bar) == PCI_BAR_32BIT ? 4 : 2;
+
+            // add the bar
+            arrpush(dev->bars, new_bar);
         }
     }
 
@@ -500,11 +519,7 @@ uint64_t pci_read_64(pci_dev_t* dev, uint16_t offset) {
     return *(uint64_t*)&dev->mmio[offset];
 }
 
-uint32_t pci_read_32(pci_dev_t* dev, uint16_t offset) {
-    return *(uint32_t*)&dev->mmio[offset];
-}
-
-uint16_t pci_read_16(pci_dev_t* dev, uint16_t offset) {
+    uint16_t pci_read_16(pci_dev_t* dev, uint16_t offset) {
     return *(uint16_t*)&dev->mmio[offset];
 }
 
