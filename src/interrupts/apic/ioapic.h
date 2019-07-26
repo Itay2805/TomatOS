@@ -2,6 +2,7 @@
 #define TOMATKERNEL_IOAPIC_H
 
 #include <error.h>
+#include <acpi/tables/madt.h>
 
 #define IOAPIC_REG_ID                           0x00
 #define IOAPIC_REG_VERSION                      0x01

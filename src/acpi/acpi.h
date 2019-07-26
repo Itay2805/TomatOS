@@ -21,6 +21,13 @@ typedef struct acpi_generic_address {
 error_t acpi_tables_init(tboot_info_t* info);
 
 /**
+ * Will initialize ACPI
+ *
+ * basically create the namespace and start handling SCI events
+ */
+error_t acpi_init();
+
+/**
  * Check if the checksum of an acpi table is correct
  */
 bool acpi_validate_checksum(const void* addr, size_t size);
