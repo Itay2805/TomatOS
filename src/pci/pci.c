@@ -3,6 +3,8 @@
 #include <memory/vmm.h>
 #include <stb/stb_ds.h>
 #include <common/common.h>
+#include <lai/helpers/pci.h>
+#include <lai/helpers/resource.h>
 #include "pci.h"
 #include "pci_common_spec.h"
 #include "pci_bridge_spec.h"
@@ -273,6 +275,39 @@ const char* pci_get_name(pci_dev_t* dev) {
 }
 
 ////////////////////////////////////////////////////////////
+// Helpers for device initialization
+////////////////////////////////////////////////////////////
+
+static error_t route_device_irq(pci_dev_t* dev) {
+    error_t err = NO_ERROR;
+    uint8_t pin = pci_read_8(dev, PCI_REG_INTERRUPT_PIN);
+    acpi_resource_t resource = {0};
+
+    // if pin is zero then this device has no interrupts
+    if(pin == 0) goto cleanup;
+
+    // do the pin routing
+    pci_dev_t* bridge = dev->parent;
+    while(bridge != NULL) {
+        // TODO: _PRT?
+        pin = (uint8_t) ((((pin - 1) + (bridge->device % 4)) % 4) + 1);
+        bridge = bridge->parent;
+    }
+
+    // do the final route
+    CHECK_TRACE(
+            lai_pci_route_pin(&resource, dev->segment, dev->bus, dev->device, dev->function, pin) == 0,
+            "\t\tFailed to route IRQ (lai_pci_route_pin returned none-zero)");
+
+    // got it
+    dev->irq = (uint8_t) resource.base;
+    log_info("\t\tIRQ #%d", dev->irq);
+
+    cleanup:
+    return err;
+}
+
+////////////////////////////////////////////////////////////
 // Recursive scanning related
 ////////////////////////////////////////////////////////////
 
@@ -356,6 +391,9 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     } else if (header_type == 0) {
         // TODO: check the bars
     }
+
+    // check irq
+    CHECK_AND_RETHROW(route_device_irq(dev));
 
     // function scanning
     if(dev->class == PCI_CLASS_BRIDGE_DEVICE && dev->subclass == PCI_SUBCLASS_HOST_BRIDGE) {
