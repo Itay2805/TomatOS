@@ -49,30 +49,42 @@ typedef enum error {
 
 extern const char* error_names[ERROR_COUNT];
 
-#define CHECK_ERROR_TRACE(cond, error, fmt, ...) \
+#define CHECK_ERROR_LABEL_TRACE(cond, error, label, fmt, ...) \
     do { \
         if(!(cond)) { \
             err = error; \
             log_error("error `%s`: " fmt, error_names[err], ## __VA_ARGS__); \
             log_error("thrown (%s:%d), trace:", __FILENAME__, __LINE__); \
-            goto cleanup; \
+            goto label; \
         } \
     } while(0)
 
-#define CHECK_TRACE(cond, fmt, ...) \
-    CHECK_ERROR_TRACE(cond, ERROR_CHECK_FAILED, fmt, ## __VA_ARGS__)
+#define CHECK_LABEL_TRACE(cond, label, fmt, ...) \
+    CHECK_ERROR_LABEL_TRACE(cond, ERROR_CHECK_FAILED, label, fmt, ## __VA_ARGS__)
 
-#define CHECK_ERROR(cond, error) \
+#define CHECK_ERROR_TRACE(cond, error, fmt, ...) \
+    CHECK_ERROR_LABEL_TRACE(cond, error, cleanup, fmt, ## __VA_ARGS__)
+
+#define CHECK_TRACE(cond, fmt, ...) \
+    CHECK_LABEL_TRACE(cond, cleanup, fmt, ## __VA_ARGS__)
+
+#define CHECK_ERROR_LABEL(cond, error, label) \
     do { \
         if(!(cond)) { \
             err = error; \
             log_error("error `%s` thrown (%s:%d)", error_names[err], __FILENAME__, __LINE__); \
-            goto cleanup; \
+            goto label; \
         } \
     } while(0)
 
+#define CHECK_ERROR(cond, error) \
+    CHECK_ERROR_LABEL(cond, error, cleanup)
+
+#define CHECK_LABEL(cond, label) \
+    CHECK_ERROR_LABEL(cond, ERROR_CHECK_FAILED, label)
+
 #define CHECK(cond) \
-    CHECK_ERROR(cond, ERROR_CHECK_FAILED)
+    CHECK_LABEL(cond, cleanup)
 
 #define CHECK_FAIL() \
     CHECK(false)
