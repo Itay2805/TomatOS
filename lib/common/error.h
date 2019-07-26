@@ -89,6 +89,10 @@ extern const char* error_names[ERROR_COUNT];
 #define CHECK_FAIL() \
     CHECK(false)
 
+#define CHECK_FAIL_TRACE(fmt, ...) \
+    CHECK_TRACE(false, fmt, ## __VA_ARGS__)
+
+
 #define CHECK_FAIL_ERROR(error) \
     CHECK_ERROR(false, error)
 

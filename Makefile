@@ -53,6 +53,7 @@ CFLAGS += \
 	-mno-omit-leaf-frame-pointer \
 	-fno-pie \
 	-static \
+	-O3 \
 	-g
 
 # Set the include dirs

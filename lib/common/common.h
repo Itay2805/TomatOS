@@ -7,7 +7,7 @@
 // Memory manipulation
 ////////////////////////////////////////////////////////////////////////////
 
-#define POKE(type, addr) *((type*)addr)
+#define POKE(type, addr) (*((volatile type*)addr))
 #define POKE8(addr) POKE(uint8_t, addr)
 #define POKE16(addr) POKE(uint16_t, addr)
 #define POKE32(addr) POKE(uint32_t, addr)

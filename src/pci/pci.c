@@ -374,7 +374,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     dev->class = pci_read_8(dev, PCI_REG_CLASS_CODE);
     dev->subclass = pci_read_8(dev, PCI_REG_SUBCLASS_CODE);
     dev->prog_if = pci_read_8(dev, PCI_REG_PROGRAM_INTERFACE);
-    arrsetcap(dev->bars, 4);
+    arrsetcap(dev->bars, 6);
 
     // log it
     log_info("\t%x.%x.%x.%x (0x%llx) -> %s (%x:%x)",
@@ -396,44 +396,67 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
         // TODO: check the bars
     } else if (header_type == 0) {
         for(uint16_t offset = PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS; offset < PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS_END; offset++) {
-            uint32_t bar = pci_read_32(dev, offset);
+            uint64_t bar = pci_read_32(dev, offset);
             pci_bar_t new_bar = {0};
 
-            // parse the bar and log it
-            if (PCI_BAR_TYPE(bar) == PCI_BAR_TYPE_IO) {
-                new_bar.io = true;
-                new_bar.port = bar & ~0b11;
-                log_info("\t\tIO  %llu", new_bar.port);
+            if(PCI_BAR_TYPE(bar) == PCI_BAR_TYPE_IO) {
+                // io bar
+                new_bar.type = PCI_BAR_TYPE_IO;
+                new_bar.base = (uint32_t) PCI_BAR_IO_BASE(bar);
 
+                // len
+                pci_write_32(dev, offset, 0xFFFFFFFF);
+                new_bar.len = ~PCI_BAR_IO_BASE(pci_read_32(dev, offset)) + 1;
+                pci_write_32(dev, offset, (uint32_t)bar);
+
+                // next bar
                 offset += 4;
+            }else {
+                new_bar.type = PCI_BAR_TYPE_MEM;
+                switch(PCI_BAR_MEMORY_WIDTH(bar)) {
+                    case PCI_BAR_MEMORY_WIDTH_32BIT: {
+                        new_bar.base = PCI_BAR_MEMORY_BASE(bar);
 
-                if (new_bar.port != 0) {
-                    log_info("\t\tIO  #%d", new_bar.port);
-                }
-            } else {
-                new_bar.io = false;
-                switch (PCI_BAR_SIZE(bar)) {
-                    case PCI_BAR_16BIT: {
-                        offset += 2;
-                        new_bar.mmio = (char *)(uintptr_t)(PCI_BAR_MEM_BASE(bar) & 0xFFFF);
-                    } break;
-                    case PCI_BAR_32BIT: {
+                        // len
+                        pci_write_32(dev, offset, 0xFFFFFFFF);
+                        new_bar.len = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
+                        pci_write_32(dev, offset, (uint32_t)bar);
+
+                        // next bar
                         offset += 4;
-                        new_bar.mmio = (char *)(uintptr_t)PCI_BAR_MEM_BASE(bar);
                     } break;
-                    case PCI_BAR_64BIT: {
-                        offset += 8;
-                        CHECK_FAIL();
+                    case PCI_BAR_MEMORY_WIDTH_64BIT: {
+                        CHECK_FAIL_ERROR_TRACE(ERROR_NOT_SUPPORTED, "64bit bars are not supported yet!");
                     } break;
-                    default: break;
-                }
-
-                if (new_bar.mmio != 0) {
-                    log_info("\t\tBAR 0x%p", new_bar.mmio);
+                    default: CHECK_FAIL_TRACE("Got invalid bar length!");
                 }
             }
 
-            // add the bar
+            // log it
+            if(new_bar.base != 0) {
+                if(new_bar.type == PCI_BAR_TYPE_MEM) {
+                    log_info("\t\tMEM #%d - 0x%p-0x%p (%u)", arrlen(dev->bars), new_bar.base, new_bar.base + new_bar.len, new_bar.len);
+                }else {
+                    if(new_bar.base > UINT16_MAX) {
+                        log_warn("\t\tIO  #%d is larger than 16bit, ignoring", arrlen(dev->bars));
+                    }else {
+                        log_info("\t\tIO  #%d - #%d-%d (%u)", arrlen(dev->bars), new_bar.base, new_bar.base + new_bar.len, new_bar.len);
+                    }
+                }
+            }
+
+            // map if possible
+            if(new_bar.type == PCI_BAR_TYPE_MEM && new_bar.base != 0 && new_bar.len != 0) {
+                for(uintptr_t addr = ALIGN_PAGE_DOWN(new_bar.base); addr < ALIGN_PAGE_UP(new_bar.base + new_bar.len); addr += KB(4)) {
+                    if(!vmm_is_mapped(kernel_address_space, CONVERT_TO_DIRECT(addr))) {
+                        // TODO: Prefetch
+                        CHECK_AND_RETHROW(vmm_map(kernel_address_space, (void*)CONVERT_TO_DIRECT(addr), (void*)addr, PAGE_ATTR_WRITE));
+                    }
+                }
+                new_bar.base = CONVERT_TO_DIRECT(new_bar.base);
+            }
+
+            // add the bar, even if 0
             arrpush(dev->bars, new_bar);
         }
     }
@@ -519,7 +542,7 @@ uint64_t pci_read_64(pci_dev_t* dev, uint16_t offset) {
     return *(uint64_t*)&dev->mmio[offset];
 }
 
-    uint16_t pci_read_16(pci_dev_t* dev, uint16_t offset) {
+uint16_t pci_read_16(pci_dev_t* dev, uint16_t offset) {
     return *(uint16_t*)&dev->mmio[offset];
 }
 
