@@ -4,7 +4,12 @@
 #include <common/cpu/msr.h>
 #include "cpustorage.h"
 
-per_cpu_storage_t* per_cpu_storage;
+extern uintptr_t pcpu_storage_size;
+#define PCPU_STORAGE_SIZE ADDROF(pcpu_storage_size)
+
+char** all_pcpu_storage;
+PCPU size_t cpu_index;
+PCPU uintptr_t cpu_kernel_stack;
 
 error_t per_cpu_storage_init() {
 
@@ -15,12 +20,11 @@ error_t per_cpu_storage_init() {
             active_lapis++;
         }
     }
-    arrsetlen(per_cpu_storage, active_lapis);
+    arrsetlen(all_pcpu_storage, active_lapis);
 
-    // set each of them
-    for(size_t i = 0; i < arrlen(per_cpu_storage); i++) {
-        per_cpu_storage[i].index = i;
-        per_cpu_storage[i].kernel_stack = (uintptr_t) kmalloc(MB(2));
+    // allocate it all
+    for(size_t i = 0; i < arrlen(all_pcpu_storage); i++) {
+        all_pcpu_storage[i] = kmalloc(PCPU_STORAGE_SIZE);
     }
 
     return NO_ERROR;
@@ -28,16 +32,9 @@ error_t per_cpu_storage_init() {
 
 error_t set_cpu_storage(size_t index) {
     log_info("\tset per cpu storage");
-    _wrmsr(IA32_GS_BASE, (uint64_t) &per_cpu_storage[index]);
+    _wrmsr(IA32_GS_BASE, (uint64_t) &all_pcpu_storage[index]);
+    cpu_index = index;
+    cpu_kernel_stack = (uintptr_t)kmalloc(MB(2));
     return NO_ERROR;
 }
-
-size_t cpu_get_index() {
-    return read_gs_64(offsetof(per_cpu_storage_t, index));
-}
-
-uintptr_t cpu_get_kernel_stack() {
-    return read_gs_64(offsetof(per_cpu_storage_t, kernel_stack));
-}
-
 

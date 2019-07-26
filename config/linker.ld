@@ -4,16 +4,24 @@ OUTPUT_ARCH(i386:x86-64)
 
 SECTIONS
 {
+    /* ======= Per CPU storage ======= */
+    . = 0;
+    .pcpu (NOLOAD) :
+    {
+        *(.pcpu)
+    }
+    pcpu_storage_size = .;
+
+    /* ========== Multiboot ========== */
 	. = 0x0100000;
 	kernel_physical_start = .;
 
-    /* ========== Multiboot ========== */
     .tboot.text ALIGN(4K) :
     {
 	    *(.tboot.text)
     }
 
-    /* ========== Kernel code ========== */
+    /* ========= Kernel code ========= */
     . += 0xFFFFFFFFC0000000;
 	.text ALIGN(4K) : AT (ADDR (.text) - 0xFFFFFFFFC0000000)
 	{

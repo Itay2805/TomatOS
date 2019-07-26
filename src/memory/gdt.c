@@ -79,18 +79,18 @@ error_t per_cpu_gdt_and_tss_init() {
     gdt.entries->tss.upper32 = (uint32_t) (((uint64_t) &tss64 >> 32) & 0xFFFFFFFF);
 
     // use the per cpu kernel stack
-    tss64.rsp0 = cpu_get_kernel_stack();
-    tss64.rsp1 = cpu_get_kernel_stack();
-    tss64.rsp2 = cpu_get_kernel_stack();
+    tss64.rsp0 = cpu_kernel_stack;
+    tss64.rsp1 = cpu_kernel_stack;
+    tss64.rsp2 = cpu_kernel_stack;
 
     // TODO: Maybe have a different value for these (?)
-    tss64.ist1 = cpu_get_kernel_stack();
-    tss64.ist2 = cpu_get_kernel_stack();
-    tss64.ist3 = cpu_get_kernel_stack();
-    tss64.ist4 = cpu_get_kernel_stack();
-    tss64.ist5 = cpu_get_kernel_stack();
-    tss64.ist6 = cpu_get_kernel_stack();
-    tss64.ist7 = cpu_get_kernel_stack();
+    tss64.ist1 = cpu_kernel_stack;
+    tss64.ist2 = cpu_kernel_stack;
+    tss64.ist3 = cpu_kernel_stack;
+    tss64.ist4 = cpu_kernel_stack;
+    tss64.ist5 = cpu_kernel_stack;
+    tss64.ist6 = cpu_kernel_stack;
+    tss64.ist7 = cpu_kernel_stack;
 
     // set the gdt and tss
     log_info("\tloading new gdt and tss");

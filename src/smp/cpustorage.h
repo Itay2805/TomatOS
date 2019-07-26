@@ -8,15 +8,19 @@
 // The storage stuff
 ////////////////////////////////////////////////////////////
 
-typedef struct per_cpu_storage {
-    size_t index;
-    uintptr_t kernel_stack;
-} per_cpu_storage_t;
+#define PCPU __attribute__((section(".pcpu"), address_space(256)))
 
 /**
  * Array of per cpu storage
  */
-extern per_cpu_storage_t* per_cpu_storage;
+extern char** all_pcpu_storage;
+
+////////////////////////////////////////////////////////////
+// Common per cpu variables
+////////////////////////////////////////////////////////////
+
+extern PCPU size_t cpu_index;
+extern PCPU uintptr_t cpu_kernel_stack;
 
 /**
  * This will allocate an initialize the per cpu storage
@@ -35,19 +39,5 @@ error_t set_cpu_storage(size_t index);
 ////////////////////////////////////////////////////////////
 
 #define _swapgs() asm volatile("swapgs")
-
-__attribute__((always_inline))
-static inline uint64_t read_gs_64(uint64_t offset) {
-    uint32_t ret;
-    asm volatile ("mov  %%gs:(%1), %0" : "=r"(ret) : "r"(offset));
-    return ret;
-}
-
-////////////////////////////////////////////////////////////
-// Utility functions to get the stuff
-////////////////////////////////////////////////////////////
-
-size_t cpu_get_index();
-uintptr_t cpu_get_kernel_stack();
 
 #endif //TOMATKERNEL_CPUSTORAGE_H
