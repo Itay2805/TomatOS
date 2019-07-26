@@ -395,7 +395,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     if(header_type == 1) {
         // TODO: check the bars
     } else if (header_type == 0) {
-        for(uint16_t offset = PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS; offset < PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS_END; offset++) {
+        for(uint16_t offset = PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS; offset < PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS_END;) {
             uint64_t bar = pci_read_32(dev, offset);
             pci_bar_t new_bar = {0};
 
