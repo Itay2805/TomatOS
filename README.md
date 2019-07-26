@@ -10,13 +10,13 @@ all.
 * 64bit with all the basics (gdt, pmm, vmm...)
 * Uses UEFI for starting (with [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI))
 * ACPI
-    * Mostly reading tables
+    * Reading tables
+    * AML execution powered by [Lai](https://github.com/qword-os/lai)
+    * SCI events handling (TODO: Actually make it respond to the events)
 * APIC for interrupt handling
+    * LAPIC timer for scheduling
 * PCI support (MCFG only)
-
-#### Roadmap
-* Finish SMP support (basically stop being lazy and write real mode -> long mode trampoline, everything else around it 
-  is finished already)
-* Get processes back
-* Implement back LAI
-
+    * bar management
+    * IRQ routing
+* SMP (Just the frame, still gotta make the trampoline)
+    * Seamless Per CPU storage
