@@ -29,7 +29,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // register the early loggers
     vmdev_register_logger();
-    //term_early_init(info);
+    term_early_init(info);
 
     // setup the basic
     idt_init();
@@ -53,8 +53,8 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(pmm_init());
     CHECK_AND_RETHROW(mm_init());
 
-    //term_init();
-    //term_clear();
+    term_init();
+    term_clear();
 
     // start doing the late early initialization
     CHECK_AND_RETHROW(acpi_tables_init(info)); // full ACPI will be set later

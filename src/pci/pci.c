@@ -10,6 +10,7 @@
 #include "pci_bridge_spec.h"
 #include "pci_device_spec.h"
 #include "pci_ids.h"
+#include "pci_bar_spec.h"
 
 // used
 pci_dev_t** pci_devices;
@@ -389,7 +390,33 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     if(header_type == 1) {
         // TODO: check the bars
     } else if (header_type == 0) {
-        // TODO: check the bars
+        for(uint16_t offset = PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS; offset < PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS_END; offset++) {
+            uint64_t bar = pci_read_64(dev, offset);
+            if(PCI_BAR_TYPE(bar) == PCI_BAR_TYPE_IO) {
+                log_warn("\t\tGot IO bar, ignoring");
+            }else {
+                switch(PCI_BAR_SIZE(bar)) {
+                    case PCI_BAR_16BIT: {
+                        bar = (PCI_BAR_MEM_BASE(bar) & 0xFFFF);
+                    } break;
+                    case PCI_BAR_32BIT: {
+                        bar = (PCI_BAR_MEM_BASE(bar) & 0xFFFFFFFF);
+                    } break;
+                    case PCI_BAR_64BIT: {
+                        bar = PCI_BAR_MEM_BASE(bar);
+                    } break;
+                    default: break;
+                }
+
+                // only add if none-zero
+                if(bar != 0) {
+                    arrpush(dev->bars, (char*)bar);
+                    log_info("\t\tBAR 0x%p", arrlast(dev->bars));
+                }
+            }
+            offset += PCI_BAR_SIZE(bar) == PCI_BAR_64BIT ? 8 :
+                      PCI_BAR_SIZE(bar) == PCI_BAR_32BIT ? 4 : 2;
+        }
     }
 
     // check irq
@@ -455,6 +482,7 @@ error_t pci_init() {
 
     // init the host bridge (always at 0.0.0.0)
     // this will recursively init all other devices as well
+    log_info("Iterating PCI devices");
     for(int i = 0; i < ((mcfg->header.length - sizeof(mcfg_t)) / sizeof(mcfg_entry_t)); i++) {
         mcfg_entry_t *entry = &mcfg->entries[i];
         CHECK_AND_RETHROW(scan_bus(entry->segment, entry->start_pci_bus));
