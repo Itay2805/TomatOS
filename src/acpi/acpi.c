@@ -30,14 +30,27 @@ cleanup:
 }
 
 static error_t sci_handler(registers_t* registers) {
-    error_t err = NO_ERROR;
-
     // get the event
     uint16_t sci_event = lai_get_sci_event();
-    log_info("Got SCI event %d", sci_event);
+    if(sci_event & ACPI_POWER_BUTTON) {
+        log_info("Shutting down...");
 
-cleanup:
-    return err;
+        // TODO: do it
+    }
+
+    if(sci_event & ACPI_SLEEP_BUTTON) {
+        log_info("Going to sleep...");
+
+        // TODO: do it
+    }
+
+    if(sci_event & ACPI_WAKE) {
+        log_info("Woke up!");
+
+        // TODO: do it
+    }
+
+    return NO_ERROR;
 }
 
 
