@@ -54,10 +54,9 @@ madt_ioapic_t* ioapic_get_from_gsi(uint32_t gsi) {
 }
 
 // TODO: get the destination as parameter
-error_t ioapic_redirect(uint32_t irq, uint8_t vector) {
+error_t ioapic_redirect(uint32_t irq, uint8_t vector, int flags) {
     error_t err = NO_ERROR;
     uint32_t gsi = irq;
-    int flags = 0;
 
     // make sure the vector is valid
     CHECK((uint32_t)vector < 255);

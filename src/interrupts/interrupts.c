@@ -168,7 +168,7 @@ static void default_exception_handler(registers_t* regs) {
 //////////////////////////////////////////////////////////////////
 
 static struct interrupt_entry {
-    uint64_t key;
+    uint8_t key;
     interrupt_handler_f* value;
 }* interrupt_handlers = NULL;
 
@@ -183,10 +183,10 @@ cleanup:
 
 error_t interrupt_register(uint8_t vector, interrupt_handler_f handler) {
     // get the array of handlers from vector
-    ptrdiff_t i = shgeti(interrupt_handlers, (uint64_t)vector);
+    ptrdiff_t i = hmgeti(interrupt_handlers, (uint64_t)vector);
     if(i == -1) {
-        shput(interrupt_handlers, (uint64_t)vector, 0);
-        i = shgeti(interrupt_handlers, (uint64_t)vector);
+        hmput(interrupt_handlers, (uint64_t)vector, 0);
+        i = hmgeti(interrupt_handlers, (uint64_t)vector);
     }
 
     // push the handler
@@ -199,10 +199,9 @@ void common_interrupt_handler(registers_t regs) {
     error_t err = {0};
     regs.cr3 = get_cr3();
 
-
     ptrdiff_t hi = -1;
     if(interrupt_handlers != NULL) {
-        hi = shgeti(interrupt_handlers, regs.int_num);
+        hi = hmgeti(interrupt_handlers, regs.int_num);
     }
 
     if(hi != -1) {

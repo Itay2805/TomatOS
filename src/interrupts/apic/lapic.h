@@ -2,6 +2,7 @@
 #define TOMATKERNEL_LAPIC_H
 
 #include <error.h>
+#include <interrupts/interrupts.h>
 
 // Lapic info
 #define LAPIC_REG_ID            0x20
@@ -211,6 +212,11 @@ uint8_t lapic_get_id();
  * Will set the enable bit and the spurious interrupt vector
  */
 error_t lapic_enable();
+
+/**
+ * Register a handler for the lapic timer interrupt
+ */
+error_t lapic_add_timer_handler(interrupt_handler_f handler);
 
 /**
  * Send an EOI to the Local APIC controller

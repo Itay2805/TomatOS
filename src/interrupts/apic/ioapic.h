@@ -16,6 +16,9 @@
 #define IOAPIC_DELIVERY_MODE_INIT               5
 #define IOAPIC_DELIVERY_MODE_EXTINT             7
 
+#define IOAPIC_ACTIVE_LOW       MADT_FLAG_ACTIVE_LOW
+#define IOAPIC_LEVEL_TRIGGER    MADT_FLAG_LEVEL_TRIGGERED
+
 typedef union ioapic_redirection_entry {
     struct {
         uint64_t vector : 8;
@@ -77,6 +80,6 @@ madt_ioapic_t* ioapic_get_from_gsi(uint32_t gsi);
  * @param irq       [IN] The IRQ we wanna map
  * @param vector    [IN] The vector we map it to
  */
-error_t ioapic_redirect(uint32_t irq, uint8_t vector);
+error_t ioapic_redirect(uint32_t irq, uint8_t vector, int flags);
 
 #endif //TOMATKERNEL_IOAPIC_H
