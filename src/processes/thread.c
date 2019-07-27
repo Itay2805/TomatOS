@@ -23,33 +23,34 @@ error_t create_thread(process_t* process, thread_t** thread) {
     if(process->address_space == kernel_address_space) {
         // set the kernel stack
         new_thread->kernel.stack = (uintptr_t) kmalloc(MB(2));
-        new_thread->context.cpu->rsp = new_thread->kernel.stack;
+        new_thread->context.cpu.rsp = new_thread->kernel.stack;
 
         // set the segments for kernel thread
-        new_thread->context.cpu->ds = GDT_KERNEL_DATA;
-        new_thread->context.cpu->ss = GDT_KERNEL_DATA;
-        new_thread->context.cpu->cs = GDT_KERNEL_CODE;
+        new_thread->context.cpu.ds = GDT_KERNEL_DATA;
+        new_thread->context.cpu.ss = GDT_KERNEL_DATA;
+        new_thread->context.cpu.cs = GDT_KERNEL_CODE;
 
         // set the rflags
-        new_thread->context.cpu->rflags = RFLAGS_DEFAULT;
+        new_thread->context.cpu.rflags = RFLAGS_DEFAULT;
     }else {
         // the loader will have to setup the user stack
 
         // set the segments for user thread
-        new_thread->context.cpu->ds = GDT_USER_DATA;
-        new_thread->context.cpu->ss = GDT_USER_DATA;
-        new_thread->context.cpu->cs = GDT_USER_CODE;
+        new_thread->context.cpu.ds = GDT_USER_DATA;
+        new_thread->context.cpu.ss = GDT_USER_DATA;
+        new_thread->context.cpu.cs = GDT_USER_CODE;
 
         // set the rflags
-        new_thread->context.cpu->rflags = RFLAGS_DEFAULT_USER;
+        new_thread->context.cpu.rflags = RFLAGS_DEFAULT_USER;
     }
 
     // set the cpu context
     // TODO: have a get cr3 from address space instead
-    new_thread->context.cpu->cr3 = process->address_space;
+    new_thread->context.cpu.cr3 = process->address_space;
 
     // add to the process
     lock_preemption(&process->lock);
+    new_thread->process->refcount++;
     new_thread->tid = process->next_tid++;
     hmput(process->threads, new_thread->tid, new_thread);
     unlock_preemption(&process->lock);
@@ -61,12 +62,12 @@ cleanup:
     return err;
 }
 
-error_t delete_thread(thread_t* thread) {
+error_t release_thread(thread_t* thread) {
     error_t err = NO_ERROR;
 
-    lock_preemption(&thread->lock);
-
     CHECK(thread);
+
+    lock_preemption(&thread->lock);
 
     // dev refcount
     thread->refcount--;
@@ -82,19 +83,27 @@ error_t delete_thread(thread_t* thread) {
         lock_preemption(&thread->process->lock);
         hmdel(thread->process->threads, thread->tid);
         unlock_preemption(&thread->process->lock);
+
+        // release the process
+        CHECK_AND_RETHROW(release_process(thread->process));
+
+        // delete!
+        kfree(thread);
+        goto deleted;
     }
 
 cleanup:
     unlock_preemption(&thread->lock);
+deleted:
     return err;
 }
 
 error_t thread_kill(thread_t* thread) {
     error_t err = NO_ERROR;
 
-    lock_preemption(&thread->lock);
-
     CHECK(thread);
+
+    lock_preemption(&thread->lock);
 
     if(thread->status == THREAD_STATUS_RUNNING) {
         // TODO: reschedule

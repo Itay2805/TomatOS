@@ -38,7 +38,7 @@ typedef struct thread {
 
     // The context of the thread
     struct {
-        registers_t* cpu;
+        registers_t cpu;
         char fpu[512];
     } context;
 
@@ -69,7 +69,7 @@ error_t create_thread(process_t* process, thread_t** thread);
  *
  * @param thread    [IN] The thread to delete
  */
-error_t delete_thread(thread_t* thread);
+error_t release_thread(thread_t* thread);
 
 /////////////////////////////////////////////
 // Thread functions

@@ -17,9 +17,6 @@ typedef struct process {
     // The address space of the process
     address_space_t address_space;
 
-    // is this a kernel process
-    bool kernel;
-
     // the priority of the process
     int priority;
 
@@ -36,5 +33,24 @@ typedef struct process {
     // TODO: resources
     // TODO: default signal routing
 } process_t;
+
+/*
+ * This is the kernel process
+ */
+extern process_t* kernel_process;
+
+/////////////////////////////////////////////
+// Kernel object management
+/////////////////////////////////////////////
+
+error_t create_process(address_space_t address_space, process_t** process);
+
+error_t release_process(process_t* process);
+
+/////////////////////////////////////////////
+// Process API
+/////////////////////////////////////////////
+
+error_t process_kill(process_t* process);
 
 #endif //TOMATOS_PROCESS_H
