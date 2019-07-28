@@ -52,12 +52,7 @@ error_t hpet_init() {
     uint64_t base_addr = hpet_table->addr.address;
 
     // map it
-    if(!vmm_is_mapped(kernel_address_space, CONVERT_TO_DIRECT(base_addr))) {
-        CHECK_AND_RETHROW(vmm_map(kernel_address_space,
-                (void*)CONVERT_TO_DIRECT((uintptr_t)base_addr),
-                (void *)(uintptr_t)base_addr,
-                PAGE_ATTR_WRITE));
-    }
+    CHECK_AND_RETHROW(vmm_map_direct(base_addr, KB(4)));
 
     // use the hpet table for the first hpet
     hpet_t hpet = {

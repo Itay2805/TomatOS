@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <common.h>
 
 // TODO: Instead of having both have a single uniform list
 rsdt_t* rsdt;
@@ -19,17 +20,15 @@ error_t rsdt_init() {
     if(rsdp->revision == 0) {
         rsdt = (rsdt_t *)CONVERT_TO_DIRECT((uintptr_t)rsdp->rsdt_addr);
         hdr = &rsdt->header;
-        if(!vmm_is_mapped(kernel_address_space, (uintptr_t) rsdt)) {
-            CHECK_AND_RETHROW(vmm_map(kernel_address_space, rsdt, (void*)(uintptr_t)rsdp->rsdt_addr, 0));
-        }
+        CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr, KB(4)));
+        CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr, hdr->length));
 
         log_info("\tRSDT found (0x%016p)", (uintptr_t)rsdt - DIRECT_MAPPING_BASE);
     }else {
         xsdt = (xsdt_t *) CONVERT_TO_DIRECT(rsdp2->xsdt_addr);
         hdr = &xsdt->header;
-        if(!vmm_is_mapped(kernel_address_space, (uintptr_t) xsdt)) {
-            CHECK_AND_RETHROW(vmm_map(kernel_address_space, xsdt, (void*)(uintptr_t)rsdp2->xsdt_addr, 0));
-        }
+        CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr, KB(4)));
+        CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr, hdr->length));
 
 
         if(rsdp->revision != 2) {
@@ -51,18 +50,16 @@ error_t rsdt_init() {
         // rsdt iteration
         for(uint32_t* sdt = rsdt->sdts; sdt < (rsdt->sdts + ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4)); sdt++) {
             hdr = (sdt_hdr_t *)CONVERT_TO_DIRECT((uintptr_t)*sdt);
-            if(!vmm_is_mapped(kernel_address_space, (uintptr_t) hdr)) {
-                CHECK_AND_RETHROW(vmm_map(kernel_address_space, hdr, (void*)(uintptr_t)*sdt, 0));
-            }
+            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr, KB(4)));
+            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr, hdr->length));
             log_info("\t\t\t%.4s", hdr->signature);
         }
     }else {
         // xsdt iteration
         for(uint64_t* sdt = xsdt->sdts; sdt < (xsdt->sdts + ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8)); sdt++) {
             hdr = (sdt_hdr_t *) CONVERT_TO_DIRECT(*sdt);
-            if(!vmm_is_mapped(kernel_address_space, (uintptr_t) hdr)) {
-                CHECK_AND_RETHROW(vmm_map(kernel_address_space, hdr, (void*)(uintptr_t)*sdt, 0));
-            }
+            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr, KB(4)));
+            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr, hdr->length));
             log_info("\t\t\t%.4s", hdr->signature);
         }
     }

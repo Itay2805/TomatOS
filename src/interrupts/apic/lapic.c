@@ -11,21 +11,7 @@
 #include <drivers/hpet/hpet.h>
 
 static char* mmio_base;
-static uint8_t timer_vector;
-static interrupt_handler_f* handlers;
-
-static error_t timer_interrupt_handle(registers_t* regs) {
-    error_t err = NO_ERROR;
-
-    for(int i = 0; i < arrlen(handlers); i++) {
-        CHECK_AND_RETHROW(handlers[i](regs));
-    }
-
-    CHECK_AND_RETHROW(lapic_send_eoi());
-
-cleanup:
-    return err;
-}
+static uint64_t ticks_per_milli;
 
 static error_t set_nmis() {
     error_t err = NO_ERROR;
@@ -59,7 +45,6 @@ static error_t calibrate_timer() {
 
     // mask the interrupt
     lapic_lvt_timer_t timer = {
-            .vector = timer_vector,
             .mask = true,
             .timer_mode = LAPIC_TIMER_MODE_ONE_SHOT
     };
@@ -73,15 +58,7 @@ static error_t calibrate_timer() {
     CHECK_AND_RETHROW(hpet_stall(1));
 
     // read the current count
-    uint64_t ticks = UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT);
-
-    // set the initial count to the ticks and enable it
-    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, (uint32_t) ticks);
-
-    // enable interrupt
-    timer.mask = false;
-    timer.timer_mode = LAPIC_TIMER_MODE_PERIODIC;
-    lapic_write(LAPIC_REG_LVT_TIMER, timer.raw);
+    ticks_per_milli = UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT);
 
 cleanup:
     return err;
@@ -90,17 +67,13 @@ cleanup:
 error_t lapic_init() {
     error_t err = NO_ERROR;
 
+    CHECK_AND_RETHROW(vmm_map_direct(madt->lapic_addr, KB(4)));
     mmio_base = (char*)CONVERT_TO_DIRECT((uintptr_t)madt->lapic_addr);
-    if(!vmm_is_mapped(kernel_address_space, (uintptr_t) mmio_base)) {
-        CHECK_AND_RETHROW(vmm_map(kernel_address_space, mmio_base, (void*)(uintptr_t)madt->lapic_addr, PAGE_ATTR_WRITE));
-    }
 
     log_info("\tInitializing Local APIC #%d", lapic_get_id());
 
-    timer_vector = interrupt_allocate();
-    log_info("\t\tSetting timer for 1ms (Vector #%d)", timer_vector);
+    log_info("\t\tCalibrating timer");
     CHECK_AND_RETHROW(calibrate_timer());
-    CHECK_AND_RETHROW(interrupt_register(timer_vector, timer_interrupt_handle));
 
     log_info("\t\tSetting NMIs");
     CHECK_AND_RETHROW(set_nmis());
@@ -142,7 +115,22 @@ error_t lapic_send_eoi() {
     return NO_ERROR;
 }
 
-error_t lapic_add_timer_handler(interrupt_handler_f handler) {
-    arrpush(handlers, handler);
+error_t lapic_set_timer(uint32_t millis, uint8_t vector) {
+    // TODO: Check overflow
+
+    lapic_lvt_timer_t timer = {
+            .vector = vector,
+            .mask = true,
+            .timer_mode = LAPIC_TIMER_MODE_ONE_SHOT,
+    };
+    lapic_write(LAPIC_REG_LVT_TIMER, timer.raw);
+    lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1);
+    lapic_write(LAPIC_REG_TIMER_CURRENT_COUNT, (uint32_t) (millis * ticks_per_milli));
+
     return NO_ERROR;
+}
+
+bool lapic_timer_fired() {
+    lapic_lvt_timer_t timer = { .raw = lapic_read(LAPIC_REG_LVT_TIMER) };
+    return timer.delivery_status == 1;
 }

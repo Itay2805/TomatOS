@@ -47,11 +47,7 @@ void* laihost_scan(char* signature, size_t index) {
 void* laihost_map(size_t addr, size_t size) {
     error_t err = NO_ERROR;
 
-    for(uintptr_t a = ALIGN_PAGE_DOWN(addr); a < ALIGN_PAGE_UP(addr + size); a += KB(4)) {
-        if(!vmm_is_mapped(kernel_address_space, CONVERT_TO_DIRECT(a))) {
-            CHECK_AND_RETHROW(vmm_map(kernel_address_space, (void *) CONVERT_TO_DIRECT(a), (void *) a, PAGE_ATTR_WRITE));
-        }
-    }
+    CHECK_AND_RETHROW(vmm_map_direct(addr, size));
 
 cleanup:
     if(err != NO_ERROR) {

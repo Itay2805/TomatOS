@@ -17,6 +17,7 @@ error_t rsdp_init(tboot_info_t* info) {
 
     // set the table
     rsdp = (rsdp_t *) info->rsdp;
+    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)rsdp, KB(4)));
     if(rsdp->revision == 2) {
         rsdp2 = (rsdp2_t *) rsdp;
     }

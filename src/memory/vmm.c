@@ -8,6 +8,7 @@
 #include <cpu/msr.h>
 #include <locks/spinlock.h>
 #include <cpu/cpuid.h>
+#include <cpu/atomic.h>
 
 ////////////////////////////////////////////////////////////////////////////
 // Page attributes
@@ -147,6 +148,7 @@ static error_t get_or_create_page(uint64_t *entry, int attributes, uint64_t *out
         // set the entry
         *entry = PAGING_PRESENT_BIT | (new_page & PAGING_4KB_ADDR_MASK);
         set_attributes(entry, attributes);
+        _barrier();
     }
 
     *out_page = new_page;
@@ -286,6 +288,7 @@ static error_t internal_map(address_space_t address_space, void* virtual_address
     if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
         table[PAGING_PML1E_OFFSET(virtual_address)] |= PAGING_GLOBAL_BIT;
     }
+    _barrier();
 
 cleanup:
     return err;
@@ -325,6 +328,7 @@ static error_t internal_map_1gb(address_space_t address_space, uintptr_t virt_ad
     if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
         table[PAGING_PML3E_OFFSET(virt_addr)] |= PAGING_GLOBAL_BIT;
     }
+    _barrier();
 
 cleanup:
     return err;
@@ -365,6 +369,7 @@ static error_t internal_map_2mb(address_space_t address_space, uintptr_t virt_ad
     if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
         table[PAGING_PML2E_OFFSET(virt_addr)] |= PAGING_GLOBAL_BIT;
     }
+    _barrier();
 
 cleanup:
     return err;
@@ -394,7 +399,7 @@ static error_t internal_map_big_pages(address_space_t address_space, uintptr_t v
             if(addr == 0) {
                 break;
             }
-            if(!vmm_is_mapped(address_space, addr)) {
+            if(internal_virt_to_phys(address_space, addr) == -1) {
                 CHECK_AND_RETHROW(internal_map_1gb(address_space, addr, phys_addr, attributes));
             }
         }
@@ -410,7 +415,7 @@ static error_t internal_map_big_pages(address_space_t address_space, uintptr_t v
             if(addr == 0) {
                 break;
             }
-            if(!vmm_is_mapped(address_space, addr)) {
+            if(internal_virt_to_phys(address_space, addr) == -1) {
                 CHECK_AND_RETHROW(internal_map_1gb(address_space, addr, phys_addr, attributes));
             }
         }
@@ -529,16 +534,15 @@ cleanup:
     return err;
 }
 
-error_t vmm_map_direct(uintptr_t physical_start, uintptr_t physical_end) {
+error_t vmm_map_direct(uintptr_t physical_start, size_t size) {
     error_t err = NO_ERROR;
 
     lock_preemption(&vmm_lock);
 
-    CHECK(physical_end > physical_start);
-    CHECK_TRACE(physical_end <= MM_BASE, "Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", physical_start, physical_end);
+    CHECK_TRACE(physical_start + size <= MM_BASE, "Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", physical_start, physical_start + size);
 
     // map it
-    CHECK_AND_RETHROW(internal_map_big_pages(kernel_address_space, CONVERT_TO_DIRECT(physical_start), physical_start, physical_end - physical_start, PAGE_ATTR_WRITE | PAGE_ATTR_GLOBAL));
+    CHECK_AND_RETHROW(internal_map_big_pages(kernel_address_space, CONVERT_TO_DIRECT(physical_start), physical_start, size, PAGE_ATTR_WRITE | PAGE_ATTR_GLOBAL));
 
 cleanup:
     unlock_preemption(&vmm_lock);

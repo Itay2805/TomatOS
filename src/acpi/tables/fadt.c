@@ -20,17 +20,9 @@ static error_t dsdt_init() {
         CHECK_FAIL_ERROR_TRACE(ERROR_NOT_SUPPORTED, "Could not get either rsdp or rsdp2");
     }
 
-    // first of all make sure the header is mapped
-    if(!vmm_is_mapped(kernel_address_space, (uintptr_t) dsdt)) {
-        CHECK_AND_RETHROW(vmm_map(kernel_address_space, dsdt, (void *) dsdt - DIRECT_MAPPING_BASE, PAGE_ATTR_WRITE));
-    }
-
-    // now we can map the rest (skipping the first page)
-    for(uintptr_t addr = ALIGN_DOWN(dsdt, KB(4)) + KB(4); addr < ALIGN_UP((uintptr_t)dsdt + dsdt->length, KB(4)); addr += KB(4)) {
-        if(!vmm_is_mapped(kernel_address_space, addr)) {
-            CHECK_AND_RETHROW(vmm_map(kernel_address_space, (void*)addr, (void *) addr - DIRECT_MAPPING_BASE, PAGE_ATTR_WRITE));
-        }
-    }
+    // map it
+    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)dsdt, KB(4)));
+    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)dsdt, dsdt->length));
 
     CHECK_ERROR_TRACE(acpi_validate_checksum(dsdt, dsdt->length), ERROR_NOT_FOUND, "DSDT checksum incorrect");
     log_info("\tDSDT Found (0x%016p)", (uintptr_t)dsdt - DIRECT_MAPPING_BASE);
@@ -47,8 +39,8 @@ error_t fadt_init() {
 
     fadt = (fadt_t *) rsdt_search("FACP", 0);
     CHECK_ERROR_TRACE(fadt, ERROR_NOT_FOUND, "FADT (FACP) Not found");
-    CHECK_ERROR_TRACE(acpi_validate_checksum(fadt, fadt->header.length), ERROR_NOT_FOUND, "FADT checksum incorrect");
 
+    CHECK_ERROR_TRACE(acpi_validate_checksum(fadt, fadt->header.length), ERROR_NOT_FOUND, "FADT checksum incorrect");
     log_info("\tFADT (FACP) Found (0x%016p)", (uintptr_t)fadt - DIRECT_MAPPING_BASE);
     log_info("\t\tRevision: %d", fadt->header.revision);
     log_info("\t\tOEM ID: %.6s", fadt->header.oemid);

@@ -214,9 +214,16 @@ uint8_t lapic_get_id();
 error_t lapic_enable();
 
 /**
- * Register a handler for the lapic timer interrupt
+ * Setup the lapic timer to fire after the given amount of time and trigger
+ * the given vector
  */
-error_t lapic_add_timer_handler(interrupt_handler_f handler);
+error_t lapic_set_timer(uint32_t millis, uint8_t vector);
+
+/**
+ * Checks if the lapic timer has fired
+ * @return
+ */
+bool lapic_timer_fired();
 
 /**
  * Send an EOI to the Local APIC controller

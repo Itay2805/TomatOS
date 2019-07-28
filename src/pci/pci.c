@@ -358,7 +358,6 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     // check if valid
     if(POKE16(mmio + PCI_REG_VENDOR_ID) == 0xFFFF) {
         // no such device
-        vmm_unmap(kernel_address_space, mmio);
         goto cleanup;
     }
 
@@ -460,12 +459,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
             // map if possible
             if(new_bar.type == PCI_BAR_TYPE_MEM && new_bar.base != 0 && new_bar.len != 0) {
-                for(uintptr_t addr = ALIGN_PAGE_DOWN(new_bar.base); addr < ALIGN_PAGE_UP(new_bar.base + new_bar.len); addr += KB(4)) {
-                    if(!vmm_is_mapped(kernel_address_space, CONVERT_TO_DIRECT(addr))) {
-                        // TODO: Prefetch
-                        CHECK_AND_RETHROW(vmm_map(kernel_address_space, (void*)CONVERT_TO_DIRECT(addr), (void*)addr, PAGE_ATTR_WRITE));
-                    }
-                }
+                CHECK_AND_RETHROW(vmm_map_direct(new_bar.base, new_bar.len));
                 new_bar.base = CONVERT_TO_DIRECT(new_bar.base);
             }
 
@@ -523,7 +517,6 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 cleanup:
     if(err != NO_ERROR) {
         if(dev) kfree(dev);
-        vmm_unmap(kernel_address_space, mmio);
     }
     return err;
 }
@@ -584,9 +577,7 @@ error_t pci_get_and_map_mmio(uint16_t segment, uint8_t bus, uint8_t device, uint
         mcfg_entry_t* entry = &mcfg->entries[i];
         if(entry->segment == segment && entry->start_pci_bus <= bus && entry->end_pci_bus >= bus) {
             uintptr_t phys = entry->base + (((bus - entry->start_pci_bus) << 20) | (device << 15) | function << 12);
-            if(!vmm_is_mapped(kernel_address_space, CONVERT_TO_DIRECT(phys))) {
-                CHECK_AND_RETHROW(vmm_map(kernel_address_space, (void*)CONVERT_TO_DIRECT(phys), (void*)phys, PAGE_ATTR_WRITE));
-            }
+            CHECK_AND_RETHROW(vmm_map_direct(phys, KB(4)));
             *mmio = (char*)CONVERT_TO_DIRECT(phys);
             goto cleanup;
         }

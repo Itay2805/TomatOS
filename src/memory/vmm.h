@@ -62,9 +62,9 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
  * Will map the physical address range as direct memory
  *
  * @param physical_start    [IN] The address to start from
- * @param physical_end      [IN] The address to map to
+ * @param size              [IN] The amount of bytes to direct map, will be aligned upwards
  */
-error_t vmm_map_direct(uintptr_t physical_start, uintptr_t physical_end);
+error_t vmm_map_direct(uintptr_t physical_start, size_t size);
 
 /**
  * Unmap the virtual address
