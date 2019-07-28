@@ -40,4 +40,9 @@ error_t set_cpu_storage(size_t index);
 
 #define _swapgs() asm volatile("swapgs")
 
+/**
+ * Will get the count of cores we have
+ */
+size_t get_core_count();
+
 #endif //TOMATKERNEL_CPUSTORAGE_H

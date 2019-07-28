@@ -38,3 +38,7 @@ error_t set_cpu_storage(size_t index) {
     return NO_ERROR;
 }
 
+size_t get_core_count() {
+    return arrlen(all_pcpu_storage);
+}
+

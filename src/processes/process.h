@@ -17,9 +17,6 @@ typedef struct process {
     // The address space of the process
     address_space_t address_space;
 
-    // the priority of the process
-    int priority;
-
     // the threads of the process
     struct {
         tid_t key;
@@ -34,10 +31,17 @@ typedef struct process {
     // TODO: default signal routing
 } process_t;
 
+typedef struct process_map_entry {
+    pid_t key;
+    process_t* value;
+} process_map_entry_t;
+
 /*
  * This is the kernel process
  */
 extern process_t* kernel_process;
+extern process_map_entry_t* processes;
+extern spinlock_t processes_lock;
 
 /////////////////////////////////////////////
 // Kernel object management

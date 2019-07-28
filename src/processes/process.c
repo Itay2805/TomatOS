@@ -3,6 +3,8 @@
 #include "process.h"
 
 process_t* kernel_process;
+spinlock_t processes_lock;
+process_map_entry_t* processes;
 
 static pid_t next_pid = 0;
 
@@ -19,6 +21,11 @@ error_t create_process(address_space_t address_space, process_t** process) {
 
     *process = new_proc;
 
+    // add the process to the processes list
+    lock_preemption(&processes_lock);
+    hmput(processes, new_proc->pid, new_proc);
+    unlock_preemption(&processes_lock);
+
 cleanup:
     return err;
 }
@@ -34,21 +41,10 @@ error_t release_process(process_t* process) {
 
     // each thread has a ref to the process, so we need to take that into account
     if(process->refcount <= 0) {
-        // release all the threads
-        bool delete = false;
-        for(int i = 0; i < hmlen(process->threads); i++) {
-            if(!delete) {
-                delete = process->threads[i].value->refcount > 1;
-            }
-            CHECK_AND_RETHROW(release_thread(process->threads[i].value));
-        }
+        CHECK_TRACE(hmlen(process->threads) == 0, "Tried to free a process with running threads");
 
-        if(delete) {
-            // ok, we were the last holders of each thread, we can
-            // delete ourselves
-            kfree(process);
-            goto deleted;
-        }
+        kfree(process);
+        goto deleted;
     }
 
 cleanup:

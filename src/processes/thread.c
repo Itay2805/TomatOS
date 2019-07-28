@@ -6,6 +6,7 @@
 #include <stb/stb_ds.h>
 
 #include "process.h"
+#include "scheduler.h"
 
 error_t create_thread(process_t* process, thread_t** thread) {
     error_t err = NO_ERROR;
@@ -50,7 +51,6 @@ error_t create_thread(process_t* process, thread_t** thread) {
 
     // add to the process
     lock_preemption(&process->lock);
-    new_thread->process->refcount++;
     new_thread->tid = process->next_tid++;
     hmput(process->threads, new_thread->tid, new_thread);
     unlock_preemption(&process->lock);
@@ -74,6 +74,9 @@ error_t release_thread(thread_t* thread) {
 
     // gotta kill that process
     if(thread->refcount <= 0) {
+        // tried to free a thread that has not been killed!
+        CHECK_TRACE(thread->status == THREAD_STATUS_DEAD, "Tried to free a thread that has not been killed");
+
         // free the kernel related stuff
         if(thread->process->address_space == kernel_address_space) {
             kfree((void *) thread->kernel.stack);
@@ -106,7 +109,7 @@ error_t thread_kill(thread_t* thread) {
     lock_preemption(&thread->lock);
 
     if(thread->status == THREAD_STATUS_RUNNING) {
-        // TODO: reschedule
+        CHECK_AND_RETHROW(scheduler_kill_thread(thread));
     }
 
     thread->status = THREAD_STATUS_DEAD;

@@ -42,6 +42,9 @@ typedef struct thread {
         char fpu[512];
     } context;
 
+    // the last time the scheduler touched this process
+    uint64_t last_time;
+
     // TODO: Scheduling stuff
     // TODO: Thread signal routing
 } thread_t;
