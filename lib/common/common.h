@@ -19,8 +19,8 @@
 // Alignment
 ////////////////////////////////////////////////////////////////////////////
 
-#define ALIGN_DOWN(n, a) (((uint64_t)n) & ~((a) - 1))
-#define ALIGN_UP(n, a) ALIGN_DOWN(((uint64_t)n) + (a) - 1, (a))
+#define ALIGN_DOWN(n, a) (((uint64_t)n) & ~((a) - 1ul))
+#define ALIGN_UP(n, a) ALIGN_DOWN(((uint64_t)n) + (a) - 1ul, (a))
 #define ALIGN_PAGE_DOWN(n) ALIGN_DOWN(n, KB(4))
 #define ALIGN_PAGE_UP(n) ALIGN_UP(n, KB(4))
 
@@ -28,10 +28,10 @@
 // Unit conversion
 ////////////////////////////////////////////////////////////////////////////
 
-#define KB(x) (((uint64_t)x) * 1024u)
-#define MB(x) (((uint64_t)x) * KB(1024))
-#define GB(x) (((uint64_t)x) * MB(1024))
-#define TB(x) (((uint64_t)x) * GB(1024))
+#define KB(x) (((uint64_t)x) * 1024ul)
+#define MB(x) (((uint64_t)x) * KB(1024ul))
+#define GB(x) (((uint64_t)x) * MB(1024ul))
+#define TB(x) (((uint64_t)x) * GB(1024ul))
 
 ////////////////////////////////////////////////////////////////////////////
 // Attributes
