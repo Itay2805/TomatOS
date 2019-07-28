@@ -53,6 +53,7 @@ CFLAGS += \
 	-mno-omit-leaf-frame-pointer \
 	-fno-pie \
 	-static \
+	-flto \
 	-O3 \
 	-g
 
