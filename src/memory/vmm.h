@@ -8,6 +8,7 @@
 #define PAGE_ATTR_EXECUTE           (1 << 0)
 #define PAGE_ATTR_USER              (1 << 1)
 #define PAGE_ATTR_WRITE             (1 << 2)
+#define PAGE_ATTR_GLOBAL            (1 << 3)
 
 #define DIRECT_MAPPING_BASE           0xFFFF800000000000ul
 #define CONVERT_TO_DIRECT(addr) ((typeof(addr))(((uintptr_t)(addr)) + DIRECT_MAPPING_BASE))
@@ -56,6 +57,14 @@ address_space_t vmm_get();
  * @return ERROR_OUT_OF_MEMORY: We ran out of memory
  */
 error_t vmm_map(address_space_t address_space, void* virtual_address, void* physical_address, int attributes);
+
+/**
+ * Will map the physical address range as direct memory
+ *
+ * @param physical_start    [IN] The address to start from
+ * @param physical_end      [IN] The address to map to
+ */
+error_t vmm_map_direct(uintptr_t physical_start, uintptr_t physical_end);
 
 /**
  * Unmap the virtual address

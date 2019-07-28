@@ -4,6 +4,8 @@
 #include <error.h>
 
 // TODO: Add locks to all of these
+#define MM_BASE                0xFFFFFFF800000000
+#define KERNEL_MAPPING_BASE    0xFFFFFFFFC0000000
 
 error_t mm_init();
 

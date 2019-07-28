@@ -1,11 +1,13 @@
 #include "vmm.h"
 #include "pmm.h"
+#include "mm.h"
 
 #include <common.h>
 #include <string.h>
 #include <cpu/cr.h>
 #include <cpu/msr.h>
 #include <locks/spinlock.h>
+#include <cpu/cpuid.h>
 
 ////////////////////////////////////////////////////////////////////////////
 // Page attributes
@@ -19,6 +21,7 @@
 #define PAGING_DIRTY_BIT (1ul << 6ul)
 #define PAGING_PAGE_SIZE_BIT (1ul << 7ul)
 #define PAGING_NO_EXECUTE_BIT (1ul << 63ul)
+#define PAGING_GLOBAL_BIT (1ul << 8ul)
 
 ////////////////////////////////////////////////////////////////////////////
 // Masks for the table entries
@@ -27,14 +30,14 @@
 // ----------------------------------
 // When using 1GB pages
 // ----------------------------------
-#define PAGING_1GB_PDPE_MASK    (0x7FFFFFFFC0000000)
+#define PAGING_1GB_PML3_MASK    (0x7FFFFFFFC0000000)
 #define PAGING_1GB_PML4_MASK    (0x7FFFFFFFFFFFF000)
 
 // ----------------------------------
 // When using 2MB pages
 // ----------------------------------
 #define PAGING_2MB_PDE_MASK     (0x7FFFFFFFFFE00000)
-#define PAGING_2MB_PDPE_MASK    (0x7FFFFFFFFFFFF000)
+#define PAGING_2MB_PML2_MASK    (0x7FFFFFFFFFFFF000)
 #define PAGING_2MB_PML4_MASK    (0x7FFFFFFFFFFFF000)
 
 // ----------------------------------
@@ -73,6 +76,10 @@ address_space_t kernel_address_space;
  * Global VMM lock (should probably have one lock per address space instead)
  */
 static spinlock_t vmm_lock;
+
+// features
+static bool supports_global_pages;
+static bool supports_1gb_paging;
 
 ////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -194,21 +201,21 @@ static error_t get_or_create_pml1(uint64_t pml4, uint64_t virt_addr, int attribu
 
     uint64_t* table = (uint64_t*)&physical_memory[pml4];
 
-    // get pdp
+    // get pml3
     {
         uint64_t next = 0;
         CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML4E_OFFSET(virt_addr)], attributes, &next));
         table = (uint64_t *) &physical_memory[next];
     }
 
-    // get the pd
+    // get the pml2
     {
         uint64_t next = 0;
         CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML3E_OFFSET(virt_addr)], attributes, &next));
         table = (uint64_t*) &physical_memory[next];
     }
 
-    // get the pt
+    // get the pml1
     {
         uint64_t next = 0;
         CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML2E_OFFSET(virt_addr)], attributes, &next));
@@ -217,6 +224,47 @@ static error_t get_or_create_pml1(uint64_t pml4, uint64_t virt_addr, int attribu
 
 cleanup:
     return err;
+}
+
+static uintptr_t internal_virt_to_phys(address_space_t address_space, uintptr_t virtual_address) {
+    uint64_t* table = (uint64_t *) &physical_memory[address_space];
+
+    // get pml3
+    {
+        uint64_t next = get_page(&table[PAGING_PML4E_OFFSET(virtual_address)], 0);
+        if(next == 0) return (uintptr_t) -1;
+        table = (uint64_t *) &physical_memory[next];
+
+        // check for 1gb pages
+        if(supports_1gb_paging && (table[PAGING_PML3E_OFFSET(virtual_address)] & PAGING_PAGE_SIZE_BIT) != 0) {
+            return table[PAGING_PML3E_OFFSET(virtual_address)] & PAGING_1GB_PML3_MASK;
+        }
+    }
+
+    // get the pml2
+    {
+        uint64_t next = get_page(&table[PAGING_PML3E_OFFSET(virtual_address)], 0);
+        if(next == 0) return (uintptr_t) -1;
+        table = (uint64_t *) &physical_memory[next];
+
+        // check for 2mb pages
+        if((table[PAGING_PML2E_OFFSET(virtual_address)] & PAGING_PAGE_SIZE_BIT) != 0) {
+            return table[PAGING_PML2E_OFFSET(virtual_address)] & PAGING_2MB_PML2_MASK;
+        }
+    }
+
+    // get the pml1
+    {
+        uint64_t next = get_page(&table[PAGING_PML2E_OFFSET(virtual_address)], 0);
+        if(next == 0) return (uintptr_t) -1;
+        table = (uint64_t *) &physical_memory[next];
+    }
+
+    // check if the entry exists
+    if((table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT) == 0) return (uintptr_t)-1;
+
+    // return it
+    return table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
 }
 
 static error_t internal_map(address_space_t address_space, void* virtual_address, void* physical_address, int attributes) {
@@ -235,9 +283,141 @@ static error_t internal_map(address_space_t address_space, void* virtual_address
     table[PAGING_PML1E_OFFSET(virtual_address)] = PAGING_PRESENT_BIT | ((uint64_t)physical_address & PAGING_4KB_ADDR_MASK);
     set_attributes(&table[PAGING_PML1E_OFFSET(virtual_address)], attributes);
 
+    if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
+        table[PAGING_PML1E_OFFSET(virtual_address)] |= PAGING_GLOBAL_BIT;
+    }
+
 cleanup:
     return err;
 
+}
+
+/**
+ * Will map the given virtual address to the 1gb continues address
+ *
+ * @remark
+ * This only works if 1gb pages are enabled
+ */
+static error_t internal_map_1gb(address_space_t address_space, uintptr_t virt_addr, uintptr_t phys_addr, int attributes) {
+    error_t err = NO_ERROR;
+
+    uint64_t* table = (uint64_t*)&physical_memory[address_space];
+
+    // make sure we have this
+    CHECK_ERROR(supports_1gb_paging, ERROR_NOT_SUPPORTED);
+
+    // get pml3
+    {
+        uint64_t next = 0;
+        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML4E_OFFSET(virt_addr)], attributes, &next));
+        table = (uint64_t *) &physical_memory[next];
+    }
+
+    // get the pml3e
+    CHECK_ERROR((table[PAGING_PML3E_OFFSET(virt_addr)] & PAGING_PRESENT_BIT) == 0, ERROR_ALREADY_MAPPED);
+
+    // set the page attributes
+    table[PAGING_PML3E_OFFSET(virt_addr)] = PAGING_PRESENT_BIT | PAGING_PAGE_SIZE_BIT;
+    table[PAGING_PML3E_OFFSET(virt_addr)] |= phys_addr & PAGING_1GB_PML3_MASK;
+    set_attributes(&table[PAGING_PML3E_OFFSET(virt_addr)], attributes);
+
+    // global it if can
+    if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
+        table[PAGING_PML3E_OFFSET(virt_addr)] |= PAGING_GLOBAL_BIT;
+    }
+
+cleanup:
+    return err;
+}
+
+/**
+ * Will map the given virtual address to the 2mb continues address
+ */
+static error_t internal_map_2mb(address_space_t address_space, uintptr_t virt_addr, uintptr_t phys_addr, int attributes) {
+    error_t err = NO_ERROR;
+
+    uint64_t* table = (uint64_t*)&physical_memory[address_space];
+
+    // get pml3
+    {
+        uint64_t next = 0;
+        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML4E_OFFSET(virt_addr)], attributes, &next));
+        table = (uint64_t *) &physical_memory[next];
+    }
+
+    // get the pml2
+    {
+        uint64_t next = 0;
+        CHECK_AND_RETHROW(get_or_create_page((uint64_t*)&table[PAGING_PML3E_OFFSET(virt_addr)], attributes, &next));
+        table = (uint64_t*) &physical_memory[next];
+    }
+
+
+    // get the pml2e
+    CHECK_ERROR(table[PAGING_PML2E_OFFSET(virt_addr)] & PAGING_PRESENT_BIT, ERROR_ALREADY_MAPPED);
+
+    // set the page attributes
+    table[PAGING_PML2E_OFFSET(virt_addr)] = PAGING_PRESENT_BIT | PAGING_PAGE_SIZE_BIT;
+    table[PAGING_PML2E_OFFSET(virt_addr)] |= phys_addr & PAGING_2MB_PML2_MASK;
+    set_attributes(&table[PAGING_PML2E_OFFSET(virt_addr)], attributes);
+
+    // global it if can
+    if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
+        table[PAGING_PML2E_OFFSET(virt_addr)] |= PAGING_GLOBAL_BIT;
+    }
+
+cleanup:
+    return err;
+}
+
+/**
+ * This will use the internal_map_1gb/internal_map_2mb to map the given continues physical memory
+ * into virtual memory using big pages in order to save on space and time.
+ *
+ * This will take care of alignment by aligning down the start as needed and aligning up the end as needed
+ *
+ * @remark
+ * This also deals with the edge case where the end of memory is reached (and overflows to 0)
+ */
+static error_t internal_map_big_pages(address_space_t address_space, uintptr_t virt_addr, uintptr_t phys_addr, size_t length, int attributes) {
+    error_t err = NO_ERROR;
+
+    if(supports_1gb_paging) {
+        phys_addr = ALIGN_DOWN(phys_addr, GB(1));
+
+        uint64_t max = UINT64_MAX;
+        if(ALIGN_UP(virt_addr + length, GB(1)) != 0) {
+            max = ALIGN_UP(virt_addr + length, GB(1));
+        }
+
+        for(uintptr_t addr = ALIGN_DOWN(virt_addr, GB(1)); addr < max; addr += GB(1), phys_addr += GB(1)) {
+            if(addr == 0) {
+                break;
+            }
+            if(!vmm_is_mapped(address_space, addr)) {
+                CHECK_AND_RETHROW(internal_map_1gb(address_space, addr, phys_addr, attributes));
+            }
+        }
+    }else {
+        phys_addr = ALIGN_DOWN(phys_addr, MB(2));
+
+        uint64_t max = UINT64_MAX;
+        if(ALIGN_UP(virt_addr + length, MB(2)) != 0) {
+            max = ALIGN_UP(virt_addr + length, MB(2));
+        }
+
+        for(uintptr_t addr = ALIGN_DOWN(virt_addr, MB(2)); addr < max; addr += MB(2), phys_addr += MB(2)) {
+            if(addr == 0) {
+                break;
+            }
+            if(!vmm_is_mapped(address_space, addr)) {
+                CHECK_AND_RETHROW(internal_map_1gb(address_space, addr, phys_addr, attributes));
+            }
+        }
+    }
+
+cleanup:
+    return err;
 }
 
 /**
@@ -261,19 +441,38 @@ static inline void invlpg(uintptr_t addr) {
 error_t vmm_init(tboot_info_t* info) {
     error_t err = NO_ERROR;
 
+    cpu_features_t features;
+    get_cpu_features(&features);
+
     // enable whatever features we wanna use
     log_info("Enabling features");
     log_info("\t* No execute");
+    // TODO: Check nx support
     efer_t efer = (efer_t){.raw = _rdmsr(IA32_EFER)};
     efer.no_execute_enable = true;
     _wrmsr(IA32_EFER, efer.raw);
 
+    if(features.pse) {
+        log_info("\t* 1GB paging");
+        set_cr4(get_cr4() | CR4_PAGE_SIZE_EXTENSIONS);
+        supports_1gb_paging = true;
+    }else {
+        log_warn("\t* 1GB paging not available");
+    }
+
+    if(features.pge) {
+        log_info("\t* Global pages");
+        set_cr4(get_cr4() | CR4_PAGE_GLOBAL_ENABLED);
+        supports_global_pages = true;
+    }else {
+        log_warn("\t* Global pages are not available");
+    }
+
     physical_memory = 0;
 
     // allocate the kernel memory map
-    uint64_t kpml4;
-    CHECK_AND_RETHROW(pmm_allocate(&kpml4));
-    memset((void *)kpml4, 0, KB(4));
+    CHECK_AND_RETHROW(pmm_allocate(&kernel_address_space ));
+    memset((void *)kernel_address_space , 0, KB(4));
 
     // TODO: Use large pages as optimization
     log_info("creating direct memory map");
@@ -283,14 +482,7 @@ error_t vmm_init(tboot_info_t* info) {
             case TBOOT_MEMORY_TYPE_ACPI_NVS:
             case TBOOT_MEMORY_TYPE_ACPI_RECLAIM:
             case TBOOT_MEMORY_TYPE_RESERVED: {
-                // all these addresses should be mapped to higher half
-                for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
-                    if(addr >= 0xFFFFFFFF00000000) {
-                        log_error("Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", addr, ALIGN_DOWN(it->addr + it->len, KB(4)));
-                        break;
-                    }
-                    CHECK_AND_RETHROW(vmm_map(kpml4, (void *) (addr + 0xFFFF800000000000), (void *) (addr), PAGE_ATTR_WRITE));
-                }
+                CHECK_AND_RETHROW(internal_map_big_pages(kernel_address_space, CONVERT_TO_DIRECT(it->addr), it->addr, it->len, PAGE_ATTR_GLOBAL | PAGE_ATTR_WRITE));
             } break;
             default: break;
         }
@@ -298,15 +490,12 @@ error_t vmm_init(tboot_info_t* info) {
 
     log_info("mapping the kernel");
     // TODO: Use the kernel elf header to set the attributes correctly
-    for(uint64_t addr = ALIGN_DOWN(KERNEL_PHYSICAL_START, KB(4)); addr < ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)); addr += KB(4)) {
-        int attr = PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE;
-        CHECK_AND_RETHROW(vmm_map(kpml4, (void *)(addr + 0xFFFFFFFFC0000000), (void *) (addr), attr));
-    }
+    // TODO: For the kernel we might not use big pages so we can have better protections :smug:
+    CHECK_AND_RETHROW(internal_map_big_pages(kernel_address_space, KERNEL_PHYSICAL_START + KERNEL_MAPPING_BASE, KERNEL_PHYSICAL_START, KERNEL_PHYSICAL_END - KERNEL_PHYSICAL_START, PAGE_ATTR_GLOBAL | PAGE_ATTR_WRITE | PAGE_ATTR_EXECUTE));
 
-    kernel_address_space = kpml4;
     vmm_set(kernel_address_space);
 
-    physical_memory += 0xFFFF800000000000;
+    physical_memory += DIRECT_MAPPING_BASE;
 
 cleanup:
     // we are not doing to clean anything because failing this stage
@@ -334,6 +523,22 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
     }
 
     CHECK_AND_RETHROW(internal_map(address_space, virtual_address, physical_address, attributes));
+
+cleanup:
+    unlock_preemption(&vmm_lock);
+    return err;
+}
+
+error_t vmm_map_direct(uintptr_t physical_start, uintptr_t physical_end) {
+    error_t err = NO_ERROR;
+
+    lock_preemption(&vmm_lock);
+
+    CHECK(physical_end > physical_start);
+    CHECK_TRACE(physical_end <= MM_BASE, "Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", physical_start, physical_end);
+
+    // map it
+    CHECK_AND_RETHROW(internal_map_big_pages(kernel_address_space, CONVERT_TO_DIRECT(physical_start), physical_start, physical_end - physical_start, PAGE_ATTR_WRITE | PAGE_ATTR_GLOBAL));
 
 cleanup:
     unlock_preemption(&vmm_lock);
@@ -405,139 +610,22 @@ cleanup:
 // TODO: add locks (will need to not use internally)
 error_t vmm_virt_to_phys(address_space_t address_space, uintptr_t virtual_address, uintptr_t* physical_address) {
     error_t err = NO_ERROR;
-    uint64_t* table = NULL;
 
-    // get the page table
-    uint64_t pt = get_pml1(address_space, (uint64_t) virtual_address, 0);
-    CHECK_ERROR(pt, ERROR_NOT_MAPPED);
-    CHECK_ERROR((table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT) != 0, ERROR_NOT_MAPPED);
-    table = (uint64_t *) &physical_memory[pt];
+    lock_preemption(&vmm_lock);
 
-    // get the address of the page
-    uint64_t addr = table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
-    CHECK_ERROR(addr, ERROR_NOT_MAPPED);
+    uintptr_t addr = internal_virt_to_phys(address_space, virtual_address);
+    CHECK_ERROR(addr != (uintptr_t)-1, ERROR_NOT_MAPPED);
 
     if(physical_address) *physical_address = addr;
 
 cleanup:
+    unlock_preemption(&vmm_lock);
     return err;
 }
 
 bool vmm_is_mapped(address_space_t address_space, uintptr_t virtual_address) {
-    uint64_t* table = NULL;
-    bool is_mapped = false;
-
     lock_preemption(&vmm_lock);
-
-    // get the page table
-    uint64_t pt = get_pml1(address_space, (uint64_t) virtual_address, 0);
-    if(!pt) goto cleanup;
-    table = (uint64_t *) &physical_memory[pt];
-
-    is_mapped = (table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT) != 0;
-
-cleanup:
+    bool is_mapped = internal_virt_to_phys(address_space, virtual_address) != -1;
     unlock_preemption(&vmm_lock);
     return is_mapped;
-}
-
-static error_t copy_to_another(address_space_t address_space, const char* from, char* to, size_t len) {
-    error_t err = NO_ERROR;
-    uintptr_t physical_addr = NULL;
-    char* ptr;
-    int padding;
-
-    // setup for the alignment in the first page
-    CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, (uintptr_t)to, &physical_addr));
-    padding = (int) ((uintptr_t) to - ALIGN_DOWN((uintptr_t) to, KB(4)));
-
-    // align everything
-    to = (char *) ALIGN_DOWN((uintptr_t)to, KB(4));
-    ptr = &physical_memory[physical_addr + padding];
-
-    while (len) {
-        *ptr++ = *from++;
-        len--;
-        if (ptr >= &physical_memory[physical_addr] + KB(4)) {
-            // if we got the ptr to the end of the tmp page lets
-            // put the ptr to the start and remap the tmp page
-            to += KB(4);
-            CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, (uintptr_t)to, &physical_addr));
-            ptr = &physical_memory[physical_addr];
-        }
-    }
-
-cleanup:
-    return err;
-}
-
-static error_t copy_from_another(address_space_t address_space, const char* from, char* to, size_t len) {
-    error_t err = NO_ERROR;
-    uintptr_t physical_addr = NULL;
-    char* ptr;
-    int padding;
-
-    // setup for the alignment in the first page
-    CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, (uintptr_t)from, &physical_addr));
-    padding = (int) ((uintptr_t) from - ALIGN_DOWN((uintptr_t) from, KB(4)));
-
-    // align everything
-    from = (char *) ALIGN_DOWN((uintptr_t)from, KB(4));
-    ptr = &physical_memory[physical_addr + padding];
-
-    while (len) {
-        *to++ = *ptr++;
-        len--;
-        if (ptr >= &physical_memory[physical_addr] + KB(4)) {
-            // if we got the ptr to the end of the tmp page lets
-            // put the ptr to the start and remap the tmp page
-            from += KB(4);
-            CHECK_AND_RETHROW(vmm_virt_to_phys(address_space, (uintptr_t)from, &physical_addr));
-            ptr = &physical_memory[physical_addr];
-        }
-    }
-
-cleanup:
-    return err;
-}
-
-error_t vmm_copy(address_space_t dst_addrspace, uintptr_t dst, address_space_t src_addrspace, uintptr_t src, size_t size) {
-    error_t err = NO_ERROR;
-
-    CHECK_ERROR(dst_addrspace, ERROR_INVALID_ARGUMENT);
-    CHECK_ERROR(src_addrspace, ERROR_INVALID_ARGUMENT);
-
-    lock_preemption(&vmm_lock);
-
-    if(size == 0) goto cleanup;
-
-    if(dst_addrspace == src_addrspace) {
-        address_space_t cur = 0;
-
-        // not used right now, lets just use it
-        if(vmm_get() != dst_addrspace) {
-            cur = vmm_get();
-            vmm_set(dst_addrspace);
-        }
-
-        // memove
-        memmove((void*) dst, (const void*) src, size);
-
-        // revert to the address space we were in
-        if(cur != 0) {
-            vmm_set(cur);
-        }
-    }else if(dst_addrspace == vmm_get()) {
-        // copy assuming this is the current address space
-        copy_from_another(src_addrspace, (const char*) src, (char*) dst, size);
-    }else if(src_addrspace == vmm_get()) {
-        // copy assuming copying from this address space
-        copy_to_another(dst_addrspace, (const char*) src, (char*) dst, size);
-    }else {
-        CHECK_FAIL_ERROR_TRACE(ERROR_NOT_IMPLEMENTED, "Transferring from two different address spaces is not supported yet");
-    }
-
-cleanup:
-    unlock_preemption(&vmm_lock);
-    return err;
 }

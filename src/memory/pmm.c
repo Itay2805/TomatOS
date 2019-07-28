@@ -3,6 +3,7 @@
 #include <drivers/portio.h>
 #include <tboot/tboot.h>
 #include "pmm.h"
+#include "vmm.h"
 
 static uint64_t* addrs;
 static size_t stack_len = 0;
@@ -17,7 +18,7 @@ static const char* MMAP_TYPE[] = {
     [TBOOT_MEMORY_TYPE_USABLE] = "Available",
     [TBOOT_MEMORY_TYPE_RESERVED] = "Reserved",
     [TBOOT_MEMORY_TYPE_ACPI_RECLAIM] = "ACPI Reclaimable",
-    [TBOOT_MEMORY_TYPE_ACPI_NVS] = "Non-Volatile memory",
+    [TBOOT_MEMORY_TYPE_ACPI_NVS] = "ACPI NVM",
     [TBOOT_MEMORY_TYPE_BAD_MEMORY] = "Bad memory",
 };
 
@@ -73,7 +74,7 @@ cleanup:
 }
 
 error_t pmm_init() {
-    addrs = (uint64_t*)(((uint64_t)addrs) + 0xFFFF800000000000);
+    addrs = (uint64_t*)(((uint64_t)addrs) + DIRECT_MAPPING_BASE);
     return NO_ERROR;
 }
 
