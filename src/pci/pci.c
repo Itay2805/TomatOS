@@ -426,7 +426,20 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
                         offset += 4;
                     } break;
                     case PCI_BAR_MEMORY_WIDTH_64BIT: {
-                        CHECK_FAIL_ERROR_TRACE(ERROR_NOT_SUPPORTED, "64bit bars are not supported yet!");
+                        uint64_t high = pci_read_32(dev, (uint16_t) (offset + 4));
+                        new_bar.base = PCI_BAR_MEMORY_BASE(bar)| (high << 32u);
+
+
+                        // len
+                        pci_write_32(dev, (uint16_t) (offset + 4), 0xFFFFFFFF);
+                        pci_write_32(dev, 4, 0xFFFFFFFF);
+
+                        uint64_t len_low = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, (uint16_t)(offset + 4))) + 1;
+                        uint64_t len_high = ~pci_read_32(dev, offset) + 1;
+                        new_bar.len = len_low | (len_high << 32);
+
+                        // next bar
+                        offset += 8;
                     } break;
                     default: CHECK_FAIL_TRACE("Got invalid bar length!");
                 }
@@ -538,10 +551,6 @@ cleanup:
 // The read and write functions
 //////////////////////////////////////////
 
-uint64_t pci_read_64(pci_dev_t* dev, uint16_t offset) {
-    return *(uint64_t*)&dev->mmio[offset];
-}
-
 uint16_t pci_read_16(pci_dev_t* dev, uint16_t offset) {
     return *(uint16_t*)&dev->mmio[offset];
 }
@@ -549,11 +558,6 @@ uint16_t pci_read_16(pci_dev_t* dev, uint16_t offset) {
 uint8_t pci_read_8(pci_dev_t* dev, uint16_t offset) {
     return (uint8_t)dev->mmio[offset];
 }
-
-void pci_write_64(pci_dev_t* dev, uint16_t offset, uint64_t value) {
-    *(uint64_t*)&dev->mmio[offset] = value;
-}
-
 void pci_write_32(pci_dev_t* dev, uint16_t offset, uint32_t value) {
     *(uint32_t*)&dev->mmio[offset] = value;
 }

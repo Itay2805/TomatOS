@@ -75,7 +75,7 @@ cleanup:
 
 sdt_hdr_t* xsdt_search(char* signature, int index) {
     int actual_index = 0;
-    for(int i = index; i < ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8); i++) {
+    for(int i = 0; i < ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8); i++) {
         sdt_hdr_t* hdr = (sdt_hdr_t *) CONVERT_TO_DIRECT(xsdt->sdts[i]);
         if(memcmp(hdr->signature, signature, 4) == 0) {
             if(actual_index == index) {

@@ -83,15 +83,6 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     thread->context.cpu.rip = (uint64_t) kernel_thread;
     thread->status = THREAD_STATUS_NORMAL;
 
-    // TODO: Create initial kernel thread
-    // TODO: Kick start processes
-    // TODO:    - do PCI iteration and driver loading
-    // TODO:    - start ACPI namespace
-    // TODO:    - start driver loading
-    // TODO:    - load the init process
-    // TODO:    - ???
-    // TODO:    - profit!
-
     _sti();
 
     while(true) {

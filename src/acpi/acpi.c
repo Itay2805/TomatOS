@@ -3,7 +3,7 @@
 #include <lai/helpers/sci.h>
 #include <interrupts/apic/ioapic.h>
 #include <interrupts/interrupts.h>
-#include <lai/helpers/sleep.h>
+#include <lai/helpers/pm.h>
 #include "acpi.h"
 
 #include "acpi/tables/rsdp.h"
