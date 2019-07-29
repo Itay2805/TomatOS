@@ -31,20 +31,17 @@
 // ----------------------------------
 // When using 1GB pages
 // ----------------------------------
-#define PAGING_1GB_PML3_MASK    (0x7FFFFFFFC0000000)
-#define PAGING_1GB_PML4_MASK    (0x7FFFFFFFFFFFF000)
+#define PAGING_1GB_PML3_MASK    (0x7FFFFFFFC0000000ul)
 
 // ----------------------------------
 // When using 2MB pages
 // ----------------------------------
-#define PAGING_2MB_PDE_MASK     (0x7FFFFFFFFFE00000)
-#define PAGING_2MB_PML2_MASK    (0x7FFFFFFFFFFFF000)
-#define PAGING_2MB_PML4_MASK    (0x7FFFFFFFFFFFF000)
+#define PAGING_2MB_PML2_MASK    (0x7FFFFFFFFFE00000ul)
 
 // ----------------------------------
 // When using 4KB pages
 // ----------------------------------
-#define PAGING_4KB_ADDR_MASK    (0x7FFFFFFFFFFFF000u)
+#define PAGING_4KB_ADDR_MASK    (0x7FFFFFFFFFFFF000ul)
 
 ////////////////////////////////////////////////////////////////////////////
 // Index addresses
@@ -54,8 +51,10 @@
 #define PAGING_PML3E_OFFSET(addr) (((uint64_t)(addr) >> 30u) & 0x1FF)
 #define PAGING_PML2E_OFFSET(addr) (((uint64_t)(addr) >> 21u) & 0x1FF)
 #define PAGING_PML1E_OFFSET(addr) (((uint64_t)(addr) >> 12u) & 0x1FF)
-#define PAGING_PAGE_OFFSET(addr) (((uint64_t)(addr) & 0xFFF))
 
+#define PAGING_4KB_PAGE_OFFSET(addr)        (((uint64_t)(addr) & ~(PAGING_4KB_ADDR_MASK | BIT(63ul))))
+#define PAGING_2MB_PAGE_OFFSET(addr)    (((uint64_t)(addr) & ~(PAGING_2MB_PML2_MASK | BIT(63ul))))
+#define PAGING_1GB_PAGE_OFFSET(addr)    (((uint64_t)(addr) & ~(PAGING_1GB_PML3_MASK | BIT(63ul))))
 ////////////////////////////////////////////////////////////////////////////
 // Index addresses
 ////////////////////////////////////////////////////////////////////////////
@@ -101,12 +100,15 @@ static inline void set_attributes(uint64_t* entry, int attributes) {
 
     if(!(*entry & PAGING_USER_BIT) && (attributes & PAGE_ATTR_USER)) {
         *entry |= PAGING_USER_BIT;
+        _barrier();
     }
     if(!(*entry & PAGING_READ_WRITE_BIT) && (attributes & PAGE_ATTR_WRITE)) {
         *entry |= PAGING_READ_WRITE_BIT;
+        _barrier();
     }
     if((*entry & PAGING_NO_EXECUTE_BIT) && (attributes & PAGE_ATTR_EXECUTE)) {
         *entry &= ~PAGING_NO_EXECUTE_BIT;
+        _barrier();
     }
 }
 
@@ -239,7 +241,7 @@ static uintptr_t internal_virt_to_phys(address_space_t address_space, uintptr_t 
 
         // check for 1gb pages
         if(supports_1gb_paging && (table[PAGING_PML3E_OFFSET(virtual_address)] & PAGING_PAGE_SIZE_BIT) != 0) {
-            return table[PAGING_PML3E_OFFSET(virtual_address)] & PAGING_1GB_PML3_MASK;
+            return (table[PAGING_PML3E_OFFSET(virtual_address)] & PAGING_1GB_PML3_MASK) + PAGING_1GB_PAGE_OFFSET(virtual_address);
         }
     }
 
@@ -251,7 +253,7 @@ static uintptr_t internal_virt_to_phys(address_space_t address_space, uintptr_t 
 
         // check for 2mb pages
         if((table[PAGING_PML2E_OFFSET(virtual_address)] & PAGING_PAGE_SIZE_BIT) != 0) {
-            return table[PAGING_PML2E_OFFSET(virtual_address)] & PAGING_2MB_PML2_MASK;
+            return (table[PAGING_PML2E_OFFSET(virtual_address)] & PAGING_2MB_PML2_MASK) + PAGING_2MB_PAGE_OFFSET(virtual_address);
         }
     }
 
@@ -266,7 +268,7 @@ static uintptr_t internal_virt_to_phys(address_space_t address_space, uintptr_t 
     if((table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT) == 0) return (uintptr_t)-1;
 
     // return it
-    return table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
+    return (table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK) + PAGING_4KB_PAGE_OFFSET(virtual_address);
 }
 
 static error_t internal_map(address_space_t address_space, void* virtual_address, void* physical_address, int attributes) {
@@ -416,7 +418,7 @@ static error_t internal_map_big_pages(address_space_t address_space, uintptr_t v
                 break;
             }
             if(internal_virt_to_phys(address_space, addr) == -1) {
-                CHECK_AND_RETHROW(internal_map_1gb(address_space, addr, phys_addr, attributes));
+                CHECK_AND_RETHROW(internal_map_2mb(address_space, addr, phys_addr, attributes));
             }
         }
     }
@@ -518,8 +520,6 @@ address_space_t vmm_get() {
 
 error_t vmm_map(address_space_t address_space, void* virtual_address, void* physical_address, int attributes) {
     error_t err = NO_ERROR;
-    uint64_t pt = 0;
-    uint64_t* table = NULL;
 
     lock_preemption(&vmm_lock);
 
@@ -539,10 +539,14 @@ error_t vmm_map_direct(uintptr_t physical_start, size_t size) {
 
     lock_preemption(&vmm_lock);
 
-    CHECK_TRACE(physical_start + size <= MM_BASE, "Could not map 0x%016p-0x%016p (overlapped with kernel heap/code)", physical_start, physical_start + size);
+    // make sure in range, takes care of overlap
+    CHECK_TRACE(CONVERT_TO_DIRECT(physical_start + size) <= MM_BASE && CONVERT_TO_DIRECT(physical_start + size) >= DIRECT_MAPPING_BASE, "Could not identity map physical memory range 0x%016p-0x%016p (overlapped with kernel heap/code)", physical_start, physical_start + size);
 
     // map it
     CHECK_AND_RETHROW(internal_map_big_pages(kernel_address_space, CONVERT_TO_DIRECT(physical_start), physical_start, size, PAGE_ATTR_WRITE | PAGE_ATTR_GLOBAL));
+
+    uintptr_t got = internal_virt_to_phys(kernel_address_space, CONVERT_TO_DIRECT(physical_start));
+    CHECK(got == physical_start);
 
 cleanup:
     unlock_preemption(&vmm_lock);

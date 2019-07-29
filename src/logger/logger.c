@@ -19,7 +19,6 @@ enum {
 
 static logger_t* loggers[LOGGER_COUNT] = {0};
 static spinlock_t logger_lock;
-static int log_count = 0;
 
 void logger_register(logger_t* logger) {
     for(int i = 0; i < LOGGER_COUNT; i++) {
@@ -56,7 +55,7 @@ static uint32_t colors[] = {
 ///////////////////////////////////////////////////////
 
 static void print_level(logger_t* logger, logger_level_t level) {
-    uint32_t fg = 0, bg = 0;
+    uint32_t fg = 0;
     if(logger->set_text_color) fg = logger->set_text_color(colors[level]);
     logger->write(level_names[level]);
     if(logger->set_text_color) logger->set_text_color(fg);

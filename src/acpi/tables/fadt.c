@@ -21,8 +21,8 @@ static error_t dsdt_init() {
     }
 
     // map it
-    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)dsdt, KB(4)));
-    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)dsdt, dsdt->length));
+    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)dsdt - DIRECT_MAPPING_BASE, KB(4)));
+    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)dsdt - DIRECT_MAPPING_BASE, dsdt->length));
 
     CHECK_ERROR_TRACE(acpi_validate_checksum(dsdt, dsdt->length), ERROR_NOT_FOUND, "DSDT checksum incorrect");
     log_info("\tDSDT Found (0x%016p)", (uintptr_t)dsdt - DIRECT_MAPPING_BASE);

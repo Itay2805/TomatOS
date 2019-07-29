@@ -13,7 +13,6 @@ static void hpet_write(hpet_t* hpet, size_t offset, uint64_t value) {
     _barrier();
     if(offset % 8 != 0) {
         log_error("Attempted to do unaligned hpet access");
-        asm("int $0x11");
     }
     hpet->mmio[offset / 8] = value;
 }
@@ -22,7 +21,6 @@ static uint64_t hpet_read(hpet_t* hpet, size_t offset) {
     _barrier();
     if(offset % 8 != 0) {
         log_error("Attempted to do unaligned hpet access");
-        asm("int $0x11");
     }
     return hpet->mmio[offset / 8];
 }
@@ -52,7 +50,7 @@ error_t hpet_init() {
     uint64_t base_addr = hpet_table->addr.address;
 
     // map it
-    CHECK_AND_RETHROW(vmm_map_direct(base_addr, KB(4)));
+    CHECK_AND_RETHROW(vmm_map_direct(base_addr, KB(64)));
 
     // use the hpet table for the first hpet
     hpet_t hpet = {

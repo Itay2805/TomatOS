@@ -4,8 +4,7 @@
 
 hpet_table_t* hpet_table;
 
-// just because nicer in logger
-static error_t hpet_init() {
+error_t hpet_table_init() {
     error_t err = NO_ERROR;
 
     hpet_table = (hpet_table_t *) rsdt_search("HPET", 0);
@@ -17,10 +16,6 @@ static error_t hpet_init() {
 
     CHECK_TRACE(acpi_validate_checksum(hpet_table, hpet_table->header.length), "Got invalid checksum on HPET table");
 
-cleanup:
+    cleanup:
     return err;
-}
-
-error_t hpet_table_init() {
-    return hpet_init();
 }
