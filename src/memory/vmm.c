@@ -358,9 +358,8 @@ static error_t internal_map_2mb(address_space_t address_space, uintptr_t virt_ad
         table = (uint64_t*) &physical_memory[next];
     }
 
-
     // get the pml2e
-    CHECK_ERROR(table[PAGING_PML2E_OFFSET(virt_addr)] & PAGING_PRESENT_BIT, ERROR_ALREADY_MAPPED);
+    CHECK_ERROR((table[PAGING_PML2E_OFFSET(virt_addr)] & PAGING_PRESENT_BIT) == 0, ERROR_ALREADY_MAPPED);
 
     // set the page attributes
     table[PAGING_PML2E_OFFSET(virt_addr)] = PAGING_PRESENT_BIT | PAGING_PAGE_SIZE_BIT;
@@ -449,22 +448,28 @@ error_t vmm_init(tboot_info_t* info) {
     error_t err = NO_ERROR;
 
     cpu_features_t features;
+    extended_cpu_features_t exfeatures;
     get_cpu_features(&features);
+    get_extended_cpu_features(&exfeatures);
 
     // enable whatever features we wanna use
     log_info("Enabling features");
+
     log_info("\t* No execute");
-    // TODO: Check nx support
+    CHECK_ERROR_TRACE(exfeatures.nx, ERROR_NOT_SUPPORTED, "NX Bit support is required!");
     efer_t efer = (efer_t){.raw = _rdmsr(IA32_EFER)};
     efer.no_execute_enable = true;
     _wrmsr(IA32_EFER, efer.raw);
 
-    if(features.pse) {
+    log_info("\t* Write Protect");
+    set_cr0(get_cr0() | CR0_WRITE_PROTECT);
+
+    if(exfeatures.pdpe1gb) {
         log_info("\t* 1GB paging");
-        set_cr4(get_cr4() | CR4_PAGE_SIZE_EXTENSIONS);
         supports_1gb_paging = true;
     }else {
         log_warn("\t* 1GB paging not available");
+        supports_1gb_paging = false;
     }
 
     if(features.pge) {
@@ -473,6 +478,7 @@ error_t vmm_init(tboot_info_t* info) {
         supports_global_pages = true;
     }else {
         log_warn("\t* Global pages are not available");
+        supports_global_pages = false;
     }
 
     physical_memory = 0;
