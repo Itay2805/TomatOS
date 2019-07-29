@@ -68,20 +68,23 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(acpi_tables_init(info)); // full ACPI will be set later
     CHECK_AND_RETHROW(interrupts_init());
 
-    // start getting the basic drivers
+    // do the smp
+    // don't forget to init the hpet first for the stall
     CHECK_AND_RETHROW(hpet_init());
+    CHECK_AND_RETHROW(smp_init());
+
+    // start getting the basic drivers
     CHECK_AND_RETHROW(acpi_init());
     CHECK_AND_RETHROW(pci_init());
 
-    // we are now ready to startup SMP
-    CHECK_AND_RETHROW(smp_init());
-
     // Create the kernel process and thread
-    thread_t* thread;
-    CHECK_AND_RETHROW(create_process(kernel_address_space, &kernel_process));
-    CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
-    thread->context.cpu.rip = (uint64_t) kernel_thread;
-    thread->status = THREAD_STATUS_NORMAL;
+    //thread_t* thread;
+    //CHECK_AND_RETHROW(create_process(kernel_address_space, &kernel_process));
+    //CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
+    //thread->context.cpu.rip = (uint64_t) kernel_thread;
+    //thread->status = THREAD_STATUS_NORMAL;
+
+    log_info("Finished early kernel initialization!");
 
     _sti();
 
@@ -90,6 +93,6 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     }
 
 cleanup:
-    log_critical("Error during kernel initialization :(");
+    log_critical("Error during early kernel initialization :(");
     _cli(); while(true) _hlt();
 }
