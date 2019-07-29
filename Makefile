@@ -51,11 +51,14 @@ CFLAGS += \
 	-mcmodel=kernel \
 	-fno-omit-frame-pointer \
 	-mno-omit-leaf-frame-pointer \
+	-Wall \
 	-fno-pie \
 	-static \
 	-flto \
-	-O3 \
+	-Ofast \
 	-g
+
+
 
 # Set the include dirs
 CFLAGS += $(INCLUDE_DIRS:%=-I%)
