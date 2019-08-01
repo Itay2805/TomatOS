@@ -7,8 +7,19 @@
 #include <error.h>
 #include <memory/vmm.h>
 
-// the different kind of interrupts we can handle
-#define INTERRUPT_VECTOR_BASE  0x20
+// these are
+enum {
+    // This is where the legacy interrupts start
+    INTERRUPTS_LEGACY_BASE = 0x20,
+
+    // IPIs
+    // we skip the first 16 just in case
+    INTERRUPT_TLB_SHOOTDOWN = 0x20 + 0xf,
+    INTERRUPT_SCHEDULER_STARTUP,
+
+    // from here we can allocate it dynamically
+    INTERRUPTS_ALLOCATION_BASE,
+};
 
 /**
  * All of the registers pushed from the IDT

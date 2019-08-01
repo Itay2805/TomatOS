@@ -232,7 +232,7 @@ cleanup:
 // Interrupt allocation
 //////////////////////////////////////////////////////////////////
 
-#define INTERRUPT_VECTOR_SIZE (0xff - 0x20 - 0xf)
+#define INTERRUPT_VECTOR_SIZE (0xff - INTERRUPTS_ALLOCATION_BASE - 1)
 static int interrupt_vector[INTERRUPT_VECTOR_SIZE];
 static int index = 17;
 

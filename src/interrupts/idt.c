@@ -4,7 +4,7 @@
 
 #include <memory/gdt.h>
 
-static idt_entry_t idt_entries[0xFF];
+static idt_entry_t idt_entries[0xFF + 1];
 
 static idt_t idt = {
     .limit = sizeof(idt_entries),
@@ -277,6 +277,7 @@ void idt_init() {
     set_idt_entry(0xfc,handle_interrupt_request_fc);
     set_idt_entry(0xfd,handle_interrupt_request_fd);
     set_idt_entry(0xfe,handle_interrupt_request_fe);
+    set_idt_entry(0xff,handle_interrupt_request_ff);
 
     _lidt(idt);
 }
