@@ -9,8 +9,9 @@
 #include <memory/vmm.h>
 #include <stb/stb_ds.h>
 #include <drivers/hpet/hpet.h>
+#include <locks/preemption.h>
 
-static char* mmio_base;
+static volatile char* mmio_base;
 static uint64_t ticks_per_milli;
 
 static error_t set_nmis() {
@@ -116,12 +117,10 @@ error_t lapic_send_eoi() {
 }
 
 error_t lapic_set_timer(uint32_t millis, uint8_t vector) {
-    // TODO: Check overflow
-
     lapic_lvt_timer_t timer = {
-            .vector = vector,
-            .mask = true,
-            .timer_mode = LAPIC_TIMER_MODE_ONE_SHOT,
+        .vector = vector,
+        .mask = false,
+        .timer_mode = LAPIC_TIMER_MODE_PERIODIC,
     };
     lapic_write(LAPIC_REG_LVT_TIMER, timer.raw);
     lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1);
@@ -133,4 +132,110 @@ error_t lapic_set_timer(uint32_t millis, uint8_t vector) {
 bool lapic_timer_fired() {
     lapic_lvt_timer_t timer = { .raw = lapic_read(LAPIC_REG_LVT_TIMER) };
     return timer.delivery_status == 1;
+}
+
+static void wait_for_last_ipi() {
+    lapic_icr_t icr = {0};
+    do {
+        icr.raw_low = lapic_read(LAPIC_REG_ICR0);
+    } while(icr.delivery_status != 0);
+}
+
+error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector) {
+    error_t err = NO_ERROR;
+
+    uint64_t flags = prempsave();
+
+    wait_for_last_ipi();
+
+    // prepare the icr
+    lapic_icr_t icr = {
+        .delivery_mode = LAPIC_DELIVERY_MODE_FIXED,
+        .level = 1,
+        .vector = vector,
+        .destination = lapic_id,
+    };
+
+    // write it
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
+    lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+
+cleanup:
+    prempstore(flags);
+    return err;
+}
+
+error_t lapic_send_ipi_all_excluding_self(uint8_t vector) {
+    error_t err = NO_ERROR;
+
+    uint64_t flags = prempsave();
+
+    wait_for_last_ipi();
+
+    // prepare the icr
+    lapic_icr_t icr = {
+            .delivery_mode = LAPIC_DELIVERY_MODE_FIXED,
+            .level = 1,
+            .vector = vector,
+            .destination_shothand = LAPIC_DESTINATION_SHORTHAND_ALL_EXCLUDING_SELF
+    };
+
+    // write it
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
+    lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+
+cleanup:
+    prempstore(flags);
+    return err;
+}
+
+error_t lapic_send_init(uint32_t lapic_id) {
+    error_t err = NO_ERROR;
+
+    uint64_t flags = prempsave();
+
+    wait_for_last_ipi();
+
+    // prepare the icr
+    lapic_icr_t icr = {
+            .delivery_mode = LAPIC_DELIVERY_MODE_INIT,
+            .level = 1,
+            .destination = lapic_id,
+    };
+
+    // write it
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
+    lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+
+cleanup:
+    prempstore(flags);
+    return err;
+}
+
+error_t lapic_send_sipi(uint32_t lapic_id, uint32_t entry) {
+    error_t err = NO_ERROR;
+
+    // make sure the entry is okie
+    CHECK(entry < 0x100000);
+    CHECK((entry & 0xfff) == 0);
+
+    uint64_t flags = prempsave();
+
+    wait_for_last_ipi();
+
+    // prepare the icr
+    lapic_icr_t icr = {
+            .delivery_mode = LAPIC_DELIVERY_MODE_STARTUP,
+            .level = 1,
+            .vector = entry >> 12,
+            .destination = lapic_id,
+    };
+
+    // write it
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
+    lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+
+cleanup:
+    prempstore(flags);
+    return err;
 }

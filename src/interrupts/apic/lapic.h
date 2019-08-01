@@ -90,6 +90,8 @@
 #define LAPIC_TIMER_MODE_ONE_SHOT   0
 #define LAPIC_TIMER_MODE_PERIODIC   1
 
+#define LAPIC_DESTINATION_SHORTHAND_ALL_EXCLUDING_SELF  3
+
 typedef union lapic_lvt_timer {
     struct {
         uint32_t vector : 8;
@@ -136,6 +138,7 @@ typedef union lapic_icr {
         uint64_t vector : 8;
         uint64_t delivery_mode : 3;
         uint64_t destination_mode : 1;
+        uint64_t delivery_status : 1;
         uint64_t _reserved0 : 1;
         uint64_t level : 1;
         uint64_t trigger_mode : 1;
@@ -229,5 +232,35 @@ bool lapic_timer_fired();
  * Send an EOI to the Local APIC controller
  */
 error_t lapic_send_eoi();
+
+/**
+ * Send an IPI to another processor
+ *
+ * @param lapic_id  [IN] The Local APIC to send to
+ * @param vector    [IN] The vector to send the interrupt to
+ */
+error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector);
+
+/**
+ * Send an IPI to all CPUs excluding self
+ *
+ * @param vector    [IN] The vector to send the interrupt to
+ */
+error_t lapic_send_ipi_all_excluding_self(uint8_t vector);
+
+/**
+ * Send an INIT to another LAPIC
+ *
+ * @param lapic_id  [IN] The Local APIC to send to
+ */
+error_t lapic_send_init(uint32_t lapic_id);
+
+/**
+ * Send an SIPI to another Local APIC
+ *
+ * @param lapic_id  [IN] The Local APIC to send to
+ * @param entry     [IN] The realmode entry of the core
+ */
+error_t lapic_send_sipi(uint32_t lapic_id, uint32_t entry);
 
 #endif //TOMATKERNEL_LAPIC_H
