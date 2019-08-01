@@ -2,6 +2,7 @@
 #include <acpi/tables/madt.h>
 #include <common/common.h>
 #include <common/cpu/msr.h>
+#include <interrupts/apic/lapic.h>
 #include "cpustorage.h"
 
 extern uintptr_t pcpu_storage_size;
@@ -21,6 +22,7 @@ error_t per_cpu_storage_init() {
         }
     }
     arrsetlen(all_pcpu_storage, active_lapis);
+    arrsetlen(cpu_lapics, active_lapis);
 
     // allocate it all
     for(size_t i = 0; i < arrlen(all_pcpu_storage); i++) {
@@ -35,6 +37,7 @@ error_t set_cpu_storage(size_t index) {
     _wrmsr(IA32_GS_BASE, (uint64_t) &all_pcpu_storage[index]);
     cpu_index = index;
     cpu_kernel_stack = (uintptr_t)kmalloc(MB(2));
+    cpu_lapics[index] = lapic_get_id();
     return NO_ERROR;
 }
 

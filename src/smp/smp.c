@@ -8,6 +8,9 @@
 #include "smp.h"
 #include "cpustorage.h"
 
+#define SMP_INFO_ADDRESS            0x0500
+#define SMP_TRAMPOLINE_ADDRESS      0x1000
+
 typedef struct smp_trampoline_info {
     char flag;
     uint32_t cr3;
@@ -54,7 +57,8 @@ error_t smp_init() {
     CHECK_AND_RETHROW(per_cpu_storage_init());
 
     // SMP info is located at 0x510
-    smp_info = (smp_trampoline_info_t*)CONVERT_TO_DIRECT(0x510l);
+    // SMP trampoline is located
+    smp_info = (smp_trampoline_info_t*)CONVERT_TO_DIRECT(SMP_INFO_ADDRESS);
 
     // setup the core processor
     smp_info->current_core = 0;
@@ -77,15 +81,15 @@ error_t smp_init() {
         continue;
 
         // send init
-        // TODO: send INIT IPI
+        lapic_send_init(lapic->id);
         hpet_stall(10);
 
         // now send startup and wait for flag
-        // TODO: send STARTUP IPI
+        lapic_send_sipi(lapic->id, SMP_TRAMPOLINE_ADDRESS);
         hpet_stall(1);
         if(!smp_info->flag) {
             // failed first, send second
-            // TODO: send STARTUP IPI
+            lapic_send_sipi(lapic->id, SMP_TRAMPOLINE_ADDRESS);
             hpet_stall(1000);
             CHECK_TRACE(smp_info->flag, "Failed to init startup processor");
         }

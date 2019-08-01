@@ -21,6 +21,7 @@
 #include <lai/helpers/sci.h>
 #include <processes/process.h>
 #include <processes/thread.h>
+#include <processes/scheduler.h>
 
 static void kernel_thread() {
     while(true) {
@@ -78,13 +79,17 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(pci_init());
 
     // Create the kernel process and thread
-    //thread_t* thread;
-    //CHECK_AND_RETHROW(create_process(kernel_address_space, &kernel_process));
-    //CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
-    //thread->context.cpu.rip = (uint64_t) kernel_thread;
-    //thread->status = THREAD_STATUS_NORMAL;
-
     log_info("Finished early kernel initialization!");
+
+    // create the main kernel thread
+    thread_t* thread;
+    CHECK_AND_RETHROW(create_process(kernel_address_space, &kernel_process));
+    CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
+    thread->context.cpu.rip = (uint64_t) kernel_thread;
+    thread->status = THREAD_STATUS_NORMAL;
+
+    CHECK_AND_RETHROW(scheduler_init());
+    CHECK_AND_RETHROW(scheduler_kickstart());
 
     _sti();
 

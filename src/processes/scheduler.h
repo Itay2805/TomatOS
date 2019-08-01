@@ -4,10 +4,19 @@
 #include <error.h>
 #include "thread.h"
 
+/**
+ * This will do the first initialization of the scheduler like creating the
+ * idle threads.
+ *
+ * @remark
+ * This will not start the scheduler itself, and can technically run before SMP is done.
+ */
 error_t scheduler_init();
 
-error_t scheduler_start_per_core();
-
+/**
+ * Will iterate all the processors and start the scheduler on each one
+ * @return
+ */
 error_t scheduler_kickstart();
 
 /**
