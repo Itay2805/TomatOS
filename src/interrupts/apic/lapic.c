@@ -10,6 +10,7 @@
 #include <stb/stb_ds.h>
 #include <drivers/hpet/hpet.h>
 #include <locks/preemption.h>
+#include <smp/cpustorage.h>
 
 static volatile char* mmio_base;
 static uint64_t ticks_per_milli;
@@ -72,6 +73,7 @@ error_t lapic_init() {
     mmio_base = (char*)CONVERT_TO_DIRECT((uintptr_t)madt->lapic_addr);
 
     log_info("\tInitializing Local APIC #%d", lapic_get_id());
+    cpu_lapics[cpu_index] = lapic_get_id();
 
     log_info("\t\tCalibrating timer");
     CHECK_AND_RETHROW(calibrate_timer());
@@ -135,15 +137,13 @@ bool lapic_timer_fired() {
 }
 
 static void wait_for_last_ipi() {
-    lapic_icr_t icr = {0};
+    lapic_icr_t icr = { .raw = 0 };
     do {
         icr.raw_low = lapic_read(LAPIC_REG_ICR0);
     } while(icr.delivery_status != 0);
 }
 
 error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector) {
-    error_t err = NO_ERROR;
-
     uint64_t flags = prempsave();
 
     wait_for_last_ipi();
@@ -160,14 +160,11 @@ error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector) {
     lapic_write(LAPIC_REG_ICR0, icr.raw_low);
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
 
-cleanup:
     prempstore(flags);
-    return err;
+    return NO_ERROR;
 }
 
 error_t lapic_send_ipi_all_excluding_self(uint8_t vector) {
-    error_t err = NO_ERROR;
-
     uint64_t flags = prempsave();
 
     wait_for_last_ipi();
@@ -184,14 +181,11 @@ error_t lapic_send_ipi_all_excluding_self(uint8_t vector) {
     lapic_write(LAPIC_REG_ICR0, icr.raw_low);
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
 
-cleanup:
     prempstore(flags);
-    return err;
+    return NO_ERROR;
 }
 
 error_t lapic_send_init(uint32_t lapic_id) {
-    error_t err = NO_ERROR;
-
     uint64_t flags = prempsave();
 
     wait_for_last_ipi();
@@ -207,19 +201,18 @@ error_t lapic_send_init(uint32_t lapic_id) {
     lapic_write(LAPIC_REG_ICR0, icr.raw_low);
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
 
-cleanup:
     prempstore(flags);
-    return err;
+    return NO_ERROR;
 }
 
 error_t lapic_send_sipi(uint32_t lapic_id, uint32_t entry) {
     error_t err = NO_ERROR;
 
+    uint64_t flags = prempsave();
+
     // make sure the entry is okie
     CHECK(entry < 0x100000);
     CHECK((entry & 0xfff) == 0);
-
-    uint64_t flags = prempsave();
 
     wait_for_last_ipi();
 

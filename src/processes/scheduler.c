@@ -36,8 +36,6 @@ static error_t scheduler_tick(registers_t* regs) {
     lock(&running_threads_lock);
     unlock(&running_threads_lock);
 
-cleanup:
-
     // no deadlocks please
     if(running_threads_lock.locked) unlock(&running_threads_lock);
     if(thread_queue_lock.locked) unlock(&thread_queue_lock);
@@ -116,8 +114,11 @@ cleanup:
 
 error_t scheduler_kill_thread(thread_t* thread) {
     error_t err = NO_ERROR;
-    lock(thread_queue_lock);
+    lock(&thread_queue_lock);
+
+    CHECK_FAIL();
 
 cleanup:
+    unlock(&thread_queue_lock);
     return err;
 }
