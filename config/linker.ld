@@ -4,14 +4,6 @@ OUTPUT_ARCH(i386:x86-64)
 
 SECTIONS
 {
-    /* ======= Per CPU storage ======= */
-    . = 0;
-    .pcpu (NOLOAD) :
-    {
-        *(.pcpu)
-    }
-    pcpu_storage_size = .;
-
     /* ========== Multiboot ========== */
 	. = 0x0100000;
 	kernel_physical_start = .;

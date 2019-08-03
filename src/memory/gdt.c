@@ -1,5 +1,6 @@
 #include <logger/logger.h>
-#include <smp/cpustorage.h>
+#include <smp/percpustorage.h>
+#include <error.h>
 #include "gdt.h"
 
 static gdt_entries_t gdt_entries = {
@@ -79,18 +80,17 @@ error_t per_cpu_gdt_and_tss_init() {
     gdt.entries->tss.upper32 = (uint32_t) (((uint64_t) &tss64 >> 32) & 0xFFFFFFFF);
 
     // use the per cpu kernel stack
-    tss64.rsp0 = cpu_kernel_stack;
-    tss64.rsp1 = cpu_kernel_stack;
-    tss64.rsp2 = cpu_kernel_stack;
+    tss64.rsp0 = get_per_cpu_storage()->kernel_stack;
+    tss64.rsp1 = get_per_cpu_storage()->kernel_stack;
+    tss64.rsp2 = get_per_cpu_storage()->kernel_stack;
 
-    // TODO: Maybe have a different value for these (?)
-    tss64.ist1 = cpu_kernel_stack;
-    tss64.ist2 = cpu_kernel_stack;
-    tss64.ist3 = cpu_kernel_stack;
-    tss64.ist4 = cpu_kernel_stack;
-    tss64.ist5 = cpu_kernel_stack;
-    tss64.ist6 = cpu_kernel_stack;
-    tss64.ist7 = cpu_kernel_stack;
+    tss64.ist1 = get_per_cpu_storage()->nmi_stack;
+    tss64.ist2 = 0;
+    tss64.ist3 = 0;
+    tss64.ist4 = 0;
+    tss64.ist5 = 0;
+    tss64.ist6 = 0;
+    tss64.ist7 = 0;
 
     // set the gdt and tss
     log_info("\tloading new gdt and tss");

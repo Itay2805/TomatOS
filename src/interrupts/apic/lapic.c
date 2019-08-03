@@ -10,7 +10,6 @@
 #include <stb/stb_ds.h>
 #include <drivers/hpet/hpet.h>
 #include <locks/preemption.h>
-#include <smp/cpustorage.h>
 
 static volatile char* mmio_base;
 static uint64_t ticks_per_milli;
@@ -73,7 +72,6 @@ error_t lapic_init() {
     mmio_base = (char*)CONVERT_TO_DIRECT((uintptr_t)madt->lapic_addr);
 
     log_info("\tInitializing Local APIC #%d", lapic_get_id());
-    cpu_lapics[cpu_index] = lapic_get_id();
 
     log_info("\t\tCalibrating timer");
     CHECK_AND_RETHROW(calibrate_timer());

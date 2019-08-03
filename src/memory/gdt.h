@@ -3,6 +3,7 @@
 
 #include <common.h>
 #include <stddef.h>
+#include <error.h>
 
 #define GDT_KERNEL_CODE offsetof(gdt_entries_t, kernel_code)
 #define GDT_KERNEL_DATA offsetof(gdt_entries_t, kernel_data)

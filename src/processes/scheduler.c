@@ -1,7 +1,7 @@
 #include <stb/stb_ds.h>
-#include <smp/cpustorage.h>
 #include <acpi/tables/madt.h>
 #include <interrupts/apic/lapic.h>
+#include <smp/percpustorage.h>
 #include "scheduler.h"
 #include "process.h"
 #include "thread.h"
@@ -36,6 +36,9 @@ static error_t scheduler_tick(registers_t* regs) {
     lock(&running_threads_lock);
     unlock(&running_threads_lock);
 
+    CHECK_FAIL();
+
+cleanup:
     // no deadlocks please
     if(running_threads_lock.locked) unlock(&running_threads_lock);
     if(thread_queue_lock.locked) unlock(&thread_queue_lock);
@@ -43,10 +46,20 @@ static error_t scheduler_tick(registers_t* regs) {
     return err;
 }
 
+static error_t lapic_timer_handler(registers_t* regs) {
+    error_t err = NO_ERROR;
+
+    CHECK_AND_RETHROW(scheduler_tick(regs));
+
+cleanup:
+    CHECK_AND_RETHROW(lapic_send_eoi());
+    return err;
+}
+
 static error_t scheduler_start_per_core(registers_t* regs) {
     error_t err = NO_ERROR;
 
-    log_info("Doing scheduler startup on core #%d", cpu_index);
+    log_info("Doing scheduler startup on AP #%d", get_per_cpu_storage()->processor_id);
 
     // set the timer
     CHECK_AND_RETHROW(lapic_set_timer(1, timer_vector));
@@ -61,13 +74,13 @@ cleanup:
 error_t scheduler_init() {
     error_t err = NO_ERROR;
 
-    arrsetlen(running_threads, get_core_count());
+    arrsetlen(running_threads, hmlen(per_cpu_storage));
 
     // create the idle process
     create_process(kernel_address_space, &idle_process);
 
     // initialize the idle threads per core
-    for(int i = 0; i < get_core_count(); i++) {
+    for(int i = 0; i < hmlen(per_cpu_storage); i++) {
         // create the thread
         thread_t* thread = NULL;
         CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
@@ -87,7 +100,7 @@ error_t scheduler_init() {
 
     timer_vector = interrupt_allocate();
     log_info("Registering timer tick interrupt #%d", timer_vector);
-    interrupt_register(timer_vector, scheduler_tick);
+    interrupt_register(timer_vector, lapic_timer_handler);
 
 cleanup:
     return err;
@@ -104,7 +117,6 @@ error_t scheduler_kickstart() {
         // TODO: Remove once we started all cores
         if(madt_lapics[i]->id != lapic_get_id()) continue;
 
-        // TODO: Send IPI to start scheduling per core (should include this core)
         CHECK_AND_RETHROW(lapic_send_ipi(madt_lapics[i]->id, INTERRUPT_SCHEDULER_STARTUP));
     }
 

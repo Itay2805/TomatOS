@@ -9,19 +9,18 @@
 #include <logger/vmdev/vmdev.h>
 #include <logger/term/term.h>
 #include <pci/pci.h>
-#include <smp/cpustorage.h>
 #include <drivers/hpet/hpet.h>
 #include <common/locks/spinlock.h>
 #include <acpi/tables/madt.h>
 #include <stb/stb_ds.h>
 #include <common/locks/event.h>
-#include <smp/smp.h>
 #include <drivers/portio.h>
 #include <lai/core.h>
 #include <lai/helpers/sci.h>
 #include <processes/process.h>
 #include <processes/thread.h>
 #include <processes/scheduler.h>
+#include <smp/smp.h>
 
 static void kernel_thread() {
     while(true) {
