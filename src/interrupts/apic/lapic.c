@@ -56,10 +56,10 @@ static error_t calibrate_timer() {
     lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, UINT32_MAX);
 
     // stall
-    CHECK_AND_RETHROW(hpet_stall(1));
+    CHECK_AND_RETHROW(hpet_stall(50));
 
     // read the current count
-    ticks_per_milli = UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT);
+    ticks_per_milli = (UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT)) / 50;
 
 cleanup:
     return err;
@@ -124,7 +124,7 @@ error_t lapic_set_timer(uint32_t millis, uint8_t vector) {
     };
     lapic_write(LAPIC_REG_LVT_TIMER, timer.raw);
     lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1);
-    lapic_write(LAPIC_REG_TIMER_CURRENT_COUNT, (uint32_t) (millis * ticks_per_milli));
+    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, (uint32_t) (millis * ticks_per_milli));
 
     return NO_ERROR;
 }

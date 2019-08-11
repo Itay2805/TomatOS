@@ -24,7 +24,13 @@
 
 static void kernel_thread() {
     while(true) {
-        log_info("In thread!");
+        log_info("In thread A!");
+    }
+}
+
+static void kernel_thread_b() {
+    while(true) {
+        log_info("In thread B!");
     }
 }
 
@@ -83,9 +89,16 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     // create the main kernel thread
     thread_t* thread;
     CHECK_AND_RETHROW(create_process(kernel_address_space, &kernel_process));
+
     CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
     thread->context.cpu.rip = (uint64_t) kernel_thread;
     thread->status = THREAD_STATUS_NORMAL;
+    CHECK_AND_RETHROW(scheduler_queue_thread(thread));
+
+    CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
+    thread->context.cpu.rip = (uint64_t) kernel_thread_b;
+    thread->status = THREAD_STATUS_NORMAL;
+    CHECK_AND_RETHROW(scheduler_queue_thread(thread));
 
     CHECK_AND_RETHROW(scheduler_init());
     CHECK_AND_RETHROW(scheduler_kickstart());

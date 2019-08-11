@@ -20,10 +20,16 @@ error_t scheduler_init();
 error_t scheduler_kickstart();
 
 /**
- * Tells the scheduler that the given thread is to be killed
- *
- * @param thread
+ * Queue another thread into the scheduler
  */
-error_t scheduler_kill_thread(thread_t* thread);
+error_t scheduler_queue_thread(thread_t* thread);
+
+/**
+ * Tells the scheduler to remove a thread from the scheduler
+ *
+ * @remark
+ * This will not handle running threads!
+ */
+error_t scheduler_remove_thread(thread_t* thread);
 
 #endif //TOMATOS_SCHEDULER_H

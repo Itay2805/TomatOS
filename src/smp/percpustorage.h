@@ -6,7 +6,8 @@
 #include <error.h>
 
 typedef struct per_cpu_storage {
-    // the APIC processor id
+    // the APIC processor and lapic id
+    uint32_t lapic_id;
     uint32_t processor_id;
 
     // The stack to use normally in the kernel
@@ -14,17 +15,15 @@ typedef struct per_cpu_storage {
 
     // The stack to use during an NMI
     uintptr_t nmi_stack;
-} per_cpu_storage_t;
 
-typedef struct per_cpu_storage_entry {
-    uint32_t key;
-    per_cpu_storage_t value;
-} per_cpu_storage_entry_t;
+    // the per cpu index, starts from 0
+    size_t index;
+} per_cpu_storage_t;
 
 /**
  * The map of the lapic id to the per cpu storage
  */
-extern per_cpu_storage_entry_t* per_cpu_storage;
+extern per_cpu_storage_t* per_cpu_storage;
 
 /**
  * Allocate all the per cpu storage
@@ -36,5 +35,10 @@ error_t per_cpu_storage_init();
  * @return
  */
 per_cpu_storage_t* get_per_cpu_storage();
+
+/**
+ * Get the index of the current cpu
+ */
+size_t get_cpu_index();
 
 #endif //TOMATOS_PERCPUSTORAGE_H

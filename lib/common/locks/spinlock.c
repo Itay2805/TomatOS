@@ -1,14 +1,21 @@
 #include <cpu/atomic.h>
 #include <interrupts/interrupts.h>
+#include <drivers/hpet/hpet.h>
 #include "spinlock.h"
 #include "preemption.h"
 
 void do_lock(spinlock_t* spinlock, char* file, int line) {
+    uint64_t start = 0xFFFFFF;
     while(true) {
         if(do_try_lock(spinlock, file, line)) {
             return;
         }
-        while(spinlock->locked) _pause();
+        while(spinlock->locked) {
+            if(!(start--)) {
+                log_warn("Probably have a deadlock at %s:%d", file, line);
+            }
+            _pause();
+        }
     }
 }
 

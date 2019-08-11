@@ -51,6 +51,8 @@ static spinlock_t mm_lock;
  * This assumes the parameters is valid, so it is up to the caller to verify that!
  */
 static error_t expand(size_t min) {
+    error_t err = NO_ERROR;
+
     // allocate all the required pages
     if(last_block->allocated) {
         min += MM_BLOCK_SIZE;
@@ -60,7 +62,7 @@ static error_t expand(size_t min) {
     size_t page_count = min / 4096u;
     char* start = (void *) ((uintptr_t)last_block + MM_BLOCK_SIZE + last_block->size);
     for(size_t i = 0; i < page_count; i++) {
-        vmm_allocate(vmm_get(), start + i * KB(4), PAGE_ATTR_WRITE);
+        CHECK_AND_RETHROW(vmm_allocate(vmm_get(), start + i * KB(4), PAGE_ATTR_WRITE));
     }
 
     // update sizes
@@ -91,7 +93,9 @@ static error_t expand(size_t min) {
         // last is not allocated, join with it
         last_block->size += min;
     }
-    return NO_ERROR;
+
+cleanup:
+    return err;
 }
 
 /**

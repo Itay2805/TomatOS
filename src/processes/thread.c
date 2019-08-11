@@ -109,7 +109,7 @@ error_t thread_kill(thread_t* thread) {
     lock_preemption(&thread->lock);
 
     if(thread->status == THREAD_STATUS_RUNNING) {
-        CHECK_AND_RETHROW(scheduler_kill_thread(thread));
+        CHECK_AND_RETHROW(scheduler_remove_thread(thread));
     }
 
     thread->status = THREAD_STATUS_DEAD;

@@ -3,11 +3,24 @@
 #include <acpi/tables/madt.h>
 #include "percpustorage.h"
 
-per_cpu_storage_entry_t* per_cpu_storage;
+// TODO: Use an array instead of a hashmap
+per_cpu_storage_t* per_cpu_storage;
 
 error_t per_cpu_storage_init() {
     error_t err = NO_ERROR;
 
+    // get highest lapic number
+    int num = 0;
+    for(int i = 0; i < arrlen(madt_lapics); i++) {
+        madt_lapic_t* lapic = madt_lapics[i];
+        if(!lapic->processor_enabled) continue;
+        if(num < lapic->id) {
+            num = lapic->id;
+        }
+    }
+    arrsetlen(per_cpu_storage, num + 1);
+
+    // now fill all the per process information
     for(int i = 0; i < arrlen(madt_lapics); i++) {
         madt_lapic_t* lapic = madt_lapics[i];
         if(!lapic->processor_enabled) continue;
@@ -15,16 +28,21 @@ error_t per_cpu_storage_init() {
         per_cpu_storage_t st = {
             .processor_id = lapic->processor_id,
             .kernel_stack = (uintptr_t) kmalloc(MB(2)),
-            .nmi_stack = (uintptr_t) kmalloc(KB(512))
+            .nmi_stack = (uintptr_t) kmalloc(KB(512)),
+            .index = arrlen(per_cpu_storage),
         };
 
-        hmput(per_cpu_storage, lapic->id, st);
+        per_cpu_storage[lapic->id] = st;
     }
 
-cleanup:
+//cleanup:
     return err;
 }
 
 per_cpu_storage_t* get_per_cpu_storage() {
-    return &hmget(per_cpu_storage, lapic_get_id());
+    return &per_cpu_storage[lapic_get_id()];
+}
+
+size_t get_cpu_index() {
+    return get_per_cpu_storage()->index;
 }
