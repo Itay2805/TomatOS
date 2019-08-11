@@ -219,7 +219,7 @@ error_t scheduler_remove_thread(thread_t* thread) {
 
     // TODO: Check for the running threads
 
-cleanup:
+//cleanup:
     unlock_preemption(&thread_queue_lock);
     return err;
 }

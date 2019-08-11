@@ -101,7 +101,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(scheduler_queue_thread(thread));
 
     CHECK_AND_RETHROW(scheduler_init());
-    CHECK_AND_RETHROW(scheduler_kickstart());
+    //CHECK_AND_RETHROW(scheduler_kickstart());
 
     _sti();
 
