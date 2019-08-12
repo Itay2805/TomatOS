@@ -394,6 +394,11 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     if(header_type == 1) {
         // TODO: check the bars
     } else if (header_type == 0) {
+
+        if(dev->class == 0x03) {
+            log_warn("\t\tSkipping length calculations for display controller");
+        }
+
         for(uint16_t offset = PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS; offset < PCI_DEVICE_REG_BASE_ADDRESS_REGISTERS_END;) {
             uint64_t bar = pci_read_32(dev, offset);
             pci_bar_t new_bar = {0};
@@ -404,9 +409,11 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
                 new_bar.base = (uint32_t) PCI_BAR_IO_BASE(bar);
 
                 // len
-                pci_write_32(dev, offset, 0xFFFFFFFF);
-                new_bar.len = ~PCI_BAR_IO_BASE(pci_read_32(dev, offset)) + 1;
-                pci_write_32(dev, offset, (uint32_t)bar);
+                if(dev->class != 0x03) {
+                    pci_write_32(dev, offset, 0xFFFFFFFF);
+                    new_bar.len = ~PCI_BAR_IO_BASE(pci_read_32(dev, offset)) + 1;
+                    pci_write_32(dev, offset, (uint32_t)bar);
+                }
 
                 // next bar
                 offset += 4;
@@ -417,9 +424,11 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
                         new_bar.base = PCI_BAR_MEMORY_BASE(bar);
 
                         // len
-                        pci_write_32(dev, offset, 0xFFFFFFFF);
-                        new_bar.len = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
-                        pci_write_32(dev, offset, (uint32_t)bar);
+                        if(dev->class != 0x03) {
+                            pci_write_32(dev, offset, 0xFFFFFFFF);
+                            new_bar.len = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
+                            pci_write_32(dev, offset, (uint32_t) bar);
+                        }
 
                         // next bar
                         offset += 4;
@@ -430,12 +439,14 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
 
                         // len
-                        pci_write_32(dev, 4, 0xFFFFFFFF);
-                        pci_write_32(dev, (uint16_t) (offset + 4), 0xFFFFFFFF);
+                        if(dev->class != 0x03) {
+                            pci_write_32(dev, 4, 0xFFFFFFFF);
+                            pci_write_32(dev, (uint16_t) (offset + 4), 0xFFFFFFFF);
 
-                        uint64_t len_low = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
-                        uint64_t len_high = ~pci_read_32(dev, (uint16_t) (offset + 4)) + 1;
-                        new_bar.len = len_low | (len_high << 32);
+                            uint64_t len_low = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
+                            uint64_t len_high = ~pci_read_32(dev, (uint16_t) (offset + 4)) + 1;
+                            new_bar.len = len_low | (len_high << 32);
+                        }
 
                         // next bar
                         offset += 8;

@@ -1,5 +1,5 @@
 #include <common/cpu/atomic.h>
-#include <drivers/hpet/hpet.h>
+#include <helpers/hpet/hpet.h>
 #include "event.h"
 
 void event_signal(event_t* event) {

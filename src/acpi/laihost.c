@@ -3,9 +3,9 @@
 #include <logger/logger.h>
 #include <error.h>
 #include <interrupts/interrupts.h>
-#include <drivers/hpet/hpet.h>
+#include <helpers/hpet/hpet.h>
 #include <pci/pci.h>
-#include <drivers/portio.h>
+#include <helpers/portio.h>
 #include <string.h>
 #include <acpi/tables/rsdt.h>
 #include <acpi/tables/fadt.h>

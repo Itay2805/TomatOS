@@ -2,7 +2,7 @@
 #include <acpi/tables/madt.h>
 #include <interrupts/apic/lapic.h>
 #include <smp/percpustorage.h>
-#include <drivers/hpet/hpet.h>
+#include <helpers/hpet/hpet.h>
 #include "scheduler.h"
 #include "process.h"
 #include "thread.h"

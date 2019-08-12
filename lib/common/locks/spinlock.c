@@ -1,6 +1,5 @@
 #include <cpu/atomic.h>
 #include <interrupts/interrupts.h>
-#include <drivers/hpet/hpet.h>
 #include "spinlock.h"
 #include "preemption.h"
 

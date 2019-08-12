@@ -25,15 +25,15 @@ static uint64_t hpet_read(hpet_t* hpet, size_t offset) {
     return hpet->mmio[offset / 8];
 }
 
-static void hpet_timer_write(hpet_t* hpet, hpet_timer_t* timer, size_t offset, uint64_t value) {
-    _barrier();
-    hpet_write(hpet, HPET_TIMER_BASE_OFFSET(timer->id) + offset, value);
-}
+//static void hpet_timer_write(hpet_t* hpet, hpet_timer_t* timer, size_t offset, uint64_t value) {
+//    _barrier();
+//    hpet_write(hpet, HPET_TIMER_BASE_OFFSET(timer->id) + offset, value);
+//}
 
-static uint64_t hpet_timer_read(hpet_t* hpet, hpet_timer_t* timer, size_t offset) {
-    _barrier();
-    return hpet_read(hpet, HPET_TIMER_BASE_OFFSET(timer->id) + offset);
-}
+//static uint64_t hpet_timer_read(hpet_t* hpet, hpet_timer_t* timer, size_t offset) {
+//    _barrier();
+//    return hpet_read(hpet, HPET_TIMER_BASE_OFFSET(timer->id) + offset);
+//}
 
 ////////////////////////////////////////////
 // API Implementation
@@ -92,16 +92,6 @@ error_t hpet_stall(int64_t millis) {
 
 cleanup:
     return err;
-}
-
-error_t hpet_find_all() {
-    // TODO: using lai
-    log_warn("hpet_find_all not implemented yet");
-    return NO_ERROR;
-}
-
-error_t hpet_set_timeout(hpet_timeout_handler_f handler, void* user, uint64_t millis) {
-    return ERROR_NOT_IMPLEMENTED;
 }
 
 uint64_t hpet_get_millis() {

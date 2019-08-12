@@ -112,23 +112,6 @@ error_t hpet_init();
 error_t hpet_stall(int64_t millis);
 
 /**
- * Find and initialize all HPETs
- *
- * This will search the ACPI namespace for more HPETs to use
- *
- * @remark
- * But run after lai has been initialized
- */
-error_t hpet_find_all();
-
-typedef error_t (*hpet_timeout_handler_f)(registers_t* regs, void* user);
-
-/**
- * Set a timeout timer
- */
-error_t hpet_set_timeout(hpet_timeout_handler_f handler, void* user, uint64_t millis);
-
-/**
  * Will get the millis since the hpet started
  */
 uint64_t hpet_get_millis();

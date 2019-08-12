@@ -1,14 +1,13 @@
 #include "lapic.h"
 #include "apic.h"
 
-#include <drivers/rtc/rtc.h>
 #include <interrupts/interrupts.h>
 #include <locks/spinlock.h>
 #include <acpi/tables/madt.h>
 #include <cpu/atomic.h>
 #include <memory/vmm.h>
 #include <stb/stb_ds.h>
-#include <drivers/hpet/hpet.h>
+#include <helpers/hpet/hpet.h>
 #include <locks/preemption.h>
 
 static volatile char* mmio_base;

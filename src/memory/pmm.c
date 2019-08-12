@@ -1,6 +1,5 @@
 #include <common.h>
 #include <locks/spinlock.h>
-#include <drivers/portio.h>
 #include <tboot/tboot.h>
 #include "pmm.h"
 #include "vmm.h"

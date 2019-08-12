@@ -9,12 +9,12 @@
 #include <logger/vmdev/vmdev.h>
 #include <logger/term/term.h>
 #include <pci/pci.h>
-#include <drivers/hpet/hpet.h>
+#include <helpers/hpet/hpet.h>
 #include <common/locks/spinlock.h>
 #include <acpi/tables/madt.h>
 #include <stb/stb_ds.h>
 #include <common/locks/event.h>
-#include <drivers/portio.h>
+#include <helpers/portio.h>
 #include <lai/core.h>
 #include <lai/helpers/sci.h>
 #include <processes/process.h>
@@ -79,7 +79,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(hpet_init());
     CHECK_AND_RETHROW(smp_init());
 
-    // start getting the basic drivers
+    // start getting the basic helpers
     CHECK_AND_RETHROW(acpi_init());
     CHECK_AND_RETHROW(pci_init());
 
@@ -101,7 +101,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     CHECK_AND_RETHROW(scheduler_queue_thread(thread));
 
     CHECK_AND_RETHROW(scheduler_init());
-    //CHECK_AND_RETHROW(scheduler_kickstart());
+    CHECK_AND_RETHROW(scheduler_kickstart());
 
     _sti();
 
