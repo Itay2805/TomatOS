@@ -24,7 +24,7 @@ error_t create_thread(process_t* process, thread_t** thread) {
     if(process->address_space == kernel_address_space) {
         // set the kernel stack
         new_thread->kernel.stack = (uintptr_t) kmalloc(MB(2));
-        new_thread->context.cpu.rsp = new_thread->kernel.stack;
+        new_thread->context.cpu.rsp = new_thread->kernel.stack + MB(2);
 
         // set the segments for kernel thread
         new_thread->context.cpu.ds = GDT_KERNEL_DATA;

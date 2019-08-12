@@ -3,11 +3,14 @@
 
 static khandle_t handle_gen = 1;
 
-driver_entry_t* drivers;
-khandle_entry_t* khandles;
+driver_entry_t* drivers = NULL;
+khandle_entry_t* khandles = NULL;
 
 error_t driver_register(const char* scheme, driver_t* driver) {
     error_t err = NO_ERROR;
+
+    CHECK(scheme);
+    CHECK(driver);
 
     CHECK_TRACE(shgeti(drivers, scheme) == 0, "The scheme `%s` is already registered", scheme);
     shput(drivers, scheme, driver);

@@ -4,6 +4,7 @@
 #include <acpi/tables/madt.h>
 #include <memory/vmm.h>
 #include <stb/stb_ds.h>
+#include <cpu/atomic.h>
 #include "ioapic.h"
 
 error_t ioapic_init() {
@@ -23,13 +24,13 @@ cleanup:
 }
 
 void ioapic_write(madt_ioapic_t* ioapic, uint32_t reg, uint32_t value) {
-    POKE32(CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base)) = reg;
-    POKE32(CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base + 0x10)) = value;
+    VOL_POKE32(CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base)) = reg;
+    VOL_POKE32(CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base + 0x10)) = value;
 }
 
 uint32_t ioapic_read(madt_ioapic_t* ioapic, uint32_t reg) {
-    POKE32(CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base)) = reg;
-    return POKE32(CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base + 0x10));
+    VOL_POKE32(CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base)) = reg;
+    return VOL_POKE32(CONVERT_TO_DIRECT((uintptr_t)ioapic->mmio_base + 0x10));
 }
 
 void ioapic_get_range(madt_ioapic_t* ioapic, uint32_t* gsi_start, uint32_t* gsi_end) {

@@ -21,17 +21,16 @@
 #include <processes/thread.h>
 #include <processes/scheduler.h>
 #include <smp/smp.h>
+#include <resources/drivers/ahci/ahci.h>
 
 static void kernel_thread() {
-    while(true) {
-        log_info("In thread A!");
-    }
-}
+    error_t err = NO_ERROR;
+    log_info("In kernel thread!");
 
-static void kernel_thread_b() {
-    while(true) {
-        log_info("In thread B!");
-    }
+    // do driver initialization
+    CATCH(ahci_init());
+
+    while(true) _hlt();
 }
 
 /**
@@ -92,11 +91,6 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
     thread->context.cpu.rip = (uint64_t) kernel_thread;
-    thread->status = THREAD_STATUS_NORMAL;
-    CHECK_AND_RETHROW(scheduler_queue_thread(thread));
-
-    CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
-    thread->context.cpu.rip = (uint64_t) kernel_thread_b;
     thread->status = THREAD_STATUS_NORMAL;
     CHECK_AND_RETHROW(scheduler_queue_thread(thread));
 
