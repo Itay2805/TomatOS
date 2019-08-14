@@ -7,8 +7,8 @@
 #include "process.h"
 #include "thread.h"
 
-static spinlock_t running_threads_lock;
-static thread_t** running_threads;
+spinlock_t running_threads_lock;
+thread_t** running_threads;
 
 static spinlock_t thread_queue_lock;
 static thread_t** thread_queue;
@@ -31,7 +31,7 @@ static void idle_thread_loop() {
 // The scheduler
 ///////////////////////////////////////////////////////////////
 
-static error_t scheduler_tick(registers_t* regs) {
+error_t scheduler_reschedule(registers_t* regs) {
     error_t err = NO_ERROR;
 
     lock(&thread_queue_lock);
@@ -50,26 +50,31 @@ static error_t scheduler_tick(registers_t* regs) {
             running_thread->refcount--;
             running_thread->context.cpu = *regs;
             // TODO: Save FPU
-            running_thread->last_time = hpet_get_millis();
+            running_thread->running_time = hpet_get_millis();
             running_thread->status = THREAD_STATUS_NORMAL;
             unlock(&running_thread->lock);
         }
         running_threads[get_cpu_index()] = thread;
+        unlock(&running_threads_lock);
 
         // rollup the new thread
         lock(&thread->lock);
         thread->refcount++;
         *regs = thread->context.cpu;
-        thread->last_time = hpet_get_millis();
+        thread->running_time = hpet_get_millis();
         thread->status = THREAD_STATUS_RUNNING;
         unlock(&thread->lock);
 
         if(running_thread != NULL) {
-            // queue the thread back
-            arrins(thread_queue, 0, running_thread);
-        }
+            lock(&running_thread->lock);
 
-        unlock(&running_threads_lock);
+            // only add to the queue if was actually running
+            if(running_thread->status == THREAD_STATUS_RUNNING) {
+                arrins(thread_queue, 0, running_thread);
+            }
+
+            unlock(&running_thread->lock);
+        }
     }else {
         /*
          * Make sure that we always have a thread to run
@@ -88,7 +93,7 @@ static error_t scheduler_tick(registers_t* regs) {
             lock(&running_thread->lock);
             running_thread->refcount++;
             *regs = running_thread->context.cpu;
-            running_thread->last_time = hpet_get_millis();
+            running_thread->running_time = hpet_get_millis();
             running_thread->status = THREAD_STATUS_RUNNING;
             unlock(&running_thread->lock);
 
@@ -102,10 +107,27 @@ static error_t scheduler_tick(registers_t* regs) {
     return err;
 }
 
+static error_t scheduler_tick(registers_t* regs) {
+    error_t err = NO_ERROR;
+
+    // update the running process times
+    // TODO: Update more counters or whatever
+    if(running_threads[get_cpu_index()] != NULL) {
+        lock(&running_threads[get_cpu_index()]->lock);
+        running_threads[get_cpu_index()]->running_time += 1;
+        unlock(&running_threads[get_cpu_index()]->lock);
+    }
+
+    CHECK_AND_RETHROW(scheduler_reschedule(regs));
+
+cleanup:
+    return err;
+}
+
 static error_t lapic_timer_handler(registers_t* regs) {
     error_t err = NO_ERROR;
 
-    CHECK_AND_RETHROW(scheduler_tick(regs));
+    CHECK_AND_RETHROW(scheduler_reschedule(regs));
 
 cleanup:
     CATCH(lapic_send_eoi());
@@ -154,9 +176,13 @@ error_t scheduler_init() {
         thread->context.cpu.rip = (uint64_t)idle_thread_loop;
     }
 
-    // TODO: We could allocate it dynamically and free it once we started all schedulers
-    log_info("Registering scheduler startup interrupt #%d", INTERRUPT_SCHEDULER_STARTUP);
+    // register scheduler interrupts
+    log_info("Registering scheduler interrupts");
+    log_info("\tstartup (#%d)", INTERRUPT_SCHEDULER_STARTUP);
     CHECK_AND_RETHROW(interrupt_register(INTERRUPT_SCHEDULER_STARTUP, scheduler_start_per_core));
+
+    log_info("\treschedule (#%d)", INTERRUPT_SCHEDULER_RESCHEDULE);
+    CHECK_AND_RETHROW(interrupt_register(INTERRUPT_SCHEDULER_RESCHEDULE, scheduler_reschedule));
 
     timer_vector = interrupt_allocate();
     log_info("Registering timer tick interrupt #%d", timer_vector);
@@ -189,6 +215,7 @@ error_t scheduler_queue_thread(thread_t* thread) {
 
     // this now holds a reference
     lock_preemption(&thread->lock);
+    thread->status = THREAD_STATUS_NORMAL;
     thread->refcount++;
     unlock_preemption(&thread->lock);
 
@@ -200,26 +227,45 @@ error_t scheduler_queue_thread(thread_t* thread) {
     return err;
 }
 
-error_t scheduler_remove_thread(thread_t* thread) {
+error_t scheduler_remove_thread(thread_t* thread, registers_t* regs) {
     error_t err = NO_ERROR;
-    lock_preemption(&thread_queue_lock);
 
+    // check the thread queue
+    lock_preemption(&thread_queue_lock);
     for(int i = 0; i < arrlen(thread_queue); i++) {
         if(thread_queue[i] == thread) {
             // this no longer holds a reference
-            lock_preemption(&thread_queue[i]->lock);
+            lock(&thread_queue[i]->lock);
             thread_queue[i]->refcount--;
-            unlock_preemption(&thread_queue[i]->lock);
+            unlock(&thread_queue[i]->lock);
 
             // remove from the queue
             arrdel(thread_queue, i);
             i--;
         }
     }
-
-    // TODO: Check for the running threads
-
-//cleanup:
     unlock_preemption(&thread_queue_lock);
+
+    // check the running threads
+    for(int i = 0; i < arrlen(running_threads); i++) {
+        lock(&running_threads[get_cpu_index()]->lock);
+        if(running_threads[get_cpu_index()] == thread) {
+            unlock(&running_threads[get_cpu_index()]->lock);
+
+            if(i == get_cpu_index()) {
+                // removing the thread running on this cpu
+                // reschedule
+                CHECK_AND_RETHROW(scheduler_reschedule(regs));
+            }else {
+
+                // removing the thread running on another cpu
+                // send a reschedule ipi
+                CHECK_AND_RETHROW(lapic_send_ipi(per_cpu_storage[i].lapic_id, INTERRUPT_SCHEDULER_RESCHEDULE));
+            }
+        }
+    }
+
+cleanup:
+    lock_preemption(&running_threads_lock);
     return err;
 }

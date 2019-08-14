@@ -1,5 +1,5 @@
-#ifndef TOMATOS_PROCESS_H
-#define TOMATOS_PROCESS_H
+#ifndef TOMATKERNEL_ROCESS_H
+#define TOMATKERNEL_ROCESS_H
 
 #include <memory/vmm.h>
 #include "thread.h"
@@ -55,6 +55,6 @@ error_t release_process(process_t* process);
 // Process API
 /////////////////////////////////////////////
 
-error_t process_kill(process_t* process);
+error_t process_kill(process_t* process, registers_t* regs);
 
-#endif //TOMATOS_PROCESS_H
+#endif //TOMATKERNEL_ROCESS_H

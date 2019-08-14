@@ -10,20 +10,28 @@ void* kmalloc(size_t size) {
     CHECK(ptr != NULL);
 
 cleanup:
+    CATCH(err);
+    if(err != NO_ERROR) {
+        ptr = NULL;
+    }
     return ptr;
 }
 
-void* realloc(void* ptr, size_t size) {
+void* krealloc(void* ptr, size_t size) {
     error_t err = NO_ERROR;
 
     CHECK_AND_RETHROW(mm_reallocate(&ptr, size));
     CHECK(ptr != NULL);
 
 cleanup:
+    CATCH(err);
+    if(err != NO_ERROR) {
+        ptr = NULL;
+    }
     return ptr;
 }
 
-void* calloc(size_t count, size_t size) {
+void* kcalloc(size_t count, size_t size) {
     error_t err = NO_ERROR;
     void* ptr = NULL;
 
@@ -31,6 +39,10 @@ void* calloc(size_t count, size_t size) {
     CHECK(ptr != NULL);
 
 cleanup:
+    CATCH(err);
+    if(err != NO_ERROR) {
+        ptr = NULL;
+    }
     return ptr;
 }
 
@@ -42,6 +54,6 @@ void kfree(void *ptr) {
     }
 
 cleanup:
-    return;
+    CATCH(err);
 }
 

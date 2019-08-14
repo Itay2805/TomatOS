@@ -15,7 +15,7 @@ void* laihost_malloc(size_t size) {
 }
 
 void* laihost_realloc(void* ptr, size_t size) {
-    return realloc(ptr, size);
+    return krealloc(ptr, size);
 }
 
 void laihost_free(void* ptr) {

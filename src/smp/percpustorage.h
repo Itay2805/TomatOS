@@ -1,5 +1,5 @@
-#ifndef TOMATOS_PERCPUSTORAGE_H
-#define TOMATOS_PERCPUSTORAGE_H
+#ifndef TOMATKERNEL_ERCPUSTORAGE_H
+#define TOMATKERNEL_ERCPUSTORAGE_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -41,4 +41,4 @@ per_cpu_storage_t* get_per_cpu_storage();
  */
 size_t get_cpu_index();
 
-#endif //TOMATOS_PERCPUSTORAGE_H
+#endif //TOMATKERNEL_ERCPUSTORAGE_H

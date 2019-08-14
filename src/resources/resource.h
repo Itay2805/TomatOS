@@ -1,5 +1,5 @@
-#ifndef TOMATOS_RESOURCE_H
-#define TOMATOS_RESOURCE_H
+#ifndef TOMATKERNEL_ESOURCE_H
+#define TOMATKERNEL_ESOURCE_H
 
 #include <stdint.h>
 #include <tomato/resource.h>
@@ -11,4 +11,4 @@
  */
 typedef uint64_t khandle_t;
 
-#endif //TOMATOS_RESOURCE_H
+#endif //TOMATKERNEL_ESOURCE_H

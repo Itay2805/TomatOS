@@ -16,6 +16,7 @@ enum {
     // we skip the first 16 just in case
     INTERRUPT_TLB_SHOOTDOWN = 0x20 + 0xf,
     INTERRUPT_SCHEDULER_STARTUP,
+    INTERRUPT_SCHEDULER_RESCHEDULE,
 
     // from here we can allocate it dynamically
     INTERRUPTS_ALLOCATION_BASE,

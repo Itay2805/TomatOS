@@ -1,5 +1,5 @@
-#ifndef TOMATOS_DRIVER_H
-#define TOMATOS_DRIVER_H
+#ifndef TOMATKERNEL_RIVER_H
+#define TOMATKERNEL_RIVER_H
 
 #include <error.h>
 #include "resource.h"
@@ -53,4 +53,4 @@ khandle_t driver_create_handle(driver_t* driver);
 error_t kopen(resource_descriptor_t* descriptor, khandle_t* handle);
 error_t kclose(khandle_t handle);
 
-#endif //TOMATOS_DRIVER_H
+#endif //TOMATKERNEL_RIVER_H

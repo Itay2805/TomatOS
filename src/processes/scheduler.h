@@ -1,8 +1,18 @@
-#ifndef TOMATOS_SCHEDULER_H
-#define TOMATOS_SCHEDULER_H
+#ifndef TOMATKERNEL_CHEDULER_H
+#define TOMATKERNEL_CHEDULER_H
 
 #include <error.h>
 #include "thread.h"
+
+/**
+ * While accessing the running threads you MUST lock this lock
+ */
+spinlock_t running_threads_lock;
+
+/**
+ * An array of the running threads
+ */
+thread_t** running_threads;
 
 /**
  * This will do the first initialization of the scheduler like creating the
@@ -25,11 +35,18 @@ error_t scheduler_kickstart();
 error_t scheduler_queue_thread(thread_t* thread);
 
 /**
+ * Reschedule another thread
+ *
+ * @param regs  [IN/OUT] The cpu context
+ */
+error_t scheduler_reschedule(registers_t* regs);
+
+/**
  * Tells the scheduler to remove a thread from the scheduler
  *
  * @remark
- * This will not handle running threads!
+ * This function will not change the state of the thread!
  */
-error_t scheduler_remove_thread(thread_t* thread);
+error_t scheduler_remove_thread(thread_t* thread, registers_t* regs);
 
-#endif //TOMATOS_SCHEDULER_H
+#endif //TOMATKERNEL_CHEDULER_H

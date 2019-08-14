@@ -101,15 +101,17 @@ deleted:
     return err;
 }
 
-error_t thread_kill(thread_t* thread) {
+error_t thread_kill(thread_t* thread, registers_t* regs) {
     error_t err = NO_ERROR;
 
     CHECK(thread);
 
+    CHECK_AND_RETHROW(scheduler_remove_thread(thread, regs));
+
     lock_preemption(&thread->lock);
 
     if(thread->status == THREAD_STATUS_RUNNING) {
-        CHECK_AND_RETHROW(scheduler_remove_thread(thread));
+        CHECK_AND_RETHROW(scheduler_remove_thread(thread, regs));
     }
 
     thread->status = THREAD_STATUS_DEAD;

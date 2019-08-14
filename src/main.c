@@ -13,7 +13,6 @@
 #include <common/locks/spinlock.h>
 #include <acpi/tables/madt.h>
 #include <stb/stb_ds.h>
-#include <common/locks/event.h>
 #include <helpers/portio.h>
 #include <lai/core.h>
 #include <lai/helpers/sci.h>

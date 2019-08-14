@@ -1,5 +1,5 @@
-#ifndef TOMATOS_THREAD_H
-#define TOMATOS_THREAD_H
+#ifndef TOMATKERNEL_HREAD_H
+#define TOMATKERNEL_HREAD_H
 
 #include <stddef.h>
 #include <interrupts/interrupts.h>
@@ -43,7 +43,7 @@ typedef struct thread {
     } context;
 
     // the last time the scheduler touched this process
-    uint64_t last_time;
+    uint64_t running_time;
 
     // TODO: Scheduling stuff
     // TODO: Thread signal routing
@@ -84,8 +84,13 @@ error_t release_thread(thread_t* thread);
  * @remark
  * This will not destroy the object
  *
- * @param thread    [IN] Thread to kill
+ * @remark
+ * If the thread is running the cpu running the thread will get a reschedule IPI, if the thread is running on this cpu
+ * the given regs context will be used to save the thread and do a reschedule
+ *
+ * @param thread    [IN]        Thread to kill
+ * @param regs      [IN/OUT]    The current cpu context
  */
-error_t thread_kill(thread_t* thread);
+error_t thread_kill(thread_t* thread, registers_t* regs);
 
-#endif //TOMATOS_THREAD_H
+#endif //TOMATKERNEL_HREAD_H

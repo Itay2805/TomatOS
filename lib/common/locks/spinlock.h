@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct spinlock {
+typedef volatile struct spinlock {
     uint32_t locked;
     uint64_t interrupts;
 
@@ -13,7 +13,7 @@ typedef struct spinlock {
     int line;
 
     // TODO: Maybe dead lock detection?
-} volatile spinlock_t;
+} spinlock_t;
 
 /**
  * Will block until can lock

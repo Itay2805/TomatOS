@@ -53,7 +53,7 @@ deleted:
     return err;
 }
 
-error_t process_kill(process_t* process) {
+error_t process_kill(process_t* process, registers_t* regs) {
     error_t err = NO_ERROR;
 
     CHECK(process);
@@ -62,7 +62,7 @@ error_t process_kill(process_t* process) {
 
     // kill all the threads
     for(int i = 0; i < hmlen(process->threads); i++) {
-        CHECK_AND_RETHROW(thread_kill(process->threads[i].value));
+        CHECK_AND_RETHROW(thread_kill(process->threads[i].value, regs));
     }
 
 cleanup:
