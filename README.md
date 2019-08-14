@@ -19,4 +19,7 @@ all.
     * bar management
     * IRQ routing
 * SMP (Just the frame, still gotta make the trampoline)
-    * Seamless Per CPU storage
+
+### Drivers
+
+* AHCI (WIP)

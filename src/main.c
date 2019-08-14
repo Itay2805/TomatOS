@@ -20,13 +20,16 @@
 #include <processes/thread.h>
 #include <processes/scheduler.h>
 #include <smp/smp.h>
+#include <resources/drivers/ahci/ahci.h>
 
 static void kernel_thread() {
     error_t err = NO_ERROR;
     log_info("In kernel thread!");
 
     // do driver initialization
+    CATCH(ahci_init());
 
+cleanup:
     while(true) _hlt();
 }
 

@@ -7,14 +7,14 @@
 // Memory manipulation
 ////////////////////////////////////////////////////////////////////////////
 
-#define VOL_POKE(type, addr) (*((volatile type*)addr))
+#define VOL_POKE(type, addr) (*((volatile type*)(addr)))
 #define VOL_POKE8(addr) VOL_POKE(uint8_t, addr)
 #define VOL_POKE16(addr) VOL_POKE(uint16_t, addr)
 #define VOL_POKE32(addr) VOL_POKE(uint32_t, addr)
 #define VOL_POKE64(addr) VOL_POKE(uint64_t, addr)
 
 
-#define POKE(type, addr) (*((type*)addr))
+#define POKE(type, addr) (*((type*)(addr)))
 #define POKE8(addr) POKE(uint8_t, addr)
 #define POKE16(addr) POKE(uint16_t, addr)
 #define POKE32(addr) POKE(uint32_t, addr)

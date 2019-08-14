@@ -117,6 +117,7 @@ extern const char* error_names[ERROR_COUNT];
         if((err) != NO_ERROR) { \
             log_warn("catched `%s` (%s:%d)", error_names[err], __FILENAME__, __LINE__); \
             __VA_ARGS__; \
+            err = NO_ERROR; \
         } \
     } while(0)
 

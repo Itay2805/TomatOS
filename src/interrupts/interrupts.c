@@ -234,7 +234,7 @@ cleanup:
 
 #define INTERRUPT_VECTOR_SIZE (0xff - INTERRUPTS_ALLOCATION_BASE - 1)
 static int interrupt_vector[INTERRUPT_VECTOR_SIZE];
-static int index = 17;
+static int index = 0;
 
 uint8_t interrupt_allocate() {
     int vec = index;
@@ -269,18 +269,18 @@ found:
     // the correct number
     interrupt_vector[vec]++;
     index = (vec + 1) % INTERRUPT_VECTOR_SIZE;
-    return (uint8_t) (vec + 0x20);
+    return (uint8_t) (vec + INTERRUPTS_ALLOCATION_BASE);
 }
 
 void interrupt_set(uint8_t vector) {
-    if(vector <= 0x20 || vector >= 0xf0) return;
-    vector -= 0x20;
+    if(vector <= INTERRUPTS_ALLOCATION_BASE || vector >= 0xf0) return;
+    vector -= INTERRUPTS_ALLOCATION_BASE;
     interrupt_vector[vector]++;
 }
 
 void interrupt_free(uint8_t vector) {
-    if(vector <= 0x20 || vector >= 0xf0) return;
-    vector -= 0x20;
+    if(vector <= INTERRUPTS_ALLOCATION_BASE || vector >= 0xf0) return;
+    vector -= INTERRUPTS_ALLOCATION_BASE;
     if(interrupt_vector[vector] > 0) {
         interrupt_vector[vector]--;
     }

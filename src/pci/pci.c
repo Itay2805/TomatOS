@@ -5,6 +5,7 @@
 #include <common/common.h>
 #include <lai/helpers/pci.h>
 #include <lai/helpers/resource.h>
+#include <acpi/acpi.h>
 #include "pci.h"
 #include "pci_common_spec.h"
 #include "pci_bridge_spec.h"
@@ -284,6 +285,9 @@ static error_t route_device_irq(pci_dev_t* dev) {
     uint8_t pin = pci_read_8(dev, PCI_REG_INTERRUPT_PIN);
     acpi_resource_t resource = {0};
 
+    // ignore routing if acpi is disabled
+    if(!acpi_inited) goto cleanup;
+
     // if pin is zero then this device has no interrupts
     if(pin == 0) goto cleanup;
 
@@ -304,7 +308,7 @@ static error_t route_device_irq(pci_dev_t* dev) {
     dev->irq = (uint8_t) resource.base;
     log_info("\t\tIRQ #%d", dev->irq);
 
-    cleanup:
+cleanup:
     return err;
 }
 
@@ -412,7 +416,9 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
                 if(dev->class != 0x03) {
                     pci_write_32(dev, offset, 0xFFFFFFFF);
                     new_bar.len = ~PCI_BAR_IO_BASE(pci_read_32(dev, offset)) + 1;
-                    pci_write_32(dev, offset, (uint32_t)bar);
+                    pci_write_32(dev, offset, (uint32_t) bar);
+                }else {
+                    new_bar.len = 0;
                 }
 
                 // next bar
@@ -428,6 +434,8 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
                             pci_write_32(dev, offset, 0xFFFFFFFF);
                             new_bar.len = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
                             pci_write_32(dev, offset, (uint32_t) bar);
+                        }else {
+                            new_bar.len = 0;
                         }
 
                         // next bar
@@ -442,11 +450,13 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
                         if(dev->class != 0x03) {
                             pci_write_32(dev, 4, 0xFFFFFFFF);
                             pci_write_32(dev, (uint16_t) (offset + 4), 0xFFFFFFFF);
-
-                            uint64_t len_low = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
-                            uint64_t len_high = ~pci_read_32(dev, (uint16_t) (offset + 4)) + 1;
-                            new_bar.len = len_low | (len_high << 32);
+                        }else {
+                            new_bar.len = 0;
                         }
+
+                        uint64_t len_low = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
+                        uint64_t len_high = ~pci_read_32(dev, (uint16_t) (offset + 4)) + 1;
+                        new_bar.len = len_low | (len_high << 32);
 
                         // next bar
                         offset += 8;
@@ -480,7 +490,8 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     }
 
     // check irq
-    CHECK_AND_RETHROW(route_device_irq(dev));
+    // if error then ignore it
+    CATCH(route_device_irq(dev));
 
     // function scanning
     if(dev->class == PCI_CLASS_BRIDGE_DEVICE && dev->subclass == PCI_SUBCLASS_HOST_BRIDGE) {
@@ -563,15 +574,15 @@ uint8_t pci_read_8(pci_dev_t* dev, uint16_t offset) {
     return (uint8_t)dev->mmio[offset];
 }
 void pci_write_32(pci_dev_t* dev, uint16_t offset, uint32_t value) {
-    *(uint32_t*)&dev->mmio[offset] = value;
+    VOL_POKE32(dev->mmio + offset) = value;
 }
 
 void pci_write_16(pci_dev_t* dev, uint16_t offset, uint16_t value) {
-    *(uint16_t*)&dev->mmio[offset] = value;
+    VOL_POKE16(dev->mmio + offset) = value;
 }
 
 void pci_write_8(pci_dev_t* dev, uint16_t offset, uint8_t value) {
-    dev->mmio[offset] = value;
+    VOL_POKE8(dev->mmio + offset) = value;
 }
 
 /////////////////////////////////////////////

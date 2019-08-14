@@ -91,11 +91,11 @@ error_t lapic_eoi() {
 }
 
 void lapic_write(uint32_t reg, uint32_t value) {
-    *(uint32_t*)&mmio_base[reg] = value;
+    VOL_POKE32(mmio_base + reg) = value;
 }
 
 uint32_t lapic_read(uint32_t reg) {
-    return *(uint32_t*)&mmio_base[reg];
+    return POKE32(mmio_base + reg);
 }
 
 uint8_t lapic_get_id() {

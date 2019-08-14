@@ -13,6 +13,8 @@
 #include "acpi/tables/madt.h"
 #include "acpi/tables/fadt.h"
 
+bool acpi_inited;
+
 error_t acpi_tables_init(tboot_info_t* info) {
     error_t err = NO_ERROR;
 
@@ -76,6 +78,8 @@ error_t acpi_init() {
     CHECK_AND_RETHROW(ioapic_redirect(fadt->sci_irq, vec, 0));
     CHECK_AND_RETHROW(interrupt_register(vec, sci_handler));
     log_info("\t\tAdded SCI handler (#%d -> #%d)", fadt->sci_irq, vec);
+
+    acpi_inited = true;
 
 cleanup:
     return err;
