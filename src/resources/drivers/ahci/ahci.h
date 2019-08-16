@@ -23,6 +23,12 @@ typedef struct ahci_port {
 typedef struct ahci_device {
     pci_dev_t* dev;
     pci_bar_t* bar;
+
+    char* command_list;
+    char* command_table;
+    char* received_fis;
+
+
     ahci_port_t ports[32];
 } ahci_device_t;
 

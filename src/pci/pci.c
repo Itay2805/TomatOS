@@ -414,7 +414,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
                 // len
                 if(dev->class != 0x03) {
-                    pci_write_32(dev, offset, 0xFFFFFFFF);
+                    pci_write_32(dev, offset, UINT32_MAX);
                     new_bar.len = ~PCI_BAR_IO_BASE(pci_read_32(dev, offset)) + 1;
                     pci_write_32(dev, offset, (uint32_t) bar);
                 }else {
@@ -431,7 +431,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
                         // len
                         if(dev->class != 0x03) {
-                            pci_write_32(dev, offset, 0xFFFFFFFF);
+                            pci_write_32(dev, offset, UINT32_MAX);
                             new_bar.len = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
                             pci_write_32(dev, offset, (uint32_t) bar);
                         }else {
@@ -448,15 +448,15 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
                         // len
                         if(dev->class != 0x03) {
-                            pci_write_32(dev, 4, 0xFFFFFFFF);
-                            pci_write_32(dev, (uint16_t) (offset + 4), 0xFFFFFFFF);
+                            pci_write_32(dev, offset, UINT32_MAX);
+                            pci_write_32(dev, (uint16_t) (offset + 4), UINT32_MAX);
+
+                            uint64_t len_low = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
+                            uint64_t len_high = ~pci_read_32(dev, (uint16_t) (offset + 4)) + 1;
+                            new_bar.len = len_low | (len_high << 32);
                         }else {
                             new_bar.len = 0;
                         }
-
-                        uint64_t len_low = ~PCI_BAR_MEMORY_BASE(pci_read_32(dev, offset)) + 1;
-                        uint64_t len_high = ~pci_read_32(dev, (uint16_t) (offset + 4)) + 1;
-                        new_bar.len = len_low | (len_high << 32);
 
                         // next bar
                         offset += 8;

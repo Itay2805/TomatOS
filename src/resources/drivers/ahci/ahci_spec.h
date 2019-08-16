@@ -246,6 +246,4 @@ enum {
     AHCI_FIS_TYPE_DEV_BITS = 0xA1,
 } AHCI_FIS_TYPE;
 
-
-
 #endif //TOMATKERNEL_AHCI_SPEC_H
