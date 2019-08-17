@@ -20,13 +20,22 @@
 #include <processes/thread.h>
 #include <processes/scheduler.h>
 #include <smp/smp.h>
-#include <resources/drivers/ahci/ahci.h>
+#include <objects/drivers/ahci/ahci.h>
+#include <resources/drivers/framebuffer/framebuffer.h>
+#include <objects/screen.h>
 
-static void kernel_thread() {
+static void kernel_thread(tboot_info_t* info) {
     error_t err = NO_ERROR;
     log_info("In kernel thread!");
 
     // do driver initialization
+    CATCH(framebuffer_init(info));
+
+    object_t* screen;
+    CHECK_AND_RETHROW(object_get_primary(TRAIT_SCREEN, &screen));
+    screen_functions_t* functions = (screen_functions_t*)screen->traits[TRAIT_SCREEN].functions;
+    CHECK_AND_RETHROW(functions->clear(screen));
+
     CATCH(ahci_init());
 
 cleanup:
@@ -91,6 +100,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     CHECK_AND_RETHROW(create_thread(kernel_process, &thread));
     thread->context.cpu.rip = (uint64_t) kernel_thread;
+    thread->context.cpu.rdi = (uint64_t) info;
     thread->status = THREAD_STATUS_NORMAL;
     CHECK_AND_RETHROW(scheduler_queue_thread(thread));
 
