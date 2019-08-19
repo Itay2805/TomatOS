@@ -21,7 +21,7 @@
 #include <processes/scheduler.h>
 #include <smp/smp.h>
 #include <objects/drivers/ahci/ahci.h>
-#include <resources/drivers/framebuffer/framebuffer.h>
+#include <objects/drivers/framebuffer/framebuffer.h>
 #include <objects/screen.h>
 
 static void kernel_thread(tboot_info_t* info) {

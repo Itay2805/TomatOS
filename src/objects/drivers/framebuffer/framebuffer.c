@@ -1,7 +1,7 @@
 #include <tboot/tboot.h>
 #include "framebuffer.h"
 
-#include <resources/screen.h>
+#include <objects/screen.h>
 #include <string.h>
 
 static uintptr_t base;

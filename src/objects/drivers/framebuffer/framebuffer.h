@@ -1,7 +1,7 @@
 #ifndef TOMATKERNEL_FRAMEBUFFER_H
 #define TOMATKERNEL_FRAMEBUFFER_H
 
-#include <resources/object.h>
+#include <objects/object.h>
 #include <tboot/tboot.h>
 
 /**
