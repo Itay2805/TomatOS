@@ -2,6 +2,8 @@
 #include <stb/stb_ds.h>
 #include <common.h>
 #include <helpers/hpet/hpet.h>
+#include <objects/object.h>
+#include <memory/mm.h>
 #include "ahci.h"
 #include "ahci_spec.h"
 
@@ -67,6 +69,15 @@ static error_t init_ahci_port(ahci_device_t* dev, size_t port) {
             log_info("\t\tgot SATA at port #%d", port);
             new_port->type = AHCI_PORT_SATA;
             // TODO: Identify
+
+            object_t* obj = kmalloc(sizeof(object_t));
+            obj->type = OBJECT_STORAGE;
+            obj->context = new_port;
+            // TODO: setup syscalls and functions
+
+            new_port->obj = obj;
+
+            CHECK_AND_RETHROW(object_add(obj));
         } break;
 
         case AHCI_SIGNATURE_SATAPI: {

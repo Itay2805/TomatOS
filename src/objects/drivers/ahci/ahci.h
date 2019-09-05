@@ -1,6 +1,7 @@
 #ifndef TOMATKERNEL_AHCI_H
 #define TOMATKERNEL_AHCI_H
 
+#include <objects/object.h>
 #include <error.h>
 
 // TODO: SATAPI
@@ -13,10 +14,12 @@ typedef enum ahci_port_type {
 
 typedef struct ahci_port {
     ahci_port_type_t type;
+    object_t* obj;
     union {
         struct {
-
         } sata;
+        struct {
+        } satapi;
     };
 } ahci_port_t;
 

@@ -3,37 +3,31 @@
 
 #include <common/error.h>
 
-typedef enum trait_type {
-    TRAIT_SCREEN,
-    TRAIT_COUNT,
-} trait_type_t;
+typedef enum object_type {
+    OBJECT_STORAGE,
+    OBJECT_PARTITION,
+    OBJECT_FILESYSTEM,
+    OBJECT_NETWORK,
+    OBJECT_DISPLAY,
+    OBJECT_TYPE_MAX
+} object_type_t;
 
 typedef int obj_id_t;
 
-typedef struct trait {
-    bool available;
-    // array of syscalls
-    size_t* syscalls;
-    // array of functions
-    uintptr_t* functions;
-} trait_t;
-
 typedef struct object {
-    // unique object id
     obj_id_t id;
-
-    // context
     void* context;
+    object_type_t type;
 
-    // array of traits
-    trait_t traits[TRAIT_COUNT];
+    // syscalls
+    size_t* syscalls;
+    void* functions;
 } object_t;
-
 
 error_t object_add(object_t* object);
 
-error_t object_get_primary(trait_type_t trait, object_t** object);
+error_t object_get_primary(object_type_t type, object_t** object);
 
-error_t object_set_primary(trait_type_t trait, object_t* object);
+error_t object_set_primary(object_t* object);
 
 #endif //TOMATKERNEL_RIVER_H

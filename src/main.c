@@ -22,7 +22,7 @@
 #include <smp/smp.h>
 #include <objects/drivers/ahci/ahci.h>
 #include <objects/drivers/framebuffer/framebuffer.h>
-#include <objects/screen.h>
+#include <objects/display.h>
 
 static void kernel_thread(tboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -30,12 +30,6 @@ static void kernel_thread(tboot_info_t* info) {
 
     // do driver initialization
     CATCH(framebuffer_init(info));
-
-    object_t* screen;
-    CHECK_AND_RETHROW(object_get_primary(TRAIT_SCREEN, &screen));
-    screen_functions_t* functions = (screen_functions_t*)screen->traits[TRAIT_SCREEN].functions;
-    CHECK_AND_RETHROW(functions->clear(screen));
-
     CATCH(ahci_init());
 
 cleanup:

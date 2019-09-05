@@ -1,37 +1,45 @@
-#include <tboot/tboot.h>
 #include "framebuffer.h"
 
-#include <objects/screen.h>
+#include <objects/display.h>
+#include <tboot/tboot.h>
 #include <string.h>
 
 static uintptr_t base;
 static size_t width;
 static size_t height;
 
-static error_t clear(object_t* obj) {
-    // memset((void *) base, 0, (size_t) (width * height * 4));
-    log_info("Called screen clear!");
-    return NO_ERROR;
+static error_t get_framebuffer(uintptr_t* framebuffer, size_t* out_width, size_t* out_height) {
+    error_t err = NO_ERROR;
+
+    CHECK(framebuffer != NULL);
+    CHECK(out_width != NULL);
+    CHECK(out_height != NULL);
+
+    *framebuffer = base;
+    *out_width = width;
+    *out_height = height;
+
+cleanup:
+    return err;
 }
 
 static uintptr_t functions[] = {
-    [SCREEN_FUNCTION_CLEAR] = (uintptr_t)clear
+    [DISPLAY_SYS_GET_FRAMEBUFFER] = (uintptr_t)get_framebuffer
 };
 
-static uintptr_t syscalls[SCREEN_FUNCTION_COUNT] = {};
+static uintptr_t syscalls[DISPLAY_SYS_MAX] = {};
 
 static object_t obj = {
-    .traits = {
-        [TRAIT_SCREEN] = (trait_t){
-            .available = true,
-            .functions = functions,
-            .syscalls = syscalls,
-        },
-    }
+    .type = OBJECT_DISPLAY,
+    .functions = functions,
+    .syscalls = syscalls
 };
 
 error_t framebuffer_init(tboot_info_t* info) {
     error_t err = NO_ERROR;
+
+    CHECK(info != NULL);
+
     base = info->framebuffer.addr;
     width = info->framebuffer.width;
     height = info->framebuffer.height;
