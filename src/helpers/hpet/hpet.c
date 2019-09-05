@@ -50,7 +50,7 @@ error_t hpet_init() {
     uint64_t base_addr = hpet_table->addr.address;
 
     // map it
-    CHECK_AND_RETHROW(vmm_map_direct(base_addr, KB(64)));
+    CHECK_AND_RETHROW(vmm_map_direct(base_addr, KB(64), false));
 
     // use the hpet table for the first hpet
     hpet_t hpet = {

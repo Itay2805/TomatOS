@@ -67,7 +67,7 @@ cleanup:
 error_t lapic_init() {
     error_t err = NO_ERROR;
 
-    CHECK_AND_RETHROW(vmm_map_direct(madt->lapic_addr, KB(4)));
+    CHECK_AND_RETHROW(vmm_map_direct(madt->lapic_addr, KB(4), false));
     mmio_base = (char*)CONVERT_TO_DIRECT((uintptr_t)madt->lapic_addr);
 
     log_info("\tInitializing Local APIC #%d", lapic_get_id());

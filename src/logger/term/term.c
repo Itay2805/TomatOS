@@ -59,14 +59,9 @@ void term_early_init(tboot_info_t* info) {
 }
 
 void term_init() {
-    vram = CONVERT_TO_DIRECT(vram);
-
     // map the framebuffer
-    for(uintptr_t addr = ALIGN_PAGE_DOWN(vram); addr < ALIGN_PAGE_UP(vram + width * full_height * 4); addr += KB(4)) {
-        if(!vmm_is_mapped(kernel_address_space, addr)) {
-            vmm_map(kernel_address_space, (void *) addr, (void *) (addr - DIRECT_MAPPING_BASE), PAGE_ATTR_WRITE);
-        }
-    }
+    vmm_map_direct((uintptr_t) vram, width * full_height * 4u, true);
+    vram = CONVERT_TO_DIRECT(vram);
 
     // allocate a proper backbuffer
     uint32_t* tmp_backbuffer = kmalloc(width * full_height * 4u);

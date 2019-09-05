@@ -17,7 +17,7 @@
 #define PAGING_PRESENT_BIT (1ul << 0ul)
 #define PAGING_READ_WRITE_BIT (1ul << 1ul)
 #define PAGING_USER_BIT (1ul << 2ul)
-#define PAGING_PAGE_LEVEL_WRITETHROUH_BIT (1ul << 2ul)
+#define PAGING_WRITE_COMBINING (1ul << 3ul)
 #define PAGING_ACCESSED_BIT (1ul << 5ul)
 #define PAGING_DIRTY_BIT (1ul << 6ul)
 #define PAGING_PAGE_SIZE_BIT (1ul << 7ul)
@@ -80,6 +80,7 @@ static spinlock_t vmm_lock;
 // features
 static bool supports_global_pages;
 static bool supports_1gb_paging;
+static bool supports_pat;
 
 ////////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -290,6 +291,9 @@ static error_t internal_map(address_space_t address_space, void* virtual_address
     if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
         table[PAGING_PML1E_OFFSET(virtual_address)] |= PAGING_GLOBAL_BIT;
     }
+    if(supports_pat && attributes & PAGE_ATTR_WRITE_COMBINE) {
+        table[PAGING_PML1E_OFFSET(virtual_address)] |= PAGING_WRITE_COMBINING;
+    }
     _barrier();
 
 cleanup:
@@ -329,6 +333,9 @@ static error_t internal_map_1gb(address_space_t address_space, uintptr_t virt_ad
     // global it if can
     if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
         table[PAGING_PML3E_OFFSET(virt_addr)] |= PAGING_GLOBAL_BIT;
+    }
+    if(supports_pat && attributes & PAGE_ATTR_WRITE_COMBINE) {
+        table[PAGING_PML3E_OFFSET(virt_addr)] |= PAGING_WRITE_COMBINING;
     }
     _barrier();
 
@@ -370,6 +377,9 @@ static error_t internal_map_2mb(address_space_t address_space, uintptr_t virt_ad
     if(supports_global_pages && attributes & PAGE_ATTR_GLOBAL) {
         table[PAGING_PML2E_OFFSET(virt_addr)] |= PAGING_GLOBAL_BIT;
     }
+    if(supports_pat && attributes & PAGE_ATTR_WRITE_COMBINE) {
+        table[PAGING_PML2E_OFFSET(virt_addr)] |= PAGING_WRITE_COMBINING;
+    }
     _barrier();
 
 cleanup:
@@ -388,39 +398,39 @@ cleanup:
 static error_t internal_map_big_pages(address_space_t address_space, uintptr_t virt_addr, uintptr_t phys_addr, size_t length, int attributes) {
     error_t err = NO_ERROR;
 
-    if(supports_1gb_paging) {
-        phys_addr = ALIGN_DOWN(phys_addr, GB(1));
+//    if(supports_1gb_paging) {
+//        phys_addr = ALIGN_DOWN(phys_addr, GB(1));
+//
+//        uint64_t max = UINT64_MAX;
+//        if(ALIGN_UP(virt_addr + length, GB(1)) != 0) {
+//            max = ALIGN_UP(virt_addr + length, GB(1));
+//        }
+//
+//        for(uintptr_t addr = ALIGN_DOWN(virt_addr, GB(1)); addr < max; addr += GB(1), phys_addr += GB(1)) {
+//            if(addr == 0) {
+//                break;
+//            }
+//            if(internal_virt_to_phys(address_space, addr) == -1) {
+//                CHECK_AND_RETHROW(internal_map_1gb(address_space, addr, phys_addr, attributes));
+//            }
+//        }
+//    }else {
+    phys_addr = ALIGN_DOWN(phys_addr, MB(2));
 
-        uint64_t max = UINT64_MAX;
-        if(ALIGN_UP(virt_addr + length, GB(1)) != 0) {
-            max = ALIGN_UP(virt_addr + length, GB(1));
+    uint64_t max = UINT64_MAX;
+    if(ALIGN_UP(virt_addr + length, MB(2)) != 0) {
+        max = ALIGN_UP(virt_addr + length, MB(2));
+    }
+
+    for(uintptr_t addr = ALIGN_DOWN(virt_addr, MB(2)); addr < max; addr += MB(2), phys_addr += MB(2)) {
+        if(addr == 0) {
+            break;
         }
-
-        for(uintptr_t addr = ALIGN_DOWN(virt_addr, GB(1)); addr < max; addr += GB(1), phys_addr += GB(1)) {
-            if(addr == 0) {
-                break;
-            }
-            if(internal_virt_to_phys(address_space, addr) == -1) {
-                CHECK_AND_RETHROW(internal_map_1gb(address_space, addr, phys_addr, attributes));
-            }
-        }
-    }else {
-        phys_addr = ALIGN_DOWN(phys_addr, MB(2));
-
-        uint64_t max = UINT64_MAX;
-        if(ALIGN_UP(virt_addr + length, MB(2)) != 0) {
-            max = ALIGN_UP(virt_addr + length, MB(2));
-        }
-
-        for(uintptr_t addr = ALIGN_DOWN(virt_addr, MB(2)); addr < max; addr += MB(2), phys_addr += MB(2)) {
-            if(addr == 0) {
-                break;
-            }
-            if(internal_virt_to_phys(address_space, addr) == -1) {
-                CHECK_AND_RETHROW(internal_map_2mb(address_space, addr, phys_addr, attributes));
-            }
+        if(internal_virt_to_phys(address_space, addr) == -1) {
+            CHECK_AND_RETHROW(internal_map_2mb(address_space, addr, phys_addr, attributes));
         }
     }
+//    }
 
 cleanup:
     return err;
@@ -479,6 +489,14 @@ error_t vmm_init(tboot_info_t* info) {
     }else {
         log_warn("\t* Global pages are not available");
         supports_global_pages = false;
+    }
+
+    if(features.pat) {
+        log_info("\t* PAT (WC available)");
+        supports_pat = true;
+    }else {
+        log_warn("\t* No PAT (WC unavailable)");
+        supports_pat = false;
     }
 
     physical_memory = 0;
@@ -540,7 +558,7 @@ cleanup:
     return err;
 }
 
-error_t vmm_map_direct(uintptr_t physical_start, size_t size) {
+error_t vmm_map_direct(uintptr_t physical_start, size_t size, bool wc) {
     error_t err = NO_ERROR;
 
     lock_preemption(&vmm_lock);
@@ -548,8 +566,13 @@ error_t vmm_map_direct(uintptr_t physical_start, size_t size) {
     // make sure in range, takes care of overlap
     CHECK_TRACE(CONVERT_TO_DIRECT(physical_start + size) <= MM_BASE && CONVERT_TO_DIRECT(physical_start + size) >= DIRECT_MAPPING_BASE, "Could not identity map physical memory range 0x%016p-0x%016p (overlapped with kernel heap/code)", physical_start, physical_start + size);
 
+    int attrs = PAGE_ATTR_WRITE | PAGE_ATTR_GLOBAL;
+    if(wc) {
+        attrs |= PAGE_ATTR_WRITE_COMBINE;
+    }
+
     // map it
-    CHECK_AND_RETHROW(internal_map_big_pages(kernel_address_space, CONVERT_TO_DIRECT(physical_start), physical_start, size, PAGE_ATTR_WRITE | PAGE_ATTR_GLOBAL));
+    CHECK_AND_RETHROW(internal_map_big_pages(kernel_address_space, CONVERT_TO_DIRECT(physical_start), physical_start, size, attrs));
 
     uintptr_t got = internal_virt_to_phys(kernel_address_space, CONVERT_TO_DIRECT(physical_start));
     CHECK(got == physical_start);

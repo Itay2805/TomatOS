@@ -28,9 +28,31 @@ static void kernel_thread(tboot_info_t* info) {
     error_t err = NO_ERROR;
     log_info("In kernel thread!");
 
+    /////////////////////////////
     // do driver initialization
+    /////////////////////////////
+
+    // Display initialization
     CATCH(framebuffer_init(info));
+
+    // Storage device initialization
     CATCH(ahci_init());
+
+    // TODO: Partition initialization
+
+    // TODO: Filesystem initialization
+
+    // TODO: USB Initialization
+
+    // TODO: Mouse & Keyboard initialization
+
+    // TODO: Loopback + Network stack initialization
+
+    // TODO: Network drivers initialization
+
+    /////////////////////////////
+    // Kick start everything
+    /////////////////////////////
 
 cleanup:
     while(true) _hlt();

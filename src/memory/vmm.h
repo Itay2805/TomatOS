@@ -9,6 +9,7 @@
 #define PAGE_ATTR_USER              (1 << 1)
 #define PAGE_ATTR_WRITE             (1 << 2)
 #define PAGE_ATTR_GLOBAL            (1 << 3)
+#define PAGE_ATTR_WRITE_COMBINE     (1 << 4)
 
 #define DIRECT_MAPPING_BASE           0xFFFF800000000000ul
 #define CONVERT_TO_DIRECT(addr) ((typeof(addr))(((uintptr_t)(addr)) + DIRECT_MAPPING_BASE))
@@ -63,8 +64,9 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
  *
  * @param physical_start    [IN] The address to start from
  * @param size              [IN] The amount of bytes to direct map, will be aligned upwards
+ * @param wc                [IN] Write Combine, do we want the memory to be write combining
  */
-error_t vmm_map_direct(uintptr_t physical_start, size_t size);
+error_t vmm_map_direct(uintptr_t physical_start, size_t size, bool wc);
 
 /**
  * Unmap the virtual address

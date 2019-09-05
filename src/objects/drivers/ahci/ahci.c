@@ -138,7 +138,7 @@ static error_t init_ahci_device(pci_dev_t* dev) {
 
     // remap this with the real length
     ahci_dev.bar->len = KB(2);
-    CHECK_AND_RETHROW(vmm_map_direct(ahci_dev.bar->base - DIRECT_MAPPING_BASE, ahci_dev.bar->len));
+    CHECK_AND_RETHROW(vmm_map_direct(ahci_dev.bar->base - DIRECT_MAPPING_BASE, ahci_dev.bar->len, false));
 
     // take control
     CHECK_AND_RETHROW(do_ahci_handoff(&ahci_dev));
