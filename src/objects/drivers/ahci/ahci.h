@@ -13,8 +13,14 @@ typedef enum ahci_port_type {
 } ahci_port_type_t;
 
 typedef struct ahci_port {
-    ahci_port_type_t type;
     object_t* obj;
+
+    // ahci related
+    void* command_list_base;
+    void* recevied_fis_base;
+
+    // specific for type
+    ahci_port_type_t type;
     union {
         struct {
         } sata;

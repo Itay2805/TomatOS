@@ -4,6 +4,7 @@
 #include <helpers/hpet/hpet.h>
 #include <objects/object.h>
 #include <memory/mm.h>
+#include <memory/pmm.h>
 #include "ahci.h"
 #include "ahci_spec.h"
 
@@ -64,31 +65,66 @@ static error_t init_ahci_port(ahci_device_t* dev, size_t port) {
 
     ahci_port_t* new_port = &dev->ports[port];
 
-    switch(ahci_read(dev, AHCI_PxSIG(port))) {
+    // make sure this is a supported type
+    int type = ahci_read(dev, AHCI_PxSIG(port));
+    if(type != AHCI_SIGNATURE_SATA && type != AHCI_SIGNATURE_SATAPI) {
+        goto cleanup;
+    }
+
+    // create the object
+    object_t* obj = kmalloc(sizeof(object_t));
+    obj->type = OBJECT_STORAGE;
+    obj->context = new_port;
+    // TODO: setup syscalls and functions
+
+    new_port->obj = obj;
+
+    CHECK_AND_RETHROW(object_add(obj));
+
+    // allocate buffers
+    CHECK_AND_RETHROW(pmm_allocate((uint64_t*)&new_port->command_list_base));
+    CHECK_AND_RETHROW(pmm_allocate((uint64_t*)&new_port->recevied_fis_base));
+
+    // set the addresses
+    ahci_write(dev, AHCI_PxCLB(port), (uint32_t) ((uintptr_t)new_port->command_list_base & 0xFFFFFFFF));
+    ahci_write(dev, AHCI_PxCLBU(port), (uint32_t) (((uintptr_t)new_port->command_list_base >> 32) & 0xFFFFFFFF));
+
+    ahci_write(dev, AHCI_PxFB(port), (uint32_t) ((uintptr_t)new_port->recevied_fis_base & 0xFFFFFFFF));
+    ahci_write(dev, AHCI_PxFBU(port), (uint32_t) (((uintptr_t)new_port->recevied_fis_base >> 32) & 0xFFFFFFFF));
+
+    // convert the physical for us
+    new_port->recevied_fis_base = CONVERT_TO_DIRECT(new_port->recevied_fis_base);
+    new_port->command_list_base = CONVERT_TO_DIRECT(new_port->command_list_base);
+
+    // handle port specific stuff
+    switch(type) {
         case AHCI_SIGNATURE_SATA: {
             log_info("\t\tgot SATA at port #%d", port);
             new_port->type = AHCI_PORT_SATA;
             // TODO: Identify
-
-            object_t* obj = kmalloc(sizeof(object_t));
-            obj->type = OBJECT_STORAGE;
-            obj->context = new_port;
-            // TODO: setup syscalls and functions
-
-            new_port->obj = obj;
-
-            CHECK_AND_RETHROW(object_add(obj));
         } break;
 
         case AHCI_SIGNATURE_SATAPI: {
             log_info("\t\tgot SATAPI at port #%d", port);
             new_port->type = AHCI_PORT_SATAPI;
+            // TODO: Identify
         } break;
 
-        default: break;
+        default:
+            // should not reach here
+            CHECK_FAIL();
     }
 
 cleanup:
+    if(err != NO_ERROR) {
+        // free the objects
+        kfree(obj);
+
+        // zero out the buffer
+        memset(new_port, 0, sizeof(*new_port));
+
+        // TODO: we need to free the buffers
+    }
     return err;
 }
 
