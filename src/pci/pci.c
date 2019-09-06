@@ -550,12 +550,56 @@ cleanup:
 error_t pci_init() {
     error_t err = NO_ERROR;
 
-    // init the host bridge (always at 0.0.0.0)
-    // this will recursively init all other devices as well
     log_info("Iterating PCI devices");
-    for(int i = 0; i < ((mcfg->header.length - sizeof(mcfg_t)) / sizeof(mcfg_entry_t)); i++) {
-        mcfg_entry_t *entry = &mcfg->entries[i];
-        CHECK_AND_RETHROW(scan_bus(entry->segment, entry->start_pci_bus));
+
+    // use AML to figure the bridges
+    LAI_CLEANUP_STATE lai_state_t state;
+    lai_init_state(&state);
+
+    // with the PNP ids we can find the host bridges
+    lai_variable_t pci_pnp_id = {};
+    lai_variable_t pcie_pnp_id = {};
+    lai_eisaid(&pci_pnp_id, "PNP0A03");
+    lai_eisaid(&pci_pnp_id, "PNP0A08");
+
+    /*
+     * Iterate objects under \_SB since
+     * that should only contain the root bridges
+     * and nothing else
+     */
+    lai_nsnode_t* sb = lai_resolve_path(NULL, "\\_SB_");
+    struct lai_ns_child_iterator iter = LAI_NS_CHILD_ITERATOR_INITIALIZER(sb);
+    lai_nsnode_t* node;
+    while((node = lai_ns_child_iterate(&iter))) {
+        // if the node does not have pci or pcie pnp id continue
+        if(lai_check_device_pnp_id(node, &pci_pnp_id, &state) != 0 && lai_check_device_pnp_id(node, &pcie_pnp_id, &state) != 0) continue;
+
+        // get the bus and segment numbers
+        // copied from https://github.com/qword-os/lai/blob/master/helpers/pci.c#L211-L231
+        LAI_CLEANUP_VAR lai_variable_t bus_number = LAI_VAR_INITIALIZER;
+        uint64_t bbn_result = 0;
+        lai_nsnode_t *bbn_handle = lai_resolve_path(node, "_BBN");
+        if (bbn_handle) {
+            if (lai_eval(&bus_number, bbn_handle, &state)) {
+                log_warn("failed to evaluate _BBN");
+                continue;
+            }
+            lai_obj_get_integer(&bus_number, &bbn_result);
+        }
+
+        LAI_CLEANUP_VAR lai_variable_t seg_number = LAI_VAR_INITIALIZER;
+        uint64_t seg_result = 0;
+        lai_nsnode_t *seg_handle = lai_resolve_path(node, "_SEG");
+        if (seg_handle) {
+            if (lai_eval(&seg_number, seg_handle, &state)){
+                log_warn("failed to evaluate _SEG");
+                continue;
+            }
+            lai_obj_get_integer(&seg_number, &seg_result);
+        }
+
+        // this will recursively init all other devices as well
+        CHECK_AND_RETHROW(scan_bus(seg_result, bbn_result));
     }
 
 cleanup:
