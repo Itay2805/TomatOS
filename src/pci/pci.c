@@ -5,7 +5,6 @@
 #include <common/common.h>
 #include <lai/helpers/pci.h>
 #include <lai/helpers/resource.h>
-#include <acpi/acpi.h>
 #include "pci.h"
 #include "pci_common_spec.h"
 #include "pci_bridge_spec.h"
@@ -285,9 +284,6 @@ static error_t route_device_irq(pci_dev_t* dev) {
     uint8_t pin = pci_read_8(dev, PCI_REG_INTERRUPT_PIN);
     acpi_resource_t resource = {0};
 
-    // ignore routing if acpi is disabled
-    if(!acpi_inited) goto cleanup;
-
     // if pin is zero then this device has no interrupts
     if(pin == 0) goto cleanup;
 
@@ -560,8 +556,7 @@ error_t pci_init() {
     lai_variable_t pci_pnp_id = {};
     lai_variable_t pcie_pnp_id = {};
     lai_eisaid(&pci_pnp_id, "PNP0A03");
-    lai_eisaid(&pci_pnp_id, "PNP0A08");
-
+    lai_eisaid(&pcie_pnp_id, "PNP0A08");
 
     /*
      * Iterate objects under \_SB since
@@ -602,14 +597,9 @@ error_t pci_init() {
         CHECK_AND_RETHROW(scan_bus(seg_result, bbn_result));
     }
 
-    /*
-     * on virtualbox there are no root bridges in the aml tree, so instead I am
-     * just going to just check if we found no devices, we will manually scan the
-     * host bridge which should be in 0.0.0.0
-     */
-    if(arrlen(pci_devices) == 0) {
-        CHECK_AND_RETHROW(scan_bus(0, 0));
-    }
+//    if(arrlen(pci_devices) == 0) {
+//        CHECK_AND_RETHROW(scan_bus(0, 0));
+//    }
 
     if(arrlen(pci_devices) == 0) {
         log_warn("No PCI devices found! (might be a bug with pci)");

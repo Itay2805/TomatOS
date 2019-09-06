@@ -16,11 +16,6 @@ typedef struct acpi_generic_address {
 } __attribute__((packed)) acpi_generic_address_t;
 
 /**
- * Set to true if ACPI was fully inited
- */
-extern bool acpi_inited;
-
-/**
  * Will search and parse all the needed ACPI tables
  */
 error_t acpi_tables_init(tboot_info_t* info);
