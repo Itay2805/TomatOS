@@ -297,7 +297,7 @@ static error_t route_device_irq(pci_dev_t* dev) {
 
     // do the final route
     lai_api_error_t laierror = lai_pci_route_pin(&resource, dev->segment, dev->bus, dev->device, dev->function, pin);
-    CHECK_TRACE(laierror != LAI_ERROR_NONE, "\t\tFailed to route IRQ (%s)", lai_api_error_to_string(laierror));
+    CHECK_TRACE(laierror == LAI_ERROR_NONE, "\t\tFailed to route IRQ (%s)", lai_api_error_to_string(laierror));
 
     // got it
     dev->irq = (uint8_t) resource.base;
