@@ -1,8 +1,10 @@
 BITS 64
 
 ; GDT stuff
-CODE_SEGMENT equ 8
-DATA_SEGMENT equ 16
+GDT_KERNEL_CODE equ 8
+GDT_KERNEL_DATA equ 16
+GDT_USER_DATA equ (24 | 3)
+GDT_USER_CODE equ (32 | 3)
 
 ; the common handlers
 EXTERN common_interrupt_handler
@@ -266,8 +268,6 @@ GLOBAL handle_interrupt_request_fe
 GLOBAL handle_interrupt_request_ff
 
 common_stub:
-    push qword 0 ; cr3
-
     push rax
     push rbx
     push rcx
@@ -287,11 +287,9 @@ common_stub:
     ; store ds
     mov rax, ds
     push rax
-    mov ax, DATA_SEGMENT
+    mov ax, GDT_KERNEL_DATA
     mov ds, ax
     mov es, ax
-    mov gs, ax
-    mov fs, ax
     mov ss, ax
 
     call common_interrupt_handler
@@ -300,8 +298,6 @@ common_stub:
     pop rax
     mov ds, ax
     mov es, ax
-    mov gs, ax
-    mov fs, ax
     mov ss, ax
 
     pop r15
@@ -320,7 +316,7 @@ common_stub:
     pop rbx
     pop rax
 
-    add rsp, 8*3
+    add rsp, 8*2
 
     iretq
 

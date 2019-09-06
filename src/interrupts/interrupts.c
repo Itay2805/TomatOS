@@ -142,10 +142,10 @@ static void default_exception_handler(registers_t* regs) {
     log_error("CS =%04x DPL=%d", regs->cs & 0xFFF8, regs->cs & 0b11);
     log_error("DS =%04x DPL=%d", regs->ds & 0xFFF8, regs->ds & 0b11);
     log_error("SS =%04x DPL=%d", regs->ss & 0xFFF8, regs->ss & 0b11);
-    log_error("CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x", get_cr0(), get_cr2(), regs->cr3, get_cr4());
+    log_error("CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x", get_cr0(), get_cr2(), get_cr3(), get_cr4());
 
 //     only do the stack trace for kernel processes
-    if(regs->cr3 == kernel_address_space) {
+    if(get_cr3() == kernel_address_space) {
         uintptr_t* bp = (uintptr_t *) regs->rbp;
         bp = (uintptr_t *)bp[0];
         if (bp) {
@@ -197,7 +197,6 @@ error_t interrupt_register(uint8_t vector, interrupt_handler_f handler) {
 
 void common_interrupt_handler(registers_t regs) {
     error_t err = {0};
-    regs.cr3 = get_cr3();
 
     ptrdiff_t hi = -1;
     if(interrupt_handlers != NULL) {
@@ -219,8 +218,6 @@ void common_interrupt_handler(registers_t regs) {
         // no handler, don't do anything
         // TODO: Make check the lapic and see if eoi is needed
     }
-
-    set_cr3(regs.cr3);
 
 cleanup:
     if(err != NO_ERROR) {

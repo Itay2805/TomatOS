@@ -20,12 +20,7 @@ error_t create_thread(process_t* process, thread_t** thread) {
     new_thread->status = THREAD_STATUS_WAITING;
     new_thread->process = process;
 
-    // if a kernel thread then create a stack
     if(process->address_space == kernel_address_space) {
-        // set the kernel stack
-        new_thread->kernel.stack = (uintptr_t) kmalloc(MB(2));
-        new_thread->context.cpu.rsp = new_thread->kernel.stack + MB(2);
-
         // set the segments for kernel thread
         new_thread->context.cpu.ds = GDT_KERNEL_DATA;
         new_thread->context.cpu.ss = GDT_KERNEL_DATA;
@@ -45,9 +40,9 @@ error_t create_thread(process_t* process, thread_t** thread) {
         new_thread->context.cpu.rflags = RFLAGS_DEFAULT_USER;
     }
 
-    // set the cpu context
-    // TODO: have a get cr3 from address space instead
-    new_thread->context.cpu.cr3 = process->address_space;
+    // set the stack, 2MB for now
+    new_thread->stack = (uintptr_t) kmalloc(MB(2));
+    new_thread->context.cpu.rsp = new_thread->stack + MB(2);
 
     // add to the process
     lock_preemption(&process->lock);
@@ -77,10 +72,8 @@ error_t release_thread(thread_t* thread) {
         // tried to free a thread that has not been killed!
         CHECK_TRACE(thread->status == THREAD_STATUS_DEAD, "Tried to free a thread that has not been killed");
 
-        // free the kernel related stuff
-        if(thread->process->address_space == kernel_address_space) {
-            kfree((void *) thread->kernel.stack);
-        }
+        // free the stack related stuff
+        kfree((void *) thread->stack);
 
         // remove the thread
         lock_preemption(&thread->process->lock);

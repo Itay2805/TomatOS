@@ -30,14 +30,12 @@ typedef struct thread {
     // the status
     thread_status_t status;
 
-    // kernel thread info
-    struct {
-        // the kernel thread struct
-        uintptr_t stack;
-    } kernel;
+    // the default stack
+    uintptr_t stack;
 
     // The context of the thread
     struct {
+        uintptr_t fs_base;
         registers_t cpu;
         char fpu[512];
     } context;

@@ -3,6 +3,8 @@
 #include <interrupts/apic/lapic.h>
 #include <smp/percpustorage.h>
 #include <helpers/hpet/hpet.h>
+#include <common/cpu/msr.h>
+#include <common/cpu/cr.h>
 #include "scheduler.h"
 #include "process.h"
 #include "thread.h"
@@ -61,6 +63,15 @@ error_t scheduler_reschedule(registers_t* regs) {
         lock(&thread->lock);
         thread->refcount++;
         *regs = thread->context.cpu;
+
+        // set the fs base
+        _wrmsr(IA32_FS_BASE, thread->context.fs_base);
+
+        // set the cr3
+        if(get_cr3() != thread->process->address_space) {
+            set_cr3(thread->process->address_space);
+        }
+
         thread->running_time = hpet_get_millis();
         thread->status = THREAD_STATUS_RUNNING;
         unlock(&thread->lock);
@@ -93,6 +104,15 @@ error_t scheduler_reschedule(registers_t* regs) {
             lock(&running_thread->lock);
             running_thread->refcount++;
             *regs = running_thread->context.cpu;
+
+            // set the fs base
+            _wrmsr(IA32_FS_BASE, running_thread->context.fs_base);
+
+            // set the cr3
+            if(get_cr3() != running_thread->process->address_space) {
+                set_cr3(running_thread->process->address_space);
+            }
+
             running_thread->running_time = hpet_get_millis();
             running_thread->status = THREAD_STATUS_RUNNING;
             unlock(&running_thread->lock);
@@ -168,11 +188,11 @@ error_t scheduler_init() {
         CHECK_AND_RETHROW(create_thread(idle_process, &thread));
 
         // only really ever gonna loop, so allocate a smaller stack
-        kfree((void*)thread->kernel.stack);
-        thread->kernel.stack = (uintptr_t)kmalloc(64);
+        kfree((void*)thread->stack);
+        thread->stack = (uintptr_t)kmalloc(64);
 
         // set the context again
-        thread->context.cpu.rsp = thread->kernel.stack;
+        thread->context.cpu.rsp = thread->stack + 64;
         thread->context.cpu.rip = (uint64_t)idle_thread_loop;
     }
 

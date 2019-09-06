@@ -46,9 +46,6 @@ typedef struct registers {
     uint64_t rbx;
     uint64_t rax;
 
-    // address space to switch to
-    address_space_t cr3;
-
     // the interrupt number
     uint64_t int_num;
 
