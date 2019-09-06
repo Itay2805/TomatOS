@@ -21,6 +21,15 @@ bin/tomatos.vdi: bin/tomatos.img
 	cd bin && vboxmanage convertfromraw --format VDI tomatos.img tomatos.vdi
 
 #########################
+# Creating an HDD
+#########################
+
+hdd: bin/tomatos.hdd
+
+bin/tomatos.hdd: bin/tomatos.img
+	cd bin && cp tomatos.img tomatos.hdd
+
+#########################
 # Compiling the kernel
 #########################
 

@@ -562,6 +562,7 @@ error_t pci_init() {
     lai_eisaid(&pci_pnp_id, "PNP0A03");
     lai_eisaid(&pci_pnp_id, "PNP0A08");
 
+
     /*
      * Iterate objects under \_SB since
      * that should only contain the root bridges
@@ -599,6 +600,19 @@ error_t pci_init() {
 
         // this will recursively init all other devices as well
         CHECK_AND_RETHROW(scan_bus(seg_result, bbn_result));
+    }
+
+    /*
+     * on virtualbox there are no root bridges in the aml tree, so instead I am
+     * just going to just check if we found no devices, we will manually scan the
+     * host bridge which should be in 0.0.0.0
+     */
+    if(arrlen(pci_devices) == 0) {
+        CHECK_AND_RETHROW(scan_bus(0, 0));
+    }
+
+    if(arrlen(pci_devices) == 0) {
+        log_warn("No PCI devices found! (might be a bug with pci)");
     }
 
 cleanup:
