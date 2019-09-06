@@ -565,7 +565,6 @@ error_t pci_init() {
     /*
      * Iterate objects under \_SB since
      * that should only contain the root bridges
-     * and nothing else
      */
     lai_nsnode_t* sb = lai_resolve_path(NULL, "\\_SB_");
     struct lai_ns_child_iterator iter = LAI_NS_CHILD_ITERATOR_INITIALIZER(sb);
