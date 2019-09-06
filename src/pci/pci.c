@@ -290,15 +290,14 @@ static error_t route_device_irq(pci_dev_t* dev) {
     // do the pin routing
     pci_dev_t* bridge = dev->parent;
     while(bridge != NULL) {
-        // TODO: _PRT?
+        // TODO: _PRT
         pin = (uint8_t) ((((pin - 1) + (bridge->device % 4)) % 4) + 1);
         bridge = bridge->parent;
     }
 
     // do the final route
-    CHECK_TRACE(
-            lai_pci_route_pin(&resource, dev->segment, dev->bus, dev->device, dev->function, pin) == 0,
-            "\t\tFailed to route IRQ (lai_pci_route_pin returned none-zero)");
+    lai_api_error_t laierror = lai_pci_route_pin(&resource, dev->segment, dev->bus, dev->device, dev->function, pin);
+    CHECK_TRACE(laierror != LAI_ERROR_NONE, "\t\tFailed to route IRQ (%s)", lai_api_error_to_string(laierror));
 
     // got it
     dev->irq = (uint8_t) resource.base;
@@ -553,8 +552,8 @@ error_t pci_init() {
     lai_init_state(&state);
 
     // with the PNP ids we can find the host bridges
-    lai_variable_t pci_pnp_id = {};
-    lai_variable_t pcie_pnp_id = {};
+    LAI_CLEANUP_VAR lai_variable_t pci_pnp_id = LAI_VAR_INITIALIZER;
+    LAI_CLEANUP_VAR lai_variable_t pcie_pnp_id = LAI_VAR_INITIALIZER;
     lai_eisaid(&pci_pnp_id, "PNP0A03");
     lai_eisaid(&pcie_pnp_id, "PNP0A08");
 
