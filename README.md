@@ -10,16 +10,25 @@ all.
 * 64bit with all the basics (gdt, pmm, vmm...)
 * Uses UEFI for starting (with [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI))
 * ACPI
-    * Reading tables
+    * Using the tables to get relevant info
     * AML execution powered by [Lai](https://github.com/qword-os/lai)
-    * SCI events handling (TODO: Actually make it respond to the events)
+    * SCI events handling (only handles shutdown)
 * APIC for interrupt handling
     * LAPIC timer for scheduling
 * PCI support (MCFG only)
+	* using acpi to get the root bridges
     * bar management
-    * IRQ routing
-* SMP (Just the frame, still gotta make the trampoline)
+    * IRQ routing (kinda broken currently, needs fixing)
+* ~~SMP~~ (only the frame, TODO)
 
 ### Drivers
 
 * AHCI (WIP)
+	* with support for SATA devices
+	
+### Roadmap
+* finish AHCI SATA support
+* add GPT partitioning support
+* add echfs filesystem (at least read-only)
+* ???
+* profit!
