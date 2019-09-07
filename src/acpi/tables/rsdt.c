@@ -31,8 +31,8 @@ error_t rsdt_init() {
 
         log_info("\tXSDT found (0x%016p)", (uintptr_t)xsdt - DIRECT_MAPPING_BASE);
     }
-    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, KB(4), false));
-    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, hdr->length, false));
+    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, KB(4), (page_attrs_t){ .write = true, .global = true }));
+    CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, hdr->length, (page_attrs_t){ .write = true, .global = true }));
 
     CHECK_TRACE(acpi_validate_checksum(hdr, hdr->length), "Invalid SDT checksum!");
     log_info("\t\tRevision: %d", hdr->revision);
@@ -45,16 +45,16 @@ error_t rsdt_init() {
         // rsdt iteration
         for(uint32_t* sdt = rsdt->sdts; sdt < (rsdt->sdts + ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4)); sdt++) {
             hdr = (sdt_hdr_t *)CONVERT_TO_DIRECT((uintptr_t)*sdt);
-            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, KB(4), false));
-            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, hdr->length, false));
+            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, KB(4), (page_attrs_t){ .write = true, .global = true }));
+            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, hdr->length, (page_attrs_t){ .write = true, .global = true }));
             log_info("\t\t\t%.4s", hdr->signature);
         }
     }else {
         // xsdt iteration
         for(uint64_t* sdt = xsdt->sdts; sdt < (xsdt->sdts + ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8)); sdt++) {
             hdr = (sdt_hdr_t *) CONVERT_TO_DIRECT(*sdt);
-            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, KB(4), false));
-            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, hdr->length, false));
+            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, KB(4), (page_attrs_t){ .write = true, .global = true }));
+            CHECK_AND_RETHROW(vmm_map_direct((uintptr_t)hdr - DIRECT_MAPPING_BASE, hdr->length, (page_attrs_t){ .write = true, .global = true }));
             log_info("\t\t\t%.4s", hdr->signature);
         }
     }

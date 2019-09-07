@@ -16,7 +16,7 @@ error_t ioapic_init() {
     for(madt_ioapic_t** it = madt_ioapics; it < madt_ioapics + arrlen(madt_ioapics); it++) {
         madt_ioapic_t* ioapic = *it;
         log_info("\t\tMapping #%d IOAPIC (0x%p)", ioapic->id, ioapic->mmio_base);
-        CHECK_AND_RETHROW(vmm_map_direct(ioapic->mmio_base, KB(4), false));
+        CHECK_AND_RETHROW(vmm_map_direct(ioapic->mmio_base, KB(4), (page_attrs_t){ .write = true, .global = true }));
     }
 
 cleanup:

@@ -60,7 +60,7 @@ void term_early_init(tboot_info_t* info) {
 
 void term_init() {
     // map the framebuffer
-    vmm_map_direct((uintptr_t) vram, width * full_height * 4u, true);
+    vmm_map_direct((uintptr_t) vram, width * full_height * 4u, (page_attrs_t){ .write = true, .global = true, .caching = PAGE_CACHE_WRITE_COMBINING });
     vram = CONVERT_TO_DIRECT(vram);
 
     // allocate a proper backbuffer

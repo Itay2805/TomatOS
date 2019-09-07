@@ -475,7 +475,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
             // map if possible
             if(new_bar.type == PCI_BAR_TYPE_MEM && new_bar.base != 0 && new_bar.len != 0) {
-                CHECK_AND_RETHROW(vmm_map_direct(new_bar.base, new_bar.len, false));
+                CHECK_AND_RETHROW(vmm_map_direct(new_bar.base, new_bar.len, (page_attrs_t){ .write = true, .global = true }));
                 new_bar.base = CONVERT_TO_DIRECT(new_bar.base);
             }
 
@@ -645,7 +645,7 @@ error_t pci_get_and_map_mmio(uint16_t segment, uint8_t bus, uint8_t device, uint
         mcfg_entry_t* entry = &mcfg->entries[i];
         if(entry->segment == segment && entry->start_pci_bus <= bus && entry->end_pci_bus >= bus) {
             uintptr_t phys = entry->base + (((bus - entry->start_pci_bus) << 20) | (device << 15) | function << 12);
-            CHECK_AND_RETHROW(vmm_map_direct(phys, KB(4), false));
+            CHECK_AND_RETHROW(vmm_map_direct(phys, KB(4), (page_attrs_t){ .write = true, .global = true }));
             *mmio = (char*)CONVERT_TO_DIRECT(phys);
             goto cleanup;
         }

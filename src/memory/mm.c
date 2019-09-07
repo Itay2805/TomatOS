@@ -62,7 +62,7 @@ static error_t expand(size_t min) {
     size_t page_count = min / 4096u;
     char* start = (void *) ((uintptr_t)last_block + MM_BLOCK_SIZE + last_block->size);
     for(size_t i = 0; i < page_count; i++) {
-        CHECK_AND_RETHROW(vmm_allocate(vmm_get(), start + i * KB(4), PAGE_ATTR_WRITE));
+        CHECK_AND_RETHROW(vmm_allocate(vmm_get(), start + i * KB(4), (page_attrs_t){ .write = true, .global = true }));
     }
 
     // update sizes
@@ -388,7 +388,7 @@ static error_t internal_free(mm_block_t* block) {
 error_t mm_init() {
     error_t err = NO_ERROR;
 
-    CHECK_AND_RETHROW(vmm_allocate(kernel_address_space, (void *) MM_BASE, PAGE_ATTR_WRITE));
+    CHECK_AND_RETHROW(vmm_allocate(kernel_address_space, (void *) MM_BASE, (page_attrs_t){ .write = true, .global = true }));
     first_block = (mm_block_t*)MM_BASE;
     last_block = first_block;
     free_block = first_block;

@@ -14,6 +14,19 @@
 #define DIRECT_MAPPING_BASE           0xFFFF800000000000ul
 #define CONVERT_TO_DIRECT(addr) ((typeof(addr))(((uintptr_t)(addr)) + DIRECT_MAPPING_BASE))
 
+#define PAGE_CACHE_WRITE_BACK       (0)
+#define PAGE_CACHE_WRITE_THROUGH    (1)
+#define PAGE_CACHE_WRITE_COMBINING  (2)
+#define PAGE_CACHE_UNCACHABLE       (3)
+
+typedef struct page_attrs {
+    uint8_t execute : 1;
+    uint8_t user : 1;
+    uint8_t write : 1;
+    uint8_t global : 1;
+    uint8_t caching : 2;
+} page_attrs_t;
+
 // TODO: Add locks to all of these
 
 typedef uint64_t address_space_t;
@@ -57,7 +70,7 @@ address_space_t vmm_get();
  * @return NO_ERROR: Success
  * @return ERROR_OUT_OF_MEMORY: We ran out of memory
  */
-error_t vmm_map(address_space_t address_space, void* virtual_address, void* physical_address, int attributes);
+error_t vmm_map(address_space_t address_space, void* virtual_address, void* physical_address, page_attrs_t attributes);
 
 /**
  * Will map the physical address range as direct memory
@@ -66,7 +79,7 @@ error_t vmm_map(address_space_t address_space, void* virtual_address, void* phys
  * @param size              [IN] The amount of bytes to direct map, will be aligned upwards
  * @param wc                [IN] Write Combine, do we want the memory to be write combining
  */
-error_t vmm_map_direct(uintptr_t physical_start, size_t size, bool wc);
+error_t vmm_map_direct(uintptr_t physical_start, size_t size, page_attrs_t attributes);
 
 /**
  * Unmap the virtual address
@@ -88,7 +101,7 @@ error_t vmm_unmap(address_space_t address_space, void* virtual_address);
  * @param virtual_address   [IN] The virtual address to allocate
  * @param attributes        [IN] The attributes of the new page
  */
-error_t vmm_allocate(address_space_t address_space, void* virtual_address, int attributes);
+error_t vmm_allocate(address_space_t address_space, void* virtual_address, page_attrs_t attributes);
 
 /**
  * Free the virtual page including the physical page

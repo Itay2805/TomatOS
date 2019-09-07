@@ -6,12 +6,16 @@ void* kmalloc(size_t size) {
     error_t err = NO_ERROR;
     void* ptr = NULL;
 
+    if(size == 0) {
+        size = 1;
+    }
+
     CHECK_AND_RETHROW(mm_allocate(size, &ptr));
     CHECK(ptr != NULL);
 
 cleanup:
-    CATCH(err);
     if(err != NO_ERROR) {
+        CATCH(err);
         ptr = NULL;
     }
     return ptr;
@@ -24,8 +28,8 @@ void* krealloc(void* ptr, size_t size) {
     CHECK(ptr != NULL);
 
 cleanup:
-    CATCH(err);
     if(err != NO_ERROR) {
+        CATCH(err);
         ptr = NULL;
     }
     return ptr;
@@ -39,8 +43,8 @@ void* kcalloc(size_t count, size_t size) {
     CHECK(ptr != NULL);
 
 cleanup:
-    CATCH(err);
     if(err != NO_ERROR) {
+        CATCH(err);
         ptr = NULL;
     }
     return ptr;

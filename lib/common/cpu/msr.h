@@ -6,7 +6,8 @@
 #include <stdint.h>
 
 // MSRs
-#define IA32_APIC_BASE  0x1B
+#define IA32_APIC_BASE      0x1B
+#define IA32_PAT            0x0277
 #define IA32_EFER           0xC0000080
 #define IA32_STAR           0xC0000081
 #define IA32_LSTAR          0xC0000082
