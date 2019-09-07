@@ -46,10 +46,10 @@
 #define PAGING_4K_PAT6    (PAGING_PAT_BIT_4K | PAGING_PWT_BIT | PAGING_PCD_BIT)
 #define PAGING_4K_PAT7    (PAGING_PAT_BIT_4K | PAGING_PAT_BIT)
 
-#define PAGING_PAT_UNCACHEABLE          PAGING_PAT2
-#define PAGING_PAT_WRITE_THROUGH        PAGING_PAT1
 #define PAGING_PAT_WRITE_BACK           PAGING_PAT0
-#define PAGING_PAT_WRITE_COMBINING      PAGING_PAT3
+#define PAGING_PAT_WRITE_THROUGH        PAGING_PAT1
+#define PAGING_PAT_WRITE_COMBINING      PAGING_PAT2
+#define PAGING_PAT_UNCACHEABLE          PAGING_PAT3
 
 ////////////////////////////////////////////////////////////////////////////
 // Masks for the table entries
@@ -551,14 +551,14 @@ error_t vmm_init(tboot_info_t* info) {
          *
          * PAT0: Write back
          * PAT1: Write through
-         * PAT2: Uncacheable
-         * PAT3: Write combining
+         * PAT2: Write combining (Uncacheable by default)
+         * PAT3: Uncacheable
          * PAT4: Write back
          * PAT5: Write through
-         * PAT6: Uncacheable
-         * PAT7: Write combining
+         * PAT6: Write combining (Uncacheable by default)
+         * PAT7: Uncacheable
          */
-        _wrmsr(IA32_PAT, 0x0604010006040001);
+        _wrmsr(IA32_PAT, 0x0604010006040100ul);
         supports_pat = true;
     }else {
         log_warn("\t* No PAT (WC unavailable)");
