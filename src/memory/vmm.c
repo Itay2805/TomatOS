@@ -46,11 +46,6 @@
 #define PAGING_4K_PAT6    (PAGING_PAT_BIT_4K | PAGING_PWT_BIT | PAGING_PCD_BIT)
 #define PAGING_4K_PAT7    (PAGING_PAT_BIT_4K | PAGING_PAT_BIT)
 
-#define PAGING_PAT_WRITE_BACK           PAGING_PAT0
-#define PAGING_PAT_WRITE_THROUGH        PAGING_PAT1
-#define PAGING_PAT_WRITE_COMBINING      PAGING_PAT2
-#define PAGING_PAT_UNCACHEABLE          PAGING_PAT3
-
 ////////////////////////////////////////////////////////////////////////////
 // Masks for the table entries
 ////////////////////////////////////////////////////////////////////////////
@@ -146,27 +141,47 @@ static inline void set_attributes(uint64_t* entry, page_attrs_t attributes) {
  * @remark
  * If the PAT is not available, WRITE COMBINING is going to be ignored
  *
+ * @remark
+ * I will hope clang is smart enough to remove all the ifs when they are not needed, since the PAT register
+ * is basically the same as the none pat bit, I do want to keep it that way just because it is more readable
+ * especially if I ever wanna change anything
+ *
  * @param entry         [IN/OUT]    The entry to change
  * @param attributes    [IN]        The attributes to set
  */
 static inline void set_cache(uint64_t* entry, page_attrs_t attributes) {
     switch(attributes.caching) {
         case PAGE_CACHE_UNCACHABLE:
-            *entry |= PAGING_PAT_UNCACHEABLE;
+            if(supports_pat) {
+                *entry |= PAGING_PAT0;
+            }else {
+                *entry |= PAGING_PCD_BIT;
+            }
             break;
 
         case PAGE_CACHE_WRITE_BACK:
-            *entry |= PAGING_PAT_WRITE_BACK;
+            // WB by default
             break;
 
         case PAGE_CACHE_WRITE_COMBINING:
             if(supports_pat) {
-                *entry |= PAGING_PAT_WRITE_COMBINING;
+                if(*entry & PAGING_PAGE_SIZE_BIT) {
+                    // 2mb/1gb pages
+                    *entry |= PAGING_PAT6;
+
+                }else {
+                    // 4k pages
+                    *entry |= PAGING_4K_PAT6;
+                }
             }
             break;
 
         case PAGE_CACHE_WRITE_THROUGH:
-            *entry |= PAGING_PAT_WRITE_THROUGH;
+            if(supports_pat) {
+                *entry = PAGING_PAT1;
+            }else {
+                *entry = PAGING_PWT_BIT;
+            }
             break;
 
         /*
@@ -542,23 +557,21 @@ error_t vmm_init(tboot_info_t* info) {
     }
 
     if(features.pat) {
-        log_info("\t* PAT (WC available)");
-        /**
-         * 00: Uncacheable
-         * 01: Write combining
-         * 04: Write through
-         * 06: Write back
-         *
-         * PAT0: Write back
-         * PAT1: Write through
-         * PAT2: Write combining (Uncacheable by default)
-         * PAT3: Uncacheable
-         * PAT4: Write back
-         * PAT5: Write through
-         * PAT6: Write combining (Uncacheable by default)
-         * PAT7: Uncacheable
-         */
-        _wrmsr(IA32_PAT, 0x0604010006040100ul);
+        log_info("\t* PAT");
+
+        // basically set pa6 to WC
+        pat_t pat = {
+            .pa0 = IA32_PAT_MEMTYPE_WB,
+            .pa1 = IA32_PAT_MEMTYPE_WT,
+            .pa2 = IA32_PAT_MEMTYPE_UC,
+            .pa3 = IA32_PAT_MEMTYPE_UC,
+            .pa4 = IA32_PAT_MEMTYPE_WB,
+            .pa5 = IA32_PAT_MEMTYPE_WT,
+            .pa6 = IA32_PAT_MEMTYPE_WC,
+            .pa7 = IA32_PAT_MEMTYPE_UC,
+        };
+
+        _wrmsr(IA32_PAT, pat.raw);
         supports_pat = true;
     }else {
         log_warn("\t* No PAT (WC unavailable)");

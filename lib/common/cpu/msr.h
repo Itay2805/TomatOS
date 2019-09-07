@@ -31,6 +31,35 @@ typedef union efer {
     uint64_t raw;
 } efer_t;
 
+#define IA32_PAT_MEMTYPE_UC     (0)
+#define IA32_PAT_MEMTYPE_WC     (1)
+#define IA32_PAT_MEMTYPE_WT     (4)
+#define IA32_PAT_MEMTYPE_WP     (5)
+#define IA32_PAT_MEMTYPE_WB     (6)
+#define IA32_PAT_MEMTYPE_UCM    (7)
+
+typedef union pat {
+    struct {
+        uint64_t pa0 : 3;
+        uint64_t _reserved0 : 5;
+        uint64_t pa1 : 3;
+        uint64_t _reserved1 : 5;
+        uint64_t pa2 : 3;
+        uint64_t _reserved2 : 5;
+        uint64_t pa3 : 3;
+        uint64_t _reserved3 : 5;
+        uint64_t pa4 : 3;
+        uint64_t _reserved4 : 5;
+        uint64_t pa5 : 3;
+        uint64_t _reserved5 : 5;
+        uint64_t pa6 : 3;
+        uint64_t _reserved6 : 5;
+        uint64_t pa7 : 3;
+        uint64_t _reserved7 : 5;
+    } __attribute__((packed));
+    uint64_t raw;
+} pat_t;
+
 static inline uint64_t _rdmsr(uint32_t msr) {
     uint32_t low, high;
     asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
