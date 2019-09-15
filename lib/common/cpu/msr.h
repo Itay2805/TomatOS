@@ -17,6 +17,15 @@
 #define IA32_GS_BASE        0xC0000101
 #define IA32_KERNEL_GS_BASE 0xC0000102
 
+typedef union star {
+    struct {
+        uint32_t target_eip;
+        uint16_t syscall_cs_ss;
+        uint16_t sysret_cs_ss;
+    } __attribute__((packed));
+    uint64_t raw;
+} star_t;
+
 typedef union efer {
     struct {
         // Syscall enable

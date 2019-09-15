@@ -40,6 +40,9 @@ error_t create_thread(process_t* process, thread_t** thread) {
         new_thread->context.cpu.rflags = RFLAGS_DEFAULT_USER;
     }
 
+    // set up a syscall stack
+    new_thread->syscall_stack = (uintptr_t) kmalloc(KB(8));
+
     // set the stack, 2MB for now
     new_thread->stack = (uintptr_t) kmalloc(MB(2));
     new_thread->context.cpu.rsp = new_thread->stack + MB(2);

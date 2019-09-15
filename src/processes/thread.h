@@ -32,10 +32,12 @@ typedef struct thread {
 
     // the default stack
     uintptr_t stack;
+    uintptr_t syscall_stack;
 
     // The context of the thread
     struct {
         uintptr_t fs_base;
+        uintptr_t gs_base;
         registers_t cpu;
         char fpu[512];
     } context;

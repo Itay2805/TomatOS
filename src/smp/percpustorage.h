@@ -6,15 +6,20 @@
 #include <error.h>
 
 typedef struct per_cpu_storage {
+    // stacks used by a syscall
+    // NOTE: These must be first
+    uintptr_t syscall_stack;
+    uintptr_t user_stack;
+
+    // IST stacks
+    uintptr_t kernel_stack;
+    uintptr_t nmi_stack;
+    uintptr_t exception_stack;
+    uintptr_t page_fault_stack;
+
     // the APIC processor and lapic id
     uint32_t lapic_id;
     uint32_t processor_id;
-
-    // The stack to use normally in the kernel
-    uintptr_t kernel_stack;
-
-    // The stack to use during an NMI
-    uintptr_t nmi_stack;
 
     // the per cpu index, starts from 0
     size_t index;

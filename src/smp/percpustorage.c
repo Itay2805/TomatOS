@@ -27,9 +27,13 @@ error_t per_cpu_storage_init() {
 
         per_cpu_storage_t st = {
             .processor_id = lapic->processor_id,
-            .kernel_stack = (uintptr_t) kmalloc(MB(2)),
-            .nmi_stack = (uintptr_t) kmalloc(KB(512)),
             .index = arrlen(per_cpu_storage),
+
+            // allocate stacks
+            .kernel_stack = (uintptr_t) kmalloc(MB(2)),
+            .nmi_stack = (uintptr_t) kmalloc(KB(8)),
+            .exception_stack = (uintptr_t) kmalloc(KB(8)),
+            .page_fault_stack = (uintptr_t) kmalloc(KB(8)),
         };
 
         per_cpu_storage[lapic->id] = st;

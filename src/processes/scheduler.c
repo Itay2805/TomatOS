@@ -50,8 +50,13 @@ error_t scheduler_reschedule(registers_t* regs) {
             // save the context of the first one
             lock(&running_thread->lock);
             running_thread->refcount--;
+
+            // save the cpu regs
             running_thread->context.cpu = *regs;
+
             // TODO: Save FPU
+
+            // update thread state
             running_thread->running_time = hpet_get_millis();
             running_thread->status = THREAD_STATUS_NORMAL;
             unlock(&running_thread->lock);
@@ -62,10 +67,17 @@ error_t scheduler_reschedule(registers_t* regs) {
         // rollup the new thread
         lock(&thread->lock);
         thread->refcount++;
+
+        // set new cpu state
         *regs = thread->context.cpu;
 
-        // set the fs base
+        // TODO: Set new FPU state
+
+        // set the gs/fs base
         _wrmsr(IA32_FS_BASE, thread->context.fs_base);
+
+        // set the stack in the per cpu storage
+        get_per_cpu_storage()->kernel_stack = thread->syscall_stack;
 
         // set the cr3
         if(get_cr3() != thread->process->address_space) {
@@ -103,10 +115,17 @@ error_t scheduler_reschedule(registers_t* regs) {
             running_thread = hmget(idle_process->threads, get_cpu_index());
             lock(&running_thread->lock);
             running_thread->refcount++;
+
+            // set new cpu state
             *regs = running_thread->context.cpu;
+
+            // TODO: set new fpu state
 
             // set the fs base
             _wrmsr(IA32_FS_BASE, running_thread->context.fs_base);
+
+            // set the stack in the per cpu storage
+            get_per_cpu_storage()->kernel_stack = running_thread->syscall_stack;
 
             // set the cr3
             if(get_cr3() != running_thread->process->address_space) {
