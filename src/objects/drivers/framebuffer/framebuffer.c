@@ -31,6 +31,7 @@ static uintptr_t syscalls[DISPLAY_SYS_MAX] = {};
 
 static object_t obj = {
     .type = OBJECT_DISPLAY,
+    .name = "framebuffer",
     .functions = functions,
     .syscalls = syscalls
 };

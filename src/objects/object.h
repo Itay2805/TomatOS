@@ -16,6 +16,7 @@ typedef int obj_id_t;
 
 typedef struct object {
     obj_id_t id;
+    const char* name;
     void* context;
     object_type_t type;
 
@@ -29,5 +30,14 @@ error_t object_add(object_t* object);
 error_t object_get_primary(object_type_t type, object_t** object);
 
 error_t object_set_primary(object_t* object);
+
+/**
+ * Will get the object at the given index of the given type
+ *
+ * @param object    [OUT]   The pointer to the object
+ * @param index     [IN]    The index to search
+ * @param type      [IN]    The type to filter on
+ */
+//error_t object_get(object_t** object, int index, object_type_t type);
 
 #endif //TOMATKERNEL_RIVER_H

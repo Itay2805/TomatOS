@@ -23,6 +23,8 @@
 #include <objects/drivers/ahci/ahci.h>
 #include <objects/drivers/framebuffer/framebuffer.h>
 #include <objects/display.h>
+#include <objects/drivers/ramdisk/ramdisk.h>
+#include <objects/storage.h>
 
 static void kernel_thread(tboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -36,7 +38,17 @@ static void kernel_thread(tboot_info_t* info) {
     CATCH(framebuffer_init(info));
 
     // Storage device initialization
-    CATCH(ahci_init());
+//    CATCH(ahci_init());
+    CATCH(ramdisk_create(KB(4) * 10));
+
+    object_t* obj;
+    CHECK_AND_RETHROW(object_get_primary(OBJECT_STORAGE, &obj));
+    storage_functions_t* funcs = obj->functions;
+    const char test[] = "Hello there!";
+    char buffer[512];
+    CHECK_AND_RETHROW(funcs->write(obj, (void*)test, sizeof(test), KB(4) - sizeof(test) / 2));
+    CHECK_AND_RETHROW(funcs->read(obj, (void*)buffer, sizeof(test), KB(4) - sizeof(test) / 2));
+    log_debug("%s", buffer);
 
     // TODO: Partition initialization
 

@@ -74,6 +74,7 @@ static error_t init_ahci_port(ahci_device_t* dev, size_t port) {
     // create the object
     object_t* obj = kmalloc(sizeof(object_t));
     obj->type = OBJECT_STORAGE;
+    obj->name = "ahci";
     obj->context = new_port;
     // TODO: setup syscalls and functions
 
