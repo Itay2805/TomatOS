@@ -21,8 +21,6 @@
 #include <processes/scheduler.h>
 #include <smp/smp.h>
 #include <objects/drivers/ahci/ahci.h>
-#include <objects/drivers/framebuffer/framebuffer.h>
-#include <objects/display.h>
 #include <objects/drivers/ramdisk/ramdisk.h>
 #include <objects/storage.h>
 
@@ -33,9 +31,6 @@ static void kernel_thread(tboot_info_t* info) {
     /////////////////////////////
     // do driver initialization
     /////////////////////////////
-
-    // Display initialization
-    CATCH(framebuffer_init(info));
 
     // Storage device initialization
     CATCH(ramdisk_create(KB(4) * 10));

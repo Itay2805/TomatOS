@@ -8,7 +8,6 @@ typedef enum object_type {
     OBJECT_PARTITION,
     OBJECT_FILESYSTEM,
     OBJECT_NETWORK,
-    OBJECT_DISPLAY,
     OBJECT_TYPE_MAX
 } object_type_t;
 

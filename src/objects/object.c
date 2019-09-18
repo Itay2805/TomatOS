@@ -19,7 +19,6 @@ static const char* type_names[] = {
     [OBJECT_PARTITION] = "Partition",
     [OBJECT_FILESYSTEM] = "Filesystem",
     [OBJECT_NETWORK] = "Network",
-    [OBJECT_DISPLAY] = "Display",
 };
 
 error_t object_add(object_t* object) {
