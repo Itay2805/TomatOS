@@ -13,12 +13,12 @@ syscall_handler_t* syscalls = NULL;
 void common_syscall_handler(syscall_context_t context) {
     error_t err = NO_ERROR;
 
+    CHECK(context.rax < arrlen(syscalls));
+    CHECK_AND_RETHROW(syscalls[context.rax](&context));
 
-
-error_t:
-    if(err != NO_ERROR) {
-        log_error("TODO: got an error in syscall! set error code");
-    }
+cleanup:
+    CATCH(err);
+    context.rax = err;
 }
 
 error_t syscall_init() {
@@ -46,16 +46,7 @@ error_t syscall_per_cpu_init() {
     return err;
 }
 
-/**
- * Register a new syscall
- *
- * @remark
- * if syscall_number is -1 then a syscall will be choosen dynamically
- *
- * @param handler           [IN]    The handler for the syscall
- * @param syscall_number    [OUT]   The syscall number
- */
-error_t syscall_register(syscall_handler_t handler, uint64_t* syscall_number) {
+error_t syscall_register_dynamic(syscall_handler_t handler, uint64_t* syscall_number) {
     error_t err = NO_ERROR;
 
     CHECK(handler != NULL);
@@ -72,3 +63,13 @@ error_t syscall_register(syscall_handler_t handler, uint64_t* syscall_number) {
 cleanup:
     return err;
 }
+error_t syscall_register(syscall_handler_t handler, uint64_t syscall_number) {
+    error_t err = NO_ERROR;
+
+    CHECK_AND_RETHROW(syscall_register_dynamic(handler, &syscall_number));
+
+cleanup:
+    return err;
+}
+
+

@@ -2,8 +2,34 @@
 #define TOMATKERNEL_SYSCALL_H
 
 #include <common/error.h>
+#include "syscalls.h"
 
 #define SYSCALL_AUTO ((uint64_t)-1)
+
+/*
+ * x86-64 System V syscall calling convention
+ *
+ * syscall num:
+ * rax
+ *
+ * return value:
+ * rax
+ *
+ * args:
+ * rdi, rsi, rdx, r10, r8, r9
+ *
+ */
+
+#define SYSRET(c) ((c)->rax)
+#define SYSNUM(c) ((c)->rax)
+#define SYSARG0(c) ((c)->rdi)
+#define SYSARG1(c) ((c)->rsi)
+#define SYSARG2(c) ((c)->rdx)
+#define SYSARG3(c) ((c)->r10)
+#define SYSARG4(c) ((c)->r8)
+#define SYSARG5(c) ((c)->r9)
+
+#define IS_USER_POINTER(ptr) ((uintptr_t)(ptr) < 0x0000800000000000ul)
 
 typedef struct syscall_context {
     // the data segment to return to
@@ -33,46 +59,6 @@ typedef struct syscall_context {
     uint64_t rax;
 } syscall_context_t;
 
-typedef enum syscalls {
-    // memory related
-    SYSCALL_MMAP                = 0x10,
-    SYSCALL_MUNMAP              = 0x11,
-    SYSCALL_MPROTECT            = 0x12,
-
-    // process related
-    SYSCALL_PROCESS_CREATE      = 0x20,
-    SYSCALL_PROCESS_START       = 0x21,
-    SYSCALL_PROCESS_SET_OPT     = 0x22,
-    SYSCALL_PROCESS_KILL        = 0x23,
-
-    // thread related
-    SYSCALL_THREAD_CREATE       = 0x30,
-    SYSCALL_THREAD_START        = 0x31,
-    SYSCALL_THREAD_SET_OPT      = 0x32,
-    SYSCALL_THREAD_JOIN         = 0x33,
-    SYSCALL_THREAD_KILL         = 0x34,
-
-    // socket related
-    SYSCALL_SOCKET_CREATE       = 0x40,
-    SYSCALL_SOCKET_BIND         = 0x41,
-    SYSCALL_SOCKET_AUTOBIND     = 0x42,
-    SYSCALL_SOCKET_ACCEPT       = 0x43,
-    SYSCALL_SOCKET_CONNET       = 0x44,
-    SYSCALL_SOCKET_RECV         = 0x45,
-    SYSCALL_SOCKET_RECV_FROM    = 0x46,
-    SYSCALL_SOCKET_SEND         = 0x47,
-    SYSCALL_SOCKET_SEND_TO      = 0x48,
-
-    // object related
-    SYSCALL_OBJECT_GET_BY_ID    = 0x50,
-    SYSCALL_OBJECT_GET_PRIMARY  = 0x51,
-    SYSCALL_OBJECT_SET_PRIMARY  = 0x52,
-    SYSCALL_OBJECT_GET_NEXT     = 0x53,
-
-    // dynamic allocations starts from here
-    SYSCALL_DYNAMIC_START = 0x60,
-} syscalls_t;
-
 typedef error_t (*syscall_handler_t)(syscall_context_t* context);
 
 /**
@@ -101,6 +87,8 @@ error_t syscall_per_cpu_init();
  * @param handler           [IN]    The handler for the syscall
  * @param syscall_number    [OUT]   The syscall number
  */
-error_t syscall_register(syscall_handler_t handler, uint64_t* syscall_number);
+error_t syscall_register_dynamic(syscall_handler_t handler, uint64_t* syscall_number);
+
+error_t syscall_register(syscall_handler_t handler, uint64_t syscall_number);
 
 #endif //TOMATKERNEL_SYSCALL_H

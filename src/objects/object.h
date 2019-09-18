@@ -21,10 +21,21 @@ typedef struct object {
     object_type_t type;
 
     // syscalls
+    size_t syscall_count;
     size_t* syscalls;
     void* functions;
 } object_t;
 
+/**
+ * Init the syscalls
+ */
+error_t object_init_syscalls();
+
+/**
+ * A new object to the object map
+ *
+ * @param object    [IN] The object to add
+ */
 error_t object_add(object_t* object);
 
 error_t object_get_primary(object_type_t type, object_t** object);
