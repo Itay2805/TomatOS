@@ -740,3 +740,42 @@ bool vmm_is_mapped(address_space_t address_space, uintptr_t virtual_address) {
     unlock_preemption(&vmm_lock);
     return is_mapped;
 }
+
+////////////////////////////////////////////////////
+// User process virtual space allocation
+////////////////////////////////////////////////////
+
+// PML1e - 4k
+// PML2e - 2MB
+// PML3e - 1GB
+// PML4e - 512GB
+// Entire  - 262TB
+
+error_t vmm_user_find(address_space_t address_space, size_t size, uintptr_t* result) {
+    error_t err = NO_ERROR;
+
+    CHECK(size % KB(4) == 0);
+    CHECK(result != NULL);
+
+    uintptr_t current_addr = (uintptr_t) -1;
+    int needed_pages = (int) (size / KB(4));
+    int count = 0;
+    for (uintptr_t ptr = GB(512); ptr < 0x0000800000000000ul; ptr += KB(4)) {
+        if(internal_virt_to_phys(address_space, ptr) == 0) {
+            current_addr = ptr;
+            count++;
+            if(count == needed_pages) {
+                break;
+            }
+        }else {
+            count = 0;
+            current_addr = (uintptr_t) -1;
+        }
+    }
+
+    CHECK(count == needed_pages && current_addr != -1);
+    *result = current_addr;
+
+cleanup:
+    return err;
+}

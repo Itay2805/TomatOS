@@ -144,4 +144,16 @@ bool vmm_is_mapped(address_space_t address_space, uintptr_t virtual_address);
  */
 error_t vmm_copy(address_space_t dst_addrspace, uintptr_t dst, address_space_t src_addrspace, uintptr_t src, size_t size);
 
+/**
+ * Find an unused virtual address of the given size, this can be used to map something to user space
+ *
+ * @remark
+ * TODO: Speed this up, this is currently very very very very very very slow
+ *
+ * @param address_space [IN]    The address space to allocate in
+ * @param size          [IN]    The size to find
+ * @param result        [OUT]   The base address found
+ */
+error_t vmm_user_find(address_space_t address_space, size_t size, uintptr_t* result);
+
 #endif //TOMATKERNEL_VMM_H
