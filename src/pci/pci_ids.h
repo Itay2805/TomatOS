@@ -6,4 +6,6 @@
 #define PCI_SUBCLASS_HOST_BRIDGE        0x00
 #define PCI_SUBCLASS_PCI_TO_PCI_BRIDGE  0x04
 
+#define PCI_VENDOR_REALTEK              (0x10EC)
+
 #endif //TOMATKERNEL_PCI_IDS_H

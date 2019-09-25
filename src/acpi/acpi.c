@@ -31,7 +31,7 @@ cleanup:
     return err;
 }
 
-static error_t sci_handler(registers_t* registers) {
+static error_t sci_handler(registers_t* registers, void* ptr) {
     error_t err = NO_ERROR;
 
     // get the event
@@ -74,7 +74,7 @@ error_t acpi_init() {
     // register an sci handler
     uint8_t vec = interrupt_allocate();
     CHECK_AND_RETHROW(ioapic_redirect(fadt->sci_irq, vec, 0));
-    CHECK_AND_RETHROW(interrupt_register(vec, sci_handler));
+    CHECK_AND_RETHROW(interrupt_register(vec, sci_handler, NULL));
     log_info("\t\tAdded SCI handler (#%d -> #%d)", fadt->sci_irq, vec);
 
 cleanup:

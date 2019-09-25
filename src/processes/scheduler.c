@@ -33,6 +33,15 @@ static void idle_thread_loop() {
 // The scheduler
 ///////////////////////////////////////////////////////////////
 
+static error_t scheduler_reschedule_interrupt_wrapper(registers_t* regs, void* context) {
+    error_t err = NO_ERROR;
+
+    CHECK_AND_RETHROW(scheduler_reschedule(regs));
+
+cleanup:
+    return err;
+}
+
 error_t scheduler_reschedule(registers_t* regs) {
     error_t err = NO_ERROR;
 
@@ -163,7 +172,7 @@ cleanup:
     return err;
 }
 
-static error_t lapic_timer_handler(registers_t* regs) {
+static error_t lapic_timer_handler(registers_t* regs, void* context) {
     error_t err = NO_ERROR;
 
     CHECK_AND_RETHROW(scheduler_reschedule(regs));
@@ -173,7 +182,7 @@ cleanup:
     return err;
 }
 
-static error_t scheduler_start_per_core(registers_t* regs) {
+static error_t scheduler_start_per_core(registers_t* regs, void* context) {
     error_t err = NO_ERROR;
 
     log_info("Doing scheduler startup on AP #%d", get_per_cpu_storage()->processor_id);
@@ -218,14 +227,14 @@ error_t scheduler_init() {
     // register scheduler interrupts
     log_info("Registering scheduler interrupts");
     log_info("\tstartup (#%d)", INTERRUPT_SCHEDULER_STARTUP);
-    CHECK_AND_RETHROW(interrupt_register(INTERRUPT_SCHEDULER_STARTUP, scheduler_start_per_core));
+    CHECK_AND_RETHROW(interrupt_register(INTERRUPT_SCHEDULER_STARTUP, scheduler_start_per_core, NULL));
 
     log_info("\treschedule (#%d)", INTERRUPT_SCHEDULER_RESCHEDULE);
-    CHECK_AND_RETHROW(interrupt_register(INTERRUPT_SCHEDULER_RESCHEDULE, scheduler_reschedule));
+    CHECK_AND_RETHROW(interrupt_register(INTERRUPT_SCHEDULER_RESCHEDULE, scheduler_reschedule_interrupt_wrapper, NULL));
 
     timer_vector = interrupt_allocate();
     log_info("Registering timer tick interrupt #%d", timer_vector);
-    CHECK_AND_RETHROW(interrupt_register(timer_vector, lapic_timer_handler));
+    CHECK_AND_RETHROW(interrupt_register(timer_vector, lapic_timer_handler, NULL));
 
 cleanup:
     return err;

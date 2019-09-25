@@ -167,9 +167,14 @@ static void default_exception_handler(registers_t* regs) {
 // Common interrupt handling
 //////////////////////////////////////////////////////////////////
 
+typedef struct int_value {
+    interrupt_handler_f handler;
+    void* context;
+} int_value_t;
+
 static struct interrupt_entry {
     uint8_t key;
-    interrupt_handler_f* value;
+    int_value_t* value;
 }* interrupt_handlers = NULL;
 
 error_t interrupts_init() {
@@ -181,7 +186,7 @@ cleanup:
     return err;
 }
 
-error_t interrupt_register(uint8_t vector, interrupt_handler_f handler) {
+error_t interrupt_register(uint8_t vector, interrupt_handler_f handler, void* context) {
     // get the array of handlers from vector
     ptrdiff_t i = hmgeti(interrupt_handlers, (uint64_t)vector);
     if(i == -1) {
@@ -190,7 +195,11 @@ error_t interrupt_register(uint8_t vector, interrupt_handler_f handler) {
     }
 
     // push the handler
-    arrpush(interrupt_handlers[i].value, handler);
+    int_value_t value = {
+            .context = context,
+            .handler = handler,
+    };
+    arrpush(interrupt_handlers[i].value, value);
 
     return NO_ERROR;
 }
@@ -205,9 +214,9 @@ void common_interrupt_handler(registers_t regs) {
 
     if(hi != -1) {
         // we got a handler, call all handlers
-        interrupt_handler_f* handlers = interrupt_handlers[hi].value;
+        int_value_t* handlers = interrupt_handlers[hi].value;
         for(int i = 0; i < arrlen(handlers); i++) {
-            CHECK_AND_RETHROW(handlers[i](&regs));
+            CHECK_AND_RETHROW(handlers[i].handler(&regs, handlers[i].context));
         }
     }else {
         if(regs.int_num <= 0x20) {

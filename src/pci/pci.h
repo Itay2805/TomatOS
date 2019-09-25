@@ -49,7 +49,7 @@ typedef struct pci_dev {
     // other extracted info
     pci_bar_t* bars;
     pci_cap_t* caps;
-    uint8_t irq;
+    int irq;
 
     // the mmio base address
     char* mmio;

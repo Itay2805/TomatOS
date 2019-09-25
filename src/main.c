@@ -23,6 +23,7 @@
 #include <objects/drivers/ahci/ahci.h>
 #include <objects/drivers/ramdisk/ramdisk.h>
 #include <objects/storage.h>
+#include <drivers/rtl8169/rtl8169.h>
 
 static void kernel_thread(tboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -33,8 +34,8 @@ static void kernel_thread(tboot_info_t* info) {
     /////////////////////////////
 
     // Storage device initialization
-    CATCH(ramdisk_create(KB(4) * 10));
-    CATCH(ahci_init());
+//    CATCH(ramdisk_create(KB(4) * 10));
+//    CATCH(ahci_init());
 
     // TODO: Partition initialization
 
@@ -47,6 +48,7 @@ static void kernel_thread(tboot_info_t* info) {
     // TODO: Loopback + Network stack initialization
 
     // TODO: Network drivers initialization
+    CATCH(rtl8169_init());
 
     /////////////////////////////
     // Kick start everything

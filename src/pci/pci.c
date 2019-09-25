@@ -284,6 +284,9 @@ static error_t route_device_irq(pci_dev_t* dev) {
     uint8_t pin = pci_read_8(dev, PCI_REG_INTERRUPT_PIN);
     acpi_resource_t resource = {0};
 
+    // set to default value
+    dev->irq = -1;
+
     // if pin is zero then this device has no interrupts
     if(pin == 0) goto cleanup;
 

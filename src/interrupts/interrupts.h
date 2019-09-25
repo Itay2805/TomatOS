@@ -72,7 +72,7 @@ typedef struct registers {
  * Note: This is not the one called from the IDT, but rather one called
  *       from the IDT stubs
  */
-typedef error_t(*interrupt_handler_f)(registers_t* registers);
+typedef error_t(*interrupt_handler_f)(registers_t* registers, void* context);
 
 /**
  * Enable interrupts
@@ -119,7 +119,7 @@ error_t interrupts_init();
  * @param vector    [IN] The interrupt vector
  * @param handler   [IN] The handler we should call
  */
-error_t interrupt_register(uint8_t vector, interrupt_handler_f handler);
+error_t interrupt_register(uint8_t vector, interrupt_handler_f handler, void* context);
 
 /**
  * Will allocate an interrupt which a driver can use
