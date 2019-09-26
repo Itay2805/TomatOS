@@ -6,17 +6,25 @@
 #include <objects/object.h>
 
 typedef struct {
-    uint8_t a;
-    uint8_t b;
-    uint8_t c;
-    uint8_t d;
-    uint8_t e;
-    uint8_t f;
+    uint8_t data[6];
 } mac_t;
 typedef uint32_t ipv4_t;
 
 #define BROADCAST_MAC ((mac_t){ 0xFFu, 0xFFu, 0xFFu, 0xFFu, 0xFFu, 0xFFu })
 #define BROADCAST_IP ((ipv4_t){ 0xFFFFFFFF })
+
+#define HTONS(n) ((uint16_t)(((((uint16_t)(n) & 0xFF)) << 8) | (((uint16_t)(n) & 0xFF00) >> 8)))
+#define NTOHS(n) ((uint16_t)(((((uint16_t)(n) & 0xFF)) << 8) | (((uint16_t)(n) & 0xFF00) >> 8)))
+
+#define HTONL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
+                  ((((unsigned long)(n) & 0xFF00)) << 8) | \
+                  ((((unsigned long)(n) & 0xFF0000)) >> 8) | \
+                  ((((unsigned long)(n) & 0xFF000000)) >> 24))
+
+#define NTOHL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
+                  ((((unsigned long)(n) & 0xFF00)) << 8) | \
+                  ((((unsigned long)(n) & 0xFF0000)) >> 8) | \
+                  ((((unsigned long)(n) & 0xFF000000)) >> 24))
 
 typedef enum network_type {
     NETWORK_ARP,

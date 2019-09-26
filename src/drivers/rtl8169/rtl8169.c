@@ -78,8 +78,8 @@ static error_t interrupt_handler(registers_t* regs, rtl8169_dev_t* dev) {
         // get buffer and length
         uintptr_t pkt_buffer = rx->rxbuff + DIRECT_MAPPING_BASE;
         size_t pkt_length = rx->frame_length;
-        // TODO: pass these stuff to the network stack
         log_debug("Got packet! %p %d", pkt_buffer, pkt_length);
+        // TODO: pass these stuff to the network stack
 
         // restore descriptor
         *rx = (rx_desc_t){

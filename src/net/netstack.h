@@ -44,4 +44,9 @@ error_t socket_send(socket_t* socket, char* buffer, size_t* size);
 
 error_t socket_close(socket_t* socket);
 
+/**
+ * Process a packet through the network stack
+ */
+error_t netstack_process_packet(object_t* netdev, char* buffer, size_t size);
+
 #endif //TOMATKERNEL_NETSTACK_H

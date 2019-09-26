@@ -2,6 +2,7 @@
 #include <processes/thread.h>
 #include <processes/process.h>
 #include <processes/scheduler.h>
+#include <libc/stdlib.h>
 #include "netstack.h"
 #include "arp.h"
 #include "ether.h"
@@ -54,8 +55,14 @@ static void arp_server_thread(arp_server_instance_t* instance) {
     }
 
 cleanup:
-    // TODO: kill the thread
     CATCH(err);
+    log_critical("ARP server stopped!");
+
+    // free everything related to the server
+    CATCH(socket_close(arp_socket));
+    vfree(instance);
+
+    // TODO: kill the thread
     while(true);
 }
 
@@ -63,12 +70,13 @@ error_t arp_server_init() {
     error_t err = NO_ERROR;
 
     // TODO: iterate all network objects
-    arp_server_instance_t instance = {0};
-    CHECK_AND_RETHROW(object_get_primary(OBJECT_NETWORK, &instance.netdev));
-    CHECK_AND_RETHROW(create_thread(kernel_process, &instance.arp_server_thread));
-    instance.arp_server_thread->context.cpu.rip = (uint64_t) arp_server_thread;
-    instance.arp_server_thread->status = THREAD_STATUS_NORMAL;
-    CHECK_AND_RETHROW(scheduler_queue_thread(instance.arp_server_thread));
+    arp_server_instance_t* instance = vmalloc(sizeof(arp_server_instance_t));
+    CHECK_AND_RETHROW(object_get_primary(OBJECT_NETWORK, &instance->netdev));
+    CHECK_AND_RETHROW(create_thread(kernel_process, &instance->arp_server_thread));
+    instance->arp_server_thread->context.cpu.rip = (uint64_t) arp_server_thread;
+    instance->arp_server_thread->context.cpu.rdi = (uint64_t) instance;
+    instance->arp_server_thread->status = THREAD_STATUS_NORMAL;
+    CHECK_AND_RETHROW(scheduler_queue_thread(instance->arp_server_thread));
 
 cleanup:
     return err;

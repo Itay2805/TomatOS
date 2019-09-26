@@ -20,10 +20,6 @@ typedef struct ether_hdr {
 
 /**
  * Parse the frame into the peer
- *
- * @param peer
- * @param frame
- * @param length
  */
 error_t ether_parse(peer_t* peer, void* frame, size_t* length);
 
@@ -34,6 +30,6 @@ error_t ether_parse(peer_t* peer, void* frame, size_t* length);
  * @param frame     [IN]        Where to write to
  * @param length    [IN/OUT]    The length of the frame, and the length left in the frame
  */
-error_t ether_create(peer_t* peer, void* frame, size_t* length);
+//error_t ether_create(peer_t* peer, void* frame, size_t* length);
 
 #endif //TOMATKERNEL_ETHER_H
