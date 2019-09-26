@@ -29,20 +29,22 @@ error_t pmm_init();
 /**
  * Will allocate a new physical address
  *
- * @param addr  [OUT] The new physical address
+ * @param addr  [OUT]   The new physical address
+ * @param count [IN]    Amount of pages to allocate
  *
  * @return NO_ERROR: Success
  * @return ERROR_OUT_OF_MEMORY: We ran out of memory!
  */
-error_t pmm_allocate(uint64_t* addr);
+error_t pmm_allocate(uint64_t* addr, size_t count);
 
 /**
  * Will free the given *physical* address
  *
  * @param addr  [IN] The address of the page to free
+ * @param count [IN] The amount of pages to free
  *
  * @return NO_ERROR: Success
  */
-error_t pmm_free(uint64_t addr);
+error_t pmm_free(uint64_t addr, size_t count);
 
 #endif //TOMATKERNEL_PMM_H

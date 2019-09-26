@@ -4,9 +4,15 @@
 #include "pmm.h"
 #include "vmm.h"
 
-static uint64_t* addrs;
-static size_t stack_len = 0;
-static size_t stack_cap;
+typedef struct pmm_slot {
+    uintptr_t start;
+    size_t length;
+    bool valid;
+} pmm_slot_t;
+
+static pmm_slot_t* slots = NULL;
+static size_t slot_index = 0;
+static size_t slot_count = 0;
 
 /*
  * Global PMM lock
@@ -38,71 +44,124 @@ error_t pmm_early_init(tboot_info_t* info) {
         }
     }
 
-    log_info("Physical Memory: %lld/%lld", total_available_size, top_address);
+    log_info("Physical Memory: %lld bytes (top 0x%p)", total_available_size, top_address);
+    slot_count = (ALIGN_PAGE_DOWN(total_available_size) / KB(4)) / 2;
+    size_t total_size_for_stack = slot_count * sizeof(pmm_slot_t);
+    log_info("PMM stack size %lld bytes (%lld entries)", total_size_for_stack, slot_count);
 
-    stack_cap = ALIGN_UP(total_available_size, KB(4))  / KB(4);
-    size_t total_size_for_stack = (stack_cap) * sizeof(uint64_t);
-    log_info("PMM stack size %lld bytes (%lld entries)", total_size_for_stack, stack_cap);
-
-    addrs = (uint64_t *) (ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)) + KB(4));
-    uintptr_t kernel_end = ALIGN_UP(ALIGN_UP(KERNEL_PHYSICAL_END, KB(4)) + KB(4) + total_size_for_stack, KB(4));
+    slots = (pmm_slot_t *) (ALIGN_PAGE_UP(KERNEL_PHYSICAL_END)) + KB(4);
+    uintptr_t kernel_end = ALIGN_PAGE_UP((uintptr_t)slots + total_size_for_stack);
 
     log_info("Memory map:");
     for(tboot_mmap_entry_t* it = info->mmap.entries; it < info->mmap.entries + info->mmap.count; it++) {
         log_info("\t0x%016p-0x%016p: %s", it->addr, it->addr + it->len, MMAP_TYPE[it->type]);
         if(it->type == TBOOT_MEMORY_TYPE_USABLE) {
-            for(uint64_t addr = ALIGN_UP(it->addr, KB(4)); addr < ALIGN_DOWN(it->addr + it->len, KB(4)); addr += KB(4)) {
-                // only use physical memory from the kernel upwards
-                if(addr <= kernel_end)  continue;
+            uintptr_t addr = ALIGN_UP(it->addr, KB(4));
+            size_t count = ALIGN_DOWN(it->len, KB(4)) / KB(4);
 
-                CHECK_AND_RETHROW(pmm_free(addr));
+            // if before the kernel ignore
+            if(addr + (count * KB(4)) <= kernel_end) {
+                continue;
+
+            // align to the kernel start
+            } else if(addr < kernel_end) {
+                addr = kernel_end;
             }
+
+            // set as free
+            CHECK_AND_RETHROW(pmm_free(addr, count));
         }
     }
-
-    // reverse the stack, we do this because otherwise we will allocate high addresses
-    // before even having that place mapped, this will make us allocate lower addresses first
-    for(int i = 0; i < stack_len / 2; i++) {
-        uint64_t tmp = addrs[stack_len - i];
-        addrs[stack_len - i] = addrs[i];
-    addrs[i] = tmp;
-}
 
 cleanup:
     return err;
 }
 
 error_t pmm_init() {
-    addrs = (uint64_t*)(((uint64_t)addrs) + DIRECT_MAPPING_BASE);
+    slots = CONVERT_TO_DIRECT(slots);
     return NO_ERROR;
 }
 
-error_t pmm_allocate(uint64_t* addr) {
+error_t pmm_allocate(uint64_t* addr, size_t count) {
     error_t err = NO_ERROR;
 
     lock_preemption(&pmm_lock);
 
-    CHECK_ERROR(addr, ERROR_INVALID_ARGUMENT);
+    count *= KB(4);
+    for(int i = 0; i < slot_index; i++) {
+        pmm_slot_t* slot = &slots[i];
 
-    CHECK(addrs);
-    CHECK_ERROR_TRACE(stack_len > 0, ERROR_OUT_OF_MEMORY, "No more available physical address!");
+        // if not found go to the next one
+        if(!slot->valid) {
+            continue;
 
-    *addr = addrs[--stack_len];
+        // if does not have enough memory
+        }else if(slot->length < count) {
+            continue;
+
+        // found a valid block!
+        }else {
+            slot->length -= count;
+            uintptr_t new_addr = slot->start + slot->length;
+
+            // if no more free place in this slot
+            if(slot->length == 0) {
+                slot->valid = false;
+            }
+
+            *addr = new_addr;
+            goto cleanup;
+        }
+    }
+
+    CHECK_FAIL_TRACE("Could not find enough contiguous physical memory");
 
 cleanup:
     unlock_preemption(&pmm_lock);
     return err;
 }
 
-error_t pmm_free(uint64_t addr) {
+error_t pmm_free(uint64_t addr, size_t count) {
     error_t err = NO_ERROR;
+    size_t free_len = count * KB(4);
+    int free_i = -1;
 
     lock_preemption(&pmm_lock);
 
-    CHECK(addrs);
-    CHECK(stack_len < stack_cap);
+    for(int i = 0; i < slot_index; i++) {
+        pmm_slot_t* slot = &slots[i];
 
-    addrs[stack_len++] = addr;
+        // if this is not a valid block we
+        // can feel it later
+        if(!slot->valid) {
+            free_i = i;
+            continue;
+        }
+
+        // add to the length of this slot if it is at its end
+        if(slot->start + slot->length == addr) {
+            slot->length += free_len;
+            goto cleanup;
+
+        // remove from the base of this block if ends at its start
+        }else if(addr + free_len == slot->start) {
+            slot->start -= free_len;
+        }
+    }
+
+    if(free_i != -1) {
+        slots[free_i].start = addr;
+        slots[free_i].length = free_len;
+        slots[free_i].valid = true;
+    }else {
+        CHECK_TRACE(slot_index < slot_count, "No more free slots!");
+
+        // add a new entry
+        slots[slot_index].start = addr;
+        slots[slot_index].length = free_len;
+        slots[slot_index].valid = true;
+        slot_index++;
+    }
 
 cleanup:
     unlock_preemption(&pmm_lock);

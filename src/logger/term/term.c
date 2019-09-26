@@ -64,7 +64,7 @@ void term_init() {
     vram = CONVERT_TO_DIRECT(vram);
 
     // allocate a proper backbuffer
-    uint32_t* tmp_backbuffer = kmalloc(width * full_height * 4u);
+    uint32_t* tmp_backbuffer = vmalloc(width * full_height * 4u);
     memcpy(tmp_backbuffer, vram, width * full_height * 4u);
     backbuffer = tmp_backbuffer;
 }

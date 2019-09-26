@@ -364,7 +364,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     }
 
     // initial setup
-    dev = kmalloc(sizeof(pci_dev_t));
+    dev = vmalloc(sizeof(pci_dev_t));
     dev->segment = segment;
     dev->bus = bus;
     dev->device = device;
@@ -536,7 +536,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
 cleanup:
     if(err != NO_ERROR) {
-        if(dev) kfree(dev);
+        if(dev) vfree(dev);
     }
     return err;
 }

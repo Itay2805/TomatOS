@@ -30,10 +30,10 @@ error_t per_cpu_storage_init() {
             .index = arrlen(per_cpu_storage),
 
             // allocate stacks
-            .kernel_stack = (uintptr_t) kmalloc(MB(2)),
-            .nmi_stack = (uintptr_t) kmalloc(KB(8)),
-            .exception_stack = (uintptr_t) kmalloc(KB(8)),
-            .page_fault_stack = (uintptr_t) kmalloc(KB(8)),
+            .kernel_stack = (uintptr_t) vmalloc(MB(2)),
+            .nmi_stack = (uintptr_t) vmalloc(KB(8)),
+            .exception_stack = (uintptr_t) vmalloc(KB(8)),
+            .page_fault_stack = (uintptr_t) vmalloc(KB(8)),
         };
 
         per_cpu_storage[lapic->id] = st;

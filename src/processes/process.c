@@ -14,7 +14,7 @@ error_t create_process(address_space_t address_space, process_t** process) {
     CHECK(process);
 
     // allocate and set
-    process_t* new_proc = kmalloc(sizeof(process_t));
+    process_t* new_proc = vmalloc(sizeof(process_t));
     new_proc->address_space = address_space;
     new_proc->refcount = 1;
     new_proc->pid = next_pid++;
@@ -43,7 +43,7 @@ error_t release_process(process_t* process) {
     if(process->refcount <= 0) {
         CHECK_TRACE(hmlen(process->threads) == 0, "Tried to free a process with running threads");
 
-        kfree(process);
+        vfree(process);
         goto deleted;
     }
 

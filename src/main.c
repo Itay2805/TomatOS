@@ -1,41 +1,33 @@
-#include <common/error.h>
 #include <tboot/tboot.h>
+#include <common/error.h>
 #include <interrupts/interrupts.h>
+#include <drivers/rtl8169/rtl8169.h>
+#include <logger/term/term.h>
+#include <logger/vmdev/vmdev.h>
+#include <interrupts/idt.h>
 #include <memory/pmm.h>
 #include <memory/mm.h>
-#include <memory/gdt.h>
-#include <interrupts/idt.h>
 #include <acpi/acpi.h>
-#include <logger/vmdev/vmdev.h>
-#include <logger/term/term.h>
 #include <pci/pci.h>
-#include <helpers/hpet/hpet.h>
-#include <common/locks/spinlock.h>
-#include <acpi/tables/madt.h>
-#include <stb/stb_ds.h>
-#include <helpers/portio.h>
-#include <lai/core.h>
-#include <lai/helpers/sci.h>
-#include <processes/process.h>
-#include <processes/thread.h>
-#include <processes/scheduler.h>
 #include <smp/smp.h>
-#include <objects/drivers/ahci/ahci.h>
-#include <objects/drivers/ramdisk/ramdisk.h>
-#include <objects/storage.h>
-#include <drivers/rtl8169/rtl8169.h>
+#include <helpers/hpet/hpet.h>
+#include <processes/scheduler.h>
+#include <processes/process.h>
+#include <drivers/ahci/ahci.h>
 
 static void kernel_thread(tboot_info_t* info) {
     error_t err = NO_ERROR;
     log_info("In kernel thread!");
 
+    _cli();
+
     /////////////////////////////
     // do driver initialization
     /////////////////////////////
+    log_info("Doing driver initialization");
 
     // Storage device initialization
-//    CATCH(ramdisk_create(KB(4) * 10));
-//    CATCH(ahci_init());
+    CATCH(ahci_init());
 
     // TODO: Partition initialization
 
@@ -47,14 +39,17 @@ static void kernel_thread(tboot_info_t* info) {
 
     // TODO: Loopback + Network stack initialization
 
-    // TODO: Network drivers initialization
+    // Network drivers initialization
     CATCH(rtl8169_init());
 
     /////////////////////////////
     // Kick start everything
     /////////////////////////////
 
+    _sti();
+
 cleanup:
+    // TODO: kill thread
     while(true) _hlt();
 }
 

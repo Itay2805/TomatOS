@@ -31,8 +31,6 @@ error_t object_add(object_t* object) {
     hmput(objects, object->id, object);
     unlock(&objects_lock);
 
-    log_info("Added object %s (#%d)", object->name, object->id);
-
     lock(&primary_objects_lock);
     bool has_primary = primary_objects[object->type] == NULL;
     unlock(&primary_objects_lock);
@@ -64,7 +62,6 @@ error_t object_set_primary(object_t* object) {
     CHECK(object != NULL);
 
     lock(&primary_objects_lock);
-    log_info("object %s (#%d) is now primary object for %s type", object->name, object->id, type_names[object->type]);
     primary_objects[object->type] = object;
     unlock(&primary_objects_lock);
 

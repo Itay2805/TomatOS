@@ -76,7 +76,7 @@ static error_t interrupt_handler(registers_t* regs, rtl8169_dev_t* dev) {
         _barrier();
 
         // get buffer and length
-        uintptr_t pkt_buffer = rx->rxbuff;
+        uintptr_t pkt_buffer = rx->rxbuff + DIRECT_MAPPING_BASE;
         size_t pkt_length = rx->frame_length;
         // TODO: pass these stuff to the network stack
         log_debug("Got packet! %p %d", pkt_buffer, pkt_length);
@@ -93,44 +93,54 @@ cleanup:
     return err;
 }
 
-static error_t init_device(rtl8169_dev_t* dev) {
+static error_t init_device(pci_dev_t* pcidev) {
     error_t err = NO_ERROR;
 
-    CHECK(dev != NULL);
+    CHECK(pcidev != NULL);
 
-    dev->rx_ring = kmalloc(1024 * sizeof(rx_desc_t));
-    dev->tx_ring = kmalloc(1024 * sizeof(tx_desc_t));
+    rtl8169_dev_t* dev = vmalloc(sizeof(rtl8169_dev_t));
+    dev->dev = pcidev;
+    dev->mmio_base = pcidev->bars[1].base;
+
+    dev->rx_ring = pmalloc(1024 * sizeof(rx_desc_t));
+    dev->tx_ring = pmalloc(1024 * sizeof(tx_desc_t));
+
+    CHECK(dev->rx_ring != NULL);
+    CHECK(dev->tx_ring != NULL);
 
     for(int i = 0; i < 1024; i++) {
         rx_desc_t* rx_desc = &dev->rx_ring[i];
         *rx_desc = (rx_desc_t){
             .eor = 1,
-            .rxbuff = (uintptr_t) kmalloc(1500),
+            .rxbuff = (uintptr_t)pmalloc(1500) - DIRECT_MAPPING_BASE,
             .frame_length = 1500
         };
+        CHECK(rx_desc->rxbuff != NULL);
     }
 
     // reset
     write32(dev, CR, RST);
+    _barrier();
     while(read32_vol(dev, CR) & RST) _pause();
 
     // enable Rx and Tx rings
     write32(dev, CR, RE | TE);
+    _barrier();
 
     // set the descriptors
-    write32(dev, RDSAR_LOW, (uint32_t) ((uintptr_t)dev->rx_ring & 0xFFFFFFFF));
-    write32(dev, RDSAR_HIGH, (uint32_t) ((uintptr_t)dev->rx_ring >> 32));
-    write32(dev, TNPDS_LOW, (uint32_t) ((uintptr_t)dev->tx_ring & 0xFFFFFFFF));
-    write32(dev, TNPDS_HIGH, (uint32_t) ((uintptr_t)dev->tx_ring >> 32));
+    write32(dev, RDSAR_LOW, (uint32_t) (((uintptr_t)dev->rx_ring - DIRECT_MAPPING_BASE) & 0xFFFFFFFF));
+    write32(dev, RDSAR_HIGH, (uint32_t) (((uintptr_t)dev->rx_ring - DIRECT_MAPPING_BASE) >> 32));
+    write32(dev, TNPDS_LOW, (uint32_t) (((uintptr_t)dev->tx_ring - DIRECT_MAPPING_BASE) & 0xFFFFFFFF));
+    write32(dev, TNPDS_HIGH, (uint32_t) (((uintptr_t)dev->tx_ring - DIRECT_MAPPING_BASE) >> 32));
+    _barrier();
 
     // set interrupts
     CHECK(dev->dev->irq != -1);
-    _cli();
     write32(dev, IMR, ROK);
+    _barrier();
     CHECK_AND_RETHROW(interrupt_register((uint8_t) dev->dev->irq, interrupt_handler, dev));
-    _sti();
 
-    log_info("rtl8169: Initialized card (%x:%x:%x:%x:%x:%x)",
+    log_info("\t\tMAC: %x:%x:%x:%x:%x:%x",
              read8(dev, IDR0),
              read8(dev, IDR1),
              read8(dev, IDR2),
@@ -143,6 +153,16 @@ cleanup:
     return err;
 }
 
+static pci_sig_t supported_devices[] = {
+        { PCI_VENDOR_REALTEK, 0x8168 },
+        { PCI_VENDOR_REALTEK, 0x8169 },
+};
+
+static const char* supported_devices_names[] = {
+        "RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller\t",
+        "RTL8169 PCI Gigabit Ethernet Controller\t",
+};
+
 error_t rtl8169_init() {
     error_t err = NO_ERROR;
 
@@ -151,11 +171,14 @@ error_t rtl8169_init() {
 
     for(int i = 0; i < arrlen(pci_devices); i++) {
         pci_dev_t* dev = pci_devices[i];
-        if(dev->vendor_id == PCI_VENDOR_REALTEK && dev->device_id == 0x8139) {
-            rtl8169_dev_t* rtldev = kmalloc(sizeof(rtl8169_dev_t));
-            rtldev->dev = dev;
-            rtldev->mmio_base = dev->bars[1].base;
-            CATCH(init_device(rtldev));
+
+        // Identify by type
+        for(int j = 0; j < (sizeof(supported_devices) / sizeof(pci_sig_t)); j++) {
+            if(supported_devices[j].device_id == dev->device_id && supported_devices[j].vendor_id == dev->vendor_id) {
+                log_info("\t%s at %x.%x.%x.%x", supported_devices_names[j], dev->segment, dev->bus, dev->device, dev->function);
+                CATCH(init_device(dev));
+                break;
+            }
         }
     }
 

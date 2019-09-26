@@ -13,7 +13,7 @@ error_t create_thread(process_t* process, thread_t** thread) {
 
     CHECK(thread);
 
-    thread_t* new_thread = kmalloc(sizeof(thread_t));
+    thread_t* new_thread = vmalloc(sizeof(thread_t));
 
     // set the thread state
     new_thread->refcount = 1;
@@ -41,10 +41,10 @@ error_t create_thread(process_t* process, thread_t** thread) {
     }
 
     // set up a syscall stack
-    new_thread->syscall_stack = (uintptr_t) kmalloc(KB(8));
+    new_thread->syscall_stack = (uintptr_t) vmalloc(KB(8));
 
     // set the stack, 2MB for now
-    new_thread->stack = (uintptr_t) kmalloc(MB(2));
+    new_thread->stack = (uintptr_t) vmalloc(MB(2));
     new_thread->context.cpu.rsp = new_thread->stack + MB(2);
 
     // add to the process
@@ -76,7 +76,7 @@ error_t release_thread(thread_t* thread) {
         CHECK_TRACE(thread->status == THREAD_STATUS_DEAD, "Tried to free a thread that has not been killed");
 
         // free the stack related stuff
-        kfree((void *) thread->stack);
+        vfree((void *) thread->stack);
 
         // remove the thread
         lock_preemption(&thread->process->lock);
@@ -87,7 +87,7 @@ error_t release_thread(thread_t* thread) {
         CHECK_AND_RETHROW(release_process(thread->process));
 
         // delete!
-        kfree(thread);
+        vfree(thread);
         goto deleted;
     }
 

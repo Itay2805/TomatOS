@@ -225,7 +225,7 @@ static error_t get_or_create_page(uint64_t *entry, page_attrs_t attributes, uint
 
     if(!new_page) {
         // allocate and zero new page
-        CHECK_AND_RETHROW(pmm_allocate(&new_page));
+        CHECK_AND_RETHROW(pmm_allocate(&new_page, 1));
         memset(&physical_memory[new_page], 0, KB(4));
 
         // set the entry
@@ -581,7 +581,7 @@ error_t vmm_init(tboot_info_t* info) {
     physical_memory = 0;
 
     // allocate the kernel memory map
-    CHECK_AND_RETHROW(pmm_allocate(&kernel_address_space ));
+    CHECK_AND_RETHROW(pmm_allocate(&kernel_address_space, 1));
     memset((void *)kernel_address_space , 0, KB(4));
 
     // TODO: Use large pages as optimization
@@ -684,12 +684,12 @@ error_t vmm_allocate(address_space_t address_space, void* virtual_address, page_
 
     lock_preemption(&vmm_lock);
 
-    CHECK_AND_RETHROW(pmm_allocate(&phys));
+    CHECK_AND_RETHROW(pmm_allocate(&phys, 1));
     CHECK_AND_RETHROW(internal_map(address_space, virtual_address, (void*)phys, attributes));
 
 cleanup:
     if(err != NO_ERROR) {
-        if(phys) pmm_free(phys);
+        if(phys) pmm_free(phys, 1);
     }
     unlock_preemption(&vmm_lock);
     return err;
@@ -709,7 +709,7 @@ error_t vmm_free(address_space_t address_space, void* virtual_address) {
     // unset the given page
     uint64_t addr = table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_4KB_ADDR_MASK;
     CHECK_ERROR(table[PAGING_PML1E_OFFSET(virtual_address)] & PAGING_PRESENT_BIT, ERROR_NOT_MAPPED);
-    CATCH(pmm_free(addr));
+    CATCH(pmm_free(addr, 1));
     table[PAGING_PML1E_OFFSET(virtual_address)] = 0;
     invlpg(addr);
 

@@ -187,13 +187,14 @@ static error_t scheduler_start_per_core(registers_t* regs, void* context) {
 
     log_info("Doing scheduler startup on AP #%d", get_per_cpu_storage()->processor_id);
 
+    _cli();
+
     // set the timer
     CHECK_AND_RETHROW(lapic_set_timer(1, timer_vector));
 
     // do the first scheduling
     CHECK_AND_RETHROW(scheduler_tick(regs));
 
-    // starts allow to get interrupts
     _sti();
 
 cleanup:
@@ -216,8 +217,8 @@ error_t scheduler_init() {
         CHECK_AND_RETHROW(create_thread(idle_process, &thread));
 
         // only really ever gonna loop, so allocate a smaller stack
-        kfree((void*)thread->stack);
-        thread->stack = (uintptr_t)kmalloc(64);
+        vfree((void *) thread->stack);
+        thread->stack = (uintptr_t) vmalloc(64);
 
         // set the context again
         thread->context.cpu.rsp = thread->stack + 64;

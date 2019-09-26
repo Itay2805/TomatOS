@@ -11,15 +11,15 @@
 #include <acpi/tables/fadt.h>
 
 void* laihost_malloc(size_t size) {
-    return kmalloc(size);
+    return vmalloc(size);
 }
 
 void* laihost_realloc(void* ptr, size_t size) {
-    return krealloc(ptr, size);
+    return vrealloc(ptr, size);
 }
 
 void laihost_free(void* ptr) {
-    return kfree(ptr);
+    return vfree(ptr);
 }
 
 void laihost_log(int level, const char* str) {
