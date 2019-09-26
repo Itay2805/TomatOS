@@ -4,6 +4,7 @@
 #include <common/error.h>
 #include "peer.h"
 #include "ether.h"
+#include "arp.h"
 
 error_t peer_parse(peer_t* peer, void* buffer, size_t* length) {
     error_t err = NO_ERROR;
@@ -21,7 +22,7 @@ error_t peer_parse(peer_t* peer, void* buffer, size_t* length) {
     header_length = *length - header_length;
     switch(peer->network.type) {
         case NETWORK_ARP:
-            // TODO: Parse arp
+            CHECK_AND_RETHROW(arp_parse(peer, buffer, length));
             break;
 
         case NETWORK_IPV4:
