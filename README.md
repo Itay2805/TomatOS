@@ -2,8 +2,7 @@
 
 TomatOS is a 64bit operating systems (currently just the kernel part of the os but still).
 
-The goal is to make TomatOS a quite modern hobby os in the sense that we are not going to support legacy hardware at 
-all.
+The goal of this project is to waste my time.
 
 ## Features
 
@@ -24,11 +23,8 @@ all.
 ### Drivers
 
 * AHCI (WIP)
-	* with support for SATA devices
-	
-### Roadmap
-* finish AHCI SATA support
-* add GPT partitioning support
-* add echfs filesystem (at least read-only)
-* ???
-* profit!
+	* got port iteration
+* RTL8169 (WIP)
+    * got packet receiving (not tested yet cause need to fix stuff in the scheduler kickstart on real hardware)
+* Network stack (WIP)
+    * got the frame itself with the arp server, just so I can test how it looks
