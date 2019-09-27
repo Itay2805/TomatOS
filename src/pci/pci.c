@@ -5,6 +5,7 @@
 #include <common/common.h>
 #include <lai/helpers/pci.h>
 #include <lai/helpers/resource.h>
+#include <common/cpu/atomic.h>
 #include "pci.h"
 #include "pci_common_spec.h"
 #include "pci_bridge_spec.h"
@@ -492,7 +493,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
     // check irq
     // if error then ignore it
-//    CATCH(route_device_irq(dev));
+    CATCH(route_device_irq(dev));
 
     // function scanning
     if(dev->class == PCI_CLASS_BRIDGE_DEVICE && dev->subclass == PCI_SUBCLASS_HOST_BRIDGE) {
@@ -656,6 +657,19 @@ error_t pci_get_and_map_mmio(uint16_t segment, uint8_t bus, uint8_t device, uint
             goto cleanup;
         }
     }
+
+cleanup:
+    return err;
+}
+
+error_t pci_setup_device(pci_dev_t* dev) {
+    error_t err = NO_ERROR;
+
+    uint16_t command = pci_read_16(dev, PCI_REG_COMMAND);
+    command |= PCI_COMMAND_BUS_MASTER_ENABLE;
+    command &= ~PCI_COMMAND_INETERRUPT_DISABLE;
+    pci_write_16(dev, PCI_REG_COMMAND, command);
+    _barrier();
 
 cleanup:
     return err;

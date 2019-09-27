@@ -74,6 +74,13 @@ void pci_write_8(pci_dev_t* dev, uint16_t offset, uint8_t data);
 
 error_t pci_get_and_map_mmio(uint16_t segment, uint8_t bus, uint8_t device, uint8_t function, char** mmio);
 
+/**
+ * This will:
+ * - Enable bus master
+ * - Enable interrupts
+ */
+error_t pci_setup_device(pci_dev_t* dev);
+
 error_t pci_init();
 
 #endif //TOMATKERNEL_PCI_H

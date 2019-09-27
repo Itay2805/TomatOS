@@ -231,6 +231,9 @@ void common_interrupt_handler(registers_t regs) {
 cleanup:
     if(err != NO_ERROR) {
         // TODO: Panic
+        while(true) {
+            _hlt();
+        }
     }
 }
 

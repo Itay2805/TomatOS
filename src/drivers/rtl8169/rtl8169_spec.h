@@ -72,8 +72,11 @@
     #define RMS_MASK        (0xe)
 
 #define CPCR            (0x00E0)
-#define     ENDIAN          (1 << 9) /* Endian mode (1=big, 0=low) */
+/* rtl8169 */
 #define     RxChkSum        (1 << 5) /*  */
+/* rtl8139 */
+#define     CPRx            (1 << 1) /* Receive enable */
+#define     CPTx            (1 << 0) /* Transmit enable */
 
 /* RX ring */
 #define RDSAR_LOW       (0x00E4)
@@ -106,46 +109,19 @@ typedef struct tx_desc {
 } __attribute__((packed)) tx_desc_t;
 
 typedef struct rx_desc {
-    // dword 0
-    uint16_t frame_length : 14; // also the buffer_length
-    // TCP Checksum Failure
-    uint16_t tcpf : 1;
-    // UDP Checksum Failure
-    uint16_t udpf : 1;
-    // IP Checksum Failure
-    uint16_t ipf : 1;
-    uint16_t pid : 2;
-#define PID_NON_IP 0
-#define PID_TCP_IP 1
-#define PID_UDP_IP 2
-#define PID_IP 3
-    // CRC Error
-    uint16_t crc : 1;
-    // Runt Packet
-    uint16_t runt : 1;
-    // Receive Error Summary
-    uint16_t res : 1;
-    // Receive Watchdog Timer Expired
-    uint16_t rwt : 1;
-    uint16_t _reserved0 : 2;
-    // Broadcast Address Received
-    uint16_t bar : 1;
-    // Physical Address Matched
-    uint16_t pam : 1;
-    // Multicast Address Packet Received
-    uint16_t mar : 1;
-    uint16_t ls : 1;
-    uint16_t fs : 1;
-    uint16_t eor : 1;
-    uint16_t own : 1;
-
-    // dword 1
-    uint16_t vlan_tag;
-    uint16_t tava : 1;
-    uint16_t _reserved1 : 15;
-
-    // dword 2 + 3
+    uint32_t opts1;
+#define FRAME_LENGTH_MASK 0xfff
+    uint32_t opts2;
     uintptr_t rxbuff;
 } __attribute__((packed)) rx_desc_t;
+
+/* bits on all registers */
+#define OWN     (1 << 31)
+#define EOR     (1 << 30)
+#define FS      (1 << 29)
+#define LS      (1 << 28)
+
+#define RX_MAX_ENTRIES 1024
+#define TX_MAX_ENTRIES 1024
 
 #endif //TOMATKERNEL_SPEC_H
