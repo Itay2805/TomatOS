@@ -47,6 +47,10 @@ static void write32(rtl8169_dev_t* dev, size_t offset, uint32_t val) {
     POKE32(dev->mmio_base + offset) = val;
 }
 
+static void write8(rtl8169_dev_t* dev, size_t offset, uint8_t val) {
+    POKE8(dev->mmio_base + offset) = val;
+}
+
 static error_t interrupt_handler(registers_t* regs, rtl8169_dev_t* dev) {
     error_t err = NO_ERROR;
 
@@ -120,9 +124,29 @@ static error_t init_device(pci_dev_t* pcidev) {
     }
 
     // reset
-    write32(dev, CR, RST);
+    write8(dev, CR, RST);
     _barrier();
-    while(read32_vol(dev, CR) & RST) _pause();
+    int timeout = UINT16_MAX;
+    while((read8_vol(dev, CR) & RST) && timeout--) _pause();
+    CHECK_TRACE(timeout != 0, "Got timeout while reseting the nic!");
+
+    // configure stuff
+    write8(dev, CR, TE);
+
+    /*
+     * Accept broadcast and physically match packets
+     * Unlimited DMA burst
+     * No rx threshold
+     */
+    write32(dev, RCR, APM | AB | MXDMA_UNLIMITED | RXFTH_NONE);
+
+    /*
+     * append crc to every packet
+     * Unlimited DMA burst
+     * normal IFG
+     */
+    write32(dev, CR, TE);
+    write32(dev, TCR, MXDMA_UNLIMITED | CRC | IFG_NORMAL);
 
     // set the descriptors
     write32(dev, RDSAR_LOW, (uint32_t) (((uintptr_t)dev->rx_ring - DIRECT_MAPPING_BASE) & 0xFFFFFFFF));
@@ -132,7 +156,7 @@ static error_t init_device(pci_dev_t* pcidev) {
     _barrier();
 
     // enable Rx and Tx rings
-    write32(dev, CR, RE | TE);
+    write8(dev, CR, RE | TE);
     _barrier();
 
     // set interrupts

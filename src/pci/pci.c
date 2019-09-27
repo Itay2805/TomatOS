@@ -484,7 +484,9 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
             }
 
             // add the bar, even if 0
-            arrpush(dev->bars, new_bar);
+            if(new_bar.base != 0) {
+                arrpush(dev->bars, new_bar);
+            }
         }
     }
 

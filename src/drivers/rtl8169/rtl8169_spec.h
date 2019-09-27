@@ -47,7 +47,12 @@
 
 /* TX and RX configuration registers */
 #define TCR             (0x0040)
+#define     IFG_NORMAL      (0b11 << 24) /* InterFrameGap Time */
+#define     CRC             (1 << 16) /* Append CRC */
+
 #define RCR             (0x0044)
+#define     RXFTH_NONE      (0b111 << 13) /* no rx threshold */
+#define     MXDMA_UNLIMITED (0b111 << 8) /* no mac size of dma data burst */
 #define     AB              (1 << 3) /* Accept Broadcast Packets */
 #define     APM             (1 << 1) /* Accept Physical Match Packets */
 

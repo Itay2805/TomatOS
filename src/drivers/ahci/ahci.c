@@ -198,7 +198,7 @@ error_t ahci_init() {
         if(!supported) {
             // check if supported by type
             if(dev->class == 0x01 && dev->subclass == 0x06 && dev->prog_if == 0x01) {
-                log_warn("\tUnknown AHCI device at %x.%x.%x.%x (%x:%x), initializing anyways", dev->segment, dev->bus, dev->device, dev->function, dev->class, dev->subclass);
+                log_warn("\tUnknown AHCI device at %x.%x.%x.%x (%x:%x), initializing anyways", dev->segment, dev->bus, dev->device, dev->function, dev->vendor_id, dev->device_id);
                 supported = true;
             }
         }
