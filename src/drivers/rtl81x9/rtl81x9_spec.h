@@ -72,7 +72,7 @@
     #define RMS_MASK        (0xe)
 
 #define CPCR            (0x00E0)
-/* rtl8169 */
+/* rtl81x9 */
 #define     RxChkSum        (1 << 5) /*  */
 /* rtl8139 */
 #define     CPRx            (1 << 1) /* Receive enable */

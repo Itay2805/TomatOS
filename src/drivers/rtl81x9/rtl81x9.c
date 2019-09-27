@@ -6,10 +6,10 @@
 #include <pci/pci_ids.h>
 #include <interrupts/apic/ioapic.h>
 #include <interrupts/apic/lapic.h>
-#include "rtl8169.h"
+#include "rtl81x9.h"
 
 #include "../registers.h"
-#include "rtl8169_spec.h"
+#include "rtl81x9_spec.h"
 
 typedef struct rtl8169_dev {
     pci_dev_t* dev;
