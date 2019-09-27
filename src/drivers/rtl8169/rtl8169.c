@@ -99,6 +99,8 @@ static error_t init_device(pci_dev_t* pcidev) {
     CHECK(pcidev != NULL);
 
     rtl8169_dev_t* dev = vmalloc(sizeof(rtl8169_dev_t));
+    CHECK(dev != NULL);
+
     dev->dev = pcidev;
     dev->mmio_base = pcidev->bars[1].base;
 
@@ -108,13 +110,12 @@ static error_t init_device(pci_dev_t* pcidev) {
     CHECK(dev->rx_ring != NULL);
     CHECK(dev->tx_ring != NULL);
 
+    // prepare ring
     for(int i = 0; i < 1024; i++) {
         rx_desc_t* rx_desc = &dev->rx_ring[i];
-        *rx_desc = (rx_desc_t){
-            .eor = 1,
-            .rxbuff = (uintptr_t)pmalloc(1500) - DIRECT_MAPPING_BASE,
-            .frame_length = 1500
-        };
+        rx_desc->eor = 1;
+        rx_desc->rxbuff = (uintptr_t)pmalloc(1500) - DIRECT_MAPPING_BASE;
+        rx_desc->frame_length = 1500;
         CHECK(rx_desc->rxbuff != NULL);
     }
 
@@ -123,15 +124,15 @@ static error_t init_device(pci_dev_t* pcidev) {
     _barrier();
     while(read32_vol(dev, CR) & RST) _pause();
 
-    // enable Rx and Tx rings
-    write32(dev, CR, RE | TE);
-    _barrier();
-
     // set the descriptors
     write32(dev, RDSAR_LOW, (uint32_t) (((uintptr_t)dev->rx_ring - DIRECT_MAPPING_BASE) & 0xFFFFFFFF));
     write32(dev, RDSAR_HIGH, (uint32_t) (((uintptr_t)dev->rx_ring - DIRECT_MAPPING_BASE) >> 32));
     write32(dev, TNPDS_LOW, (uint32_t) (((uintptr_t)dev->tx_ring - DIRECT_MAPPING_BASE) & 0xFFFFFFFF));
     write32(dev, TNPDS_HIGH, (uint32_t) (((uintptr_t)dev->tx_ring - DIRECT_MAPPING_BASE) >> 32));
+    _barrier();
+
+    // enable Rx and Tx rings
+    write32(dev, CR, RE | TE);
     _barrier();
 
     // set interrupts
@@ -159,8 +160,8 @@ static pci_sig_t supported_devices[] = {
 };
 
 static const char* supported_devices_names[] = {
-        "RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller\t",
-        "RTL8169 PCI Gigabit Ethernet Controller\t",
+    "RTL8111/8168/8411 PCIe Gigabit Ethernet Controller",
+    "RTL8169 PCI Gigabit Ethernet Controller",
 };
 
 error_t rtl8169_init() {

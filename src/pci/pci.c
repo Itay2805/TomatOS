@@ -372,6 +372,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
     dev->mmio = mmio;
     dev->vendor_id = pci_read_16(dev, PCI_REG_VENDOR_ID);
     dev->device_id = pci_read_16(dev, PCI_REG_DEVICE_ID);
+    dev->revision_id = pci_read_8(dev, PCI_REG_REVISION_ID);
     dev->class = pci_read_8(dev, PCI_REG_CLASS_CODE);
     dev->subclass = pci_read_8(dev, PCI_REG_SUBCLASS_CODE);
     dev->prog_if = pci_read_8(dev, PCI_REG_PROGRAM_INTERFACE);
@@ -489,7 +490,7 @@ static error_t init_pci_device(uint16_t segment, uint8_t bus, uint8_t device, ui
 
     // check irq
     // if error then ignore it
-    CATCH(route_device_irq(dev));
+//    CATCH(route_device_irq(dev));
 
     // function scanning
     if(dev->class == PCI_CLASS_BRIDGE_DEVICE && dev->subclass == PCI_SUBCLASS_HOST_BRIDGE) {

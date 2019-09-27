@@ -116,16 +116,22 @@ error_t lapic_send_eoi() {
 }
 
 error_t lapic_set_timer(uint32_t millis, uint8_t vector) {
+    error_t err = NO_ERROR;
+
+    CHECK(mmio_base != NULL);
+
     lapic_lvt_timer_t timer = {
         .vector = vector,
         .mask = false,
         .timer_mode = LAPIC_TIMER_MODE_PERIODIC,
     };
-    lapic_write(LAPIC_REG_LVT_TIMER, timer.raw);
-    lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1);
-    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, (uint32_t) (millis * ticks_per_milli));
 
-    return NO_ERROR;
+    lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, (uint32_t) (millis * ticks_per_milli));
+    lapic_write(LAPIC_REG_TIMER_DEVIDER, LAPIC_TIMER_DIVIDER_1);
+    lapic_write(LAPIC_REG_LVT_TIMER, timer.raw);
+
+cleanup:
+    return err;
 }
 
 bool lapic_timer_fired() {
@@ -133,32 +139,42 @@ bool lapic_timer_fired() {
     return timer.delivery_status == 1;
 }
 
-static void wait_for_last_ipi() {
+static error_t wait_for_last_ipi() {
+    error_t err = NO_ERROR;
+
     lapic_icr_t icr = { .raw = 0 };
+    int max = UINT16_MAX;
     do {
+        max--;
+        CHECK_TRACE(max >= 0, "Timeout waiting for last ipi to be delivered!");
         icr.raw_low = lapic_read(LAPIC_REG_ICR0);
     } while(icr.delivery_status != 0);
+
+cleanup:
+    return err;
 }
 
 error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector) {
+    error_t err = NO_ERROR;
+
+    CATCH(wait_for_last_ipi());
+
     uint64_t flags = prempsave();
 
-    wait_for_last_ipi();
-
     // prepare the icr
-    lapic_icr_t icr = {
+    lapic_icr_t icr = (lapic_icr_t){
         .delivery_mode = LAPIC_DELIVERY_MODE_FIXED,
-        .level = 1,
         .vector = vector,
         .destination = lapic_id,
     };
 
     // write it
-    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
 
+cleanup:
     prempstore(flags);
-    return NO_ERROR;
+    return err;
 }
 
 error_t lapic_send_ipi_all_excluding_self(uint8_t vector) {

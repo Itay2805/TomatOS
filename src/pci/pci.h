@@ -40,6 +40,7 @@ typedef struct pci_dev {
     // id
     uint16_t vendor_id;
     uint16_t device_id;
+    uint16_t revision_id;
 
     // class
     uint8_t class;

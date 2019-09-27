@@ -158,6 +158,8 @@ error_t scheduler_reschedule(registers_t* regs) {
 static error_t scheduler_tick(registers_t* regs) {
     error_t err = NO_ERROR;
 
+    CHECK(regs != NULL);
+
     // update the running process times
     // TODO: Update more counters or whatever
     if(running_threads[get_cpu_index()] != NULL) {
@@ -187,15 +189,11 @@ static error_t scheduler_start_per_core(registers_t* regs, void* context) {
 
     log_info("Doing scheduler startup on AP #%d", get_per_cpu_storage()->processor_id);
 
-    _cli();
-
     // set the timer
     CHECK_AND_RETHROW(lapic_set_timer(1, timer_vector));
 
     // do the first scheduling
     CHECK_AND_RETHROW(scheduler_tick(regs));
-
-    _sti();
 
 cleanup:
     CATCH(lapic_send_eoi());
@@ -205,7 +203,8 @@ cleanup:
 error_t scheduler_init() {
     error_t err = NO_ERROR;
 
-    arrsetlen(running_threads, arrlen(per_cpu_storage));
+    arrsetlen(running_threads, get_cpu_count());
+    memset(running_threads, 0, get_cpu_count() * sizeof(thread_t*));
 
     // create the idle process
     create_process(kernel_address_space, &idle_process);
@@ -246,12 +245,12 @@ error_t scheduler_kickstart() {
 
     CHECK(idle_process);
 
+    log_info("Doing scheduler kickstart");
     for(int i = 0; i < arrlen(madt_lapics); i++) {
         if(!madt_lapics[i]->processor_enabled) continue;
 
-        // TODO: Remove once we started all cores
+        // Ignore the core
         if(madt_lapics[i]->id != lapic_get_id()) continue;
-
         CHECK_AND_RETHROW(lapic_send_ipi(madt_lapics[i]->id, INTERRUPT_SCHEDULER_STARTUP));
     }
 

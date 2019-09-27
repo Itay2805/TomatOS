@@ -46,4 +46,9 @@ per_cpu_storage_t* get_per_cpu_storage();
  */
 size_t get_cpu_index();
 
+/**
+ * Get the cpu cpunt
+ */
+size_t get_cpu_count();
+
 #endif //TOMATKERNEL_ERCPUSTORAGE_H
