@@ -14,6 +14,7 @@
 #include <processes/scheduler.h>
 #include <processes/process.h>
 #include <drivers/ahci/ahci.h>
+#include <drivers/rtl8139/rtl8139.h>
 
 static void kernel_thread(tboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -25,8 +26,7 @@ static void kernel_thread(tboot_info_t* info) {
     // do driver initialization
     /////////////////////////////
     log_info("Doing driver initialization");
-
-    // Storage device initialization
+    log_info("Storage device initialization");
     CATCH(ahci_init());
 
     // TODO: Partition initialization
@@ -39,13 +39,15 @@ static void kernel_thread(tboot_info_t* info) {
 
     // TODO: Loopback + Network stack initialization
 
-    // Network drivers initialization
+    log_info("Network drivers initialization");
     CATCH(rtl8169_init());
+    CATCH(rtl8139_init());
 
     /////////////////////////////
     // Kick start everything
     /////////////////////////////
 
+    log_info("Driver initialization finished");
     _sti();
 
 cleanup:
