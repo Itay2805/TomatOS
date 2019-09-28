@@ -95,7 +95,7 @@ void lapic_write(uint32_t reg, uint32_t value) {
 }
 
 uint32_t lapic_read(uint32_t reg) {
-    return POKE32(mmio_base + reg);
+    return VOL_POKE32(mmio_base + reg);
 }
 
 uint8_t lapic_get_id() {
@@ -174,6 +174,7 @@ error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector) {
 
 cleanup:
     prempstore(flags);
+    CATCH(wait_for_last_ipi());
     return err;
 }
 
@@ -191,8 +192,8 @@ error_t lapic_send_ipi_all_excluding_self(uint8_t vector) {
     };
 
     // write it
-    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
 
     prempstore(flags);
     return NO_ERROR;
@@ -211,10 +212,10 @@ error_t lapic_send_init(uint32_t lapic_id) {
     };
 
     // write it
-    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
 
-    prempstore(flags);
+prempstore(flags);
     return NO_ERROR;
 }
 

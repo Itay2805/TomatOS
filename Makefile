@@ -151,8 +151,8 @@ tools/tomatboot-config.py:
 # Running in QEMU
 #########################
 
-#QEMU_PATH ?= qemu-system-x86_64
-QEMU_PATH = ~/Documents/coding/qemu/bin/debug/native/x86_64-softmmu/qemu-system-x86_64
+QEMU_PATH ?= qemu-system-x86_64
+#QEMU_PATH = ~/Documents/coding/qemu/bin/debug/native/x86_64-softmmu/qemu-system-x86_64
 
 # Run qemu
 qemu: bin/tomatos.img

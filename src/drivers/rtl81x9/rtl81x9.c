@@ -6,13 +6,20 @@
 #include <pci/pci_ids.h>
 #include <interrupts/apic/ioapic.h>
 #include <interrupts/apic/lapic.h>
+#include <objects/object.h>
+#include <net/netstack.h>
+#include <objects/network.h>
 #include "rtl81x9.h"
 
 #include "../registers.h"
 #include "rtl81x9_spec.h"
 
+static const char* supported_devices_names[];
+
 typedef struct rtl8169_dev {
     pci_dev_t* dev;
+    object_t* obj;
+
     uint8_t vector;
     uintptr_t mmio_base;
 
@@ -50,8 +57,7 @@ static error_t interrupt_handler(registers_t* regs, rtl8169_dev_t* dev) {
         size_t pkt_length = rx->opts1 & FRAME_LENGTH_MASK;
         // we do not support split packets as of right now
         CHECK(rx->opts1 & (LS | FS));
-        log_debug("Got packet! %p %d", pkt_buffer, pkt_length);
-        // TODO: pass these stuff to the network stack
+        CATCH(netstack_process_frame(dev->obj, (char*)pkt_buffer, pkt_length));
 
         // restore descriptor
         uint32_t eor = rx->opts1 & EOR;
@@ -67,7 +73,25 @@ cleanup:
     return err;
 }
 
-static error_t init_device(pci_dev_t* pcidev) {
+static error_t rtl81x9_get_mac(object_t* obj, mac_t* mac) {
+    error_t err = NO_ERROR;
+    rtl8169_dev_t* dev = obj->context;
+
+    CHECK(dev != NULL);
+
+    POKE32(&mac->data[0]) = read32_relaxed(dev, IDR0);
+    POKE32(&mac->data[4]) = read32_relaxed(dev, IDR4);
+
+cleanup:
+    return err;
+}
+
+static network_functions_t rtl81x9_functions = {
+    .get_mac = rtl81x9_get_mac,
+    .send = NULL,
+};
+
+static error_t init_device(pci_dev_t* pcidev, const char* name) {
     error_t err = NO_ERROR;
 
     CHECK(pcidev != NULL);
@@ -75,6 +99,15 @@ static error_t init_device(pci_dev_t* pcidev) {
 
     rtl8169_dev_t* dev = vmalloc(sizeof(rtl8169_dev_t));
     CHECK(dev != NULL);
+
+    object_t* obj = vmalloc(sizeof(object_t));
+    obj->context = dev;
+    obj->name = name;
+    obj->functions = &rtl81x9_functions;
+    obj->type = OBJECT_NETWORK;
+    CHECK_AND_RETHROW(object_add(obj));
+
+    dev->obj = obj;
 
     dev->dev = pcidev;
     dev->mmio_base = pcidev->bars[1].base;
@@ -85,8 +118,8 @@ static error_t init_device(pci_dev_t* pcidev) {
     CHECK(dev->rx_ring != NULL);
     CHECK(dev->tx_ring != NULL);
 
-    log_info("\tRX: %p", dev->rx_ring);
-    log_info("\tTX: %p", dev->tx_ring);
+    log_info("\t\tRX: %p", dev->rx_ring);
+    log_info("\t\tTX: %p", dev->tx_ring);
 
     // prepare ring
     for(int i = 0; i < RX_MAX_ENTRIES; i++) {
@@ -114,7 +147,7 @@ static error_t init_device(pci_dev_t* pcidev) {
     write32(dev, RCR, APM | AB | MXDMA_UNLIMITED | RXFTH_NONE);
 
     /*
-     * append crc to every packet
+     * append crc to every buffer
      * Unlimited DMA burst
      * normal IFG
      */
@@ -189,7 +222,7 @@ error_t rtl8169_init() {
 
                 // init it!
                 log_info("\t%s at %x.%x.%x.%x", supported_devices_names[j], dev->segment, dev->bus, dev->device, dev->function);
-                CATCH(init_device(dev));
+                CATCH(init_device(dev, supported_devices_names[j]));
                 break;
             }
         }

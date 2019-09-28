@@ -67,7 +67,12 @@ error_t scheduler_reschedule(registers_t* regs) {
 
             // update thread state
             running_thread->running_time = hpet_get_millis();
-            running_thread->status = THREAD_STATUS_NORMAL;
+
+            // only update the state if the thread is running
+            // otherwise keep it as is
+            if(running_thread->status == THREAD_STATUS_RUNNING) {
+                running_thread->status = THREAD_STATUS_NORMAL;
+            }
             unlock(&running_thread->lock);
         }
         running_threads[get_cpu_index()] = thread;
@@ -100,8 +105,8 @@ error_t scheduler_reschedule(registers_t* regs) {
         if(running_thread != NULL) {
             lock(&running_thread->lock);
 
-            // only add to the queue if was actually running
-            if(running_thread->status == THREAD_STATUS_RUNNING) {
+            // only add back if the status is normal
+            if(running_thread->status == THREAD_STATUS_NORMAL) {
                 arrins(thread_queue, 0, running_thread);
             }
 
@@ -146,6 +151,8 @@ error_t scheduler_reschedule(registers_t* regs) {
             unlock(&running_thread->lock);
 
             unlock(&idle_process->lock);
+        }else {
+            // TODO: we need to check if the thread should be killed
         }
         unlock(&running_threads_lock);
     }

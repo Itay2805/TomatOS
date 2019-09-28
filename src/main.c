@@ -1,7 +1,6 @@
 #include <tboot/tboot.h>
 #include <common/error.h>
 #include <interrupts/interrupts.h>
-#include <drivers/rtl8169/rtl8169.h>
 #include <logger/term/term.h>
 #include <logger/vmdev/vmdev.h>
 #include <interrupts/idt.h>
@@ -14,6 +13,8 @@
 #include <processes/scheduler.h>
 #include <processes/process.h>
 #include <drivers/ahci/ahci.h>
+#include <drivers/rtl81x9/rtl81x9.h>
+#include <net/arp/arp.h>
 
 static void kernel_thread(tboot_info_t* info) {
     error_t err = NO_ERROR;
@@ -36,7 +37,8 @@ static void kernel_thread(tboot_info_t* info) {
 
     // TODO: Mouse & Keyboard initialization
 
-    // TODO: Loopback + Network stack initialization
+    log_info("Network stack initialization");
+    CATCH(arp_server_init());
 
     log_info("Network drivers initialization");
     CATCH(rtl8169_init());

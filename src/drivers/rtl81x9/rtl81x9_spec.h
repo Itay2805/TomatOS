@@ -67,7 +67,7 @@
 #define CONFIG4         (0x0055)
 #define CONFIG5         (0x0056)
 
-/* RX packet max size */
+/* RX buffer max size */
 #define RMS             (0x00DA)
     #define RMS_MASK        (0xe)
 

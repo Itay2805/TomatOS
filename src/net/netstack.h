@@ -1,52 +1,52 @@
-#ifndef TOMATKERNEL_NETSTACK_H
-#define TOMATKERNEL_NETSTACK_H
+#ifndef TOMATOS_NETSTACK_H
+#define TOMATOS_NETSTACK_H
 
 #include <common/error.h>
-#include <processes/event.h>
-#include "peer.h"
+#include <objects/object.h>
 
-typedef enum socket_type {
-    SOCKET_STREAM,
-    SOCKET_DATAGRAM,
-} socket_type_t;
+#define HTONS(n) ((uint16_t)(((((uint16_t)(n) & 0xFF)) << 8) | (((uint16_t)(n) & 0xFF00) >> 8)))
+#define NTOHS(n) ((uint16_t)(((((uint16_t)(n) & 0xFF)) << 8) | (((uint16_t)(n) & 0xFF00) >> 8)))
 
-typedef struct socket {
-    /*
-     * The patern the sockets listens for
-     */
-    peer_t target;
+#define HTONL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
+                  ((((unsigned long)(n) & 0xFF00)) << 8) | \
+                  ((((unsigned long)(n) & 0xFF0000)) >> 8) | \
+                  ((((unsigned long)(n) & 0xFF000000)) >> 24))
 
-    /*
-     * This dictates how the data is going to be saved (per packet
-     * or as a stream)
-     *
-     */
-    socket_type_t type;
-    union {
-        struct {
-            // TODO: ringbuffer of bytes
-        } stream;
-        struct {
-            // TODO: ringbuffer of packets
-        } datagram;
-    };
+#define NTOHL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
+                  ((((unsigned long)(n) & 0xFF00)) << 8) | \
+                  ((((unsigned long)(n) & 0xFF0000)) >> 8) | \
+                  ((((unsigned long)(n) & 0xFF000000)) >> 24))
 
-    // every time data is added to either buffers
-    // it will call this event
-    event_t event;
-} socket_t;
+typedef struct {
+    uint8_t data[6];
+} mac_t;
 
-error_t socket_create(socket_t** socket, peer_t* peer);
+bool mac_equals(mac_t a, mac_t b);
 
-error_t socket_recv(socket_t* socket, char* buffer, size_t* size);
+typedef union {
+    uint8_t data[4];
+    uint32_t raw;
+} ipv4_t;
 
-error_t socket_send(socket_t* socket, char* buffer, size_t* size);
+typedef enum packet_type {
+    PACKET_TYPE_TCP,
+    PACKET_TYPE_UDP,
+} packet_type_t;
 
-error_t socket_close(socket_t* socket);
+typedef struct packet {
+    packet_type_t type;
+    // only includes Transport
+    size_t headers_length;
 
-/**
- * Process a packet through the network stack
- */
-error_t netstack_process_packet(object_t* netdev, char* buffer, size_t size);
+    // TODO: For now only IPv4
+    ipv4_t src_ip;
+    ipv4_t dst_ip;
 
-#endif //TOMATKERNEL_NETSTACK_H
+    uint16_t src_port;
+    uint16_t dst_port;
+} packet_t;
+
+error_t netstack_process_frame(object_t* netdev, void* buffer, size_t size);
+error_t netstack_process_packet(object_t* netdev, packet_t* packet, void* buffer, size_t size);
+
+#endif //TOMATOS_NETSTACK_H

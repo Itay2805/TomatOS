@@ -23,7 +23,8 @@ error_t event_wait(event_t* event) {
     unlock_preemption(&running_threads_lock);
 
     // reschedule
-    CHECK_AND_RETHROW(lapic_send_ipi(get_per_cpu_storage()->lapic_id, INTERRUPT_SCHEDULER_RESCHEDULE));
+    asm("int %0" : : "i"(INTERRUPT_SCHEDULER_RESCHEDULE));
+//    CHECK_AND_RETHROW(lapic_send_ipi(lapic_get_id(), INTERRUPT_SCHEDULER_RESCHEDULE));
 
 cleanup:
     return err;

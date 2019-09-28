@@ -25,6 +25,6 @@ The goal of this project is to waste my time.
 * AHCI (WIP)
 	* got port iteration
 * RTL8169 (WIP)
-    * got packet receiving (not tested yet cause need to fix stuff in the scheduler kickstart on real hardware)
+    * got buffer receiving (not tested yet cause need to fix stuff in the scheduler kickstart on real hardware)
 * Network stack (WIP)
     * got the frame itself with the arp server, just so I can test how it looks
