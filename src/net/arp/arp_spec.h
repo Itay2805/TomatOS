@@ -13,13 +13,13 @@ typedef struct {
     uint16_t opcode;
 #define ARP_OPCODE_REQUEST      HTONS(1)
 #define ARP_OPCODE_REPLY        HTONS(2)
-} arp_hdr_t;
+} __attribute__((packed)) arp_hdr_t;
 
 typedef struct arp_ipv4 {
     mac_t sender_mac;
     ipv4_t sender_ip;
     mac_t target_mac;
     ipv4_t target_ip;
-} arp_ipv4_t;
+} __attribute__((packed)) arp_ipv4_t;
 
 #endif //TOMATOS_ARP_SPEC_H

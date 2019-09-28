@@ -9,6 +9,8 @@ typedef volatile struct event {
     thread_t** waiting_threads;
 } event_t;
 
+// TODO: Add a timeout functionality
+
 /**
  * Will wait for an event, this will suspend the thread until the haven't has fired.
  *

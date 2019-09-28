@@ -19,14 +19,14 @@
 
 typedef struct {
     uint8_t data[6];
-} mac_t;
+} __attribute__((packed)) mac_t;
 
 bool mac_equals(mac_t a, mac_t b);
 
 typedef union {
     uint8_t data[4];
     uint32_t raw;
-} ipv4_t;
+} __attribute__((packed)) ipv4_t;
 
 typedef enum packet_type {
     PACKET_TYPE_TCP,

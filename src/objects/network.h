@@ -1,6 +1,7 @@
 #ifndef TOMATKERNEL_NETWORK_H
 #define TOMATKERNEL_NETWORK_H
 
+#include <net/netstack.h>
 #include "object.h"
 
 typedef struct network_functions {

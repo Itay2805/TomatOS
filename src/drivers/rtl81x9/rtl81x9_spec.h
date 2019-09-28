@@ -85,26 +85,9 @@
 #define MTPS            (0x00EC)
 
 typedef struct tx_desc {
-    // dword 0
-    uint16_t frame_length;
-    uint16_t tcpcs : 1;
-    uint16_t udpcs : 1;
-    uint16_t ipcs : 1;
-    uint16_t _reserved0 : 5;
-    uint8_t  _reserved1 : 3;
-    uint16_t lgsen : 1;
-    uint16_t ls : 1;
-    uint16_t fs : 1;
-    uint16_t eor : 1;
-    uint16_t own : 1;
-
-    // dword 1
-    uint16_t vlan_tag;
-    uint16_t _reserved2 : 1;
-    uint16_t tagc : 1;
-    uint16_t _reserved3 : 14;
-
-    // dword 2 + 3
+    uint32_t opts1;
+#define FRAME_LENGTH_MASK 0xfff
+    uint32_t opts2;
     uintptr_t txbuff;
 } __attribute__((packed)) tx_desc_t;
 

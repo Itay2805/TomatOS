@@ -75,12 +75,40 @@ cleanup:
 
 static error_t rtl81x9_get_mac(object_t* obj, mac_t* mac) {
     error_t err = NO_ERROR;
-    rtl8169_dev_t* dev = obj->context;
+    rtl8169_dev_t* dev = NULL;
 
+    CHECK(obj != NULL);
+    dev = obj->context;
     CHECK(dev != NULL);
 
     POKE32(&mac->data[0]) = read32_relaxed(dev, IDR0);
     POKE32(&mac->data[4]) = read32_relaxed(dev, IDR4);
+
+cleanup:
+    return err;
+}
+
+static error_t rtl81x9_send(object_t* obj, void* buffer, size_t size) {
+    error_t err = NO_ERROR;
+    rtl8169_dev_t* dev = NULL;
+
+    CHECK(obj != NULL);
+    dev = obj->context;
+    CHECK(dev != NULL);
+
+    // get the tx
+    tx_desc_t* tx = &dev->tx_ring[dev->txi++];
+    CHECK(!(tx->opts1 * OWN));
+
+    // set the descriptor
+    CHECK(size <= 1500);
+    memcpy((void *) tx->txbuff, buffer, size);
+    tx->opts2 = 0;
+    tx->opts1 = (uint32_t) (OWN | LS | FS | size);
+    _barrier();
+
+    // tell the network card it got a new packet to send
+    write8(dev, TPPoll, NPQ);
 
 cleanup:
     return err;
