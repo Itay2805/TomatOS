@@ -6,6 +6,7 @@
 
 typedef struct {
     uint16_t hw_type;
+#define ARP_HW_ETHER            HTONS(1)
     uint16_t proto_type;
 #define ARP_PROTO_IPV4  ETHER_IPV4
     uint8_t hw_addr_len;

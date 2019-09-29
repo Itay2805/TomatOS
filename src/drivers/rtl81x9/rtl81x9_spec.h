@@ -37,6 +37,7 @@
 
 /* Transmit polling */
 #define TPPoll          (0x0038)
+#define TPPoll_8139     (0x00d9) /* The rtl8139 has a different register */
 #define     HQP             (1 << 7) /* Trigger high priority queue */
 #define     NPQ             (1 << 6) /* Trigger normal priority queue */
 

@@ -102,13 +102,17 @@ static error_t rtl81x9_send(object_t* obj, void* buffer, size_t size) {
 
     // set the descriptor
     CHECK(size <= 1500);
-    memcpy((void *) tx->txbuff, buffer, size);
+    memcpy((void *) CONVERT_TO_DIRECT(tx->txbuff), buffer, size);
     tx->opts2 = 0;
     tx->opts1 = (uint32_t) (OWN | LS | FS | size);
     _barrier();
 
     // tell the network card it got a new packet to send
-    write8(dev, TPPoll, NPQ);
+    if(dev->dev->device_id == 0x8139) {
+        write8(dev, TPPoll_8139, NPQ);
+    }else {
+        write8(dev, TPPoll, NPQ);
+    }
 
 cleanup:
     return err;
@@ -116,7 +120,7 @@ cleanup:
 
 static network_functions_t rtl81x9_functions = {
     .get_mac = rtl81x9_get_mac,
-    .send = NULL,
+    .send = rtl81x9_send,
 };
 
 static error_t init_device(pci_dev_t* pcidev, const char* name) {
@@ -150,6 +154,7 @@ static error_t init_device(pci_dev_t* pcidev, const char* name) {
     log_info("\t\tTX: %p", dev->tx_ring);
 
     // prepare ring
+    // TODO: Maybe optimize the buffer allocation to be more efficient on space
     for(int i = 0; i < RX_MAX_ENTRIES; i++) {
         rx_desc_t* rx_desc = &dev->rx_ring[i];
         rx_desc->opts1 = (uint32_t) (OWN | 1500);
@@ -159,6 +164,12 @@ static error_t init_device(pci_dev_t* pcidev, const char* name) {
         if(i == RX_MAX_ENTRIES - 1) {
             rx_desc->opts1 |= EOR;
         }
+    }
+
+    for(int i = 0; i < TX_MAX_ENTRIES; i++) {
+        tx_desc_t* tx_desc = &dev->tx_ring[i];
+        tx_desc->txbuff = (uintptr_t) (pmalloc(TX_MAX_ENTRIES) - DIRECT_MAPPING_BASE);
+        CHECK(tx_desc->txbuff != NULL);
     }
 
     // reset

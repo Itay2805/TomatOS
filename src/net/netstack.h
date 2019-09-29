@@ -46,7 +46,22 @@ typedef struct packet {
     uint16_t dst_port;
 } packet_t;
 
+/*********************************************************
+ * IP routing related functions
+ *********************************************************/
+
 error_t netstack_process_frame(object_t* netdev, void* buffer, size_t size);
 error_t netstack_process_packet(object_t* netdev, packet_t* packet, void* buffer, size_t size);
+
+error_t netstack_get_interface_mac(object_t* netdev, mac_t* mac);
+
+/*********************************************************
+ * IP routing related functions
+ * TODO: Maybe move to the IP server
+ *********************************************************/
+
+error_t netstack_get_interface_ip(object_t* netdev, ipv4_t* ip, ipv4_t* mast);
+error_t netstack_set_interface_ip(object_t* netdev, ipv4_t ip, ipv4_t mast);
+error_t netstack_get_interface_for_ip(ipv4_t ip, ipv4_t netmask, object_t** netdev);
 
 #endif //TOMATOS_NETSTACK_H
