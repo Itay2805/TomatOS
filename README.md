@@ -4,7 +4,7 @@ TomatOS is a 64bit operating systems (currently just the kernel part of the os b
 
 The goal of this project is to waste my time.
 
-## Features
+## Kernel Features
 
 * 64bit with all the basics (gdt, pmm, vmm...)
 * Uses UEFI for starting (with [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI))
@@ -22,9 +22,8 @@ The goal of this project is to waste my time.
 
 ### Drivers
 
+* RTL8139cp/RTL8169
+* Network stack (WIP)
+    * ARP server
 * AHCI (WIP)
 	* got port iteration
-* RTL8169 (WIP)
-    * got buffer receiving (not tested yet cause need to fix stuff in the scheduler kickstart on real hardware)
-* Network stack (WIP)
-    * got the frame itself with the arp server, just so I can test how it looks
