@@ -167,12 +167,14 @@ cleanup:
 
 static pci_sig_t supported_devices[] = {
     { 0x8086, 0x2922 },
-    { 0x8086, 0x2829 }
+    { 0x8086, 0x2829 },
+    { 0x8086, 0xa102 }
 };
 
 static const char* supported_devices_names[] = {
     "Intel 82801IR/IO/IH (ICH9R/DO/DH) 6 port SATA Controller [AHCI mode]",
     "Intel 82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]",
+    "Q170/Q150/B150/H170/H110/Z170/CM236 Chipset SATA Controller [AHCI Mode]"
 };
 
 ///////////////////////////////////////////////////////

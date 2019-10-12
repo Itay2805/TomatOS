@@ -6,12 +6,14 @@
 #include <lai/helpers/pci.h>
 #include <lai/helpers/resource.h>
 #include <common/cpu/atomic.h>
+#include <interrupts/apic/lapic.h>
 #include "pci.h"
 #include "pci_common_spec.h"
 #include "pci_bridge_spec.h"
 #include "pci_device_spec.h"
 #include "pci_ids.h"
 #include "pci_bar_spec.h"
+#include "pci_msi_spec.h"
 
 // used
 pci_dev_t** pci_devices;
@@ -670,6 +672,54 @@ error_t pci_setup_device(pci_dev_t* dev) {
     command &= ~PCI_COMMAND_INETERRUPT_DISABLE;
     pci_write_16(dev, PCI_REG_COMMAND, command);
     _barrier();
+
+cleanup:
+    return err;
+}
+
+error_t pci_setup_msi(pci_dev_t* dev, uint8_t vector) {
+    error_t err = NO_ERROR;
+
+    CHECK(dev != NULL);
+
+    uint8_t current_off = pci_read_8(dev, PCI_REG_CAPS_POINTER);
+    do {
+        uint8_t cap_id = pci_read_8(dev, (uint16_t) (current_off + 0));
+        uint8_t next_ptr = pci_read_8(dev, (uint16_t) (current_off + 1));
+
+        if(cap_id != 0x05) {
+            // not msi cap, ignore
+            current_off = next_ptr;
+
+        }else {
+
+            // msi cap
+            msi_cap_t* cap = &POKE(msi_cap_t, dev->mmio + current_off);
+
+            // handle 64/32bit
+            // TODO: allow for multiple cpus to get smis (lowest priority or something)
+            if(cap->bit64_capable) {
+                cap->bit64.data.vector = vector;
+                cap->bit64.data.delivery_mode = LAPIC_DELIVERY_MODE_FIXED;
+                cap->bit64.address_low.base_address = 0xFEE;
+                cap->bit64.address_low.destination_id = lapic_get_id();
+            }else {
+                cap->bit32.data.vector = vector;
+                cap->bit32.data.delivery_mode = LAPIC_DELIVERY_MODE_FIXED;
+                cap->bit32.address.base_address = 0xFEE;
+                cap->bit32.address.destination_id = lapic_get_id();
+            }
+
+            // setup everything before enabling
+            _barrier();
+            cap->msi_enable = 1;
+
+            goto cleanup;
+        }
+    } while(current_off != 0);
+
+    CHECK_FAIL_TRACE("MSI not supported for device");
+
 
 cleanup:
     return err;

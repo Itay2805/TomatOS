@@ -210,13 +210,23 @@ static error_t init_device(pci_dev_t* pcidev, const char* name) {
     write8(dev, CR, RE | TE);
 
     // set interrupts
-    CHECK(dev->dev->irq != -1);
-    write16(dev, IMR, ROK);
-    _barrier();
-
+    // TODO: First check for msi before trying to set it up
     dev->vector = interrupt_allocate();
     CHECK_AND_RETHROW(interrupt_register((uint8_t) dev->vector, interrupt_handler, dev));
-    CHECK_AND_RETHROW(ioapic_redirect(dev->dev->irq, dev->vector, 0));
+    if(pci_setup_msi(dev->dev, dev->vector) == NO_ERROR) {
+        // msi setup
+        log_info("\t\tInterrupt handler (MSI #%d)", dev->vector);
+
+    } else {
+        // use normal interrupts
+        CHECK(dev->dev->irq != -1);
+        log_info("\t\tInterrupt handler (#%d -> #%d)", dev->dev->irq, dev->vector);
+        CHECK_AND_RETHROW(ioapic_redirect(dev->dev->irq, dev->vector, 0));
+    }
+
+    // enable interrupts
+    write16(dev, IMR, ROK);
+    _barrier();
 
     log_info("\t\tMAC: %02x:%02x:%02x:%02x:%02x:%02x",
              read8_relaxed(dev, IDR0),
@@ -228,6 +238,7 @@ static error_t init_device(pci_dev_t* pcidev, const char* name) {
             );
 
 cleanup:
+    // TODO: Really cleanup everything (delete buffers, objects and whats not)
     return err;
 }
 

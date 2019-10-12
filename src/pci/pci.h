@@ -80,6 +80,7 @@ error_t pci_get_and_map_mmio(uint16_t segment, uint8_t bus, uint8_t device, uint
  * - Enable interrupts
  */
 error_t pci_setup_device(pci_dev_t* dev);
+error_t pci_setup_msi(pci_dev_t* dev, uint8_t vector);
 
 error_t pci_init();
 

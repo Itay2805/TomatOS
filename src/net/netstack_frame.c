@@ -4,6 +4,7 @@
 #include <net/ether.h>
 #include <objects/network.h>
 #include <net/arp/arp.h>
+#include <net/ipv4/ipv4.h>
 
 error_t netstack_process_frame(object_t* netdev, void* buffer, size_t size) {
     error_t err = NO_ERROR;
@@ -22,7 +23,7 @@ error_t netstack_process_frame(object_t* netdev, void* buffer, size_t size) {
 
     switch(hdr->type) {
         case ETHER_IPV4:
-
+            CHECK_AND_RETHROW(ipv4_handle_frame(netdev, buffer, size));
             break;
 
         case ETHER_ARP:
