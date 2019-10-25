@@ -1,5 +1,0 @@
-max_width: 1280
-max_height: 720
-entries:
-  - name: 'TomatOS'
-    file: 'tomatos.elf'

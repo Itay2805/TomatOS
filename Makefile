@@ -67,8 +67,6 @@ CFLAGS += \
 	-Ofast \
 	-g
 
-
-
 # Set the include dirs
 CFLAGS += $(INCLUDE_DIRS:%=-I%)
 
@@ -103,19 +101,10 @@ build/%:
 # Bootloader compilation
 #########################
 
-# Set the bootloader stuff
-TOMATBOOT_UEFI_DIR = boot/
-TOMATBOOT_UEFI_DIR_BIN = bin/image/EFI/BOOT/
-
-# Set the shutdown module stuff
-TOMATBOOT_SHUTDOWN_DIR_BIN = bin/image/
-
-# Include em'
-include boot/tomatboot-uefi.mk
-
-# Will build the bootloader image
-# and then copy it to our space
-bootloader: tomatboot-uefi-boot
+bin/image/EFI/BOOT/BOOTX64.EFI:
+	$(MAKE) -C ./boot/
+	mkdir -p bin/image/EFI/BOOT/
+	cp boot/bin/BOOTX64.EFI bin/image/EFI/BOOT/
 
 #########################
 # Creating a bootable
@@ -126,11 +115,13 @@ bootloader: tomatboot-uefi-boot
 image: bin/tomatos.img
 
 # Create the image
-bin/tomatos.img: $(TOMATBOOT_UEFI_DIR_BIN)/BOOTX64.EFI $(TOMATBOOT_SHUTDOWN_DIR_BIN)/shutdown.elf bin/image/tomatos.elf bin/image/kbootcfg.bin tools/image-builder.py tools/tomatboot-config.py
+bin/tomatos.img: \
+		bin/image/EFI/BOOT/BOOTX64.EFI \
+		bin/image/tomatos.elf \
+		tools/image-builder.py
+	cp ./config/tomatboot.cfg ./bin/image/
+	cp ./boot/bin/BOOTX64.EFI ./bin/image/
 	cd bin && ../tools/image-builder.py ../config/image.yaml
-
-bin/image/kbootcfg.bin: config/boot.yaml tools/tomatboot-config.py
-	./tools/tomatboot-config.py config/boot.yaml bin/image/kbootcfg.bin
 
 #########################
 # Tools we need
@@ -140,12 +131,6 @@ tools/image-builder.py:
 	mkdir -p tools
 	cd tools && wget https://raw.githubusercontent.com/TomatOrg/image-builder/master/image-builder.py
 	chmod +x tools/image-builder.py
-
-# Get the boot config creator tool
-tools/tomatboot-config.py:
-	mkdir -p tools
-	cd tools && wget https://raw.githubusercontent.com/TomatOrg/tomatboot-config/master/tomatboot-config.py
-	chmod +x tools/tomatboot-config.py
 
 #########################
 # Running in QEMU
@@ -158,11 +143,13 @@ QEMU_PATH ?= qemu-system-x86_64
 qemu: bin/tomatos.img
 	$(QEMU_PATH) \
 		-drive if=pflash,format=raw,readonly,file=tools/OVMF.fd \
-		-netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no \
-		-device rtl8139,netdev=mynet0 \
 		-drive file=bin/tomatos.img,media=disk,format=raw \
 		-no-reboot -no-shutdown \
 		-machine q35 $(QEMU_ARGS)
+
+#		-netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no \
+#		-device rtl8139,netdev=mynet0 \
+
 
 qemu-debug: tools/OVMF.fd $(TOMATBOOT_UEFI_DIR_BIN)/BOOTX64.EFI $(TOMATBOOT_SHUTDOWN_DIR_BIN)/shutdown.elf bin/image/tomatos.elf bin/image/kbootcfg.bin
 	$(QEMU_PATH) -drive if=pflash,format=raw,readonly,file=tools/OVMF.fd -net none -drive file=fat:rw:bin/image,media=disk,format=raw -no-reboot -no-shutdown -machine q35 -s -S $(QEMU_ARGS)
@@ -178,7 +165,8 @@ tools/OVMF.fd:
 # Clean
 #########################
 
-clean: tomatboot-uefi-clean
+clean:
+	$(MAKE) -C ./boot/ clean
 	rm -rf build bin
 
 # Delete all the tools
