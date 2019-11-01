@@ -40,14 +40,44 @@ void write_msr(uint32_t code, uint64_t value) {
     asm volatile("wrmsr" : : "c"(code), "a"(value & 0xFFFFFFFF), "d"(value >> 32));
 }
 
-uint64_t read_cr3() {
+uint64_t read_cr0() {
     unsigned long val;
     asm volatile ( "mov %%cr3, %0" : "=r"(val) );
     return val;
 }
 
+void write_cr0(uint64_t value) {
+    asm volatile ( "mov %0, %%cr0" : : "r"(value) );
+}
+
+uint64_t read_cr2() {
+    unsigned long val;
+    asm volatile ( "mov %%cr2, %0" : "=r"(val) );
+    return val;
+}
+
+void write_cr2(uint64_t value) {
+    asm volatile ( "mov %0, %%cr2" : : "r"(value) );
+}
+
+uint64_t read_cr3() {
+    unsigned long val;
+    asm volatile ( "mov %%cr0, %0" : "=r"(val) );
+    return val;
+}
+
 void write_cr3(uint64_t value) {
     asm volatile ( "mov %0, %%cr3" : : "r"(value) );
+}
+
+uint64_t read_cr4() {
+    unsigned long val;
+    asm volatile ( "mov %%cr4, %0" : "=r"(val) );
+    return val;
+}
+
+void write_cr4(uint64_t value) {
+    asm volatile ( "mov %0, %%cr4" : : "r"(value) );
 }
 
 void cpuid(int code, int subcode, uint32_t data[4]) {
@@ -59,5 +89,20 @@ void cpuid(int code, int subcode, uint32_t data[4]) {
 
         : "a"(code)
         , "c"(subcode)
+    );
+}
+
+void read_idtr(idt_t* idtr) {
+    __asm__ __volatile__ (
+        "sidt  %0"
+        : "=m" (*idtr)
+    );
+}
+
+void write_idtr(idt_t* idtr) {
+    __asm__ __volatile__ (
+        "lidt %0"
+        :
+        : "m" (*idtr)
     );
 }

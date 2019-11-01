@@ -9,10 +9,15 @@
 void kernel_main(uint32_t magic, tboot_info_t* info) {
     debug_log("[+] Entered kernel!\n");
 
+    // we can init the idt right away
+    idt_init();
+
     // do memory initialization
     pmm_init(info);
     vmm_init(info);
     pmm_post_vmm();
+
+    asm("int $3");
 
     ASSERT(false);
 }

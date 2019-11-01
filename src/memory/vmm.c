@@ -250,7 +250,7 @@ extern void* kernel_physical_end;
 extern void* kernel_physical_start;
 #define KERNEL_PHYSICAL_START ((uint64_t)&kernel_physical_start)
 #define KERNEL_PHYSICAL_END ((uint64_t)&kernel_physical_end)
-#define KERNEL_VIRTUAL_START (0xFFFFFFFFC0000000)
+#define KERNEL_VIRTUAL_START (0xFFFFFFFFC0100000)
 
 vmm_handle_t kernel_handle;
 
@@ -319,6 +319,7 @@ void vmm_init(tboot_info_t* info) {
     vmm_map(&kernel_handle, KERNEL_PHYSICAL_START, KERNEL_VIRTUAL_START, KERNEL_PHYSICAL_END - KERNEL_PHYSICAL_START, PAGE_SUPERVISOR_EXEC_READWRITE, DEFAULT_CACHE);
 
     debug_log("[*] \tSwitching to kernel page table\n");
+    memory_base = DIRECT_MAPPING_BASE;
     vmm_set_handle(&kernel_handle);
 }
 
@@ -454,7 +455,7 @@ void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, 
         set_pte(handle, current_va, current_physical, user, write, no_exec, pwt_flag, pcd_flag, pat_flag);
 
         current_va += PAGE_SIZE;
-        current_physical = PAGE_SIZE;
+        current_physical += PAGE_SIZE;
     }
 
     // TODO: unlock

@@ -2,6 +2,8 @@
 #define TOMATKERNEL_IO_H
 
 #include <stdint.h>
+#include <libc/stddef.h>
+#include <interrupts/idt.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Paging
@@ -460,6 +462,40 @@ typedef struct _CPUID_EX_FEATURES
 _Static_assert(sizeof(uint32_t[4]) == sizeof(CPUID_EX_FEATURES), "");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// CPU registers
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+typedef union _IA32_EFLAGS {
+    struct {
+        uint64_t CF:1;           ///< Carry Flag.
+        uint64_t _reserved0:1;   ///< Reserved.
+        uint64_t PF:1;           ///< Parity Flag.
+        uint64_t _reserved1:1;   ///< Reserved.
+        uint64_t AF:1;           ///< Auxiliary Carry Flag.
+        uint64_t _reserved2:1;   ///< Reserved.
+        uint64_t ZF:1;           ///< Zero Flag.
+        uint64_t SF:1;           ///< Sign Flag.
+        uint64_t TF:1;           ///< Trap Flag.
+        uint64_t IF:1;           ///< Interrupt Enable Flag.
+        uint64_t DF:1;           ///< Direction Flag.
+        uint64_t OF:1;           ///< Overflow Flag.
+        uint64_t IOPL:2;         ///< I/O Privilege Level.
+        uint64_t NT:1;           ///< Nested Task.
+        uint64_t _reserved3:1;   ///< Reserved.
+        uint64_t RF:1;           ///< Resume Flag.
+        uint64_t VM:1;           ///< Virtual 8086 Mode.
+        uint64_t AC:1;           ///< Alignment Check.
+        uint64_t VIF:1;          ///< Virtual Interrupt Flag.
+        uint64_t VIP:1;          ///< Virtual Interrupt Pending.
+        uint64_t ID:1;           ///< ID Flag.
+        uint64_t _reserved4:10;  ///< Reserved.
+    };
+    uint64_t raw;
+} IA32_RFLAGS;
+_Static_assert(sizeof(uint64_t) == sizeof(IA32_RFLAGS), "");
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Intrinsics
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -474,8 +510,20 @@ uint32_t io_read_32(uint16_t port);
 uint64_t read_msr(uint32_t code);
 void write_msr(uint32_t code, uint64_t value);
 
+void read_idtr(idt_t* idtr);
+void write_idtr(idt_t* idtr);
+
+uint64_t read_cr0();
+void write_cr0(uint64_t value);
+
+uint64_t read_cr2();
+void write_cr2(uint64_t value);
+
 uint64_t read_cr3();
 void write_cr3(uint64_t value);
+
+uint64_t read_cr4();
+void write_cr4(uint64_t value);
 
 // Vol 2A, Table 3-17. Information Returned by CPUID Instruction
 #define CPUID_EAX   0
