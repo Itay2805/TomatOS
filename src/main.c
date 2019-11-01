@@ -4,11 +4,15 @@
 #include <memory/pmm.h>
 #include <util/debug.h>
 #include <tboot.h>
+#include <memory/vmm.h>
 
 void kernel_main(uint32_t magic, tboot_info_t* info) {
-    debug_log("[+] Entered kernel\n");
+    debug_log("[+] Entered kernel!\n");
 
+    // do memory initialization
     pmm_init(info);
+    vmm_init(info);
+    pmm_post_vmm();
 
     ASSERT(false);
 }

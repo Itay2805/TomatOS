@@ -38,7 +38,7 @@ static list_entry_t free_entries_list = { &free_entries_list, &free_entries_list
 ////////////////////////////////////////////////////////////////////////
 
 // forward declare these
-static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, size_t page_count, size_t alignment);
+static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, size_t page_count);
 static error_t convert_page(uintptr_t start, size_t page_count, memory_type_t new_type);
 
 /**
@@ -67,7 +67,7 @@ static void remove_mem_map_entry(mem_entry_t* entry) {
  * @param end   [IN] The end of the range
  */
 static void add_range(memory_type_t type, uintptr_t start, uintptr_t end) {
-    DEBUG("add_range: %lx-%lx", start, end);
+    DEBUG("%lx-%lx", start, end);
 
     ASSERT((start & PAGE_MASK) == 0);
     ASSERT(end > start);
@@ -109,12 +109,11 @@ static void add_range(memory_type_t type, uintptr_t start, uintptr_t end) {
  *
  * @param type          [IN]
  * @param page_count    [IN]
- * @param alignment     [IN]
  *
  * @return Direct physical address
  */
-static void* allocate_pool_pages(memory_type_t type, size_t page_count, size_t alignment) {
-    uintptr_t start = find_free_pages(mem_memory_top, 0, page_count, alignment);
+static void* allocate_pool_pages(memory_type_t type, size_t page_count) {
+    uintptr_t start = find_free_pages(mem_memory_top, 0, page_count);
     if(start == 0) {
         DEBUG("failed to allocate %d pages", page_count);
     }else {
@@ -134,7 +133,7 @@ static void* allocate_pool_pages(memory_type_t type, size_t page_count, size_t a
  */
 static mem_entry_t* allocate_memory_map_entry() {
     if(is_list_empty(&free_entries_list)) {
-        mem_entry_t* free_descriptor_entries = allocate_pool_pages(MEM_PMM, 1, PAGE_SIZE);
+        mem_entry_t* free_descriptor_entries = allocate_pool_pages(MEM_PMM, 1);
 
         if(free_descriptor_entries != NULL) {
             for(int i = 0; i < PAGE_SIZE / sizeof(mem_entry_t); i++) {
@@ -201,11 +200,10 @@ static void move_temp_entries() {
  * @param max_address   [IN] The top most address can allocate
  * @param min_address   [IN] The bottom most address can allocate
  * @param page_count    [IN] The amount of pages to allocate
- * @param alignment     [IN] The allocation alignment
  *
  * @return The base address if found
  */
-static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, size_t page_count, size_t alignment) {
+static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, size_t page_count) {
     if(max_address < PAGE_MASK || page_count == 0) {
         return 0;
     }
@@ -240,7 +238,7 @@ static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, s
         if(desc_end >= max_address) {
             desc_end = max_address;
         }
-        desc_end = ((desc_end + 1) & (~(alignment - 1))) - 1;
+        desc_end = ((desc_end + 1) & (~(PAGE_SIZE - 1))) - 1;
 
         // check the clipped end is good
         if(desc_end < desc_start) {
@@ -305,7 +303,7 @@ static error_t convert_page(uintptr_t start, size_t page_count, memory_type_t ne
         CHECK_ERROR_DEBUG(link != &mem_map, ERROR_NOT_FOUND, "failed to find range 0x%lx-0x%lx", start, end);
 
         if(new_type != MEM_FREE) {
-            CHECK_ERROR_DEBUG(entry->end > end, ERROR_NOT_FOUND, "range 0x%lx-0x%lx covers multiple entries", start, end);
+            CHECK_ERROR_DEBUG(entry->end >= end, ERROR_NOT_FOUND, "range 0x%lx-0x%lx covers multiple entries", start, end);
         }
 
         uintptr_t range_end = end;
@@ -409,6 +407,8 @@ void pmm_init(tboot_info_t* info) {
 }
 
 void pmm_post_vmm() {
+    debug_log("[*] Pmm post vmm setup\n");
+
     // set the memory base
     memory_base = DIRECT_MAPPING_BASE;
 
@@ -476,7 +476,7 @@ error_t pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t 
     }
 
     if(type != ALLOCATE_ADDRESS) {
-        start = find_free_pages(max_address, 0, page_count, PAGE_SIZE);
+        start = find_free_pages(max_address, 0, page_count);
         CHECK_ERROR(start != 0, ERROR_OUT_OF_RESOURCES);
     }
 

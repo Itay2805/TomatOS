@@ -9,6 +9,7 @@ typedef enum error {
     ERROR_INVALID_PARAMETER,
     ERROR_NOT_FOUND,
     ERROR_OUT_OF_RESOURCES,
+    ERROR_NOT_IMPLEMENTED,
 } error_t;
 
 #define IS_ERROR(x) ((x) != NO_ERROR)
