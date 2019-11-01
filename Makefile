@@ -43,8 +43,6 @@ OBJDIRS := $(dir $(OBJS))
 # include dirs
 INCLUDE_DIRS += lib/
 INCLUDE_DIRS += lib/libc
-INCLUDE_DIRS += lib/common
-INCLUDE_DIRS += lib/lai/include
 INCLUDE_DIRS += src/
 
 # Set the flags
@@ -65,10 +63,16 @@ CFLAGS += \
 	-static \
 	-flto \
 	-Ofast \
-	-g
+	-g \
+	-DSTB_SPRINTF_NOFLOAT \
 
 # Set the include dirs
 CFLAGS += $(INCLUDE_DIRS:%=-I%)
+
+LOGGERS ?= E9 VBOX
+
+# Set the loggers
+CFLAGS += $(LOGGERS:%=-D%_LOGGER)
 
 # Set the linking flags
 LDFLAGS += \
@@ -166,6 +170,9 @@ tools/OVMF.fd:
 #########################
 
 clean:
+	rm -rf build bin
+
+clean-all:
 	$(MAKE) -C ./boot/ clean
 	rm -rf build bin
 

@@ -1,13 +1,9 @@
 BITS 64
 SECTION .tboot.text
 
-CODE_SEGMENT equ 8
-DATA_SEGMENT equ 16
-
-;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Small stub to set up a quick n dirty higher half
-;
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 EXTERN kernel_main
 EXTERN gdt
 EXTERN gdt_fix_segments
@@ -59,11 +55,13 @@ tboot_main:
 	; we can now call the actual higher half main
 	jmp kernel_main
 
-;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Temp kernel stack, 512kb
-; this will be used until we do more advanced per-cpu-initialization
-; and kick start the scheduler
-;
+; this will be used until we do more advanced
+; per-cpu-initialization and kick start
+; the scheduler
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 SECTION .bss
-resb 1024 * 1024 * 2
+resb 1024 * 512
 tmp_kernel_stack:
+
