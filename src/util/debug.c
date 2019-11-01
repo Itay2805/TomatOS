@@ -2,7 +2,7 @@
 
 #include "arch.h"
 
-#include "kernel_debugger.h"
+#include "debug.h"
 
 /////////////////////////////////////////////////
 // Support logging functions
