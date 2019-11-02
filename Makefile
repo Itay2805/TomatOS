@@ -67,10 +67,12 @@ CFLAGS += \
 	-Wall \
 	-fno-pie \
 	-static \
-	-flto \
-	-Ofast \
 	-g \
 	-DSTB_SPRINTF_NOFLOAT \
+
+#	-flto \
+#	-Ofast \
+
 
 # Set the include dirs
 CFLAGS += $(INCLUDE_DIRS:%=-I%)

@@ -31,8 +31,14 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     acpi_tables_init(info);
     apic_init();
 
-    // init mp
+    // prepare the storage
     percpu_storage_init();
+
+    // finish the initialization of the bsp
+    lapic_init();
+    tss_init();
+
+    // do smp!
     smp_startup(info);
 
     // TODO: Scheduler kick start

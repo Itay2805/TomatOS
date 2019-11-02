@@ -19,6 +19,8 @@
 extern char smp_trampoline[];
 extern uint64_t smp_trampoline_size;
 
+static volatile int finished_init = 0;
+
 /**
  * this is where the trampoline will jump to after
  * doing the initial stuff
@@ -28,6 +30,16 @@ extern uint64_t smp_trampoline_size;
 static void per_cpu_initialization() {
     lapic_init();
     tss_init();
+    vmm_enable_cpu_features();
+
+    finished_init = 1;
+
+    // wait for interrupts and shit
+    enable_interrupts();
+    while(1) {
+        asm("hlt");
+        cpu_pause();
+    }
 }
 
 void smp_startup(tboot_info_t* info) {
@@ -50,9 +62,6 @@ void smp_startup(tboot_info_t* info) {
      * Start the smp
      *************************************/
     debug_log("[*] SMP starting\n");
-
-    // start with bsp
-    per_cpu_initialization();
 
     // continue to wake up the rest of the cores
     for(int i = 0; ; i++) {
@@ -83,7 +92,14 @@ void smp_startup(tboot_info_t* info) {
 
             ASSERT(POKE64(SMP_FLAG) != 0);
         }
+
+        // wait for the cpu to finish doing it's thing
+        while(!finished_init) {
+            cpu_pause();
+        }
+        finished_init = 1;
     }
 
-    // TODO: finishing touches like change the idt to be post tss and alike
+    // do whatever that needs to be done after all the cores are inited
+    idt_post_tss();
 }

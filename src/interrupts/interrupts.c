@@ -145,6 +145,7 @@ static void default_exception_handler(interrupt_context_t* regs) {
     debug_log("[-] CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x\n", read_cr0(), read_cr2(), read_cr3(), read_cr4());
 
     idt_t idt;
+    read_idtr(&idt);
     debug_log("[-] IDT=%016llx %08llx\n", idt.base, idt.base);
 
     debug_log("[-] :(\n");

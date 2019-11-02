@@ -1,3 +1,4 @@
+#include <libc/stdbool.h>
 #include "arch.h"
 
 void io_write_8(uint16_t port, uint8_t data) {
@@ -5,11 +6,11 @@ void io_write_8(uint16_t port, uint8_t data) {
 }
 
 void io_write_16(uint16_t port, uint16_t data) {
-    __asm__ __volatile__ ("outw %b0,%w1" : : "a" (data), "d" (port));
+    __asm__ __volatile__ ("outw %w0,%w1" : : "a" (data), "d" (port));
 }
 
 void io_write_32(uint16_t port, uint32_t data) {
-    __asm__ __volatile__ ("outl %b0,%w1" : : "a" (data), "d" (port));
+    __asm__ __volatile__ ("outl %0,%w1" : : "a" (data), "d" (port));
 }
 
 uint8_t io_read_8(uint16_t port) {
@@ -19,14 +20,14 @@ uint8_t io_read_8(uint16_t port) {
 }
 
 uint16_t io_read_16(uint16_t port) {
-    uint8_t   data;
-    __asm__ __volatile__ ("inw %w1,%b0" : "=a" (data) : "d" (port));
+    uint16_t   data;
+    __asm__ __volatile__ ("inw %w1,%w0" : "=a" (data) : "d" (port));
     return data;
 }
 
 uint32_t io_read_32(uint16_t port) {
-    uint8_t   data;
-    __asm__ __volatile__ ("inl %w1,%b0" : "=a" (data) : "d" (port));
+    uint32_t   data;
+    __asm__ __volatile__ ("inl %w1,%0" : "=a" (data) : "d" (port));
     return data;
 }
 
@@ -42,7 +43,7 @@ void write_msr(uint32_t code, uint64_t value) {
 
 uint64_t read_cr0() {
     unsigned long val;
-    asm volatile ( "mov %%cr3, %0" : "=r"(val) );
+    asm volatile ( "mov %%cr0, %0" : "=r"(val) );
     return val;
 }
 
@@ -62,7 +63,7 @@ void write_cr2(uint64_t value) {
 
 uint64_t read_cr3() {
     unsigned long val;
-    asm volatile ( "mov %%cr0, %0" : "=r"(val) );
+    asm volatile ( "mov %%cr3, %0" : "=r"(val) );
     return val;
 }
 
@@ -126,4 +127,42 @@ void write_tr(uint16_t seg) {
 
 void cpu_pause() {
     __asm__ __volatile__ ("pause");
+}
+
+void enable_interrupts() {
+    __asm__ __volatile__ ("sti"::: "memory");
+}
+
+void disable_interrupts() {
+    __asm__ __volatile__ ("cli"::: "memory");
+}
+
+uint64_t read_eflags() {
+    uint64_t eflags;
+    __asm__ __volatile__ (
+        "pushfq\n\t"
+        "pop %0"
+        : "=r" (eflags)       // %0
+    );
+    return eflags;
+}
+
+bool get_interrupt_state() {
+    IA32_RFLAGS flags = { .raw = read_eflags() };
+    return flags.IF == 1;
+}
+
+bool save_and_disable_interrupts() {
+    bool state = get_interrupt_state();
+    disable_interrupts();
+    return state;
+}
+
+bool set_interrupt_state(bool state) {
+    if(state) {
+        enable_interrupts();
+    }else {
+        disable_interrupts();
+    }
+    return state;
 }

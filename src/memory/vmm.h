@@ -59,6 +59,12 @@ extern vmm_handle_t kernel_handle;
 void vmm_init(tboot_info_t* info);
 
 /**
+ * This will enable special memory related features
+ * for the current cpu
+ */
+void vmm_enable_cpu_features();
+
+/**
  * Will convert the given virtual address to its physical address
  *
  * TODO: Add get permissions

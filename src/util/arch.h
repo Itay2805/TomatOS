@@ -2,7 +2,9 @@
 #define TOMATKERNEL_IO_H
 
 #include <stdint.h>
-#include <libc/stddef.h>
+#include <stddef.h>
+#include <stdbool.h>
+
 #include <interrupts/idt.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -493,6 +495,53 @@ _Static_assert(sizeof(uint32_t[4]) == sizeof(CPUID_EX_FEATURES), "");
 // CPU registers
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+typedef union _IA32_CR0 {
+    struct {
+        uint32_t  PE : 1;           ///< Protection Enable.
+        uint32_t  MP : 1;           ///< Monitor Coprocessor.
+        uint32_t  EM : 1;           ///< Emulation.
+        uint32_t  TS : 1;           ///< Task Switched.
+        uint32_t  ET : 1;           ///< Extension Type.
+        uint32_t  NE : 1;           ///< Numeric Error.
+        uint32_t  _reserved_0 : 10;  ///< Reserved.
+        uint32_t  WP : 1;           ///< Write Protect.
+        uint32_t  _reserved_1 : 1;   ///< Reserved.
+        uint32_t  AM : 1;           ///< Alignment Mask.
+        uint32_t  _reserved_2 : 10;  ///< Reserved.
+        uint32_t  NW : 1;           ///< Mot Write-through.
+        uint32_t  CD : 1;           ///< Cache Disable.
+        uint32_t  PG : 1;           ///< Paging.
+    };
+    uint64_t raw;
+} IA32_CR0;
+
+typedef union _IA32_CR4 {
+    struct {
+        uint32_t VME : 1;          ///< Virtual-8086 Mode Extensions.
+        uint32_t PVI : 1;          ///< Protected-Mode Virtual Interrupts.
+        uint32_t TSD : 1;          ///< Time Stamp Disable.
+        uint32_t DE : 1;           ///< Debugging Extensions.
+        uint32_t PSE : 1;          ///< Page Size Extensions.
+        uint32_t PAE : 1;          ///< Physical Address Extension.
+        uint32_t MCE : 1;          ///< Machine Check Enable.
+        uint32_t PGE : 1;          ///< Page Global Enable.
+        uint32_t PCE : 1;          ///< Performance Monitoring Counter Enable.
+        uint32_t OSFXSR : 1;       ///< Operating System Support for FXSAVE and FXRSTOR instructions
+        uint32_t OSXMMEXCPT : 1;   ///< Operating System Support for Unmasked SIMD Floating Point Exceptions.
+        uint32_t UMIP : 1;         ///< User-Mode Instruction Prevention
+        uint32_t LA57 : 1;         ///< Linear Address 57bit.
+        uint32_t VMXE : 1;         ///< VMX Enable
+        uint32_t SMXE : 1;         ///< Safer Mode Extensions Enable
+        uint32_t FSGSBASE : 1;     ///< Enables the instructions RDFSBASE, RDGSBASE, WRFSBASE, and WRGSBASE.
+        uint32_t PCIDE : 1;        ///< PCID Enable
+        uint32_t OSXSAVE : 1;      ///< XSAVE and Processor Extended States Enable
+        uint32_t SMEP : 1;         ///< Supervisor Mode Execution Protection Enable
+        uint32_t SMAP : 1;         ///< Supervisor Mode Access Prevention Enable
+        uint32_t PKE : 1;          ///< Protection Key Enable
+        uint32_t _reserved_1 : 9;  ///< Reserved.
+    };
+    uint64_t raw;
+} IA32_CR4;
 
 typedef union _IA32_EFLAGS {
     struct {
@@ -563,8 +612,23 @@ void write_cr4(uint64_t value);
 
 void cpuid(int code, int subcode, uint32_t data[4]);
 
+uint64_t read_eflags();
+
+/**
+ * Reads the current value of Time Stamp Counter (TSC).
+ */
 uint64_t read_tsc();
 
+/**
+ * Requests CPU to pause for a short period of time. Typically used in MP
+ * systems to prevent memory starvation while waiting for a spin lock.
+ */
 void cpu_pause();
+
+void enable_interrupts();
+void disable_interrupts();
+bool get_interrupts_state();
+bool save_and_disable_interrupts();
+bool set_interrupt_state(bool state);
 
 #endif //TOMATKERNEL_IO_H

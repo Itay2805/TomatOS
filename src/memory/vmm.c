@@ -7,11 +7,10 @@
 #include "vmm.h"
 #include "pmm.h"
 
-static bool support_nx = false;
-static bool support_pat = false;
-
 static IA32_PAT_MEMTYPE pat_types[8];
 static uintptr_t memory_base = 0;
+
+static bool support_pat = false;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Internal functions
@@ -254,15 +253,6 @@ extern void* kernel_physical_start;
 
 vmm_handle_t kernel_handle;
 
-static const char* pat_name[] = {
-    [IA32_PAT_MEMTYPE_UC] = "Uncacheable (UC)",
-    [IA32_PAT_MEMTYPE_WC] = "Write Combining (WC)",
-    [IA32_PAT_MEMTYPE_WT] = "Write Through (WT)",
-    [IA32_PAT_MEMTYPE_WP] = "Write Protected (WP)",
-    [IA32_PAT_MEMTYPE_WB] = "Write Back (WB)",
-    [IA32_PAT_MEMTYPE_UCM] = "Uncached (UC-)",
-};
-
 void vmm_init(tboot_info_t* info) {
     debug_log("[*] Preparing vmm\n");
 
@@ -270,72 +260,10 @@ void vmm_init(tboot_info_t* info) {
     pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, &kernel_handle.pml4_physical);
     memset((void*)kernel_handle.pml4_physical, 0, PAGE_SIZE);
 
-    debug_log("[*] \tEnabling features\n");
+    // enable features
+    vmm_enable_cpu_features();
 
-    CPUID_EX_FEATURES ex_features;
-    cpuid(CPUID_FUNCTION_EX_FEATURES, 0, (uint32_t*)&ex_features);
-
-    if(ex_features.nx) {
-        support_nx = true;
-
-        // enable it
-        IA32_EFER efer = { read_msr(MSR_CODE_IA32_EFER) };
-        efer.nxe = true;
-        write_msr(MSR_CODE_IA32_EFER, efer.raw);
-
-        debug_log("[+] \t\tNo Execute is supported!\n");
-    }else {
-        debug_log("[!] \t\tNo Execute is not supported\n");
-    }
-
-    if(ex_features.pat) {
-        support_pat = true;
-
-        // setup the pat
-        IA32_PAT pat = {
-            .pa0 = IA32_PAT_MEMTYPE_WB,
-            .pa1 = IA32_PAT_MEMTYPE_WT,
-            .pa2 = IA32_PAT_MEMTYPE_WP,
-            .pa3 = IA32_PAT_MEMTYPE_WC,
-            .pa4 = IA32_PAT_MEMTYPE_WB,
-            .pa5 = IA32_PAT_MEMTYPE_WT,
-            .pa6 = IA32_PAT_MEMTYPE_UCM,
-            .pa7 = IA32_PAT_MEMTYPE_UC,
-        };
-        write_msr(MSR_CODE_IA32_PAT, pat.raw);
-
-        // get the pat types
-        pat.raw = read_msr(MSR_CODE_IA32_PAT);
-        pat_types[0] = pat.pa0;
-        pat_types[1] = pat.pa1;
-        pat_types[2] = pat.pa2;
-        pat_types[3] = pat.pa3;
-        pat_types[4] = pat.pa4;
-        pat_types[5] = pat.pa5;
-        pat_types[6] = pat.pa6;
-        pat_types[7] = pat.pa7;
-
-        debug_log("[+] \t\tPAT is supported!\n");
-        debug_log("[*] \t\t\tPA0: %s\n", pat_name[pat.pa0]);
-        debug_log("[*] \t\t\tPA1: %s\n", pat_name[pat.pa1]);
-        debug_log("[*] \t\t\tPA2: %s\n", pat_name[pat.pa2]);
-        debug_log("[*] \t\t\tPA3: %s\n", pat_name[pat.pa3]);
-        debug_log("[*] \t\t\tPA4: %s\n", pat_name[pat.pa4]);
-        debug_log("[*] \t\t\tPA5: %s\n", pat_name[pat.pa5]);
-        debug_log("[*] \t\t\tPA6: %s\n", pat_name[pat.pa6]);
-        debug_log("[*] \t\t\tPA7: %s\n", pat_name[pat.pa7]);
-
-
-        // TODO: Add WC to pat
-
-    }else {
-        debug_log("[!] \t\tPAT is not supported\n");
-    }
-
-    // TODO: cr0 write protect enable
-
-    // TODO: Add global page support for all the kernel pages
-
+    // map the direct map
     debug_log("[*] \tmapping direct map\n");
     for(int i = 0; i < info->mmap.count; i++) {
         tboot_mmap_entry_t* entry = &info->mmap.entries[i];
@@ -353,6 +281,93 @@ void vmm_init(tboot_info_t* info) {
     debug_log("[*] \tSwitching to kernel page table\n");
     memory_base = DIRECT_MAPPING_BASE;
     vmm_set_handle(&kernel_handle);
+}
+
+void vmm_enable_cpu_features() {
+    CPUID_EX_FEATURES ex_features;
+    CPUID_FEATURES_EX features_ex;
+    cpuid(CPUID_FUNCTION_EX_FEATURES, 0, (uint32_t*)&ex_features);
+    cpuid(CPUID_FUNCTION_FEATURES_EX, 0, (uint32_t*)&features_ex);
+
+    /**************************************************
+     * Various features in cr0
+     **************************************************/
+    IA32_CR0 cr0 = { .raw = read_cr0() };
+    cr0.CD = 0; // allow caching
+    cr0.NW = 0; // allow write through
+    cr0.WP = 1; // write protect enable
+    write_cr0(cr0.raw);
+
+    /**************************************************
+     * No execute - must be supported
+     **************************************************/
+    ASSERT(ex_features.nx);
+    IA32_EFER efer = { read_msr(MSR_CODE_IA32_EFER) };
+    efer.nxe = true;
+    write_msr(MSR_CODE_IA32_EFER, efer.raw);
+
+    /***************************************************
+     * Global pages - must be supported
+     **************************************************/
+    ASSERT(ex_features.pge);
+    IA32_CR4 cr4 = { .raw = read_cr4() };
+    cr4.PGE = 1;
+    write_cr4(cr4.raw);
+
+    /**************************************************
+     * UIMP - optional
+     **************************************************/
+    if(features_ex.umip) {
+        cr4.UMIP = 1;
+        write_cr4(cr4.raw);
+    }
+
+    /**************************************************
+     * SMEP - optional
+     **************************************************/
+    if(features_ex.smep) {
+        cr4.SMEP = 1;
+        write_cr4(cr4.raw);
+    }
+
+    /**************************************************
+     * SMAP - optional
+     **************************************************/
+    if(features_ex.smap) {
+        cr4.SMAP = 1;
+        write_cr4(cr4.raw);
+    }
+
+    /**************************************************
+     * PAT - optional
+     **************************************************/
+    if(ex_features.pat) {
+        support_pat = true;
+
+        // setup the pat
+        IA32_PAT pat = {
+                .pa0 = IA32_PAT_MEMTYPE_WB,
+                .pa1 = IA32_PAT_MEMTYPE_WT,
+                .pa2 = IA32_PAT_MEMTYPE_WP,
+                .pa3 = IA32_PAT_MEMTYPE_WC,
+                .pa4 = IA32_PAT_MEMTYPE_WB,
+                .pa5 = IA32_PAT_MEMTYPE_WT,
+                .pa6 = IA32_PAT_MEMTYPE_UCM,
+                .pa7 = IA32_PAT_MEMTYPE_UC,
+        };
+        write_msr(MSR_CODE_IA32_PAT, pat.raw);
+
+        // get the pat types
+        pat.raw = read_msr(MSR_CODE_IA32_PAT);
+        pat_types[0] = pat.pa0;
+        pat_types[1] = pat.pa1;
+        pat_types[2] = pat.pa2;
+        pat_types[3] = pat.pa3;
+        pat_types[4] = pat.pa4;
+        pat_types[5] = pat.pa5;
+        pat_types[6] = pat.pa6;
+        pat_types[7] = pat.pa7;
+    }
 }
 
 bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t* physical, page_type_t* type) {
@@ -486,7 +501,7 @@ void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, 
     // get the permission bits
     bool user = (perms & PAGE_SUPERVISOR) == 0;
     bool write = (perms & PAGE_WRITE) != 0;
-    bool no_exec = ((perms & PAGE_EXECUTE) == 0) && support_nx;
+    bool no_exec = ((perms & PAGE_EXECUTE) == 0);
 
     while(current_va < range_end_va) {
         set_pte(handle, current_va, current_physical, user, write, no_exec, pwt_flag, pcd_flag, pat_flag);

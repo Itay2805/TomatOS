@@ -69,7 +69,12 @@ error_t lapic_init() {
     }
 
     debug_log("[*] \tInitializing Local APIC #%d\n", lapic_get_id());
-    CHECK_AND_RETHROW(calibrate_timer());
+
+    // only calibrate once
+    if(ticks_per_milli == 0) {
+        CHECK_AND_RETHROW(calibrate_timer());
+    }
+
     CHECK_AND_RETHROW(set_nmis());
     CHECK_AND_RETHROW(lapic_enable());
 
@@ -91,6 +96,9 @@ uint32_t lapic_read(uint32_t reg) {
 }
 
 uint8_t lapic_get_id() {
+    if(mmio_base == NULL) {
+        return (uint8_t) -1;
+    }
     return (uint8_t) (lapic_read(LAPIC_REG_ID) >> 24 & 0xFF);
 }
 

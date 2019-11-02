@@ -81,6 +81,7 @@ void percpu_storage_init() {
 }
 
 per_cpu_storage_t* get_percpu_storage() {
+    ASSERT(lapic_get_id() != (uint8_t)-1);
     return &per_cpu_storage[lapic_get_id()];
 }
 

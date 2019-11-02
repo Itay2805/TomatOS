@@ -3,6 +3,7 @@
 #include "arch.h"
 
 #include "debug.h"
+#include "sync.h"
 
 /////////////////////////////////////////////////
 // Support logging functions
@@ -25,8 +26,11 @@ static void vbox_write_char(char c) {
 /////////////////////////////////////////////////
 
 static char buffer[512];
+static lock_t lock;
 
 void debug_log(const char* fmt, ...) {
+    aquire_lock(&lock);
+
     va_list ap;
     va_start(ap, fmt);
     stbsp_vsnprintf(buffer, sizeof(buffer), fmt, ap);
@@ -43,4 +47,6 @@ void debug_log(const char* fmt, ...) {
 #endif
         b++;
     }
+
+    release_lock(&lock);
 }

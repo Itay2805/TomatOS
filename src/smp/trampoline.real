@@ -69,23 +69,22 @@ lgdt [gdt_ptr]
 mov edx, dword [SMP_KERNEL_PAGE_TABLE]
 mov cr3, edx
 
-; set paging features
+; PAE+PGE+OSFXSR+OSXMMEXCPT
 mov eax, cr4
-or eax, 1 << 5	; PAE
-or eax, 1 << 7	; Global
+or eax, (1 << 5) | (1 << 7) | (1 << 9) | (1 << 10)
 mov cr4, eax
 
 ; Enable long mode
 mov ecx, 0xC0000080
 rdmsr
-or eax, 0x00000100
+or eax, 1 << 8  ; LME
+or eax, 1 << 11 ; NX
 wrmsr
 
 ; Enable protected mode and paging
-; also makes sure that CD and NW are not disabled
 mov eax, cr0
-or eax, 0x80000001
-and eax, ~(0x60000000)
+or eax, (1 << 31) | (1 << 0) | (1 << 5); PE+PG+NE
+and eax, ~(0x60000000) ; disable CD+NW
 mov cr0, eax
 
 ; Jump into long mode
@@ -109,7 +108,7 @@ lidt [SMP_KERNEL_IDT]
 
 ; jump to entry point
 mov rbx, qword [SMP_KERNEL_ENTRY]
-call rbx
+jmp rbx
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; A temp gdt just so we can
