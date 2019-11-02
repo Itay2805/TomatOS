@@ -189,10 +189,8 @@ typedef union lapic_msi_data {
  * Initialize the Local APIC
  *
  * This will set the NMIs and Spurious interrupts and calibrate the lapic timer
- *
- * @param tsc_freq [IN] The TSC frequency in hz, used to calibrate the lapic timer
  */
-error_t lapic_init(uint64_t tsc_freq);
+error_t lapic_init();
 
 /**
  * Write into a lapic register
@@ -236,7 +234,7 @@ bool lapic_timer_fired();
 /**
  * Send an EOI to the Local APIC controller
  */
-error_t lapic_send_eoi();
+void lapic_send_eoi();
 
 /**
  * Send an IPI to another processor
@@ -244,21 +242,21 @@ error_t lapic_send_eoi();
  * @param lapic_id  [IN] The Local APIC to send to
  * @param vector    [IN] The vector to send the interrupt to
  */
-error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector);
+void lapic_send_ipi(uint32_t lapic_id, uint8_t vector);
 
 /**
  * Send an IPI to all CPUs excluding self
  *
  * @param vector    [IN] The vector to send the interrupt to
  */
-error_t lapic_send_ipi_all_excluding_self(uint8_t vector);
+void lapic_send_ipi_all_excluding_self(uint8_t vector);
 
 /**
  * Send an INIT to another LAPIC
  *
  * @param lapic_id  [IN] The Local APIC to send to
  */
-error_t lapic_send_init(uint32_t lapic_id);
+void lapic_send_init(uint32_t lapic_id);
 
 /**
  * Send an SIPI to another Local APIC
@@ -266,6 +264,6 @@ error_t lapic_send_init(uint32_t lapic_id);
  * @param lapic_id  [IN] The Local APIC to send to
  * @param entry     [IN] The realmode entry of the core
  */
-error_t lapic_send_sipi(uint32_t lapic_id, uint32_t entry);
+void lapic_send_sipi(uint32_t lapic_id, uint32_t entry);
 
 #endif //TOMATKERNEL_LAPIC_H

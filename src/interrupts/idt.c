@@ -9,7 +9,7 @@
 
 static idt_entry_t idt_entries[0xFF + 1];
 
-static idt_t idt = {
+idt_t idt = {
         .limit = sizeof(idt_entries),
         .base = idt_entries
 };

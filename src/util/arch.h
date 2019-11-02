@@ -541,6 +541,8 @@ void write_msr(uint32_t code, uint64_t value);
 void read_idtr(idt_t* idtr);
 void write_idtr(idt_t* idtr);
 
+void write_tr(uint16_t seg);
+
 uint64_t read_cr0();
 void write_cr0(uint64_t value);
 
@@ -562,5 +564,7 @@ void write_cr4(uint64_t value);
 void cpuid(int code, int subcode, uint32_t data[4]);
 
 uint64_t read_tsc();
+
+void cpu_pause();
 
 #endif //TOMATKERNEL_IO_H

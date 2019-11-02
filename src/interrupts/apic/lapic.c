@@ -2,6 +2,7 @@
 #include <acpi/tables/madt.h>
 #include <libc/stddef.h>
 #include <memory/vmm.h>
+#include <util/stall.h>
 #include "lapic.h"
 #include "apic.h"
 
@@ -36,7 +37,7 @@ static error_t set_nmis() {
     return NO_ERROR;
 }
 
-static error_t calibrate_timer(uint64_t tsc_freq) {
+static error_t calibrate_timer() {
     error_t err = NO_ERROR;
 
     // mask the interrupt
@@ -51,16 +52,15 @@ static error_t calibrate_timer(uint64_t tsc_freq) {
     lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, UINT32_MAX);
 
     // stall
-    uint64_t start = read_tsc();
-    while(read_tsc() - start < (tsc_freq / 1000));
+    stall(50);
 
     // read the current count
-    ticks_per_milli = (UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT));
+    ticks_per_milli = (UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT)) / 50;
 
     return err;
 }
 
-error_t lapic_init(uint64_t tsc_freq) {
+error_t lapic_init() {
     error_t err = NO_ERROR;
 
     mmio_base = (char*)PHYSICAL_TO_DIRECT((uintptr_t)madt_table->lapic_addr);
@@ -69,7 +69,7 @@ error_t lapic_init(uint64_t tsc_freq) {
     }
 
     debug_log("[*] \tInitializing Local APIC #%d\n", lapic_get_id());
-    CHECK_AND_RETHROW(calibrate_timer(tsc_freq));
+    CHECK_AND_RETHROW(calibrate_timer());
     CHECK_AND_RETHROW(set_nmis());
     CHECK_AND_RETHROW(lapic_enable());
 
@@ -102,9 +102,8 @@ error_t lapic_enable() {
     return NO_ERROR;
 }
 
-error_t lapic_send_eoi() {
+void lapic_send_eoi() {
     lapic_write(LAPIC_REG_EOI, 0);
-    return NO_ERROR;
 }
 
 error_t lapic_set_timer(uint32_t millis, uint8_t vector) {
@@ -131,9 +130,7 @@ bool lapic_timer_fired() {
     return timer.delivery_status == 1;
 }
 
-error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector) {
-    error_t err = NO_ERROR;
-
+void lapic_send_ipi(uint32_t lapic_id, uint8_t vector) {
     // prepare the icr
     lapic_icr_t icr = (lapic_icr_t){
             .delivery_mode = LAPIC_DELIVERY_MODE_FIXED,
@@ -144,11 +141,9 @@ error_t lapic_send_ipi(uint32_t lapic_id, uint8_t vector) {
     // write it
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
     lapic_write(LAPIC_REG_ICR0, icr.raw_low);
-
-    return err;
 }
 
-error_t lapic_send_ipi_all_excluding_self(uint8_t vector) {
+void lapic_send_ipi_all_excluding_self(uint8_t vector) {
     // prepare the icr
     lapic_icr_t icr = {
             .delivery_mode = LAPIC_DELIVERY_MODE_FIXED,
@@ -160,11 +155,9 @@ error_t lapic_send_ipi_all_excluding_self(uint8_t vector) {
     // write it
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
     lapic_write(LAPIC_REG_ICR0, icr.raw_low);
-
-    return NO_ERROR;
 }
 
-error_t lapic_send_init(uint32_t lapic_id) {
+void lapic_send_init(uint32_t lapic_id) {
     // prepare the icr
     lapic_icr_t icr = {
             .delivery_mode = LAPIC_DELIVERY_MODE_INIT,
@@ -175,16 +168,12 @@ error_t lapic_send_init(uint32_t lapic_id) {
     // write it
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
     lapic_write(LAPIC_REG_ICR0, icr.raw_low);
-
-    return NO_ERROR;
 }
 
-error_t lapic_send_sipi(uint32_t lapic_id, uint32_t entry) {
-    error_t err = NO_ERROR;
-
+void lapic_send_sipi(uint32_t lapic_id, uint32_t entry) {
     // make sure the entry is okie
-    CHECK(entry < 0x100000);
-    CHECK((entry & 0xfff) == 0);
+    ASSERT(entry < 0x100000);
+    ASSERT((entry & 0xfff) == 0);
 
     // prepare the icr
     lapic_icr_t icr = {
@@ -197,7 +186,4 @@ error_t lapic_send_sipi(uint32_t lapic_id, uint32_t entry) {
     // write it
     lapic_write(LAPIC_REG_ICR0, icr.raw_low);
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
-
-cleanup:
-    return err;
 }

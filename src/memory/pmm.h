@@ -64,7 +64,7 @@ void pmm_post_vmm();
  * @param page_count    [IN]    The amount of pages to allocate
  * @param base          [OUT]   The allocate page (physical memory)
  */
-error_t pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t page_count, uintptr_t* base);
+void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t page_count, uintptr_t* base);
 
 /**
  * Will free the pages so they can be allocated again
@@ -72,6 +72,6 @@ error_t pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t 
  * @param base          [IN] Base address
  * @param page_count    [IN] The page count
  */
-error_t pmm_free_pages(uintptr_t base, size_t page_count);
+void pmm_free_pages(uintptr_t base, size_t page_count);
 
 #endif //TOMATKERNEL_MEM_H

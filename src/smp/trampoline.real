@@ -15,7 +15,7 @@
 ; 0x530 -
 ; 0x540 - page table to be used
 ; 0x550 - stack pointer for the entry
-; 0x560 - cpu local storage
+; 0x560 -
 ; 0x570 -
 ; 0x580 - kernel gdt
 ; 0x590 - kernel idt
@@ -29,7 +29,6 @@ SMP_FLAG equ 0x510
 SMP_KERNEL_ENTRY equ 0x520
 SMP_KERNEL_PAGE_TABLE equ 0x540
 SMP_STACK_POINTER equ 0x550
-SMP_CPU_LOCAL_STORAGE equ 0x560
 SMP_KERNEL_GDT equ 0x580
 SMP_KERNEL_IDT equ 0x590
 
@@ -100,12 +99,6 @@ mov rsp, qword [SMP_STACK_POINTER]
 ; set the gdt and idt
 lgdt [SMP_KERNEL_GDT]
 lidt [SMP_KERNEL_IDT]
-
-; Load GS with the CPU local struct base address
-mov rcx, 0xc0000101
-mov eax, dword [SMP_CPU_LOCAL_STORAGE]
-mov edx, dword [SMP_CPU_LOCAL_STORAGE+4]
-wrmsr
 
 ; load the TSS
 mov ax, GDT_TSS

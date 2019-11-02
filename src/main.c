@@ -10,11 +10,13 @@
 #include <interrupts/apic/apic.h>
 #include <interrupts/apic/lapic.h>
 #include <smp/percpu_storage.h>
+#include <util/stall.h>
 
 void kernel_main(uint32_t magic, tboot_info_t* info) {
     debug_log("[+] Entered kernel!\n");
 
-    // we can init the idt right away
+    // we can init these right away
+    stall_init(info);
     idt_init();
 
     // do memory initialization
@@ -28,13 +30,12 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     // init apic related stuff
     acpi_tables_init(info);
     apic_init();
-    lapic_init(info->tsc_freq);
 
     // init mp
     percpu_storage_init();
-    smp_startup();
+    smp_startup(info);
 
-    // TODO: do scheduler startup
+    // TODO: Scheduler kick start
 
     ASSERT(false);
 }

@@ -26,6 +26,8 @@ typedef struct idt {
     idt_entry_t* base;
 } __attribute__((packed)) idt_t;
 
+extern idt_t idt;
+
 /**
  * Will setup the interrupts for the bsp
  */

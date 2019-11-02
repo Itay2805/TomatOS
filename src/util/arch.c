@@ -119,3 +119,11 @@ uint64_t read_tsc() {
 
     return (((uint64_t)high) << 32) | low;
 }
+
+void write_tr(uint16_t seg) {
+    asm volatile("ltr %%ax" : : "a"(seg));
+}
+
+void cpu_pause() {
+    __asm__ __volatile__ ("pause");
+}

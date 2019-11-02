@@ -39,7 +39,7 @@ static list_entry_t free_entries_list = { &free_entries_list, &free_entries_list
 
 // forward declare these
 static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, size_t page_count);
-static error_t convert_page(uintptr_t start, size_t page_count, memory_type_t new_type);
+static void convert_page(uintptr_t start, size_t page_count, memory_type_t new_type);
 
 /**
  * Remove the entry from the map
@@ -117,7 +117,7 @@ static void* allocate_pool_pages(memory_type_t type, size_t page_count) {
     if(start == 0) {
         DEBUG("failed to allocate %d pages", page_count);
     }else {
-        ASSERT(!IS_ERROR(convert_page(start, page_count, type)));
+        convert_page(start, page_count, type);
     }
 
     return (void*)(start + memory_base);
@@ -278,15 +278,13 @@ static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, s
  *
  * @retval ERROR_NOT_FOUND - Could not find the range where this page is in
  */
-static error_t convert_page(uintptr_t start, size_t page_count, memory_type_t new_type) {
-    error_t err = NO_ERROR;
-
+static void convert_page(uintptr_t start, size_t page_count, memory_type_t new_type) {
     size_t length = PAGES_TO_SIZE(page_count);
     uintptr_t end = start + length - 1;
 
-    CHECK_ERROR(page_count != 0, ERROR_INVALID_PARAMETER);
-    CHECK_ERROR((start & PAGE_MASK) == 0, ERROR_INVALID_PARAMETER);
-    CHECK_ERROR(end > start, ERROR_INVALID_PARAMETER);
+    ASSERT(page_count != 0);
+    ASSERT((start & PAGE_MASK) == 0);
+    ASSERT(end > start);
 
     while(start < end) {
 
@@ -300,10 +298,16 @@ static error_t convert_page(uintptr_t start, size_t page_count, memory_type_t ne
             }
         }
 
-        CHECK_ERROR_DEBUG(link != &mem_map, ERROR_NOT_FOUND, "failed to find range 0x%lx-0x%lx", start, end);
+        if(link == &mem_map) {
+            DEBUG("failed to find range 0x%lx-0x%lx", start, end);
+            ASSERT(false);
+        }
 
         if(new_type != MEM_FREE) {
-            CHECK_ERROR_DEBUG(entry->end >= end, ERROR_NOT_FOUND, "range 0x%lx-0x%lx covers multiple entries", start, end);
+            if(entry->end < end) {
+                DEBUG("range 0x%lx-0x%lx covers multiple entries", start, end);
+                ASSERT(false);
+            }
         }
 
         uintptr_t range_end = end;
@@ -319,7 +323,7 @@ static error_t convert_page(uintptr_t start, size_t page_count, memory_type_t ne
             }else {
                 DEBUG("incompatible memory types, already allocated");
             }
-            CHECK_FAILED_ERROR(ERROR_NOT_FOUND);
+            ASSERT(false);
         }
 
         if(entry->start == start) {
@@ -361,9 +365,6 @@ static error_t convert_page(uintptr_t start, size_t page_count, memory_type_t ne
 
         start = range_end + 1;
     }
-
-cleanup:
-    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -450,25 +451,24 @@ void pmm_post_vmm() {
     }
 }
 
-error_t pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t page_count, uintptr_t* base) {
-    error_t err = NO_ERROR;
-
-    CHECK_ERROR(type == ALLOCATE_ADDRESS || type == ALLOCATE_ANY || type == ALLOCATE_BELOW, ERROR_INVALID_PARAMETER);
-    CHECK_ERROR(base != NULL, ERROR_INVALID_PARAMETER);
+void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t page_count, uintptr_t* base) {
+    ASSERT(type == ALLOCATE_ADDRESS || type == ALLOCATE_ANY || type == ALLOCATE_BELOW);
+    ASSERT(base != NULL);
+    ASSERT(page_count != 0);
 
     uintptr_t start = *base;
     uintptr_t end = 0;
     uintptr_t max_address = mem_memory_top;
 
     if(type == ALLOCATE_ADDRESS) {
-        CHECK_ERROR((page_count != 0) && (page_count < SIZE_TO_PAGES(max_address)), ERROR_NOT_FOUND);
+        ASSERT((page_count != 0) && (page_count < SIZE_TO_PAGES(max_address)));
 
         uintptr_t length = page_count << PAGE_SHIFT;
         end = start + length - 1;
 
-        CHECK_ERROR(start < end, ERROR_NOT_FOUND);
-        CHECK_ERROR(start < max_address, ERROR_NOT_FOUND);
-        CHECK_ERROR(end < max_address, ERROR_NOT_FOUND);
+        ASSERT(start < end);
+        ASSERT(start < max_address);
+        ASSERT(end < max_address);
     }
 
     if(type == ALLOCATE_BELOW) {
@@ -477,20 +477,15 @@ error_t pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t 
 
     if(type != ALLOCATE_ADDRESS) {
         start = find_free_pages(max_address, 0, page_count);
-        CHECK_ERROR(start != 0, ERROR_OUT_OF_RESOURCES);
+        ASSERT(start != 0);
     }
 
-    CHECK_AND_RETHROW(convert_page(start, page_count, mem_type));
+    convert_page(start, page_count, mem_type);
 
     *base = start;
-
-cleanup:
-    return err;
 }
 
-error_t pmm_free_pages(uintptr_t base, size_t page_count) {
-    error_t err = NO_ERROR;
-
+void pmm_free_pages(uintptr_t base, size_t page_count) {
     // find the entry
     mem_entry_t* entry;
     list_entry_t* link;
@@ -502,10 +497,7 @@ error_t pmm_free_pages(uintptr_t base, size_t page_count) {
         }
     }
 
-    CHECK_ERROR(link != &mem_map, ERROR_NOT_FOUND);
+    ASSERT(link != &mem_map);
 
-    CHECK_AND_RETHROW(convert_page(base, page_count, MEM_FREE));
-
-cleanup:
-    return err;
+    convert_page(base, page_count, MEM_FREE);
 }

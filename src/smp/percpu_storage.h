@@ -7,7 +7,6 @@
 typedef struct per_cpu_storage {
     // apic
     uintptr_t lapic_id;
-    uintptr_t lapic_base;
     uintptr_t processor_id;
 
     // kernel stacks
@@ -29,5 +28,12 @@ void percpu_storage_init();
  * Get the cpu storage of the current cpu
  */
 per_cpu_storage_t* get_percpu_storage();
+
+/**
+ * Get the per cpu storage of another processor
+ *
+ * @param lapic_id  [IN] The lapic id of the processor
+ */
+per_cpu_storage_t* get_percpu_storage_of(int lapic_id);
 
 #endif //TOMATKERNEL_PERCPU_STORAGE_H

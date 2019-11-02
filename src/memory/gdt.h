@@ -68,6 +68,6 @@ extern gdt_t gdt;
 /**
  * Init the gdt per core
  */
-void gdt_init_per_core();
+void tss_init();
 
 #endif //TOMATKERNEL_GDT_H
