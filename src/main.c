@@ -5,6 +5,7 @@
 #include <util/debug.h>
 #include <tboot.h>
 #include <memory/vmm.h>
+#include <smp/smp.h>
 
 void kernel_main(uint32_t magic, tboot_info_t* info) {
     debug_log("[+] Entered kernel!\n");
@@ -17,7 +18,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     vmm_init(info);
     pmm_post_vmm();
 
-    asm("int $3");
+    smp_startup();
 
     ASSERT(false);
 }

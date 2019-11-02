@@ -1,0 +1,163 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; SMP trampoline
+; taken from:
+;	https://github.com/qword-os/qword/blob/master/real/smp_trampoline.real
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Trampoline params
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; we assume that the trampoline is set at 0x1000
+;
+; 0x510 - flag that we got into the trampoline
+; 0x520 - entry point (where to jump to after we got to long mode)
+; 0x530 -
+; 0x540 - page table to be used
+; 0x550 - stack pointer for the entry
+; 0x560 - cpu local storage
+; 0x570 -
+; 0x580 - kernel gdt
+; 0x590 - kernel idt
+;
+; NOTE: this expects the gdt to have a valid
+; 		tss for this cpu
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+SMP_FLAG equ 0x510
+SMP_KERNEL_ENTRY equ 0x520
+SMP_KERNEL_PAGE_TABLE equ 0x540
+SMP_STACK_POINTER equ 0x550
+SMP_CPU_LOCAL_STORAGE equ 0x560
+SMP_KERNEL_GDT equ 0x580
+SMP_KERNEL_IDT equ 0x590
+
+GDT_KERNEL_CODE equ 8
+GDT_KERNEL_DATA equ 16
+GDT_USER_DATA equ (24 | 3)
+GDT_USER_CODE equ (32 | 3)
+GDT_TSS equ (40 | 3)
+
+ORG 0x1000
+BITS 16
+
+; clear our state
+cli
+cld
+xor ax, ax
+mov ds, ax
+
+; set the flag
+mov byte [SMP_FLAG], 1
+
+; fix the segments
+jmp 0x0:fix_cs
+fix_cs:
+mov es, ax
+mov fs, ax
+mov gs, ax
+mov ss, ax
+
+; load a temp gdt
+lgdt [gdt_ptr]
+
+; load the page table
+mov edx, dword [SMP_KERNEL_PAGE_TABLE]
+mov cr3, edx
+
+; enter long mode
+mov eax, cr4
+or eax, 1 << 5
+or eax, 1 << 7
+mov cr4, eax
+
+mov ecx, 0xc0000080
+rdmsr
+
+or eax, 0x00000100
+wrmsr
+
+mov eax, cr0
+or eax, 0x80000001
+and eax, ~(0x60000000)
+mov cr0, eax
+
+jmp GDT_KERNEL_CODE:.mode64
+.mode64:
+bits 64
+mov ax, GDT_KERNEL_DATA
+mov ds, ax
+mov es, ax
+mov ss, ax
+mov gs, ax
+mov ax, GDT_USER_DATA
+mov fs, ax
+
+; set the stack
+mov rsp, qword [SMP_STACK_POINTER]
+
+; set the gdt and idt
+lgdt [SMP_KERNEL_GDT]
+lidt [SMP_KERNEL_IDT]
+
+; Load GS with the CPU local struct base address
+mov rcx, 0xc0000101
+mov eax, dword [SMP_CPU_LOCAL_STORAGE]
+mov edx, dword [SMP_CPU_LOCAL_STORAGE+4]
+wrmsr
+
+; load the TSS
+mov ax, GDT_TSS
+ltr ax
+
+; jump to entry point
+mov rbx, qword [SMP_KERNEL_ENTRY]
+call rbx
+
+align 16
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; A temp gdt just so we can
+; enter protected mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+gdt_ptr:
+    dw .gdt_end - .gdt_start - 1
+    dq .gdt_start
+
+align 16
+.gdt_start:
+
+.null_descriptor:
+    dw 0x0000
+    dw 0x0000
+    db 0x00
+    db 00000000b
+    db 00000000b
+    db 0x00
+
+.kernel_code:
+    dw 0x0000
+    dw 0x0000
+    db 0x00
+    db 10011010b
+    db 00100000b
+    db 0x00
+
+.kernel_data:
+    dw 0x0000
+    dw 0x0000
+    db 0x00
+    db 10010010b
+    db 00000000b
+    db 0x00
+
+.user_data:
+    dw 0x0000
+    dw 0x0000
+    db 0x00
+    db 11110010b
+    db 00000000b
+    db 0x00
+
+.gdt_end:

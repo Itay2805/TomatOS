@@ -254,6 +254,15 @@ extern void* kernel_physical_start;
 
 vmm_handle_t kernel_handle;
 
+static const char* pat_name[] = {
+    [IA32_PAT_MEMTYPE_UC] = "Uncacheable (UC)",
+    [IA32_PAT_MEMTYPE_WC] = "Write Combining (WC)",
+    [IA32_PAT_MEMTYPE_WT] = "Write Through (WT)",
+    [IA32_PAT_MEMTYPE_WP] = "Write Protected (WP)",
+    [IA32_PAT_MEMTYPE_WB] = "Write Back (WB)",
+    [IA32_PAT_MEMTYPE_UCM] = "Uncached (UC-)",
+};
+
 void vmm_init(tboot_info_t* info) {
     debug_log("[*] Preparing vmm\n");
 
@@ -282,8 +291,21 @@ void vmm_init(tboot_info_t* info) {
     if(ex_features.pat) {
         support_pat = true;
 
+        // setup the pat
+        IA32_PAT pat = {
+            .pa0 = IA32_PAT_MEMTYPE_WB,
+            .pa1 = IA32_PAT_MEMTYPE_WT,
+            .pa2 = IA32_PAT_MEMTYPE_WP,
+            .pa3 = IA32_PAT_MEMTYPE_WC,
+            .pa4 = IA32_PAT_MEMTYPE_WB,
+            .pa5 = IA32_PAT_MEMTYPE_WT,
+            .pa6 = IA32_PAT_MEMTYPE_UCM,
+            .pa7 = IA32_PAT_MEMTYPE_UC,
+        };
+        write_msr(MSR_CODE_IA32_PAT, pat.raw);
+
         // get the pat types
-        IA32_PAT pat = { read_msr(MSR_CODE_IA32_PAT) };
+        pat.raw = read_msr(MSR_CODE_IA32_PAT);
         pat_types[0] = pat.pa0;
         pat_types[1] = pat.pa1;
         pat_types[2] = pat.pa2;
@@ -293,9 +315,19 @@ void vmm_init(tboot_info_t* info) {
         pat_types[6] = pat.pa6;
         pat_types[7] = pat.pa7;
 
+        debug_log("[+] \t\tPAT is supported!\n");
+        debug_log("[*] \t\t\tPA0: %s\n", pat_name[pat.pa0]);
+        debug_log("[*] \t\t\tPA1: %s\n", pat_name[pat.pa1]);
+        debug_log("[*] \t\t\tPA2: %s\n", pat_name[pat.pa2]);
+        debug_log("[*] \t\t\tPA3: %s\n", pat_name[pat.pa3]);
+        debug_log("[*] \t\t\tPA4: %s\n", pat_name[pat.pa4]);
+        debug_log("[*] \t\t\tPA5: %s\n", pat_name[pat.pa5]);
+        debug_log("[*] \t\t\tPA6: %s\n", pat_name[pat.pa6]);
+        debug_log("[*] \t\t\tPA7: %s\n", pat_name[pat.pa7]);
+
+
         // TODO: Add WC to pat
 
-        debug_log("[+] \t\tPAT is supported!\n");
     }else {
         debug_log("[!] \t\tPAT is not supported\n");
     }

@@ -5,6 +5,9 @@
 #include <util/arch.h>
 #include <tboot.h>
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #define DIRECT_MAPPING_BASE         0xFFFF800000000000ul
 #define PHYSICAL_TO_DIRECT(addr)    ((typeof(addr))(((uintptr_t)(addr)) + DIRECT_MAPPING_BASE))
 #define DIRECT_TO_PHYSICAL(addr)    ((typeof(addr))(((uintptr_t)(addr)) - DIRECT_MAPPING_BASE))

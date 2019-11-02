@@ -33,12 +33,18 @@ bin/tomatos.hdd: bin/tomatos.img
 # Compiling the kernel
 #########################
 
+# Real mode blobs, needed for some stuff
+REALFILES += $(shell find src -type f -name '*.real')
+BINS := $(REALFILES:%.real=build/%.bin)
+
 # Sources, all c files basically
-SRCS += $(shell find src -name '*.c')
-SRCS += $(shell find src -name '*.asm')
-SRCS += $(shell find lib -name '*.c')
+SRCS += $(shell find src -type f -name '*.c')
+SRCS += $(shell find src -type f -name '*.asm')
+SRCS += $(shell find lib -type f -name '*.c')
 OBJS := $(SRCS:%=build/%.o)
-OBJDIRS := $(dir $(OBJS))
+
+# All the dirs
+OBJDIRS := $(dir $(OBJS) $(BINS))
 
 # include dirs
 INCLUDE_DIRS += lib/
@@ -88,9 +94,12 @@ NASMFLAGS += \
 
 kernel: bin/image/tomatos.elf
 
-bin/image/tomatos.elf: $(OBJDIRS) $(OBJS)
+bin/image/tomatos.elf: $(OBJDIRS) $(BINS) $(OBJS)
 	mkdir -p bin/image
 	$(LD) $(LDFLAGS) -o $@ $(OBJS)
+
+build/%.bin: %.real
+	nasm -f bin -o $@ $<
 
 build/%.c.o: %.c
 	$(CC) $(CFLAGS) -D __FILENAME__="\"$<\"" -c -o $@ $<
