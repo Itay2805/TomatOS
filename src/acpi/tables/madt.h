@@ -61,7 +61,7 @@ typedef struct madt {
     madt_entry_t entries[0];
 } __attribute__((packed)) madt_t;
 
-extern madt_t* madt;
+extern madt_t* madt_table;
 
 void madt_init();
 

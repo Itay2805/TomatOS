@@ -138,6 +138,27 @@ _Static_assert(sizeof(uint64_t) == sizeof(VA_ADDRESS), "");
 // MSRS
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#define MSR_CODE_IA32_APIC_BASE 0x1B
+
+typedef union _IA32_APIC_BASE
+{
+    uint64_t raw;
+    struct {
+        uint64_t  _reserved0 : 8;
+        // Is this the bootstrap processor
+        uint64_t  bsp : 1;
+        uint64_t  _reserved1 : 2;
+        // Enables or disables the local APIC
+        uint64_t  apic_global_enable : 1;
+        /*
+         * Base address of the APIC registers. After a
+         * power-up or reset, this is set to 0xFEE00000
+         */
+        uint64_t  _apic_base : 24;
+        uint64_t  _reserved2 : 28;
+    };
+} IA32_APIC_BASE;
+
 #define MSR_CODE_IA32_EFER 0xC0000080
 
 typedef union _IA32_EFER

@@ -7,6 +7,9 @@
 #include <memory/vmm.h>
 #include <smp/smp.h>
 #include <acpi/acpi.h>
+#include <interrupts/apic/apic.h>
+#include <interrupts/apic/lapic.h>
+#include <smp/percpu_storage.h>
 
 void kernel_main(uint32_t magic, tboot_info_t* info) {
     debug_log("[+] Entered kernel!\n");
@@ -22,10 +25,15 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     // convert the info pointer
     info = PHYSICAL_TO_DIRECT(info);
 
-    // get acpi info
+    // init apic related stuff
     acpi_tables_init(info);
-    // TODO: initialize APIC
+    apic_init();
+    lapic_init();
+
+    // init mp
+    percpu_storage_init();
     smp_startup();
+
     // TODO: do scheduler startup
 
     ASSERT(false);

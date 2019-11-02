@@ -168,7 +168,7 @@ static void set_pte(
     if(!pml4e->present) {
         uintptr_t addr;
         ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, &addr)));
-        memset((void*)addr, 0, PAGE_SIZE);
+        memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pml4e->present = true;
         pml4e->addr = addr >> PAGE_SHIFT;
@@ -187,7 +187,7 @@ static void set_pte(
     if(!pdpte->present) {
         uintptr_t addr;
         ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, &addr)));
-        memset((void*)addr, 0, PAGE_SIZE);
+        memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pdpte->present = true;
         pdpte->addr = addr >> PAGE_SHIFT;
@@ -209,7 +209,7 @@ static void set_pte(
     if(!pde->present) {
         uintptr_t addr;
         ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, &addr)));
-        memset((void*)addr, 0, PAGE_SIZE);
+        memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pde->present = true;
         pde->addr = addr >> PAGE_SHIFT;

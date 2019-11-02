@@ -3,15 +3,15 @@
 #include <memory/vmm.h>
 #include "madt.h"
 
-madt_t* madt = NULL;
+madt_t* madt_table = NULL;
 
 void madt_init() {
-    madt = (madt_t*) rsdt_search("APIC", 0);
-    ASSERT(madt != NULL);
-    debug_log("[+] \tMADT - %p, entries:\n", DIRECT_TO_PHYSICAL(madt));
+    madt_table = (madt_t*) rsdt_search("APIC", 0);
+    ASSERT(madt_table != NULL);
+    debug_log("[+] \tMADT - %p, entries:\n", DIRECT_TO_PHYSICAL(madt_table));
 
-    madt_entry_t* cur = &madt->entries[0];
-    for(uintptr_t addr = (uintptr_t) madt->entries; addr < (uintptr_t)madt->entries + (madt->header.length - sizeof(madt_t)); addr += cur->length, cur = (madt_entry_t *) addr) {
+    madt_entry_t* cur = &madt_table->entries[0];
+    for(uintptr_t addr = (uintptr_t) madt_table->entries; addr < (uintptr_t)madt_table->entries + (madt_table->header.length - sizeof(madt_t)); addr += cur->length, cur = (madt_entry_t *) addr) {
         switch(cur->type) {
             case MADT_TYPE_LAPIC: {
                 madt_lapic_t* lapic = &cur->lapic;
@@ -41,10 +41,10 @@ void madt_init() {
 }
 
 void* madt_get_next(int type, int index) {
-    madt_entry_t* cur = &madt->entries[0];
+    madt_entry_t* cur = &madt_table->entries[0];
     int seen = 0;
 
-    for(uintptr_t addr = (uintptr_t) madt->entries; addr < (uintptr_t)madt->entries + (madt->header.length - sizeof(madt_t)); addr += cur->length, cur = (madt_entry_t *) addr) {
+    for(uintptr_t addr = (uintptr_t) madt_table->entries; addr < (uintptr_t)madt_table->entries + (madt_table->header.length - sizeof(madt_t)); addr += cur->length, cur = (madt_entry_t *) addr) {
         if(cur->type == type) {
             if(seen == index) {
                 return cur;
