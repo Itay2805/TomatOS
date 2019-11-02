@@ -41,13 +41,13 @@ void madt_init() {
 }
 
 void* madt_get_next(int type, int index) {
-    madt_entry_t* cur = &madt_table->entries[0];
     int seen = 0;
 
+    madt_entry_t* cur = &madt_table->entries[0];
     for(uintptr_t addr = (uintptr_t) madt_table->entries; addr < (uintptr_t)madt_table->entries + (madt_table->header.length - sizeof(madt_t)); addr += cur->length, cur = (madt_entry_t *) addr) {
         if(cur->type == type) {
             if(seen == index) {
-                return cur;
+                return (void *) ((uintptr_t)cur + offsetof(madt_entry_t, lapic));
             }
             seen++;
         }

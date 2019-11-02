@@ -160,9 +160,9 @@ void lapic_send_ipi_all_excluding_self(uint8_t vector) {
 void lapic_send_init(uint32_t lapic_id) {
     // prepare the icr
     lapic_icr_t icr = {
-            .delivery_mode = LAPIC_DELIVERY_MODE_INIT,
-            .level = 1,
-            .destination = lapic_id,
+        .delivery_mode = LAPIC_DELIVERY_MODE_INIT,
+        .level = 1,
+        .destination = lapic_id,
     };
 
     // write it
@@ -177,13 +177,13 @@ void lapic_send_sipi(uint32_t lapic_id, uint32_t entry) {
 
     // prepare the icr
     lapic_icr_t icr = {
-            .delivery_mode = LAPIC_DELIVERY_MODE_STARTUP,
-            .level = 1,
-            .vector = entry >> 12,
-            .destination = lapic_id,
+        .delivery_mode = LAPIC_DELIVERY_MODE_STARTUP,
+        .level = 1,
+        .vector = entry >> 12,
+        .destination = lapic_id,
     };
 
     // write it
-    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
     lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
 }

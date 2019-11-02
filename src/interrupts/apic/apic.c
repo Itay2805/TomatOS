@@ -24,13 +24,8 @@ void apic_init() {
 
     for(int i = 0; ; i++) {
         madt_lapic_t* cur = madt_get_next(MADT_TYPE_LAPIC, i);
-        if(cur == NULL) {
-            break;
-        }
-
-        if(!cur->processor_enabled) {
-            continue;
-        }
+        if(cur == NULL) break;
+        if(!cur->processor_enabled) continue;
 
         lapic_pid_map[cur->id] = cur->processor_id;
     }
