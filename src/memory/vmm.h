@@ -17,6 +17,7 @@ typedef enum page_perms {
     PAGE_WRITE = 1 << 0,
     PAGE_EXECUTE = 1 << 1,
     PAGE_SUPERVISOR = 1 << 2,
+    PAGE_MAP_ZERO = 1 << 3,
 
     PAGE_READONLY = 0,
     PAGE_READWRITE = PAGE_WRITE,

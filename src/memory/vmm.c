@@ -458,7 +458,12 @@ void vmm_unmap(vmm_handle_t* handle, uintptr_t addr, size_t size) {
 
 void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, page_perms_t perms, IA32_PAT_MEMTYPE cache) {
     ASSERT(handle != NULL);
-    ASSERT(virt != 0);
+
+    // allow to map zero page if the page has
+    // a map zero permission
+    if(virt == 0) {
+        ASSERT((perms & PAGE_MAP_ZERO) != 0);
+    }
 
     ASSERT(virt % PAGE_SIZE == 0);
     ASSERT(phys % PAGE_SIZE == 0);

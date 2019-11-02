@@ -59,6 +59,12 @@ void percpu_storage_init() {
         memset((void *) cur->exception_stack, 0, PAGE_SIZE);
         memset((void *) cur->nmi_stack, 0, PAGE_SIZE);
 
+        // stack needs to be at the end
+        cur->kernel_stack += PAGE_SIZE;
+        cur->page_fault_stack += PAGE_SIZE;
+        cur->exception_stack += PAGE_SIZE;
+        cur->nmi_stack += PAGE_SIZE;
+
         // set tss
         cur->tss.rsp0 = cur->kernel_stack;
         cur->tss.rsp1 = (uint64_t) -1;

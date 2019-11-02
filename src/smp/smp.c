@@ -28,7 +28,6 @@ extern uint64_t smp_trampoline_size;
 static void per_cpu_initialization() {
     lapic_init();
     tss_init();
-    idt_post_tss();
 }
 
 void smp_startup(tboot_info_t* info) {
@@ -39,12 +38,13 @@ void smp_startup(tboot_info_t* info) {
 
     // start by copying the trampoline shellcode
     memcpy(PHYSICAL_TO_DIRECT((void*)0x1000), smp_trampoline, smp_trampoline_size);
+    vmm_map(&kernel_handle, 0, 0, PAGE_SIZE * 10, PAGE_SUPERVISOR_EXEC_READWRITE | PAGE_MAP_ZERO, DEFAULT_CACHE);
 
     // set the common stuff
     POKE64(SMP_KERNEL_ENTRY) = (uintptr_t)&per_cpu_initialization;
     POKE64(SMP_KERNEL_PAGE_TABLE) = kernel_handle.pml4_physical;
-    POKE64(SMP_KERNEL_GDT) = (uintptr_t)&gdt;
-    POKE64(SMP_KERNEL_IDT) = (uintptr_t)&idt;
+    POKE(gdt_t, SMP_KERNEL_GDT) = gdt;
+    POKE(idt_t, SMP_KERNEL_IDT) = idt;
 
     /*************************************
      * Start the smp
@@ -84,4 +84,6 @@ void smp_startup(tboot_info_t* info) {
             ASSERT(POKE64(SMP_FLAG) != 0);
         }
     }
+
+    // TODO: finishing touches like change the idt to be post tss and alike
 }
