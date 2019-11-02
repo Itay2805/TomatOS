@@ -249,6 +249,13 @@ _Static_assert(sizeof(IA32_PAT) == sizeof(uint64_t), "size mismatch");
 // Structured Extended Feature Flags Enumeration Leaf
 #define CPUID_FUNCTION_FEATURES_EX 7
 
+// Time Stamp Counter/Core Crystal Clock Information-leaf
+#define CPUID_FUNCTION_TSC 0x15
+
+// Processor Frequency Information Leaf
+#define CPUID_FUNCTION_FREQUENCY 0x16
+
+// Extended Function CPUID Information
 #define CPUID_FUNCTION_EX_MAXFUNC 0x80000000
 #define CPUID_FUNCTION_EX_FEATURES 0x80000001
 
@@ -553,5 +560,7 @@ void write_cr4(uint64_t value);
 #define CPUID_EDX   3
 
 void cpuid(int code, int subcode, uint32_t data[4]);
+
+uint64_t read_tsc();
 
 #endif //TOMATKERNEL_IO_H

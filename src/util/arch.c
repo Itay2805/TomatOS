@@ -106,3 +106,16 @@ void write_idtr(idt_t* idtr) {
         : "m" (*idtr)
     );
 }
+
+uint64_t read_tsc() {
+    uint32_t low;
+    uint32_t high;
+
+    __asm__ __volatile__ (
+        "rdtsc"
+        : "=a" (low)
+        , "=d" (high)
+    );
+
+    return (((uint64_t)high) << 32) | low;
+}

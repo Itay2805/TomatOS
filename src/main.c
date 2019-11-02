@@ -28,7 +28,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     // init apic related stuff
     acpi_tables_init(info);
     apic_init();
-    lapic_init();
+    lapic_init(info->tsc_freq);
 
     // init mp
     percpu_storage_init();

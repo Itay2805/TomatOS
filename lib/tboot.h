@@ -34,6 +34,7 @@ typedef struct tboot_info {
         char* cmdline;
     } __attribute__((packed)) cmdline;
 
+    uint64_t tsc_freq;
     uint64_t rsdp;
 } __attribute__((packed)) tboot_info_t;
 

@@ -188,10 +188,11 @@ typedef union lapic_msi_data {
 /**
  * Initialize the Local APIC
  *
- * This will set the NMIs and Spurious interrupts
- * @return
+ * This will set the NMIs and Spurious interrupts and calibrate the lapic timer
+ *
+ * @param tsc_freq [IN] The TSC frequency in hz, used to calibrate the lapic timer
  */
-error_t lapic_init();
+error_t lapic_init(uint64_t tsc_freq);
 
 /**
  * Write into a lapic register

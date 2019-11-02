@@ -36,7 +36,7 @@ static error_t set_nmis() {
     return NO_ERROR;
 }
 
-static error_t calibrate_timer() {
+static error_t calibrate_timer(uint64_t tsc_freq) {
     error_t err = NO_ERROR;
 
     // mask the interrupt
@@ -51,15 +51,16 @@ static error_t calibrate_timer() {
     lapic_write(LAPIC_REG_TIMER_INITIAL_COUNT, UINT32_MAX);
 
     // stall
-    // TODO: CHECK_AND_RETHROW(hpet_stall(50));
+    uint64_t start = read_tsc();
+    while(read_tsc() - start < (tsc_freq / 1000));
 
     // read the current count
-    ticks_per_milli = (UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT)) / 50;
+    ticks_per_milli = (UINT32_MAX - lapic_read(LAPIC_REG_TIMER_CURRENT_COUNT));
 
     return err;
 }
 
-error_t lapic_init() {
+error_t lapic_init(uint64_t tsc_freq) {
     error_t err = NO_ERROR;
 
     mmio_base = (char*)PHYSICAL_TO_DIRECT((uintptr_t)madt_table->lapic_addr);
@@ -68,14 +69,8 @@ error_t lapic_init() {
     }
 
     debug_log("[*] \tInitializing Local APIC #%d\n", lapic_get_id());
-
-    debug_log("[*] \t\tCalibrating timer\n");
-    CHECK_AND_RETHROW(calibrate_timer());
-
-    debug_log("[*] \t\tSetting NMIs\n");
+    CHECK_AND_RETHROW(calibrate_timer(tsc_freq));
     CHECK_AND_RETHROW(set_nmis());
-
-    debug_log("[*] \t\tSetting SPR\n");
     CHECK_AND_RETHROW(lapic_enable());
 
 cleanup:
