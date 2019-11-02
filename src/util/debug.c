@@ -25,12 +25,12 @@ static void vbox_write_char(char c) {
 // The logging itself
 /////////////////////////////////////////////////
 
-static char buffer[512];
 static lock_t lock;
 
 void debug_log(const char* fmt, ...) {
     aquire_lock(&lock);
 
+    char buffer[128];
     va_list ap;
     va_start(ap, fmt);
     stbsp_vsnprintf(buffer, sizeof(buffer), fmt, ap);

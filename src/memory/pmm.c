@@ -33,6 +33,8 @@ static bool freeing = false;
 
 static list_entry_t free_entries_list = { &free_entries_list, &free_entries_list };
 
+static lock_t lock;
+
 ////////////////////////////////////////////////////////////////////////
 // Memory map manipulation
 ////////////////////////////////////////////////////////////////////////
@@ -456,6 +458,8 @@ void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t pag
     ASSERT(base != NULL);
     ASSERT(page_count != 0);
 
+    aquire_lock(&lock);
+
     uintptr_t start = *base;
     uintptr_t end = 0;
     uintptr_t max_address = mem_memory_top;
@@ -483,9 +487,13 @@ void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t pag
     convert_page(start, page_count, mem_type);
 
     *base = start;
+
+    release_lock(&lock);
 }
 
 void pmm_free_pages(uintptr_t base, size_t page_count) {
+    aquire_lock(&lock);
+
     // find the entry
     mem_entry_t* entry;
     list_entry_t* link;
@@ -500,4 +508,6 @@ void pmm_free_pages(uintptr_t base, size_t page_count) {
     ASSERT(link != &mem_map);
 
     convert_page(base, page_count, MEM_FREE);
+
+    release_lock(&lock);
 }

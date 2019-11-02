@@ -631,4 +631,6 @@ bool get_interrupts_state();
 bool save_and_disable_interrupts();
 bool set_interrupt_state(bool state);
 
+void memory_fence();
+
 #endif //TOMATKERNEL_IO_H

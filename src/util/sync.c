@@ -7,6 +7,8 @@
 #define SPIN_LOCK_ACQUIRED          (1)
 
 void aquire_lock(lock_t* lock) {
+    memory_fence();
+
     while(!aquire_lock_or_fail(lock)) {
         cpu_pause();
     }
@@ -18,6 +20,7 @@ bool aquire_lock_or_fail(lock_t* lock) {
 }
 
 void release_lock(lock_t* lock) {
+    memory_fence(); // wait for everything to finish
     *lock = SPIN_LOCK_RELEASED;
 }
 

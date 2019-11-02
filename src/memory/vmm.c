@@ -374,11 +374,14 @@ bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t*
     ASSERT(handle != NULL);
     ASSERT(virtual != 0);
 
+    aquire_lock(&handle->lock);
+
     VA_ADDRESS va = { virtual };
     void* entry;
     page_type_t page_type;
 
     if(!get_entry_at_virtual_address(handle, virtual, &entry, &page_type)) {
+        release_lock(&handle->lock);
         return false;
     }
 
@@ -403,6 +406,7 @@ bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t*
         *type = page_type;
     }
 
+    release_lock(&handle->lock);
     return true;
 }
 
@@ -432,7 +436,7 @@ void vmm_unmap(vmm_handle_t* handle, uintptr_t addr, size_t size) {
     ASSERT(addr != 0);
     ASSERT(size > 0);
 
-    // TODO: LOCK
+    aquire_lock(&handle->lock);
 
     size_t current_size = 0;
 
@@ -468,7 +472,7 @@ void vmm_unmap(vmm_handle_t* handle, uintptr_t addr, size_t size) {
 
     // TODO: cleanup the tables
 
-    // TODO: UNLOCK
+    release_lock(&handle->lock);
 }
 
 void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, page_perms_t perms, IA32_PAT_MEMTYPE cache) {
@@ -483,7 +487,7 @@ void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, 
     ASSERT(virt % PAGE_SIZE == 0);
     ASSERT(phys % PAGE_SIZE == 0);
 
-    // TODO: Lock
+    aquire_lock(&handle->lock);
 
     uintptr_t current_va = virt;
     uintptr_t range_end_va = virt + size;
@@ -510,7 +514,7 @@ void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, 
         current_physical += PAGE_SIZE;
     }
 
-    // TODO: unlock
+    release_lock(&handle->lock);
 }
 
 void vmm_set_handle(vmm_handle_t* handle) {

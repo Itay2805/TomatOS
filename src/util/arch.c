@@ -166,3 +166,7 @@ bool set_interrupt_state(bool state) {
     }
     return state;
 }
+
+void memory_fence() {
+    __asm__ __volatile__("":::"memory");
+}

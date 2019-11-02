@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <util/sync.h>
 
 #define DIRECT_MAPPING_BASE         0xFFFF800000000000ul
 #define PHYSICAL_TO_DIRECT(addr)    ((typeof(addr))(((uintptr_t)(addr)) + DIRECT_MAPPING_BASE))
@@ -42,7 +43,7 @@ typedef enum page_type {
  */
 typedef struct vmm_handle {
     uintptr_t pml4_physical;
-    // TODO: lock
+    lock_t lock;
 } vmm_handle_t;
 
 /**
