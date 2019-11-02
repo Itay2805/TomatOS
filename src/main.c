@@ -6,6 +6,7 @@
 #include <tboot.h>
 #include <memory/vmm.h>
 #include <smp/smp.h>
+#include <acpi/acpi.h>
 
 void kernel_main(uint32_t magic, tboot_info_t* info) {
     debug_log("[+] Entered kernel!\n");
@@ -18,7 +19,14 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     vmm_init(info);
     pmm_post_vmm();
 
+    // convert the info pointer
+    info = PHYSICAL_TO_DIRECT(info);
+
+    // get acpi info
+    acpi_tables_init(info);
+    // TODO: initialize APIC
     smp_startup();
+    // TODO: do scheduler startup
 
     ASSERT(false);
 }

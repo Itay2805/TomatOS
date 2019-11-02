@@ -389,7 +389,7 @@ void pmm_init(tboot_info_t* info) {
     // go over the entries
     for(int i = 0; i < info->mmap.count; i++) {
         tboot_mmap_entry_t* entry = &info->mmap.entries[i];
-        debug_log("[*] \t%016lx-%016lx: (%lx) %s\n", entry->addr, entry->addr + entry->len, entry->len, tboot_mmap_names[entry->type]);
+        debug_log("[*] \t%p-%p: (%lx) %s\n", entry->addr, entry->addr + entry->len, entry->len, tboot_mmap_names[entry->type]);
 
         // add useable entries
         if(entry->type == TBOOT_MEMORY_TYPE_USABLE) {

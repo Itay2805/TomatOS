@@ -347,7 +347,7 @@ void vmm_init(tboot_info_t* info) {
     }
 
     // TODO: map with proper permissions
-    debug_log("[*] \tmapping kernel (%lx-%lx -> %lx-%lx)\n", KERNEL_PHYSICAL_START, KERNEL_PHYSICAL_END, KERNEL_VIRTUAL_START, KERNEL_VIRTUAL_START + (KERNEL_PHYSICAL_END - KERNEL_PHYSICAL_START));
+    debug_log("[*] \tmapping kernel (%p-%p -> %p-%p)\n", KERNEL_PHYSICAL_START, KERNEL_PHYSICAL_END, KERNEL_VIRTUAL_START, KERNEL_VIRTUAL_START + (KERNEL_PHYSICAL_END - KERNEL_PHYSICAL_START));
     vmm_map(&kernel_handle, KERNEL_PHYSICAL_START, KERNEL_VIRTUAL_START, KERNEL_PHYSICAL_END - KERNEL_PHYSICAL_START, PAGE_SUPERVISOR_EXEC_READWRITE, DEFAULT_CACHE);
 
     debug_log("[*] \tSwitching to kernel page table\n");
