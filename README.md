@@ -10,20 +10,11 @@ The goal of this project is to waste my time.
 * Uses UEFI for starting (with [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI))
 * ACPI
     * Using the tables to get relevant info
-    * AML execution powered by [Lai](https://github.com/qword-os/lai)
-    * SCI events handling (only handles shutdown)
 * APIC for interrupt handling
-    * LAPIC timer for scheduling
-* PCI support (MCFG only)
-	* using acpi to get the root bridges
-    * bar management
-    * IRQ routing (kinda broken currently, needs fixing)
-* ~~SMP~~ (only the frame, TODO)
+    * LAPIC timer for scheduling (soon™)
+* SMP
 
-### Drivers
-
-* RTL8139cp/RTL8169
-* Network stack (WIP)
-    * ARP server
-* AHCI (WIP)
-	* got port iteration
+## TODO
+* Work on the object framework 
+* Add Thread and Process objects
+* Work on the scheduler 
