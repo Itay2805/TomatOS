@@ -1,8 +1,9 @@
 #include <libc/string.h>
 #include <memory/pmm.h>
+#include <memory/mm.h>
 #include "thread.h"
 
-void thread_init(thread_t* thread, process_t* parent, bool kernel) {
+void thread_init(thread_t* thread, process_t* parent) {
     ASSERT(thread != NULL);
     ASSERT(parent != NULL);
 
@@ -15,19 +16,17 @@ void thread_init(thread_t* thread, process_t* parent, bool kernel) {
     thread->state.cpu.rflags.IF = 1;
     thread->state.cpu.rflags.ID = 1;
 
-    // TODO: set a proper type
-    pmm_allocate_pages(ALLOCATE_ANY, MEM_OTHER, SIZE_TO_PAGES(PAGE_SIZE), &thread->state.cpu.rsp);
-    thread->state.cpu.rsp += PAGE_SIZE;
+    thread->kernel_stack = mm_allocate_pages(1);
+    thread->kernel_stack_size = PAGE_SIZE;
 
-    if(kernel) {
-        // just add the direct map to it
-        thread->state.cpu.rsp = PHYSICAL_TO_DIRECT(thread->state.cpu.rsp);
+    if(parent == &kernel_process) {
+        thread->stack = NULL;
+        thread->stack_size = 0;
+        thread->state.cpu.rsp = thread->kernel_stack + thread->kernel_stack_size;
     }else {
-        uintptr_t userspace_stack = 0;
-        ASSERT(!IS_ERROR(vmm_allocate(&parent->vmm_handle, &userspace_stack, PAGE_SIZE, PAGE_READWRITE)));
-
-        // map it to user space area
-        thread->state.cpu.rsp = userspace_stack;
+        thread->stack_size = PAGE_SIZE;
+        ASSERT(!IS_ERROR(vmm_allocate(&parent->vmm_handle, &thread->stack, thread->stack_size, PAGE_READWRITE)));
+        thread->state.cpu.rsp = thread->stack + thread->stack_size;
     }
 
     // gonna add it to the parent

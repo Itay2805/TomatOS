@@ -44,6 +44,14 @@ typedef struct thread {
     struct {
         cpu_state_t cpu;
     } state;
+
+    // the allocated stack
+    uintptr_t stack;
+    size_t stack_size;
+
+    // the stack used for the kernel stuff
+    uintptr_t kernel_stack;
+    size_t kernel_stack_size;
 } thread_t;
 
 /**
@@ -55,6 +63,6 @@ typedef struct thread {
  * @param thread    [IN/OUT]    The thread to initialize
  * @param parent    [IN]        The parent of the process
  */
-void thread_init(thread_t* thread, process_t* parent, bool kernel);
+void thread_init(thread_t* thread, process_t* parent);
 
 #endif //TOMATKERNEL_THREAD_H
