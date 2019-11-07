@@ -12,13 +12,18 @@ void thread_init(thread_t* thread, process_t* parent) {
     thread->object.handle = generate_object_handle();
     thread->object.type = OBJECT_THREAD;
 
+    // set general thread stuff
+    thread->parent = parent;
+
     // set default rflags
     thread->state.cpu.rflags.IF = 1;
     thread->state.cpu.rflags.ID = 1;
 
+    // allocate the kernel stack (used on syscall)
     thread->kernel_stack = mm_allocate_pages(1);
     thread->kernel_stack_size = PAGE_SIZE;
 
+    // set the process stack
     if(parent == &kernel_process) {
         thread->stack = NULL;
         thread->stack_size = 0;

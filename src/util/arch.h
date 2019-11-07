@@ -140,6 +140,10 @@ _Static_assert(sizeof(uint64_t) == sizeof(VA_ADDRESS), "");
 // MSRS
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#define MSR_CODE_IA32_FS_BASE 0xC0000100
+#define MSR_CODE_IA32_GS_BASE 0xC0000101
+#define MSR_CODE_IA32_KERNEL_GS_BASE 0xC0000102
+
 #define MSR_CODE_IA32_APIC_BASE 0x1B
 
 typedef union _IA32_APIC_BASE

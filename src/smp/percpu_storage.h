@@ -3,14 +3,20 @@
 
 #include <libc/stddef.h>
 #include <memory/gdt.h>
+#include <processes/thread.h>
 
 typedef struct per_cpu_storage {
+    // scheduler related
+    uintptr_t syscall_stack; /* must be first! this is because of how the syscall trampoline works */
+    thread_t* running_thread;
+    thread_t idle_thread;
+
     // apic
     uintptr_t lapic_id;
     uintptr_t processor_id;
 
     // kernel stacks
-    uintptr_t kernel_stack;
+    uintptr_t interrupt_stack;
     uintptr_t exception_stack;
     uintptr_t nmi_stack;
     uintptr_t page_fault_stack;

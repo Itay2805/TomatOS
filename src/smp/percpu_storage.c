@@ -4,6 +4,7 @@
 #include <memory/vmm.h>
 #include <libc/string.h>
 #include <interrupts/apic/lapic.h>
+#include <memory/mm.h>
 #include "percpu_storage.h"
 
 static per_cpu_storage_t* per_cpu_storage;
@@ -42,31 +43,25 @@ void percpu_storage_init() {
         cur->processor_id = lapic->processor_id;
 
         // allocate stacks
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_KERNEL_DATA, SIZE_TO_PAGES(PAGE_SIZE), &cur->kernel_stack);
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_KERNEL_DATA, SIZE_TO_PAGES(PAGE_SIZE), &cur->page_fault_stack);
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_KERNEL_DATA, SIZE_TO_PAGES(PAGE_SIZE), &cur->exception_stack);
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_KERNEL_DATA, SIZE_TO_PAGES(PAGE_SIZE), &cur->nmi_stack);
-
-        // convert to direct mapping
-        cur->kernel_stack = PHYSICAL_TO_DIRECT(cur->kernel_stack);
-        cur->page_fault_stack = PHYSICAL_TO_DIRECT(cur->page_fault_stack);
-        cur->exception_stack = PHYSICAL_TO_DIRECT(cur->exception_stack);
-        cur->nmi_stack = PHYSICAL_TO_DIRECT(cur->nmi_stack);
+        cur->interrupt_stack = mm_allocate_pages(1);
+        cur->page_fault_stack = mm_allocate_pages(1);
+        cur->exception_stack = mm_allocate_pages(1);
+        cur->nmi_stack = mm_allocate_pages(1);
 
         // clear the stacks
-        memset((void *) cur->kernel_stack, 0, PAGE_SIZE);
+        memset((void *) cur->interrupt_stack, 0, PAGE_SIZE);
         memset((void *) cur->page_fault_stack, 0, PAGE_SIZE);
         memset((void *) cur->exception_stack, 0, PAGE_SIZE);
         memset((void *) cur->nmi_stack, 0, PAGE_SIZE);
 
         // stack needs to be at the end
-        cur->kernel_stack += PAGE_SIZE;
+        cur->interrupt_stack += PAGE_SIZE;
         cur->page_fault_stack += PAGE_SIZE;
         cur->exception_stack += PAGE_SIZE;
         cur->nmi_stack += PAGE_SIZE;
 
         // set tss
-        cur->tss.rsp0 = cur->kernel_stack;
+        cur->tss.rsp0 = cur->interrupt_stack;
         cur->tss.rsp1 = (uint64_t) -1;
         cur->tss.rsp2 = (uint64_t) -1;
         cur->tss.ist1 = cur->exception_stack;

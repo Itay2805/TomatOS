@@ -6,6 +6,7 @@
 #include <acpi/tables/madt.h>
 #include <util/poke.h>
 #include <util/stall.h>
+#include <processes/scheduler.h>
 #include "smp.h"
 #include "percpu_storage.h"
 
@@ -31,6 +32,8 @@ static void per_cpu_initialization() {
     lapic_init();
     tss_init();
     vmm_enable_cpu_features();
+
+    per_cpu_scheduler_init();
 
     finished_init = 1;
 
@@ -71,7 +74,7 @@ void smp_startup(tboot_info_t* info) {
 
         // setup the ap specific stuff
         POKE64(SMP_FLAG) = 0;
-        POKE64(SMP_STACK_POINTER) = (uintptr_t)get_percpu_storage_of(lapic->id)->kernel_stack;
+        POKE64(SMP_STACK_POINTER) = (uintptr_t)get_percpu_storage_of(lapic->id)->interrupt_stack;
 
         /*************************************
          * SMP magic
