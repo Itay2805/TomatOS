@@ -3,24 +3,27 @@
 
 #include "tables.h"
 
-typedef struct rsdp {
+typedef struct acpi_rsdp {
     char signature[8];
     uint8_t checksum;
-    char oemid[6];
+    char oem[6];
     uint8_t revision;
-    uint32_t rsdt_addr;
-} __attribute__((packed)) rsdp_t;
+    uint32_t rsdt;
+} __attribute__((packed)) acpi_rsdp1_t;
 
-typedef struct rsdp2 {
-    rsdp_t rsdp;
-    uint32_t length;
-    uint64_t xsdt_addr;
+typedef struct acpi_rsdp2 {
+    char signature[8];
     uint8_t checksum;
-    uint8_t reserved[3];
-} __attribute__((packed)) rsdp2_t;
+    char oem[6];
+    uint8_t revision;
+    uint32_t rsdt;
+    uint32_t length;
+    uint64_t xsdt;
+    uint8_t extended_checksum;
+} __attribute__((packed)) acpi_rsdp2_t;
 
-extern rsdp2_t* rsdp2;
-extern rsdp_t* rsdp;
+extern acpi_rsdp2_t* acpi_rsdp2;
+extern acpi_rsdp1_t* acpi_rsdp;
 
 /**
  * Will search for the rsdp

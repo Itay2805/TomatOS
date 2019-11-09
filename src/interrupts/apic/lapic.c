@@ -63,9 +63,9 @@ static error_t calibrate_timer() {
 error_t lapic_init() {
     error_t err = NO_ERROR;
 
-    mmio_base = (char*)PHYSICAL_TO_DIRECT((uintptr_t)madt_table->lapic_addr);
+    mmio_base = (char*)PHYSICAL_TO_DIRECT((uintptr_t)acpi_madt->lapic_addr);
     if(!vmm_is_mapped(&kernel_handle, (uintptr_t)mmio_base, PAGE_SIZE)) {
-        vmm_map(&kernel_handle, madt_table->lapic_addr, (uintptr_t)mmio_base, PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+        vmm_map(&kernel_handle, acpi_madt->lapic_addr, (uintptr_t)mmio_base, PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
     }
 
     debug_log("[*] \tInitializing Local APIC #%d\n", lapic_get_id());

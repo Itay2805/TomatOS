@@ -41,24 +41,27 @@ void* mm_pool_allocate(size_t size) {
 }
 
 void* mm_pool_realloc(void* ptr, size_t size) {
-    pool_alloc_head_t* head = (pool_alloc_head_t *) ((uintptr_t)ptr - offsetof(pool_alloc_head_t, data));
-    ASSERT(head->magic == 0xCAFEBABE);
+    if(ptr == NULL) {
+        return mm_pool_allocate(size);
+    }else {
+        pool_alloc_head_t* head = (pool_alloc_head_t *) ((uintptr_t)ptr - offsetof(pool_alloc_head_t, data));
+        ASSERT(head->magic == 0xCAFEBABE);
 
-    // allocate and copy it
-    void* newptr = mm_pool_allocate(size);
-    memcpy(newptr, ptr, head->size > size ? size : head->size);
+        // allocate and copy it
+        void* newptr = mm_pool_allocate(size);
+        memcpy(newptr, ptr, head->size > size ? size : head->size);
 
-    // free the old one
-    mm_pool_free(ptr);
+        // free the old one
+        mm_pool_free(ptr);
 
-    // return it
-    return newptr;
+        // return it
+        return newptr;
+    }
 }
 
 void mm_pool_free(void* ptr) {
     pool_alloc_head_t* head = (pool_alloc_head_t *) ((uintptr_t)ptr - offsetof(pool_alloc_head_t, data));
     ASSERT(head->magic == 0xCAFEBABE);
     head->magic = 0xDEADBEEF;
-    mm_free_pages((uintptr_t) head, head->size);
+    mm_free_pages((uintptr_t) head, SIZE_TO_PAGES(head->size));
 }
-

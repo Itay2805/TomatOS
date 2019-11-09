@@ -66,7 +66,7 @@ static void default_interrupt_handler(interrupt_context_t *regs) {
 
     // procid/lapic id
     if(lapic_get_id() != (uint8_t)-1) {
-        debug_log("[-] CPU #%d/%d", apic_get_processor_id(), lapic_get_id());
+        debug_log("[-] CPU #%d/%d\n", apic_get_processor_id(), lapic_get_id());
     }
 
     // term_set_background_color(COLOR_BLACK);

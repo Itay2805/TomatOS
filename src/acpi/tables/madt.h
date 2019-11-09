@@ -53,15 +53,15 @@ typedef struct madt_entry {
     };
 } __attribute__((packed)) madt_entry_t;
 
-typedef struct madt {
-    sdt_hdr_t header;
+typedef struct acpi_madt {
+    acpi_header_t header;
 
     uint32_t lapic_addr;
     uint32_t flags;
     madt_entry_t entries[0];
-} __attribute__((packed)) madt_t;
+} __attribute__((packed)) acpi_madt_t;
 
-extern madt_t* madt_table;
+extern acpi_madt_t* acpi_madt;
 
 void madt_init();
 

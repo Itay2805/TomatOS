@@ -1,14 +1,19 @@
+# Options
 
+# force the compiler
 CC=clang-8
 LD=ld.lld-8
+
+# what loggers we want to support
+LOGGERS ?= E9 VBOX
 
 .PHONY: all \
 		clean \
 		image \
 		kernel \
-		bootloader \
 		qemu
 
+# build the kernel image by default
 all: bin/tomatos.img
 
 #########################
@@ -46,13 +51,8 @@ OBJS := $(SRCS:%=build/%.o)
 # All the dirs
 OBJDIRS := $(dir $(OBJS) $(BINS))
 
-# include dirs
-INCLUDE_DIRS += lib/
-INCLUDE_DIRS += lib/libc
-INCLUDE_DIRS += src/
-
 # Set the flags
-CFLAGS += \
+COMMON_CFLAGS += \
 	-target x86_64-unknown-elf \
 	-mno-sse \
 	-ffreestanding \
@@ -62,8 +62,6 @@ CFLAGS += \
 	-fno-stack-protector \
 	-mno-red-zone \
 	-mcmodel=kernel \
-	-fno-omit-frame-pointer \
-	-mno-omit-leaf-frame-pointer \
 	-Wall \
 	-fno-pie \
 	-static \
@@ -71,16 +69,28 @@ CFLAGS += \
 	-Ofast \
 	-g
 
+# Lai cflags
+LAI_CFLAGS = \
+    -Ilib/libc \
+    -Ilib/lai/include \
+    $(COMMON_CFLAGS)
+
+# The kernel flags
+KERNEL_CFLAGS = \
+    $(COMMON_CFLAGS) \
+    -Werror
+
 # STB options
-CFLAGS += -DSTB_SPRINTF_NOFLOAT
+KERNEL_CFLAGS += -DSTB_SPRINTF_NOFLOAT
 
-# Set the include dirs
-CFLAGS += $(INCLUDE_DIRS:%=-I%)
-
-LOGGERS ?= E9 VBOX
+# Add kernel include dirs
+KERNEL_CFLAGS += -Ilib/
+KERNEL_CFLAGS += -Ilib/libc
+KERNEL_CFLAGS += -Ilib/lai/include
+KERNEL_CFLAGS += -Isrc/
 
 # Set the loggers
-CFLAGS += $(LOGGERS:%=-D%_LOGGER)
+KERNEL_CFLAGS += $(LOGGERS:%=-D%_LOGGER)
 
 # Set the linking flags
 LDFLAGS += \
@@ -96,19 +106,28 @@ NASMFLAGS += \
 
 kernel: bin/image/tomatos.elf
 
+# Link everything
 bin/image/tomatos.elf: $(OBJDIRS) $(BINS) $(OBJS)
 	mkdir -p bin/image
 	$(LD) $(LDFLAGS) -o $@ $(OBJS)
 
+# build lai c files
+build/lib/lai/%.c.o: lib/lai/%.c
+	$(CC) $(LAI_CFLAGS) -c -o $@ $<
+
+# build real mode asm code
 build/%.bin: %.real
 	nasm -f bin -o $@ $<
 
+# Compile kernel c files
 build/%.c.o: %.c
-	$(CC) $(CFLAGS) -D __FILENAME__="\"$<\"" -c -o $@ $<
+	$(CC) $(KERNEL_CFLAGS) -D __FILENAME__="\"$<\"" -c -o $@ $<
 
+# Compile kernel asm files
 build/%.asm.o: %.asm
 	nasm $(NASMFLAGS) -o $@ $<
 
+# Make the build dir
 build/%:
 	mkdir -p $@
 
@@ -156,11 +175,7 @@ QEMU_PATH ?= qemu-system-x86_64
 
 # Run qemu
 qemu: bin/tomatos.img
-	$(QEMU_PATH) \
-		-drive if=pflash,format=raw,readonly,file=tools/OVMF.fd \
-		-drive file=bin/tomatos.img,media=disk,format=raw \
-		-no-reboot -no-shutdown \
-		-machine q35 $(QEMU_ARGS)
+	$(QEMU_PATH) -drive if=pflash,format=raw,readonly,file=tools/OVMF.fd -drive file=bin/tomatos.img,media=disk,format=raw -no-reboot -no-shutdown -machine q35 $(QEMU_ARGS)
 
 #		-netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no \
 #		-device rtl8139,netdev=mynet0 \

@@ -6,37 +6,37 @@
 #include "rsdt.h"
 #include "rsdp.h"
 
-rsdt_t* rsdt;
-xsdt_t* xsdt;
+acpi_rsdt_t* acpi_rsdt;
+acpi_xsdt_t* acpi_xsdt;
 
 void rsdt_init() {
-    sdt_hdr_t* hdr;
+    acpi_header_t* hdr;
 
-    if(rsdp->revision == 0) {
-        rsdt = (rsdt_t *)PHYSICAL_TO_DIRECT((uintptr_t)rsdp->rsdt_addr);
-        hdr = &rsdt->header;
-        debug_log("[+] \tRSDT - %p", rsdp->rsdt_addr);
+    if(acpi_rsdp->revision == 0) {
+        acpi_rsdt = (acpi_rsdt_t*)PHYSICAL_TO_DIRECT((uintptr_t)acpi_rsdp->rsdt);
+        hdr = &acpi_rsdt->header;
+        debug_log("[+] \tRSDT - %p", acpi_rsdp->rsdt);
     }else {
-        xsdt = (xsdt_t *) PHYSICAL_TO_DIRECT(rsdp2->xsdt_addr);
-        hdr = &xsdt->header;
+        acpi_xsdt = (acpi_xsdt_t*) PHYSICAL_TO_DIRECT(acpi_rsdp2->xsdt);
+        hdr = &acpi_xsdt->header;
 
-        if(rsdp->revision != 2) {
+        if(acpi_rsdp->revision != 2) {
             debug_log("[!] \tUnknown ACPI revision, assuming XSDT");
         }
 
-        debug_log("[+] \tXSDT - %p\n", rsdp2->xsdt_addr);
+        debug_log("[+] \tXSDT - %p\n", acpi_rsdp2->xsdt);
     }
 
     ASSERT(acpi_validate_checksum(hdr, hdr->length));
-    ASSERT(rsdt || xsdt);
+    ASSERT(acpi_rsdt || acpi_xsdt);
 }
 
-sdt_hdr_t* rsdt_search(char* signature, int index) {
-    if(rsdt != NULL) {
+acpi_header_t* rsdt_search(const char* signature, int index) {
+    if(acpi_rsdt != NULL) {
         // rsdt searching
         int actual_index = 0;
-        for(int i = 0; i < ((rsdt->header.length - sizeof(sdt_hdr_t)) / 4); i++) {
-            sdt_hdr_t* hdr = (sdt_hdr_t *)PHYSICAL_TO_DIRECT((uintptr_t)rsdt->sdts[i]);
+        for(unsigned long i = 0; i < ((acpi_rsdt->header.length - sizeof(acpi_header_t)) / 4); i++) {
+            acpi_header_t* hdr = (acpi_header_t *)PHYSICAL_TO_DIRECT((uintptr_t)acpi_rsdt->tables[i]);
             if(memcmp(hdr->signature, signature, 4) == 0) {
                 if(actual_index == index) {
                     return hdr;
@@ -47,8 +47,8 @@ sdt_hdr_t* rsdt_search(char* signature, int index) {
         }
     }else {
         int actual_index = 0;
-        for(int i = 0; i < ((xsdt->header.length - sizeof(sdt_hdr_t)) / 8); i++) {
-            sdt_hdr_t* hdr = (sdt_hdr_t *) PHYSICAL_TO_DIRECT(xsdt->sdts[i]);
+        for(unsigned long i = 0; i < ((acpi_xsdt->header.length - sizeof(acpi_header_t)) / 8); i++) {
+            acpi_header_t* hdr = (acpi_header_t*) PHYSICAL_TO_DIRECT(acpi_xsdt->tables[i]);
             if(memcmp(hdr->signature, signature, 4) == 0) {
                 if(actual_index == index) {
                     return hdr;

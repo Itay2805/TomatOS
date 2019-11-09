@@ -13,7 +13,7 @@ static uint32_t lapic_pid_map[255];
 void apic_init() {
 
     debug_log("[*] Preparing APIC\n");
-    ASSERT(madt_table != NULL);
+    ASSERT(acpi_madt != NULL);
 
     // TODO: disable legacy PIC
 

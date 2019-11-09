@@ -1,32 +1,17 @@
 #ifndef TOMATKERNEL_RSDT_H
 #define TOMATKERNEL_RSDT_H
 
+#include <acpispec/tables.h>
+
 #include <stdint.h>
 
-typedef struct sdt_hdr {
-    char signature[4];
-    uint32_t length;
-    uint8_t revision;
-    uint8_t checksum;
-    char oemid[6];
-    char oem_table_id[8];
-    uint32_t oem_revision;
-    uint32_t creator_id;
-    uint32_t creator_revision;
-} __attribute__((packed)) sdt_hdr_t;
+typedef struct acpi_xsdt {
+    acpi_header_t header;
+    uint64_t tables[0];
+} __attribute__((packed)) acpi_xsdt_t;
 
-typedef struct rsdt {
-    sdt_hdr_t header;
-    uint32_t sdts[0];
-} __attribute__((packed)) rsdt_t;
-
-typedef struct xsdt {
-    sdt_hdr_t header;
-    uint64_t sdts[0];
-} __attribute__((packed)) xsdt_t;
-
-extern rsdt_t* rsdt;
-extern xsdt_t* xsdt;
+extern acpi_rsdt_t* acpi_rsdt;
+extern acpi_xsdt_t* acpi_xsdt;
 
 /**
  * Will initialize the rsdt
@@ -42,6 +27,6 @@ void rsdt_init();
  * @param signature [IN] The signature of the table
  * @param index     [IN] The number of the table (for this specific signature)
  */
-sdt_hdr_t* rsdt_search(char* signature, int index);
+acpi_header_t* rsdt_search(const char* signature, int index);
 
 #endif //TOMATKERNEL_RSDT_H

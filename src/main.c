@@ -14,11 +14,16 @@
 #include <processes/process.h>
 #include <processes/thread.h>
 #include <processes/scheduler.h>
+#include <lai/helpers/sci.h>
 
 static thread_t init_thread = {0};
 
 static void kernel_init_thread() {
     debug_log("[+] In init thread!\n");
+
+    debug_log("[*] Initializing ACPI\n");
+    lai_create_namespace();
+    ASSERT(!lai_enable_acpi(1));
 
     while(true);
 }

@@ -12,10 +12,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define PAGE_SIZE 4096
-#define PAGE_MASK 0xFFF
-#define PAGE_SHIFT 12
+#define PAGE_MASK 0xFFFu
+#define PAGE_SHIFT 12u
 
-#define SIZE_TO_PAGES(a) (((a) >> PAGE_SHIFT) + (((a) & PAGE_MASK) ? 1 : 0))
+#define SIZE_TO_PAGES(a) (((a) >> PAGE_SHIFT) + (((a) & PAGE_MASK) ? 1u : 0u))
 #define PAGES_TO_SIZE(a) ((a) << PAGE_SHIFT)
 
 //! Vol 3A, Table 4-14. Format of an IA-32e PML4 Entry (PML4E) that References a Page-Directory-Pointer Table
