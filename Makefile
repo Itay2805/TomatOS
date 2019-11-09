@@ -69,9 +69,10 @@ CFLAGS += \
 	-static \
 	-flto \
 	-Ofast \
-	-g \
-	-DSTB_SPRINTF_NOFLOAT \
+	-g
 
+# STB options
+CFLAGS += -DSTB_SPRINTF_NOFLOAT
 
 # Set the include dirs
 CFLAGS += $(INCLUDE_DIRS:%=-I%)

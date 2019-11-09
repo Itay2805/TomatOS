@@ -32,6 +32,14 @@ void mm_free_pages(uintptr_t ptr, size_t page_count);
 void* mm_pool_allocate(size_t size);
 
 /**
+ * Reallocate an element in the pool
+ *
+ * @param ptr   [IN] The old pointer
+ * @param size  [IN] The new size to allocate
+ */
+void* mm_pool_realloc(void* ptr, size_t size);
+
+/**
  * Free memory allocated from the memory pool
  *
  * @param ptr   [IN] The pointer to free
