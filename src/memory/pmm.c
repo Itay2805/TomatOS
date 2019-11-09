@@ -458,7 +458,7 @@ void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t pag
     ASSERT(base != NULL);
     ASSERT(page_count != 0);
 
-    aquire_lock(&lock);
+    acquire_lock(&lock);
 
     uintptr_t start = *base;
     uintptr_t end = 0;
@@ -492,7 +492,7 @@ void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t pag
 }
 
 void pmm_free_pages(uintptr_t base, size_t page_count) {
-    aquire_lock(&lock);
+    acquire_lock(&lock);
 
     // find the entry
     mem_entry_t* entry;

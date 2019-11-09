@@ -5,8 +5,8 @@
 
 typedef volatile uint32_t lock_t;
 
-void aquire_lock(lock_t* lock);
-bool aquire_lock_or_fail(lock_t* lock);
+void acquire_lock(lock_t *lock);
+bool acquire_lock_or_fail(lock_t *lock);
 void release_lock(lock_t* lock);
 
 uint32_t interlocked_increment(volatile uint32_t* value);

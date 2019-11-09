@@ -2,6 +2,7 @@
 #define TOMATKERNEL_INTERRUPTS_H
 
 #include <stdint.h>
+#include <util/list.h>
 
 typedef struct interrupt_context {
     // the data segment to return to
@@ -43,5 +44,52 @@ typedef struct interrupt_context {
     uint64_t rsp;
     uint64_t ss;
 } __attribute__((packed)) interrupt_context_t;
+
+enum {
+    // This is where the legacy interrupts start
+    INT_LEGACY_BASE = 0x20,
+
+    // IPIs
+    IPI__TLB_SHOOTDOWN = 0x20 + 0xf,
+    IPI_SCHEDULER_STARTUP,
+    IPI_SCHEDULER_RESCHEDULE,
+
+    // from here we can allocate it dynamically
+    INT_ALLOCATION_BASE,
+};
+
+typedef struct interrupt {
+    int vector;
+    const char* name;
+    void* user_param;
+    error_t (*callback)(interrupt_context_t* ctx, void* user_param);
+    list_entry_t link;
+} interrupt_handler_t;
+
+/**
+ * Will initialize the interrupt management
+ */
+void interrupts_init();
+
+/**
+ * will hook on an interrupt
+ *
+ * you can use vector -1 to let it allocate an interrupt number
+ *
+ * @remark
+ * The interrupt must stay allocated as long as the interrupt
+ * is registered
+ *
+ * @param interrupt [IN] The interrupt to register
+ */
+void interrupt_register(interrupt_handler_t* interrupt);
+
+/**
+ * Will free the interrupt at that vector
+ *
+ * This will allow to release the interrupt structure responding to
+ * this interrupt
+ */
+void interrupt_free(interrupt_handler_t* inthandler);
 
 #endif //TOMATKERNEL_INTERRUPTS_H

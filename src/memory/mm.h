@@ -22,20 +22,20 @@ uintptr_t mm_allocate_pages(size_t page_count);
  */
 void mm_free_pages(uintptr_t ptr, size_t page_count);
 
-///**
-// * Allocate memory from a memory pool
-// *
-// * The idea is to allow for more efficient smaller allocations
-// *
-// * @param size  [IN] The size to allocate
-// */
-//void* mm_pool_allocate(size_t size);
-//
-///**
-// * Free memory allocated from the memory pool
-// *
-// * @param ptr   [IN] The pointer to free
-// */
-//void mm_pool_free(void* ptr);
+/**
+ * Allocate memory from a memory pool
+ *
+ * The idea is to allow for more efficient smaller allocations
+ *
+ * @param size  [IN] The size to allocate
+ */
+void* mm_pool_allocate(size_t size);
+
+/**
+ * Free memory allocated from the memory pool
+ *
+ * @param ptr   [IN] The pointer to free
+ */
+void mm_pool_free(void* ptr);
 
 #endif //TOMATKERNEL_MM_H

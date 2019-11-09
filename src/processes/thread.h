@@ -26,6 +26,18 @@ typedef struct cpu_state {
     uint64_t r15;
 } cpu_state_t;
 
+typedef enum thread_state {
+    // this is a running thread
+    THREAD_RUNNING,
+
+    // this is a thread that is waiting for something to
+    // happen
+    THREAD_WAITING,
+
+    // this is a thread that is waiting to run
+    THREAD_NORMAL,
+} thread_state_t;
+
 typedef struct thread {
     object_t object;
 
@@ -39,11 +51,12 @@ typedef struct thread {
     // Links to other threads in the same process
     list_entry_t scheduler_link;
 
+    // the thread of this thread
+    thread_state_t state;
+
     // the state of the thread
-    __attribute__((aligned(16)))
-    struct {
-        cpu_state_t cpu;
-    } state;
+    cpu_state_t cpu_state;
+    // TODO: Fpu state
 
     // the allocated stack
     uintptr_t stack;

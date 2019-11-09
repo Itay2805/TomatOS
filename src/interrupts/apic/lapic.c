@@ -165,6 +165,22 @@ void lapic_send_ipi_all_excluding_self(uint8_t vector) {
     lapic_write(LAPIC_REG_ICR0, icr.raw_low);
 }
 
+void lapic_send_ipi_all_including_self(uint8_t vector) {
+    // let everything finish before trying to send an ipi
+    memory_fence();
+
+    lapic_icr_t icr = {
+            .delivery_mode = LAPIC_DELIVERY_MODE_FIXED,
+            .level = 1,
+            .vector = vector,
+            .destination_shothand = LAPIC_DESTINATION_SHORTHAND_ALL_INCLUDING_SELF
+    };
+
+    // write it
+    lapic_write(LAPIC_REG_ICR1, icr.raw_high);
+    lapic_write(LAPIC_REG_ICR0, icr.raw_low);
+}
+
 void lapic_send_init(uint32_t lapic_id) {
     // prepare the icr
     lapic_icr_t icr = {

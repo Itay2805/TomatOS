@@ -374,7 +374,7 @@ bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t*
     ASSERT(handle != NULL);
     ASSERT(virtual != 0);
 
-    aquire_lock(&handle->lock);
+    acquire_lock(&handle->lock);
 
     VA_ADDRESS va = { virtual };
     void* entry;
@@ -436,7 +436,7 @@ void vmm_unmap(vmm_handle_t* handle, uintptr_t addr, size_t size) {
     ASSERT(addr != 0);
     ASSERT(size > 0);
 
-    aquire_lock(&handle->lock);
+    acquire_lock(&handle->lock);
 
     size_t current_size = 0;
 
@@ -487,7 +487,7 @@ void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, 
     ASSERT(virt % PAGE_SIZE == 0);
     ASSERT(phys % PAGE_SIZE == 0);
 
-    aquire_lock(&handle->lock);
+    acquire_lock(&handle->lock);
 
     uintptr_t current_va = virt;
     uintptr_t range_end_va = virt + size;

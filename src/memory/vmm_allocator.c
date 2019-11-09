@@ -28,7 +28,7 @@ static void remove_mem_map_entry(vmm_handle_t* handle, map_entry_t* entry) {
     remove_entry_list(&entry->link);
     entry->link.next = NULL;
 
-    aquire_lock(&free_entries_lock);
+    acquire_lock(&free_entries_lock);
     insert_tail_list(&free_entries_list, &entry->link);
     release_lock(&free_entries_lock);
 }
@@ -42,7 +42,7 @@ static void remove_mem_map_entry(vmm_handle_t* handle, map_entry_t* entry) {
  * @return Map entry
  */
 static map_entry_t* allocate_memory_map_entry() {
-    aquire_lock(&free_entries_lock);
+    acquire_lock(&free_entries_lock);
     if(is_list_empty(&free_entries_list)) {
         map_entry_t* free_descriptor_entries = NULL;
         pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, (uintptr_t*)&free_descriptor_entries);
@@ -278,7 +278,7 @@ error_t vmm_allocate(vmm_handle_t* handle, uintptr_t* virt, size_t size, page_pe
     ASSERT(handle != NULL);
     ASSERT(size != 0);
 
-    aquire_lock(&handle->lock);
+    acquire_lock(&handle->lock);
 
     uintptr_t start = *virt;
     uintptr_t end = 0;
@@ -322,7 +322,7 @@ cleanup:
 error_t vmm_free(vmm_handle_t* handle, uintptr_t virt, size_t size) {
     error_t err = NO_ERROR;
 
-    aquire_lock(&handle->lock);
+    acquire_lock(&handle->lock);
 
     // find the entry
     map_entry_t* entry;

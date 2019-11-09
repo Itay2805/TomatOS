@@ -13,6 +13,8 @@
 
 #define CR(record, type, field) ((type*)((char*)(record) - (char*)offsetof(type, field)))
 
+#define INIT_LIST_ENTRY(var) ((list_entry_t){ &var, &var })
+
 typedef struct list_entry {
     struct list_entry* next;
     struct list_entry* prev;

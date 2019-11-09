@@ -2,7 +2,7 @@
 #include "process.h"
 
 lock_t processes_list = {0};
-list_entry_t processes = { &processes, &processes };
+list_entry_t processes = INIT_LIST_ENTRY(processes);
 process_t kernel_process = {0};
 
 void kernel_process_init() {
@@ -18,14 +18,14 @@ void process_init(process_t* process) {
     memset(process, 0, sizeof(process_t));
 
     // initialize the rest of the stuff
-    process->threads = (list_entry_t){ &process->threads, &process->threads };
+    process->threads = INIT_LIST_ENTRY(process->threads);
 
     // initialize the object
     process->object.handle = generate_object_handle();
     process->object.type = OBJECT_PROCESS;
 
     // add to process list
-    aquire_lock(&processes_list);
+    acquire_lock(&processes_list);
     insert_tail_list(&processes, &process->object.link);
     release_lock(&processes_list);
 }

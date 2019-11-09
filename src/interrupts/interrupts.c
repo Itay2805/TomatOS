@@ -4,12 +4,14 @@
 #include <util/debug.h>
 #include <util/arch.h>
 #include <util/error.h>
+#include <interrupts/apic/apic.h>
+#include <interrupts/apic/lapic.h>
 
 #include "idt.h"
 #include "interrupts.h"
 
 //////////////////////////////////////////////////////////////////
-// Exception handling
+// Default Exception handling
 //////////////////////////////////////////////////////////////////
 
 static const char* ISR_NAMES[] = {
@@ -48,7 +50,7 @@ static const char* ISR_NAMES[] = {
         "Reserved (0x20)",
 };
 
-static void default_exception_handler(interrupt_context_t* regs) {
+static void default_interrupt_handler(interrupt_context_t *regs) {
     // term_disable();
 
     // print error name
@@ -57,9 +59,14 @@ static void default_exception_handler(interrupt_context_t* regs) {
         name = ISR_NAMES[regs->int_num];
     }
     if(name == 0) {
-        debug_log("[-] Exception occurred: %x\n", regs->int_num);
+        debug_log("[-] Unhandled interrupt: %x\n", regs->int_num);
     }else {
         debug_log("[-] Exception occurred: %s\n", name);
+    }
+
+    // procid/lapic id
+    if(lapic_get_id() != (uint8_t)-1) {
+        debug_log("[-] CPU #%d/%d", apic_get_processor_id(), lapic_get_id());
     }
 
     // term_set_background_color(COLOR_BLACK);
@@ -120,9 +127,6 @@ static void default_exception_handler(interrupt_context_t* regs) {
             break;
     }
 
-    // procid/lapic id
-    // log_error("CPU #%d/%d", apic_get_processor_id(), lapic_get_id());
-
     // print registers
     char _cf = (char) ((regs->rflags.CF) != 0 ? 'C' : '-');
     char _pf = (char) ((regs->rflags.PF) != 0 ? 'P' : '-');
@@ -152,13 +156,114 @@ static void default_exception_handler(interrupt_context_t* regs) {
     ASSERT(false);
 }
 
+//////////////////////////////////////////////////////////////////
+// Interrupt handling
+//////////////////////////////////////////////////////////////////
+
+#define INTERRUPT_VECTOR_SIZE (0xff - INT_ALLOCATION_BASE - 1)
+static int interrupt_vector[INTERRUPT_VECTOR_SIZE];
+static int index = 0;
+
+static list_entry_t interrupt_handlers[256];
+
+void interrupts_init() {
+    // just initialize all the list entries
+    for(int i = 0; i < 256; i++) {
+        interrupt_handlers[i] = INIT_LIST_ENTRY(interrupt_handlers[i]);
+    }
+}
+
 void common_interrupt_handler(interrupt_context_t ctx) {
     error_t err = NO_ERROR;
 
-    if(ctx.int_num < 0x20) {
-        default_exception_handler(&ctx);
+    if(is_list_empty(&interrupt_handlers[ctx.int_num])) {
+
+        // just call the default handler if none is found
+        default_interrupt_handler(&ctx);
+
+    }else {
+
+        // iterate and call all the handlers
+        for(list_entry_t* link = interrupt_handlers[ctx.int_num].next; link != &interrupt_handlers[ctx.int_num]; link = link->next) {
+            interrupt_handler_t* handler = CR(link, interrupt_handler_t, link);
+
+            CHECK_AND_RETHROW(handler->callback(&ctx, handler->user_param));
+        }
     }
 
 cleanup:
     ASSERT(!IS_ERROR(err));
+}
+
+//////////////////////////////////////////////////////////////////
+// Interrupt manipulation
+//////////////////////////////////////////////////////////////////
+
+static uint8_t interrupt_allocate() {
+    int vec = index;
+    for(int i = index; i < INTERRUPT_VECTOR_SIZE; i++) {
+        if(interrupt_vector[i] < interrupt_vector[vec]) {
+            vec = i;
+
+            // if has zero uses we can just return it
+            if(interrupt_vector[vec] == 0) goto found;
+        }
+    }
+
+    // we could not find a completely free one
+    // try to search from the start for one
+    if(index != 0) {
+        for(int i = 0; i < index; i++) {
+            if(interrupt_vector[i] < interrupt_vector[vec]) {
+                vec = i;
+
+                // if has zero uses we can just return it
+                if(interrupt_vector[vec] == 0) goto found;
+            }
+        }
+    }
+
+    // if we could still not find a good one, just use whatever
+    // we got
+
+found:
+    // increment the usage count, set the
+    // new index to start from, and return
+    // the correct number
+    interrupt_vector[vec]++;
+    index = (vec + 1) % INTERRUPT_VECTOR_SIZE;
+    return (uint8_t) (vec + INT_ALLOCATION_BASE);
+}
+
+void interrupt_register(interrupt_handler_t* inthandler) {
+    ASSERT(inthandler != NULL);
+    ASSERT(inthandler->callback != NULL);
+
+    // allocate an interrupt number if needed
+    if(inthandler->vector == -1) {
+        inthandler->vector = interrupt_allocate();
+    }
+
+    ASSERT(0 <= inthandler->vector && inthandler->vector <= 255);
+
+    // insert it
+    insert_tail_list(&interrupt_handlers[inthandler->vector], &inthandler->link);
+
+    if(inthandler->name == NULL) {
+        inthandler->name = "Unknown";
+    }
+
+    debug_log("[*] registered interrupt #%d (%s)\n", inthandler->vector, inthandler->name);
+}
+
+void interrupt_free(interrupt_handler_t* inthandler) {
+    // remove it
+    remove_entry_list(&inthandler->link);
+
+    // check if need to free it from the allocations
+    if(inthandler->vector <= INT_ALLOCATION_BASE || inthandler->vector >= 0xf0) return;
+    inthandler -= INT_ALLOCATION_BASE;
+    if(interrupt_vector[inthandler->vector] > 0) {
+        interrupt_vector[inthandler->vector]--;
+    }
 }

@@ -6,22 +6,28 @@
 #define SPIN_LOCK_RELEASED          (0)
 #define SPIN_LOCK_ACQUIRED          (1)
 
-void aquire_lock(lock_t* lock) {
+void acquire_lock(lock_t *lock) {
     memory_fence();
 
-    while(!aquire_lock_or_fail(lock)) {
+    while(!acquire_lock_or_fail(lock)) {
         cpu_pause();
     }
 }
 
-bool aquire_lock_or_fail(lock_t* lock) {
+bool acquire_lock_or_fail(lock_t *lock) {
     ASSERT(lock != NULL);
-    return interlocked_compare_exchange(lock, SPIN_LOCK_RELEASED, SPIN_LOCK_ACQUIRED) == SPIN_LOCK_ACQUIRED;
+
+    memory_fence();
+    uint32_t result = interlocked_compare_exchange(lock, SPIN_LOCK_RELEASED, SPIN_LOCK_ACQUIRED);
+    memory_fence();
+
+    return result == SPIN_LOCK_RELEASED;
 }
 
 void release_lock(lock_t* lock) {
-    memory_fence(); // wait for everything to finish
+    memory_fence();
     *lock = SPIN_LOCK_RELEASED;
+    memory_fence();
 }
 
 uint32_t interlocked_increment(volatile uint32_t* value) {
@@ -56,11 +62,10 @@ uint32_t interlocked_decrement(volatile uint32_t* value) {
 
 uint32_t interlocked_compare_exchange(volatile uint32_t* value, uint32_t comapre, uint32_t exchange) {
     __asm__ __volatile__ (
-        "lock                 \n\t"
-        "cmpxchgl    %2, %1   \n\t"
-        : "+a" (comapre),      // %0
-          "+m" (*value)             // %1
-        : "r"  (exchange)      // %2
+        "lock cmpxchgl %2, %1"
+        : "+a" (comapre),
+          "+m" (*value)
+        : "r"  (exchange)
         : "memory", "cc"
     );
     return comapre;

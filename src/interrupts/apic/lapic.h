@@ -252,6 +252,13 @@ void lapic_send_ipi(uint32_t lapic_id, uint8_t vector);
 void lapic_send_ipi_all_excluding_self(uint8_t vector);
 
 /**
+ * Send an IPI to all CPUs including self
+ *
+ * @param vector    [IN] The vector to send the interrupt to
+ */
+void lapic_send_ipi_all_including_self(uint8_t vector);
+
+/**
  * Send an INIT to another LAPIC
  *
  * @param lapic_id  [IN] The Local APIC to send to

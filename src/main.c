@@ -18,7 +18,9 @@
 static thread_t init_thread = {0};
 
 static void kernel_init_thread() {
+    debug_log("[+] In init thread!\n");
 
+    while(true);
 }
 
 void kernel_main(uint32_t magic, tboot_info_t* info) {
@@ -26,6 +28,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // we can init these right away
     stall_init(info);
+    interrupts_init();
     idt_init();
 
     // do memory initialization
@@ -44,21 +47,27 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     percpu_storage_init();
 
     // finish the initialization of the bsp
+    debug_log("[*] Finishing BSP init\n");
     lapic_init();
     tss_init();
 
     // init kernel process and such
     kernel_process_init();
     thread_init(&init_thread, &kernel_process);
-    init_thread.state.cpu.rip = (uint64_t)kernel_init_thread;
+    init_thread.cpu_state.rip = (uint64_t)kernel_init_thread;
+    scheduler_queue_thread(&init_thread);
 
     // do smp!
     smp_startup(info);
 
     // and now finish by starting our scheduler and
     // kicks starting it on all cores
+    debug_log("[+] Scheduler startup!\n");
     per_cpu_scheduler_init();
-    // TODO: Scheduler kick start
+
+    // enable interrupts and send the ipi
+    enable_interrupts();
+    lapic_send_ipi_all_including_self(IPI_SCHEDULER_STARTUP);
 
     ASSERT(false);
 }

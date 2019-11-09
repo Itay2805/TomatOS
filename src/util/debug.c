@@ -28,7 +28,7 @@ static void vbox_write_char(char c) {
 static lock_t lock;
 
 void debug_log(const char* fmt, ...) {
-    aquire_lock(&lock);
+    acquire_lock(&lock);
 
     char buffer[128];
     va_list ap;
