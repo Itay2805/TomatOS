@@ -1,9 +1,11 @@
-#include <util/list.h>
-#include <smp/percpu_storage.h>
-#include <interrupts/interrupts.h>
 #include <interrupts/apic/lapic.h>
-#include "scheduler.h"
+#include <interrupts/interrupts.h>
+#include <smp/percpu_storage.h>
+#include <util/list.h>
+
 #include "thread.h"
+#include "process.h"
+#include "scheduler.h"
 
 static volatile lock_t scheduler_queue_lock = {0};
 static list_entry_t scheduler_queue = INIT_LIST_ENTRY(scheduler_queue);
@@ -37,7 +39,7 @@ static void load_context(interrupt_context_t* context, thread_t* thread) {
     context->rflags = thread->cpu_state.rflags;
 
     // the segment registers
-    if(thread->parent == &kernel_process) {
+    if(thread->parent == kernel_process) {
         context->cs = GDT_KERNEL_CODE;
         context->ss = GDT_KERNEL_DATA;
         context->ds = GDT_KERNEL_DATA;
@@ -136,8 +138,8 @@ static error_t scheduler_tick(interrupt_context_t* context, void* user_param) {
     }else {
 
         // load the context of the idle thread
-        load_context(context, &get_percpu_storage()->idle_thread);
-        get_percpu_storage()->running_thread = &get_percpu_storage()->idle_thread;
+        load_context(context, get_percpu_storage()->idle_thread);
+        get_percpu_storage()->running_thread = get_percpu_storage()->idle_thread;
 
     }
 
@@ -195,8 +197,8 @@ static bool registered_once = false;
 
 void per_cpu_scheduler_init() {
     // create the idle thread of this thread
-    thread_init(&get_percpu_storage()->idle_thread, &kernel_process);
-    get_percpu_storage()->idle_thread.cpu_state.rip = (uint64_t)&idle_thread_loop;
+    get_percpu_storage()->idle_thread = new(Thread(), kernel_process);
+    get_percpu_storage()->idle_thread->cpu_state.rip = (uint64_t)&idle_thread_loop;
 
     // register the interrupt handlers
     if(!registered_once) {
@@ -210,6 +212,7 @@ void per_cpu_scheduler_init() {
 }
 
 void scheduler_queue_thread(thread_t* thread) {
+    ASSERT(thread != NULL);
     acquire_lock(&scheduler_queue_lock);
     insert_tail_list(&scheduler_queue, &thread->scheduler_link);
     release_lock(&scheduler_queue_lock);

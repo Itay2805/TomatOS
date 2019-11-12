@@ -1,8 +1,11 @@
 #ifndef TOMATKERNEL_INTERRUPTS_H
 #define TOMATKERNEL_INTERRUPTS_H
 
-#include <stdint.h>
+#include <util/error.h>
+#include <util/arch.h>
 #include <util/list.h>
+
+#include <stdint.h>
 
 typedef struct interrupt_context {
     // the data segment to return to

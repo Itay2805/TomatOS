@@ -9,7 +9,7 @@ typedef struct per_cpu_storage {
     // scheduler related
     uintptr_t syscall_stack; /* must be first! this is because of how the syscall trampoline works */
     thread_t* running_thread;
-    thread_t idle_thread;
+    thread_t* idle_thread;
 
     // apic
     uintptr_t lapic_id;

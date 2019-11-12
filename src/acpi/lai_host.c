@@ -38,8 +38,8 @@ void laihost_panic(const char* msg) {
 }
 
 void* laihost_map(size_t base, size_t size) {
-    if(!vmm_is_mapped(&kernel_process.vmm_handle, base, size)) {
-        vmm_map(&kernel_process.vmm_handle, base, PHYSICAL_TO_DIRECT(base), size, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+    if(!vmm_is_mapped(&kernel_process->vmm_handle, base, size)) {
+        vmm_map(&kernel_process->vmm_handle, base, PHYSICAL_TO_DIRECT(base), size, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
     }
     return (void*)PHYSICAL_TO_DIRECT(base);
 }

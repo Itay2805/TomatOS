@@ -16,14 +16,14 @@
 #include <processes/scheduler.h>
 #include <lai/helpers/sci.h>
 
-static thread_t init_thread = {0};
+static thread_t* init_thread = NULL;
 
 static void kernel_init_thread() {
     debug_log("[+] In init thread!\n");
 
-    debug_log("[*] Initializing ACPI\n");
-    lai_create_namespace();
-    ASSERT(!lai_enable_acpi(1));
+//    debug_log("[*] Initializing ACPI\n");
+//    lai_create_namespace();
+//    ASSERT(!lai_enable_acpi(1));
 
     while(true);
 }
@@ -57,10 +57,11 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     tss_init();
 
     // init kernel process and such
-    kernel_process_init();
-    thread_init(&init_thread, &kernel_process);
-    init_thread.cpu_state.rip = (uint64_t)kernel_init_thread;
-    scheduler_queue_thread(&init_thread);
+    kernel_process = new(Process());
+    kernel_process->vmm_handle = kernel_handle;
+    init_thread = new(Thread(), kernel_process);
+    init_thread->cpu_state.rip = (uint64_t)kernel_init_thread;
+    scheduler_queue_thread(init_thread);
 
     // do smp!
     smp_startup(info);

@@ -1,8 +1,10 @@
 #ifndef TOMATKERNEL_THREAD_H
 #define TOMATKERNEL_THREAD_H
 
-#include <objects/objects.h>
-#include "process.h"
+#include <objects/object.h>
+#include <util/sync.h>
+#include <util/arch.h>
+#include <util/list.h>
 
 typedef struct cpu_state {
     IA32_RFLAGS rflags;
@@ -39,43 +41,23 @@ typedef enum thread_state {
 } thread_state_t;
 
 typedef struct thread {
-    object_t object;
+    object_t _;
 
-    // the parent of this thread
-    process_t* parent;
-
-    // Thread lock
-    // TODO: Maybe switch to a read write lock
+    struct process* parent;
     lock_t lock;
 
-    // Links to other threads in the same process
-    list_entry_t scheduler_link;
-
-    // the thread of this thread
     thread_state_t state;
-
-    // the state of the thread
     cpu_state_t cpu_state;
-    // TODO: Fpu state
 
-    // the allocated stack
     uintptr_t stack;
     size_t stack_size;
 
-    // the stack used for the kernel stuff
     uintptr_t kernel_stack;
     size_t kernel_stack_size;
+
+    list_entry_t scheduler_link;
 } thread_t;
 
-/**
- * Initialize a thread to a default state and attach it to a process
- *
- * @remark
- * This will allocate a stack
- *
- * @param thread    [IN/OUT]    The thread to initialize
- * @param parent    [IN]        The parent of the process
- */
-void thread_init(thread_t* thread, process_t* parent);
+const void* Thread();
 
 #endif //TOMATKERNEL_THREAD_H

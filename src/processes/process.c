@@ -1,31 +1,35 @@
 #include <libc/string.h>
 #include "process.h"
 
-lock_t processes_list = {0};
-list_entry_t processes = INIT_LIST_ENTRY(processes);
-process_t kernel_process = {0};
+process_t* kernel_process;
 
-void kernel_process_init() {
-    process_init(&kernel_process);
+static void* Process_ctor(void* _self, va_list ap) {
+    process_t* self = super_ctor(Process(), _self, ap);
 
-    // just set the vmm handle
-    kernel_process.vmm_handle = kernel_handle;
+    // nothing to do here for now
+
+    return self;
 }
 
-void process_init(process_t* process) {
-    ASSERT(process != NULL);
+static void* Process_dtor(void* _self) {
+    process_t* self = cast(Process(), _self);
 
-    memset(process, 0, sizeof(process_t));
+    // can't delete the kernel process
+    ASSERT(self != kernel_process);
 
-    // initialize the rest of the stuff
-    process->threads = INIT_LIST_ENTRY(process->threads);
+    acquire_lock(&self->lock);
+    // TODO: free the vmm
 
-    // initialize the object
-    process->object.handle = generate_object_handle();
-    process->object.type = OBJECT_PROCESS;
+    return super_dtor(Process(), self);
+}
 
-    // add to process list
-    acquire_lock(&processes_list);
-    insert_tail_list(&processes, &process->object.link);
-    release_lock(&processes_list);
+const void* Process() {
+    static const void* class = NULL;
+    if(class == NULL) {
+        class = new(Class(),
+                "Process", Object(), sizeof(process_t),
+                ctor, Process_ctor,
+                dtor, Process_dtor);
+    }
+    return class;
 }

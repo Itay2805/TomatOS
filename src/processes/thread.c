@@ -1,42 +1,56 @@
-#include <libc/string.h>
+#include <stb/stb_ds.h>
 #include <memory/pmm.h>
 #include <memory/mm.h>
+
+#include <string.h>
+
+#include "process.h"
 #include "thread.h"
 
-void thread_init(thread_t* thread, process_t* parent) {
-    ASSERT(thread != NULL);
-    ASSERT(parent != NULL);
+static void* Thread_ctor(void* _self, va_list ap) {
+    thread_t* self = super_ctor(Thread(), _self, ap);
 
-    memset(thread, 0, sizeof(thread_t));
+    process_t* parent = va_arg(ap, process_t*);
 
-    thread->object.handle = generate_object_handle();
-    thread->object.type = OBJECT_THREAD;
+    self->parent = parent;
+    self->state = THREAD_WAITING;
 
-    // set general thread stuff
-    thread->parent = parent;
-    thread->state = THREAD_WAITING;
+    self->cpu_state.rflags.IF = 1;
+    self->cpu_state.rflags.ID = 1;
 
-    // set default rflags
-    thread->cpu_state.rflags.IF = 1;
-    thread->cpu_state.rflags.ID = 1;
+    self->kernel_stack = mm_allocate_pages(1);
+    self->kernel_stack_size = PAGE_SIZE;
 
-    // allocate the kernel stack (used on syscall)
-    thread->kernel_stack = mm_allocate_pages(1);
-    thread->kernel_stack_size = PAGE_SIZE;
-
-    // set the process stack
-    if(parent == &kernel_process) {
-        thread->stack = NULL;
-        thread->stack_size = 0;
-        thread->cpu_state.rsp = thread->kernel_stack + thread->kernel_stack_size;
+    if(parent == kernel_process) {
+        self->stack = NULL;
+        self->stack_size = 0;
+        self->cpu_state.rsp = self->kernel_stack + self->kernel_stack_size;
     }else {
-        thread->stack_size = PAGE_SIZE;
-        ASSERT(!IS_ERROR(vmm_allocate(&parent->vmm_handle, &thread->stack, thread->stack_size, PAGE_READWRITE)));
-        thread->cpu_state.rsp = thread->stack + thread->stack_size;
+        self->stack_size = PAGE_SIZE;
+        ASSERT(!IS_ERROR(vmm_allocate(&parent->vmm_handle, &self->stack, self->stack_size, PAGE_READWRITE)));
+        self->cpu_state.rsp = self->stack + self->stack_size;
     }
 
-    // gonna add it to the parent
     acquire_lock(&parent->lock);
-    insert_tail_list(&parent->threads, &thread->object.link);
+    arrpush(parent->threads, self);
     release_lock(&parent->lock);
+
+    return self;
 }
+
+static void* Thread_dtor(void* _self, va_list ap) {
+    // TODO: this
+    ASSERT(0);
+}
+
+const void* Thread() {
+    static const void* class = NULL;
+    if(class == NULL) {
+        class = new(Class(),
+                "Thread", Object(), sizeof(thread_t),
+                ctor, Thread_ctor,
+                dtor, Thread_dtor);
+    }
+    return class;
+}
+
