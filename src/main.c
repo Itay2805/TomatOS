@@ -1,29 +1,30 @@
-#include <stdint.h>
-#include <stdbool.h>
-
-#include <memory/pmm.h>
-#include <util/debug.h>
-#include <tboot.h>
-#include <memory/vmm.h>
-#include <smp/smp.h>
-#include <acpi/acpi.h>
-#include <interrupts/apic/apic.h>
-#include <interrupts/apic/lapic.h>
-#include <smp/percpu_storage.h>
-#include <util/stall.h>
+#include <processes/scheduler.h>
 #include <processes/process.h>
 #include <processes/thread.h>
-#include <processes/scheduler.h>
-#include <lai/helpers/sci.h>
+
+#include <interrupts/apic/lapic.h>
+#include <interrupts/apic/apic.h>
+
+#include <smp/percpu_storage.h>
+#include <smp/smp.h>
+
+#include <memory/pmm.h>
+#include <memory/vmm.h>
+
+#include <util/debug.h>
+#include <util/stall.h>
+#include <acpi/acpi.h>
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <tboot.h>
 
 static thread_t* init_thread = NULL;
 
 static void kernel_init_thread() {
     debug_log("[+] In init thread!\n");
 
-    debug_log("[*] Initializing ACPI\n");
-    lai_create_namespace();
-    ASSERT(!lai_enable_acpi(1));
+    acpi_init();
 
     while(true);
 }

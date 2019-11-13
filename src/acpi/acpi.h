@@ -8,4 +8,10 @@
  */
 void acpi_tables_init(tboot_info_t* info);
 
+/**
+ * Initialize everything ACPI related
+ *
+ */
+void acpi_init();
+
 #endif //TOMATKERNEL_ACPI_H
