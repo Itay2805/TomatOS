@@ -2,7 +2,7 @@
 #include <acpi/tables/rsdt.h>
 #include <acpi/tables/madt.h>
 #include <acpi/tables/fadt.h>
-
+#include <acpi/tables/mcfg.h>
 #include <lai/core.h>
 
 #include "acpi.h"
@@ -13,6 +13,7 @@ void acpi_tables_init(tboot_info_t* info) {
     rsdp_init(info);
     rsdt_init();
     fadt_init();
+    mcfg_init();
     madt_init();
 
     lai_set_acpi_revision(acpi_rsdp->revision);

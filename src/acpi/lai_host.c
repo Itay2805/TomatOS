@@ -10,6 +10,8 @@
 #include <string.h>
 
 #include <lai/host.h>
+#include <drivers/pci/pci.h>
+#include <util/defs.h>
 
 
 void* laihost_malloc(size_t size) {
@@ -38,7 +40,10 @@ void laihost_panic(const char* msg) {
 }
 
 void* laihost_map(size_t base, size_t size) {
-    if(!vmm_is_mapped(&kernel_process->vmm_handle, base, size)) {
+    base = ALIGN_PAGE_DOWN(base);
+    size = ALIGN_PAGE_UP(size);
+
+    if(!vmm_is_mapped(&kernel_process->vmm_handle, PHYSICAL_TO_DIRECT(base), size)) {
         vmm_map(&kernel_process->vmm_handle, base, PHYSICAL_TO_DIRECT(base), size, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
     }
     return (void*)PHYSICAL_TO_DIRECT(base);
@@ -80,7 +85,41 @@ uint32_t laihost_ind(uint16_t port) {
     return io_read_32(port);
 }
 
-// TODO: PCI access
+void laihost_pci_writeb(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func, uint16_t offset, uint8_t data) {
+    char* base = pci_get_config_space(seg, bus, slot, func);
+    ASSERT(base != NULL);
+    POKE8(base + offset) = data;
+}
+
+uint8_t laihost_pci_readb(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func, uint16_t offset) {
+    char* base = pci_get_config_space(seg, bus, slot, func);
+    ASSERT(base != NULL);
+    return POKE8(base + offset);
+}
+
+void laihost_pci_writew(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func, uint16_t offset, uint16_t data) {
+    char* base = pci_get_config_space(seg, bus, slot, func);
+    ASSERT(base != NULL);
+    POKE16(base + offset) = data;
+}
+
+uint16_t laihost_pci_readw(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func, uint16_t offset) {
+    char* base = pci_get_config_space(seg, bus, slot, func);
+    ASSERT(base != NULL);
+    return POKE16(base + offset);
+}
+
+void laihost_pci_writed(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func, uint16_t offset, uint32_t data) {
+    char* base = pci_get_config_space(seg, bus, slot, func);
+    ASSERT(base != NULL);
+    POKE32( base + offset) = data;
+}
+
+uint32_t laihost_pci_readd(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func, uint16_t offset) {
+    char* base = pci_get_config_space(seg, bus, slot, func);
+    ASSERT(base != NULL);
+    return POKE32(base + offset);
+}
 
 void laihost_sleep(uint64_t millis) {
     // TODO: implement this

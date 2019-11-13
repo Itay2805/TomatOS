@@ -4,7 +4,7 @@
 #include <interrupts/apic/lapic.h>
 #include <memory/gdt.h>
 #include <acpi/tables/madt.h>
-#include <util/poke.h>
+#include <util/defs.h>
 #include <util/stall.h>
 #include <processes/scheduler.h>
 #include "smp.h"

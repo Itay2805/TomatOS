@@ -1,6 +1,6 @@
 #include <libc/stddef.h>
 #include <memory/vmm.h>
-#include <util/poke.h>
+#include <util/defs.h>
 #include "ioapic.h"
 
 void ioapic_write(madt_ioapic_t* ioapic, uint32_t reg, uint32_t value) {

@@ -1,4 +1,4 @@
-#include <util/poke.h>
+#include <util/defs.h>
 #include <acpi/tables/madt.h>
 #include <libc/stddef.h>
 #include <memory/vmm.h>

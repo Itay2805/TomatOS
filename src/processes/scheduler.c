@@ -197,8 +197,7 @@ static bool registered_once = false;
 
 void per_cpu_scheduler_init() {
     // create the idle thread of this thread
-    get_percpu_storage()->idle_thread = new(Thread(), kernel_process);
-    get_percpu_storage()->idle_thread->cpu_state.rip = (uint64_t)&idle_thread_loop;
+    get_percpu_storage()->idle_thread = new(Thread(), kernel_process, idle_thread_loop);
 
     // register the interrupt handlers
     if(!registered_once) {
