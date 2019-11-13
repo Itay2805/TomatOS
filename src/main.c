@@ -8,6 +8,8 @@
 #include <smp/percpu_storage.h>
 #include <smp/smp.h>
 
+#include <drivers/pci/pci.h>
+
 #include <memory/pmm.h>
 #include <memory/vmm.h>
 
@@ -25,6 +27,7 @@ static void kernel_init_thread() {
     debug_log("[+] In init thread!\n");
 
     acpi_init();
+    pci_init();
 
     while(true);
 }
