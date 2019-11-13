@@ -6,15 +6,21 @@ The goal of this project is to waste my time.
 
 ## Kernel Features
 
+### Hardware
 * 64bit with all the basics (gdt, pmm, vmm...)
 * Uses UEFI for starting (with [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI))
 * ACPI
-    * Using the tables to get relevant info
-* APIC for interrupt handling
-    * LAPIC timer for scheduling (soon™)
+    * AML interpreter powered by [Lai](https://github.com/qword-os/lai)
+    * Used to create the SCI handler and iterating PCI devices properly
+* APIC
+    * Full Local + IO APIC support
+* PCI
+    * full scan + objects that abstract everything
 * SMP
+    * including a simple scheduler
+
+### Software
+* Processes and Threads are supported
 
 ## TODO
-* Work on the object framework 
-* Add Thread and Process objects
-* Work on the scheduler 
+* syscalls and usermode testing
