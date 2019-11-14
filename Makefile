@@ -59,8 +59,6 @@ COMMON_CFLAGS += \
 	-ffreestanding \
 	-nostdlib \
 	-nostdinc \
-	-fno-stack-check \
-	-fno-stack-protector \
 	-mno-red-zone \
 	-mcmodel=kernel \
 	-Wno-unused-label \

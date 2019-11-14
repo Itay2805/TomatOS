@@ -69,24 +69,7 @@ static void* AhciController_ctor(void* _self, va_list ap) {
                     new(AhciDevice(), self, port);
                     break;
 
-                    // unconnected
-                case AHCI_SIGNATURE_DEFAULT:
-                    break;
-
-                case AHCI_SIGNATURE_PORT_MULTIPLIER:
-                    debug_log("[+] ahci: \t%d: Port multiplier (unsupported)\n", i);
-                    break;
-
-                case AHCI_SIGNATURE_ENCLOSURE_MANAGEMENT_BRIDGE:
-                    debug_log("[+] ahci: \t%d: enclosure management bridge (unsupported)\n", i);
-                    break;
-
-                case AHCI_SIGNATURE_SATAPI:
-                    debug_log("[+] ahci: \t%d: SATAPI (unsupported)\n", i);
-                    break;
-
                 default:
-                    debug_log("[+] ahci: \t%d: Unknown\n", i);
                     break;
             }
         }
@@ -179,7 +162,7 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     while(self->port->cmd & AHCI_PxCMD_CR) {
         cpu_pause();
     }
-    self->port->cmd |= ((1u << AHCI_PxCMD_FRE) | (1u << AHCI_PxCMD_ST));
+    self->port->cmd |= (AHCI_PxCMD_FRE | AHCI_PxCMD_ST);
     memory_fence();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -205,7 +188,7 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     cmd->ctba = phys_ctba & 0xFFFFFFFF;
 
     // set the command entry
-    uintptr_t phys_buf = DIRECT_TO_PHYSICAL((uintptr_t)cmdtbl);
+    uintptr_t phys_buf = DIRECT_TO_PHYSICAL((uintptr_t)identify);
     cmdtbl->prdt_entry[0].dba = phys_buf & 0xFFFFFFFF;
     cmdtbl->prdt_entry[0].dbau = ((phys_buf >> 32u) & 0xFFFFFFFF);
     cmdtbl->prdt_entry[0].dbc = sizeof(ATA_IDENTIFY_DATA) - 1;
@@ -237,16 +220,16 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
         }
         cpu_pause();
     }
-//
-//    // prepare the model name
-//    char buffer[48] = {0};
-//    for(int i = 0; i < 27; i++) {
-//        buffer[i * 2 + 0] = (char)((identify->model_number[i] >> 8u) & 0xFFu);
-//        buffer[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
-//    }
+
+    // prepare the model name
+    char buffer[20 + 1] = {0};
+    for(int i = 0; i < 10; i++) {
+        buffer[i * 2 + 0] = (char)((identify->model_number[i] >> 8u) & 0xFFu);
+        buffer[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
+    }
 
     // now do stuff with the identify data
-    debug_log("[*] ahci: \tSATA\n");
+    debug_log("[*] ahci: \tfound: %s\n", buffer);
 
     // free the buffers
     mm_free_pages((void*)identify, SIZE_TO_PAGES(sizeof(ATA_IDENTIFY_DATA)));
