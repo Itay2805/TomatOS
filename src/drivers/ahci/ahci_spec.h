@@ -16,70 +16,70 @@
 #define AHCI_BOHC_OOC 3u
 #define AHCI_BOHC_BB 4u
 
-#define AHCI_PxTFD_STS 0u /* 8 bits */
-#define AHCI_PxTFD_STS_ERR 1u
-#define AHCI_PxTFD_STS_DRQ 3u
-#define AHCI_PxTFD_STS_RDY 6u
-#define AHCI_PxTFD_STS_BSY 7u
-#define AHCI_PxTFD_ERR 8u /* 8 bits  */
+#define AHCI_PxTFD_STS  (1u << 0u) /* 8 bits */
+#define AHCI_PxTFD_STS_ERR  (1u << 1u)
+#define AHCI_PxTFD_STS_DRQ  (1u << 3u)
+#define AHCI_PxTFD_STS_RDY  (1u << 6u)
+#define AHCI_PxTFD_STS_BSY  (1u << 7u)
+#define AHCI_PxTFD_ERR  (1u << 8u) /* 8 bits  */
 
-#define AHCI_PxCMD_ST 0u
-#define AHCI_PxCMD_SUD 1u
-#define AHCI_PxCMD_POD 2u
-#define AHCI_PxCMD_CLO 3u
-#define AHCI_PxCMD_FRE 4u
-#define AHCI_PxCMD_CCS 8u /* 4 bits */
-#define AHCI_PxCMD_MPSS 13u
-#define AHCI_PxCMD_FR 14u
-#define AHCI_PxCMD_CR 15u
-#define AHCI_PxCMD_CPS 16u
-#define AHCI_PxCMD_PMA 17u
-#define AHCI_PxCMD_HPCP 18u
-#define AHCI_PxCMD_MPSP 19u
-#define AHCI_PxCMD_CPD 20u
-#define AHCI_PxCMD_ESP 21u
-#define AHCI_PxCMD_FBSCP 22u
-#define AHCI_PxCMD_APSTE 23u
-#define AHCI_PxCMD_ATAPI 24u
-#define AHCI_PxCMD_DLAE 26u
-#define AHCI_PxCMD_ASP 27u
-#define AHCI_PxCMD_ICC 28u /* 4 bits */
+#define AHCI_PxCMD_ST  (1u << 0u)
+#define AHCI_PxCMD_SUD  (1u << 1u)
+#define AHCI_PxCMD_POD  (1u << 2u)
+#define AHCI_PxCMD_CLO  (1u << 3u)
+#define AHCI_PxCMD_FRE  (1u << 4u)
+#define AHCI_PxCMD_CCS  (1u << 8u) /* 4 bits */
+#define AHCI_PxCMD_MPSS  (1u << 13u)
+#define AHCI_PxCMD_FR  (1u << 14u)
+#define AHCI_PxCMD_CR  (1u << 15u)
+#define AHCI_PxCMD_CPS  (1u << 16u)
+#define AHCI_PxCMD_PMA  (1u << 17u)
+#define AHCI_PxCMD_HPCP  (1u << 18u)
+#define AHCI_PxCMD_MPSP  (1u << 19u)
+#define AHCI_PxCMD_CPD  (1u << 20u)
+#define AHCI_PxCMD_ESP  (1u << 21u)
+#define AHCI_PxCMD_FBSCP  (1u << 22u)
+#define AHCI_PxCMD_APSTE  (1u << 23u)
+#define AHCI_PxCMD_ATAPI  (1u << 24u)
+#define AHCI_PxCMD_DLAE  (1u << 26u)
+#define AHCI_PxCMD_ASP  (1u << 27u)
+#define AHCI_PxCMD_ICC  (1u << 28u) /* 4 bits */
 
-#define AHCI_PxIS_DHRS 0u
-#define AHCI_PxIS_PSS 1u
-#define AHCI_PxIS_DSS 2u
-#define AHCI_PxIS_SDBS 3u
-#define AHCI_PxIS_UFS 4u
-#define AHCI_PxIS_DPS 5u
-#define AHCI_PxIS_PCS 6u
-#define AHCI_PxIS_DMPS 7u
-#define AHCI_PxIS_PRCS 22u
-#define AHCI_PxIS_IPMS 23u
-#define AHCI_PxIS_OFS 24u
-#define AHCI_PxIS_INFS 26u
-#define AHCI_PxIS_IFS 27u
-#define AHCI_PxIS_HBDS 28u
-#define AHCI_PxIS_HBFS 29u
-#define AHCI_PxIS_TFES 30u
-#define AHCI_PxIS_CPDS 31u
+#define AHCI_PxIS_DHRS  (1u << 0u)
+#define AHCI_PxIS_PSS  (1u << 1u)
+#define AHCI_PxIS_DSS  (1u << 2u)
+#define AHCI_PxIS_SDBS  (1u << 3u)
+#define AHCI_PxIS_UFS  (1u << 4u)
+#define AHCI_PxIS_DPS  (1u << 5u)
+#define AHCI_PxIS_PCS  (1u << 6u)
+#define AHCI_PxIS_DMPS  (1u << 7u)
+#define AHCI_PxIS_PRCS  (1u << 22u)
+#define AHCI_PxIS_IPMS  (1u << 23u)
+#define AHCI_PxIS_OFS  (1u << 24u)
+#define AHCI_PxIS_INFS  (1u << 26u)
+#define AHCI_PxIS_IFS  (1u << 27u)
+#define AHCI_PxIS_HBDS  (1u << 28u)
+#define AHCI_PxIS_HBFS  (1u << 29u)
+#define AHCI_PxIS_TFES  (1u << 30u)
+#define AHCI_PxIS_CPDS  (1u << 31u)
 
-#define AHCI_PxIE_DHRE 0u
-#define AHCI_PxIE_PSE 1u
-#define AHCI_PxIE_DSE 2u
-#define AHCI_PxIE_SDBE 3u
-#define AHCI_PxIE_UFE 4u
-#define AHCI_PxIE_DPE 5u
-#define AHCI_PxIE_PCE 6u
-#define AHCI_PxIE_DMPE 7u
-#define AHCI_PxIE_PRCE 22u
-#define AHCI_PxIE_IPME 23u
-#define AHCI_PxIE_OFE 24u
-#define AHCI_PxIE_INFE 26u
-#define AHCI_PxIE_IFE 27u
-#define AHCI_PxIE_HBDE 28u
-#define AHCI_PxIE_HBFE 29u
-#define AHCI_PxIE_TFEE 30u
-#define AHCI_PxIE_CPDE 31u
+#define AHCI_PxIE_DHRE  (1u << 0u)
+#define AHCI_PxIE_PSE  (1u << 1u)
+#define AHCI_PxIE_DSE  (1u << 2u)
+#define AHCI_PxIE_SDBE  (1u << 3u)
+#define AHCI_PxIE_UFE  (1u << 4u)
+#define AHCI_PxIE_DPE  (1u << 5u)
+#define AHCI_PxIE_PCE  (1u << 6u)
+#define AHCI_PxIE_DMPE  (1u << 7u)
+#define AHCI_PxIE_PRCE  (1u << 22u)
+#define AHCI_PxIE_IPME  (1u << 23u)
+#define AHCI_PxIE_OFE  (1u << 24u)
+#define AHCI_PxIE_INFE  (1u << 26u)
+#define AHCI_PxIE_IFE  (1u << 27u)
+#define AHCI_PxIE_HBDE  (1u << 28u)
+#define AHCI_PxIE_HBFE  (1u << 29u)
+#define AHCI_PxIE_TFEE  (1u << 30u)
+#define AHCI_PxIE_CPDE  (1u << 31u)
 
 #define AHCI_SIGNATURE_NOTHING 0x00000000
 #define AHCI_SIGNATURE_SATA 0x00000101
@@ -306,7 +306,9 @@ typedef struct tagHBA_PRDT_ENTRY
     uint32_t rsv0;		// Reserved
 
     // DW3
-    uint32_t info;		// Byte count, 4M max | Reserved | Interrupt on completion
+    uint32_t dbc : 22;	// Byte count, 4M max
+    uint32_t rsv1 : 9;	// Reserved
+    uint32_t i : 1;		// Interrupt on completion
 } __attribute__((__packed__)) HBA_PRDT_ENTRY;
 
 typedef struct tagHBA_CMD_TBL

@@ -147,7 +147,14 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     self->controller = cast(AhciController(), va_arg(ap, ahci_controller_t*));
     self->port = va_arg(ap, AHCI_HBA_PORT*);
 
-    self->port->is = -1;
+    // stop the device
+    self->port->cmd &= ~AHCI_PxCMD_ST;
+    memory_fence();
+    while(self->port->cmd & (AHCI_PxCMD_FR | AHCI_PxCMD_CR)) {
+        cpu_pause();
+    }
+    self->port->cmd &= ~AHCI_PxCMD_FRE;
+    memory_fence();
 
     // allocate memory for the command list and fis
     self->cl = mm_allocate_pages(1);
@@ -160,6 +167,14 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     uintptr_t phys_fis = DIRECT_TO_PHYSICAL((uintptr_t)self->fis);
     self->port->fbu = ((phys_fis >> 32u) & 0xFFFFFFFF);
     self->port->fb = phys_fis & 0xFFFFFFFF;
+
+    // start the device again
+    memory_fence();
+    while(self->port->cmd & AHCI_PxCMD_CR) {
+        cpu_pause();
+    }
+    self->port->cmd |= ((1u << AHCI_PxCMD_FRE) | (1u << AHCI_PxCMD_ST));
+    memory_fence();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // identify
@@ -185,7 +200,8 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     uintptr_t phys_buf = DIRECT_TO_PHYSICAL((uintptr_t)cmdtbl);
     cmdtbl->prdt_entry[0].dbau = ((phys_buf >> 32u) & 0xFFFFFFFF);
     cmdtbl->prdt_entry[0].dba = phys_buf & 0xFFFFFFFF;
-    cmdtbl->prdt_entry[0].info = sizeof(ATA_IDENTIFY_DATA) - 1;
+    cmdtbl->prdt_entry[0].dbc = sizeof(ATA_IDENTIFY_DATA) - 1;
+    cmdtbl->prdt_entry[0].i = 0;
 
     // setup the command
     FIS_REG_H2D* fis = (FIS_REG_H2D*)self->fis;
@@ -203,11 +219,9 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
 
     // Issue command
     memory_fence();
-    self->port->cmd |= ((1u << AHCI_PxCMD_FRE) | (1u << AHCI_PxCMD_ST));
     self->port->ci = 1u << slot;
 
     // wait for completion
-    memory_fence();
     while(true) {
         if((self->port->ci & (1u << slot)) == 0) {
             break;
@@ -216,16 +230,16 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
         }
         cpu_pause();
     }
-
-    // prepare the model name
-    char buffer[48] = {0};
-    for(int i = 0; i < 27; i++) {
-        buffer[i * 2 + 0] = (char)((identify->model_number[i] >> 8u) & 0xFFu);
-        buffer[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
-    }
+//
+//    // prepare the model name
+//    char buffer[48] = {0};
+//    for(int i = 0; i < 27; i++) {
+//        buffer[i * 2 + 0] = (char)((identify->model_number[i] >> 8u) & 0xFFu);
+//        buffer[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
+//    }
 
     // now do stuff with the identify data
-    debug_log("[*] ahci: \t%s\n", buffer);
+    debug_log("[*] ahci: \tSATA\n");
 
     // free the buffers
     mm_free_pages((void*)identify, SIZE_TO_PAGES(sizeof(ATA_IDENTIFY_DATA)));
