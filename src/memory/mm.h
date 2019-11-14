@@ -12,7 +12,7 @@
  *
  * @param size  [IN] The amount of pages to allocate
  */
-uintptr_t mm_allocate_pages(size_t page_count);
+void* mm_allocate_pages(size_t page_count);
 
 /**
  * Free the allocated pages
@@ -20,7 +20,7 @@ uintptr_t mm_allocate_pages(size_t page_count);
  * @param ptr           [IN] The base to free from
  * @param page_count    [IN] The pages to free
  */
-void mm_free_pages(uintptr_t ptr, size_t page_count);
+void mm_free_pages(void* ptr, size_t page_count);
 
 /**
  * Allocate memory from a memory pool

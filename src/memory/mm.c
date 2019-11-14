@@ -4,14 +4,16 @@
 #include "pmm.h"
 #include "vmm.h"
 
-uintptr_t mm_allocate_pages(size_t page_count) {
+// TODO: return pointer instead of uintptr
+void* mm_allocate_pages(size_t page_count) {
     uintptr_t ptr;
     pmm_allocate_pages(ALLOCATE_ANY, MEM_KERNEL_DATA, page_count, &ptr);
-    return PHYSICAL_TO_DIRECT(ptr);
+    memset(PHYSICAL_TO_DIRECT((void*)ptr), 0, PAGES_TO_SIZE(page_count));
+    return PHYSICAL_TO_DIRECT((void*)ptr);
 }
 
-void mm_free_pages(uintptr_t ptr, size_t page_count) {
-    pmm_free_pages(DIRECT_TO_PHYSICAL(ptr), page_count);
+void mm_free_pages(void* ptr, size_t page_count) {
+    pmm_free_pages(DIRECT_TO_PHYSICAL((uintptr_t)ptr), page_count);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -63,5 +65,5 @@ void mm_pool_free(void* ptr) {
     pool_alloc_head_t* head = (pool_alloc_head_t *) ((uintptr_t)ptr - offsetof(pool_alloc_head_t, data));
     ASSERT(head->magic == 0xCAFEBABE);
     head->magic = 0xDEADBEEF;
-    mm_free_pages((uintptr_t) head, SIZE_TO_PAGES(head->size));
+    mm_free_pages(head, SIZE_TO_PAGES(head->size));
 }

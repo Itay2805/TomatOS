@@ -20,4 +20,6 @@
 #define ALIGN_PAGE_DOWN(n) ALIGN_DOWN(n, PAGE_SIZE)
 #define ALIGN_PAGE_UP(n) ALIGN_UP(n, PAGE_SIZE)
 
+#define ARRAY_LEN(arr) (sizeof(arr) / sizeof(arr[0]))
+
 #endif //TOMATKERNEL_DEFS_H

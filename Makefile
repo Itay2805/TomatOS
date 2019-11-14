@@ -54,6 +54,7 @@ OBJDIRS := $(dir $(OBJS) $(BINS))
 # Set the flags
 COMMON_CFLAGS += \
 	-target x86_64-unknown-elf \
+	-Wall \
 	-mno-sse \
 	-ffreestanding \
 	-nostdlib \
@@ -62,7 +63,7 @@ COMMON_CFLAGS += \
 	-fno-stack-protector \
 	-mno-red-zone \
 	-mcmodel=kernel \
-	-Wall \
+	-Wno-unused-label \
 	-fno-pie \
 	-static \
 	-flto \

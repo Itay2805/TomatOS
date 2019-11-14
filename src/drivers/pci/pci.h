@@ -11,6 +11,11 @@ typedef struct pci_bar {
     size_t size;
 } pci_bar_t;
 
+typedef struct pci_sig {
+    uint16_t vendor_id;
+    uint16_t device_id;
+} pci_sig_t;
+
 typedef struct pci_device {
     object_t _;
 
@@ -40,6 +45,9 @@ typedef struct pci_device {
 
     // msi capability, null if does not exists
     msi_cap_t* msi;
+
+    // link
+    list_entry_t link;
 } pci_device_t;
 
 const void* PciDevice();
@@ -47,7 +55,7 @@ const void* PciDevice();
 /**
  * Array of pci devices
  */
-pci_device_t** pci_devices;
+extern list_entry_t pci_devices;
 
 /**
  * Will iterate all pci devices and initialize them

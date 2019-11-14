@@ -43,16 +43,10 @@ void percpu_storage_init() {
         cur->processor_id = lapic->processor_id;
 
         // allocate stacks
-        cur->interrupt_stack = mm_allocate_pages(1);
-        cur->page_fault_stack = mm_allocate_pages(1);
-        cur->exception_stack = mm_allocate_pages(1);
-        cur->nmi_stack = mm_allocate_pages(1);
-
-        // clear the stacks
-        memset((void *) cur->interrupt_stack, 0, PAGE_SIZE);
-        memset((void *) cur->page_fault_stack, 0, PAGE_SIZE);
-        memset((void *) cur->exception_stack, 0, PAGE_SIZE);
-        memset((void *) cur->nmi_stack, 0, PAGE_SIZE);
+        cur->interrupt_stack = (uintptr_t)mm_allocate_pages(1);
+        cur->page_fault_stack = (uintptr_t)mm_allocate_pages(1);
+        cur->exception_stack = (uintptr_t)mm_allocate_pages(1);
+        cur->nmi_stack = (uintptr_t)mm_allocate_pages(1);
 
         // stack needs to be at the end
         cur->interrupt_stack += PAGE_SIZE;

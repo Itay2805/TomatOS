@@ -19,7 +19,7 @@ static void* Thread_ctor(void* _self, va_list ap) {
     self->cpu_state.rflags.ID = 1;
     self->cpu_state.rip = va_arg(ap, uintptr_t);
 
-    self->kernel_stack = mm_allocate_pages(1);
+    self->kernel_stack = (uintptr_t)mm_allocate_pages(1);
     self->kernel_stack_size = PAGE_SIZE;
 
     if(parent == kernel_process) {

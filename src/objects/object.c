@@ -212,8 +212,10 @@ static void* Class_ctor(void* _self, va_list ap) {
 
     memcpy((char*)self + offset, (char*)self->super + offset, sizeOf(self->super) - offset);
 
-    while ((selector = va_arg(ap, void*))) {
-        void* method = va_arg(ap, void*);
+    va_list lap;
+    va_copy(lap, ap);
+    while ((selector = va_arg(lap, void*))) {
+        void* method = va_arg(lap, void*);
 
         if (selector == (void*)ctor) {
             self->ctor = method;

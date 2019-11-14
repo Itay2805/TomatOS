@@ -20,7 +20,7 @@ static void* PciDevice_ctor(void* _self, va_list ap) {
     uint8_t bus = va_arg(ap, uint32_t);
     uint8_t slot = va_arg(ap, uint32_t);
     uint8_t func = va_arg(ap, uint32_t);
-
+    
     // set the stuff
     self->parent = parent;
     self->segment = seg;
@@ -80,26 +80,30 @@ static void* PciDevice_ctor(void* _self, va_list ap) {
 
 
     // figure caps that we want to know about
-    uint8_t current_off = self->header->caps_pointer;
-    do {
-        uint8_t cap_id = POKE8(self->mmio_base + current_off + 0);
-        uint8_t next_ptr = POKE8(self->mmio_base + current_off + 1);
+    // only run if caps are supported
+    if(self->header->status.caps_list) {
 
-        switch(cap_id) {
+        uint8_t current_off = self->header->caps_pointer;
+        do {
+            uint8_t cap_id = POKE8(self->mmio_base + current_off + 0);
+            uint8_t next_ptr = POKE8(self->mmio_base + current_off + 1);
 
-            // msi
-            case 0x05: {
-                self->msi = (msi_cap_t*)(self->mmio_base + current_off);
-            } break;
+            switch(cap_id) {
 
-            // TODO: more caps we want to support
+                // msi
+                case 0x05: {
+                    self->msi = (msi_cap_t*)(self->mmio_base + current_off);
+                } break;
 
-            default:
-                break;
-        }
+                    // TODO: more caps we want to support
 
-        current_off = next_ptr;
-    } while(current_off != 0);
+                default:
+                    break;
+            }
+
+            current_off = next_ptr;
+        } while(current_off != 0);
+    }
 
     // TODO: irq routing
     self->irq = -1;
@@ -127,7 +131,7 @@ const void* PciDevice() {
 // PCI Scanning
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pci_device_t** pci_devices = NULL;
+list_entry_t pci_devices = INIT_LIST_ENTRY(pci_devices);
 static pci_device_t** bus_stack = NULL;
 
 static void scan_bus(uint16_t segment, uint8_t bus);
@@ -202,7 +206,7 @@ static void init_device(uint16_t segment, uint8_t bus, uint8_t slot, uint8_t fun
     }
 
     // add the device
-    arrpush(pci_devices, device);
+    insert_tail_list(&pci_devices, &device->link);
 }
 
 static void scan_bus(uint16_t segment, uint8_t bus) {

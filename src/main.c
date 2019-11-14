@@ -8,6 +8,7 @@
 #include <smp/percpu_storage.h>
 #include <smp/smp.h>
 
+#include <drivers/ahci/ahci.h>
 #include <drivers/pci/pci.h>
 
 #include <memory/pmm.h>
@@ -28,6 +29,9 @@ static void kernel_init_thread() {
 
     acpi_init();
     pci_init();
+
+    // do driver initialization
+    ahci_scan();
 
     while(true);
 }
