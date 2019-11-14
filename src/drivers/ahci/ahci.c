@@ -129,7 +129,7 @@ const void* AhciController() {
 // Ahci device implementation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static size_t find_free_slot(ahci_device_t* dev) {
+static int find_free_slot(ahci_device_t* dev) {
     uint32_t slots = dev->port->sact | dev->port->ci;
     for(int i = 0; i < 32; i++) {
         if((slots & 1u) == 0) {
@@ -138,7 +138,7 @@ static size_t find_free_slot(ahci_device_t* dev) {
         slots >>= 1u;
     }
 
-    return NULL;
+    return -1;
 }
 
 static void* AhciDevice_ctor(void* _self, va_list ap) {
@@ -157,8 +157,8 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     memory_fence();
 
     // allocate memory for the command list and fis
-    self->cl = mm_allocate_pages(1);
-    self->fis = mm_allocate_pages(1);
+    self->cl = mm_allocate_pages(SIZE_TO_PAGES(sizeof(AHCI_HBA_CMD_HEADER) * 32));
+    self->fis = mm_allocate_pages(SIZE_TO_PAGES(sizeof(AHCI_HBA_FIS)));
 
     uintptr_t phys_cl = DIRECT_TO_PHYSICAL((uintptr_t)self->cl);
     self->port->clbu = ((phys_cl >> 32u) & 0xFFFFFFFF);
@@ -167,6 +167,12 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     uintptr_t phys_fis = DIRECT_TO_PHYSICAL((uintptr_t)self->fis);
     self->port->fbu = ((phys_fis >> 32u) & 0xFFFFFFFF);
     self->port->fb = phys_fis & 0xFFFFFFFF;
+
+    // setup receive fis
+    self->fis->dsfis.h.fis_type = FIS_TYPE_DMA_SETUP;
+    self->fis->psfis.h.fis_type = FIS_TYPE_PIO_SETUP;
+    self->fis->rfis.h.fis_type = FIS_TYPE_REG_D2H;
+    self->fis->sdbfis[0] = FIS_TYPE_DEV_BITS;
 
     // start the device again
     memory_fence();
@@ -179,37 +185,38 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // identify
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // TODO: move to another function
     // TODO: ugly af
 
     // prepare the command
-    size_t slot = find_free_slot(self);
-    volatile AHCI_HBA_CMD_HEADER* cmd = &self->cl[slot];
-    ASSERT(cmd != NULL);
-    cmd->command = sizeof(FIS_REG_H2D) / sizeof(uint32_t);
+    int slot = find_free_slot(self);
+    ASSERT(slot != -1);
+    AHCI_HBA_CMD_HEADER* cmd = &self->cl[slot];
+    cmd->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t);
+    cmd->w = 0;
     cmd->prdtl = 1;
 
-    // find command list slot
-    volatile ATA_IDENTIFY_DATA* identify = mm_allocate_pages(SIZE_TO_PAGES(sizeof(ATA_IDENTIFY_DATA)));
-    HBA_CMD_TBL* cmdtbl = mm_allocate_pages(SIZE_TO_PAGES(offsetof(HBA_CMD_TBL, prdt_entry) + sizeof(cmd->prdtl)));
+    // allocate the data and command table
+    ATA_IDENTIFY_DATA* identify = mm_allocate_pages(SIZE_TO_PAGES(sizeof(ATA_IDENTIFY_DATA)));
+    AHCI_HBA_CMD_TBL* cmdtbl = mm_allocate_pages(SIZE_TO_PAGES(offsetof(AHCI_HBA_CMD_TBL, prdt_entry) + sizeof(AHCI_HBA_PRDT_ENTRY)));
 
+    // set the command table address
     uintptr_t phys_ctba = DIRECT_TO_PHYSICAL((uintptr_t)cmdtbl);
     cmd->ctbau = ((phys_ctba >> 32u) & 0xFFFFFFFF);
     cmd->ctba = phys_ctba & 0xFFFFFFFF;
 
+    // set the command entry
     uintptr_t phys_buf = DIRECT_TO_PHYSICAL((uintptr_t)cmdtbl);
-    cmdtbl->prdt_entry[0].dbau = ((phys_buf >> 32u) & 0xFFFFFFFF);
     cmdtbl->prdt_entry[0].dba = phys_buf & 0xFFFFFFFF;
+    cmdtbl->prdt_entry[0].dbau = ((phys_buf >> 32u) & 0xFFFFFFFF);
     cmdtbl->prdt_entry[0].dbc = sizeof(ATA_IDENTIFY_DATA) - 1;
     cmdtbl->prdt_entry[0].i = 0;
 
-    // setup the command
-    FIS_REG_H2D* fis = (FIS_REG_H2D*)self->fis;
+    // setup the fis
+    FIS_REG_H2D* fis = (FIS_REG_H2D*)&cmdtbl->cfis;
     memset(fis, 0, sizeof(FIS_REG_H2D));
     fis->h.fis_type = FIS_TYPE_REG_H2D;
     fis->command = ATA_CMD_IDENTIFY;
-    fis->device = 0;
-    fis->h.c = true;
+    fis->h.c = 1;
 
     // wait for the device to not be busy
     memory_fence();
@@ -243,7 +250,7 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
 
     // free the buffers
     mm_free_pages((void*)identify, SIZE_TO_PAGES(sizeof(ATA_IDENTIFY_DATA)));
-    mm_free_pages(cmdtbl, SIZE_TO_PAGES(offsetof(HBA_CMD_TBL, prdt_entry) + sizeof(cmd->prdtl)));
+    mm_free_pages(cmdtbl, SIZE_TO_PAGES(offsetof(AHCI_HBA_CMD_TBL, prdt_entry) + sizeof(cmd->prdtl)));
 
     return _self;
 }

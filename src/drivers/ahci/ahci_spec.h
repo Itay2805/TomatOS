@@ -3,18 +3,18 @@
 
 #include <stdint.h>
 
-#define AHCI_CAP2_BOH 0
-#define AHCI_CAP2_NVMP 1
-#define AHCI_CAP2_APST 2
-#define AHCI_CAP2_SDS 3
-#define AHCI_CAP2_SADM 3
-#define AHCI_CAP2_DESO 5
+#define AHCI_CAP2_BOH (1u << 0u)
+#define AHCI_CAP2_NVMP (1u << 1u)
+#define AHCI_CAP2_APST (1u << 2u)
+#define AHCI_CAP2_SDS (1u << 3u)
+#define AHCI_CAP2_SADM (1u << 3u)
+#define AHCI_CAP2_DESO (1u << 5u)
 
-#define AHCI_BOHC_BOS 0u
-#define AHCI_BOHC_OOS 1u
-#define AHCI_BOHC_SOOE 2u
-#define AHCI_BOHC_OOC 3u
-#define AHCI_BOHC_BB 4u
+#define AHCI_BOHC_BOS (1u << 0u)
+#define AHCI_BOHC_OOS (1u << 1u)
+#define AHCI_BOHC_SOOE (1u << 2u)
+#define AHCI_BOHC_OOC (1u << 3u)
+#define AHCI_BOHC_BB (1u << 4u)
 
 #define AHCI_PxTFD_STS  (1u << 0u) /* 8 bits */
 #define AHCI_PxTFD_STS_ERR  (1u << 1u)
@@ -232,8 +232,7 @@ typedef struct tagFIS_DMA_SETUP
 } __attribute__((__packed__)) FIS_DMA_SETUP;
 
 
-typedef volatile struct tagHBA_PORT
-{
+typedef volatile struct AHCI_HBA_PORT {
     uint32_t clb;		// 0x00, command list base address, 1K-byte aligned
     uint32_t clbu;		// 0x04, command list base address upper 32 bits
     uint32_t fb;		// 0x08, FIS base address, 256-byte aligned
@@ -255,8 +254,7 @@ typedef volatile struct tagHBA_PORT
     uint32_t vendor[4];	// 0x70 ~ 0x7F, vendor specific
 } __attribute__((__packed__)) AHCI_HBA_PORT;
 
-typedef volatile struct tagHBA_MEM
-{
+typedef volatile struct AHCI_HBA_MEM {
     // 0x00 - 0x2B, Generic Host Control
     uint32_t cap;		// 0x00, Host capability
     uint32_t ghc;		// 0x04, Global host control
@@ -280,50 +278,49 @@ typedef volatile struct tagHBA_MEM
     AHCI_HBA_PORT	ports[1];	// 1 ~ 32
 } __attribute__((__packed__)) AHCI_HBA;
 
-typedef struct tagHBA_CMD_HEADER
-{
-    // DW0
-    uint8_t command; // Command FIS length in DWORDS, 2 ~ 16 | ATAPI | Write, 1: H2D, 0: D2H | Prefetchable
-    uint8_t flags; // Reset | BIST | Clear busy upon R_OK | Reserved | Port Multiplier port
-
+typedef struct AHCI_HBA_CMD_HEADER {
+    uint8_t cfl : 5; // Command FIS Length
+    uint8_t a : 1; // ATAPI
+    uint8_t w : 1; // Write
+    uint8_t p : 1; // Prefetchable
+    uint8_t r : 1; // Reset
+    uint8_t b : 1; // BIST
+    uint8_t c : 1; // Clear Busy upon R_OK
+    uint8_t rsv0 : 1;
+    uint8_t pmp : 4; // Port Multiplier Port
     uint16_t prdtl;	// Physical region descriptor table length in entries
-
-    // DW1
     volatile uint32_t prdbc; // Physical region descriptor byte count transferred
-
-    // DW2, 3
     uint32_t ctba;		// Command table descriptor base address
     uint32_t ctbau;		// Command table descriptor base address upper 32 bits
-
-    // DW4 - 7
-    uint32_t rsv1[4];	// Reserved
+    uint32_t _reserved0[4];	// Reserved
 } __attribute__((__packed__)) AHCI_HBA_CMD_HEADER;
 
-typedef struct tagHBA_PRDT_ENTRY
-{
+typedef struct AHCI_HBA_PRDT_ENTRY {
     uint32_t dba;		// Data base address
     uint32_t dbau;		// Data base address upper 32 bits
     uint32_t rsv0;		// Reserved
-
-    // DW3
     uint32_t dbc : 22;	// Byte count, 4M max
-    uint32_t rsv1 : 9;	// Reserved
+    uint32_t _reserved0 : 9;	// Reserved
     uint32_t i : 1;		// Interrupt on completion
-} __attribute__((__packed__)) HBA_PRDT_ENTRY;
+} __attribute__((__packed__)) AHCI_HBA_PRDT_ENTRY;
 
-typedef struct tagHBA_CMD_TBL
-{
-    // 0x00
+typedef struct AHCI_HBA_CMD_TBL {
     uint8_t  cfis[64];	// Command FIS
-
-    // 0x40
     uint8_t  acmd[16];	// ATAPI command, 12 or 16 bytes
+    uint8_t  _reserved[48];	// Reserved
+    AHCI_HBA_PRDT_ENTRY	prdt_entry[1];	// Physical region descriptor table entries, 0 ~ 65535
+} __attribute__((__packed__)) AHCI_HBA_CMD_TBL;
 
-    // 0x50
-    uint8_t  rsv[48];	// Reserved
-
-    // 0x80
-    HBA_PRDT_ENTRY	prdt_entry[1];	// Physical region descriptor table entries, 0 ~ 65535
-} __attribute__((__packed__)) HBA_CMD_TBL;
+typedef struct AHCI_HBA_FIS {
+    FIS_DMA_SETUP dsfis;
+    uint8_t _pad0[4];
+    FIS_PIO_SETUP psfis;
+    uint8_t _pad1[12];
+    FIS_REG_D2H rfis;
+    uint8_t _pad2[4];
+    uint8_t sdbfis[8];
+    uint8_t ufis[64];
+    uint8_t _reserved[0x60];
+} __attribute__((__packed__)) AHCI_HBA_FIS;
 
 #endif //TOMATKERNEL_AHCI_SPEC_H
