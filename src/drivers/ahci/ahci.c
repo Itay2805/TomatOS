@@ -16,29 +16,28 @@ static error_t handle_ahci_interrupt(interrupt_context_t* context, void* _self) 
     error_t err = NO_ERROR;
     ahci_controller_t* self = cast(AhciController(), _self);
 
-    debug_log("got interrupt\n");
-
-    // make sure the device is responsible for the interrupt
-    if(!self->device->header->status.interrupt) {
-        goto not_our_device;
-    }
+//    // make sure the device is responsible for the interrupt
+//    if(!self->device->header->status.interrupt) {
+//        goto not_our_device;
+//    }
 
     for(int i = 0; i < 32; i++) {
         // check if the port is valid and if we got an interrupt on it
         if(self->devices[i] != NULL && self->hba->is & (1u << i)) {
             ahci_device_t* device = self->devices[i];
-            ASSERT(!(device->port->is & (AHCI_PxIS_TFES)));
+            if(device->port->is & (AHCI_PxIS_TFES)) {
+                debug_log("[-] ahci: TFES: %b", device->fis->rfis.error);
+                ASSERT(false);
+            }
 
             // if related to transaction complete
-            if(self->hba->is & AHCI_PxIS_DPS) {
-                for(size_t j = 0; j < 32; j++) {
+            if(self->hba->is & AHCI_PxIS_DHRS) {
+                for (size_t j = 0; j < 32; j++) {
                     // if this is clear then it is done and we should notify the waiting thread
-                    if((device->port->ci & (1u << j)) == 0 && device->slot_in_use[j]) {
+                    if ((device->port->ci & (1u << j)) == 0 && device->slot_in_use[j]) {
                         event_signal(&device->interrupt_on_slot[j]);
                     }
                 }
-            }else if(self->hba->is & AHCI_PxIS_TFES) {
-                ASSERT(false);
             }
         }
     }
@@ -81,6 +80,9 @@ static void* AhciController_ctor(void* _self, va_list ap) {
             cpu_pause();
         }
     }
+
+    // enable interrupts
+    self->hba->ghc |= AHCI_GHC_IE;
 
     // probe ports
     for(size_t i = 0; i < 32; i++) {
@@ -168,6 +170,17 @@ static int find_free_slot(ahci_device_t* dev) {
     return -1;
 }
 
+/**
+ * This is the port initialization function
+ *
+ * it takes in the controller and port struct as parameters and will make
+ * sure to allocate the fis and command lists, identify the disk and size
+ * of block, and preallocate a command table [er block
+ *
+ * @param _self
+ * @param ap
+ * @return
+ */
 static void* AhciDevice_ctor(void* _self, va_list ap) {
     ahci_device_t* self = super_ctor(AhciDevice(), _self, ap);
 
@@ -188,7 +201,7 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     self->fis = mm_allocate_pages(SIZE_TO_PAGES(sizeof(AHCI_HBA_FIS)));
 
     // set interrupts we wanna get
-    self->port->ie = (AHCI_PxIE_TFEE | AHCI_PxIE_DPE);
+    self->port->ie = (AHCI_PxIE_TFEE | AHCI_PxIE_DHRE);
 
     uintptr_t phys_cl = DIRECT_TO_PHYSICAL((uintptr_t)self->cl);
     self->port->clbu = ((phys_cl >> 32u) & 0xFFFFFFFF);
@@ -244,7 +257,7 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     cmdtbl->prdt_entry[0].dba = phys_buf & 0xFFFFFFFF;
     cmdtbl->prdt_entry[0].dbau = ((phys_buf >> 32u) & 0xFFFFFFFF);
     cmdtbl->prdt_entry[0].dbc = sizeof(ATA_IDENTIFY_DATA) - 1;
-    cmdtbl->prdt_entry[0].i = 0;
+    cmdtbl->prdt_entry[0].i = 1;
 
     // setup the fis
     FIS_REG_H2D* fis = (FIS_REG_H2D*)&cmdtbl->cfis;
@@ -315,6 +328,7 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
 
 static void* AhciDevice_dtor(void* _self) {
     __attribute__((unused)) ahci_device_t* self = super_dtor(AhciDevice(), _self);
+    // TODO: ahci dtor
     ASSERT(false);
     return _self;
 }
@@ -324,6 +338,16 @@ static size_t AhciDevice_get_block_size(void* _self) {
     return device->block_size;
 }
 
+/**
+ * This is the block read function
+ *
+ * it takes in the block address and returns reads the block into the buffer
+ *
+ * @remark
+ * Right now this is not the most optimized method to do this... would be better if you could
+ * request a range of blocks or something and it would handle that for you, because block at a time
+ * might be too slow...
+ */
 static error_t AhciDevice_read_block(void* _self, uintptr_t lba, void* buffer) {
     error_t err = NO_ERROR;
     ahci_device_t* self = cast(AhciDevice(), _self);
@@ -350,6 +374,7 @@ static error_t AhciDevice_read_block(void* _self, uintptr_t lba, void* buffer) {
     memset(fis, 0, sizeof(FIS_REG_H2D));
     fis->h.fis_type = FIS_TYPE_REG_H2D;
     fis->command = ATA_CMD_READ_DMA_EXT;
+    fis->device = (1 << 6); // lba mode
     fis->h.c = 1;
     fis->lba0 = lba & 0xFFu;
     fis->lba1 = ((lba >> 8u) & 0xFFu);

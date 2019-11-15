@@ -42,13 +42,6 @@ static void kernel_init_thread() {
     debug_print(storage);
     ASSERT(!IS_ERROR(storage_read_block(storage, 0, buffer)));
 
-    for(int i = 0; i < 512; i++) {
-        if(i != 0 && i % 16 == 0) {
-            debug_log("\n");
-        }
-        debug_log("%02x ", buffer[i]);
-    }
-
     while(true);
 }
 

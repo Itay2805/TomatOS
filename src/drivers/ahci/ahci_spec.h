@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+#define AHCI_GHC_HR (1u << 0u)
+#define AHCI_GHC_IE (1u << 1u)
+#define AHCI_GHC_MRSM (1u << 2u)
+#define AHCI_GHC_EA (1u << 31u)
+
 #define AHCI_CAP2_BOH (1u << 0u)
 #define AHCI_CAP2_NVMP (1u << 1u)
 #define AHCI_CAP2_APST (1u << 2u)
