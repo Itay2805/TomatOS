@@ -64,6 +64,8 @@ COMMON_CFLAGS += \
 	-Wno-unused-label \
 	-fno-pie \
 	-static \
+	-flto \
+	-Ofast \
 	-g
 
 # Lai cflags

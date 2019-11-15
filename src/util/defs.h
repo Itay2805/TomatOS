@@ -22,4 +22,8 @@
 
 #define ARRAY_LEN(arr) (sizeof(arr) / sizeof(arr[0]))
 
+#define SIGNATURE_16(A, B)                      ((A) | (B << 8))
+#define SIGNATURE_32(A, B, C, D)                (SIGNATURE_16 (A, B) | (SIGNATURE_16 (C, D) << 16))
+#define SIGNATURE_64(A, B, C, D, E, F, G, H)    (SIGNATURE_32 (A, B, C, D) | ((uint64_t) (SIGNATURE_32 (E, F, G, H)) << 32))
+
 #endif //TOMATKERNEL_DEFS_H

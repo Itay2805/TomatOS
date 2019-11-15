@@ -1,7 +1,10 @@
+#include <util/defs.h>
 #include <memory/mm.h>
+
 #include <string.h>
-#include "gpt.h"
+
 #include "gpt_spec.h"
+#include "gpt.h"
 
 bool check_gpt(storage_device_t* storage) {
     size_t block_size = storage_get_block_size(storage);
@@ -11,9 +14,9 @@ bool check_gpt(storage_device_t* storage) {
     // read the header
     void* buffer = mm_allocate_pages(storage_get_block_size(storage));
     GPT_TABLE_HEADER* header = buffer;
-    storage_read_block(storage, 1, buffer);
+    ASSERT(!IS_ERROR(storage_read_block(storage, 1, buffer)));
 
-    if(memcpy(&header->signature, "EFI PART", 8) != 0) goto cleanup;
+    if(header->signature != SIGNATURE_64('E','F','I',' ','P','A','R','T')) goto cleanup;
     if(header->revision != 0x00010000) goto cleanup;
     if(header->header_size < 92) goto cleanup;
     if(header->header_size > block_size) goto cleanup;
@@ -22,8 +25,7 @@ bool check_gpt(storage_device_t* storage) {
 
     if(header->my_lba != 1) goto cleanup;
     if(header->first_usable_lba > header->last_usable_lba) goto cleanup;
-    if(header->partition_entry_lba >= header->first_usable_lba) goto cleanup;
-    if(header->partition_entry_lba <= header->last_usable_lba) goto cleanup;
+    if(header->partition_entry_lba >= header->first_usable_lba && header->partition_entry_lba <= header->last_usable_lba) goto cleanup;
     if(header->size_of_partition_entry % 128 != 0) goto cleanup;
     if(header->size_of_partition_entry != sizeof(GPT_PARTITION_ENTRY)) goto cleanup;
 
