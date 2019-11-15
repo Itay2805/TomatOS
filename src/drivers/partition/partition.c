@@ -4,10 +4,16 @@
 static void* Partition_ctor(void* _self, va_list ap) {
     partition_t* self = super_ctor(Partition(), _self, ap);
 
+    // set the info
+    self->parent = va_arg(ap, storage_device_t*);
     self->lba_start = va_arg(ap, uint64_t);
     self->lba_end = va_arg(ap, uint64_t);
 
+    // copy the name
     strncpy(self->name, va_arg(ap, char*), sizeof(self->name) - 1);
+
+    // add to parent
+    insert_tail_list(&self->parent->partitions, &self->link);
 
     return self;
 }

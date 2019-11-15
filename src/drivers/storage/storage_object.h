@@ -22,9 +22,7 @@ extern list_entry_t storage_objects;
 typedef struct storage_device_class {
     class_t super;
 
-    size_t (*get_block_count)(void* self);
-    size_t (*get_block_size)(void* self);
-    error_t (*read_block)(void* self, uintptr_t lba, void* buffer);
+    error_t (*read_block)(void* self, uintptr_t lba, void* buffer, size_t byte_count);
 } storage_device_class_t;
 
 typedef struct storage_device {
@@ -36,6 +34,12 @@ typedef struct storage_device {
     // the drive name
     // TODO: Should this be unique?
     char name[255];
+
+    // the amount of addressable blocks
+    uint64_t block_count;
+
+    // the size of a single block
+    uint64_t block_size;
 
     // the partitions mounted on this device
     list_entry_t partitions;
@@ -57,22 +61,8 @@ const void* StorageDevice();
 // Storage Device functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/**
- * Get the amount of blocks that are on the device
- *
- * attempting to read more than this will result in an error
- */
-size_t storage_get_block_count(void* _self);
-
-/**
- * Get the block size of the storage device
- *
- * Needed for calculating the lba when reading
- */
-size_t storage_get_block_size(void* _self);
-
 // TODO: allow for reading multiple sectors at a time
-error_t storage_read_block(void* _self, uintptr_t lba, void* buffer);
+error_t storage_read_block(void* _self, uintptr_t lba, void* buffer, size_t byte_count);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Generic storage device functions

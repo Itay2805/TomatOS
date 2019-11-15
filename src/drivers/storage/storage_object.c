@@ -17,9 +17,7 @@ static void* StorageDeviceClass_ctor(void* _self, va_list ap) {
     while((selector = va_arg(lap, void*)) != NULL) {
         void* method = va_arg(lap, void*);
 
-        if(selector == storage_get_block_size) {
-            self->get_block_size = method;
-        }else if(selector == storage_read_block) {
+        if(selector == storage_read_block) {
             self->read_block = method;
         }
     }
@@ -69,12 +67,19 @@ const void* StorageDevice() {
 }
 
 error_t storage_mount(void* _self) {
+    error_t err = NO_ERROR;
     storage_device_t* self = cast(StorageDevice(), _self);
 
+    // check if gpt
     if(check_gpt(self)) {
-        debug_log("Found GPT partition\n");
+        CHECK_AND_RETHROW(gpt_parse(self));
+
+    // not a valid partition scheme
+    }else {
+        CHECK_FAILED_ERROR(ERROR_NOT_FOUND);
     }
 
+cleanup:
     return NO_ERROR;
 }
 
@@ -82,21 +87,9 @@ error_t storage_mount(void* _self) {
 // Storage Device functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-size_t storage_get_block_count(void* _self) {
-    storage_device_class_t* class = cast(StorageDeviceClass(), classOf(_self));
-    ASSERT(class->get_block_count != NULL);
-    return class->get_block_count(_self);
-}
-
-size_t storage_get_block_size(void* _self) {
-    storage_device_class_t* class = cast(StorageDeviceClass(), classOf(_self));
-    ASSERT(class->get_block_size != NULL);
-    return class->get_block_size(_self);
-}
-
-error_t storage_read_block(void* _self, uintptr_t lba, void* buffer) {
+error_t storage_read_block(void* _self, uintptr_t lba, void* buffer, size_t byte_count) {
     storage_device_class_t* class = cast(StorageDeviceClass(), classOf(_self));
     ASSERT(class->read_block != NULL);
-    return class->read_block(_self, lba, buffer);
+    return class->read_block(_self, lba, buffer, byte_count);
 }
 

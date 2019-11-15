@@ -3,11 +3,14 @@
 
 #include <objects/object.h>
 #include <util/list.h>
+#include <drivers/storage/storage_object.h>
 
 typedef struct partition {
     object_t super;
 
     char name[255];
+
+    storage_device_t* parent;
 
     uint64_t lba_start;
     uint64_t lba_end;

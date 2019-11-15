@@ -21,8 +21,6 @@ typedef struct ahci_device {
     AHCI_HBA_CMD_HEADER* cl;
     AHCI_HBA_FIS* fis;
 
-    size_t block_size;
-
     // signalled whenever there is a new empty slot
     event_t has_empty_slot;
 } ahci_device_t;

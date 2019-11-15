@@ -234,14 +234,17 @@ static void do_identify(ahci_device_t* self) {
         self->super.name[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
     }
 
-    // now do stuff with the identify data
-    debug_log("[*] ahci: found SATA (%s)\n", self->super.name);
-
     //figure the sector size
-    self->block_size = 512;
+    self->super.block_size = 512;
     if((identify->physical_logical_sector & (1u << 12u)) && identify->logical_sector_size[0] != 0) {
-        self->block_size = identify->logical_sector_size[0] << 1;
+        self->super.block_size = identify->logical_sector_size[0] << 1;
     }
+
+    // figure the block count
+    self->super.block_count = POKE32(identify->total_addressable_logical_sectors);
+
+    // now do stuff with the identify data
+    debug_log("[*] ahci: found SATA (%s) - %dx%d\n", self->super.name, self->super.block_count, self->super.block_size);
 
     // free the buffers
     mm_free_pages((void*)identify, SIZE_TO_PAGES(sizeof(ATA_IDENTIFY_DATA)));
@@ -255,11 +258,11 @@ static void do_identify(ahci_device_t* self) {
     for(int i = 0; i < 32; i++) {
         AHCI_HBA_CMD_HEADER* cmd = &self->cl[i];
         AHCI_HBA_CMD_TBL* cmdtbl = (AHCI_HBA_CMD_TBL*)PHYSICAL_TO_DIRECT(cmd->ctba | ((uintptr_t)cmd->ctbau << 32u));
-        void* max_data_buffer = mm_allocate_pages(SIZE_TO_PAGES(self->block_size));
+        void* max_data_buffer = mm_allocate_pages(SIZE_TO_PAGES(self->super.block_size));
         uintptr_t phys_buf = DIRECT_TO_PHYSICAL((uintptr_t)max_data_buffer);
         cmdtbl->prdt_entry[0].dba = phys_buf & 0xFFFFFFFF;
         cmdtbl->prdt_entry[0].dbau = ((phys_buf >> 32u) & 0xFFFFFFFF);
-        cmdtbl->prdt_entry[0].dbc = self->block_size - 1;
+        cmdtbl->prdt_entry[0].dbc = self->super.block_size - 1;
         cmdtbl->prdt_entry[0].i = 1;
 
     }
@@ -333,18 +336,10 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
 
 static void* AhciDevice_dtor(void* _self) {
     __attribute__((unused)) ahci_device_t* self = super_dtor(AhciDevice(), _self);
-    // TODO: ahci dtor
+
     ASSERT(false);
+
     return _self;
-}
-
-static size_t AhciDevice_get_block_count(void* _self) {
-    ASSERT(false);
-}
-
-static size_t AhciDevice_get_block_size(void* _self) {
-    ahci_device_t* device = cast(AhciDevice(), _self);
-    return device->block_size;
 }
 
 /**
@@ -357,9 +352,11 @@ static size_t AhciDevice_get_block_size(void* _self) {
  * request a range of blocks or something and it would handle that for you, because block at a time
  * might be too slow...
  */
-static error_t AhciDevice_read_block(void* _self, uintptr_t lba, void* buffer) {
+static error_t AhciDevice_read_block(void* _self, uintptr_t lba, void* buffer, size_t byte_count) {
     error_t err = NO_ERROR;
     ahci_device_t* self = cast(AhciDevice(), _self);
+
+    ASSERT(byte_count > 0 && byte_count <= self->super.block_size);
 
     // wait to get a free slot
     int slot = find_free_slot(self);
@@ -403,9 +400,18 @@ static error_t AhciDevice_read_block(void* _self, uintptr_t lba, void* buffer) {
     // issue the command
     self->port->ci |= 1u << slot;
 
-    // wait for the interrupt and then copy the buffer
-    event_wait(&self->interrupt_on_slot[slot]);
-    memcpy(buffer, buf, self->block_size);
+    // wait a little
+    for(volatile int i = 0; i < 10000; i++) {
+        cpu_pause();
+    }
+
+    // was it fast enough that we did not get it yet?
+    if((self->port->ci & (1u << slot)) != 0) {
+        // wait for the interrupt and then copy the buffer
+        event_wait(&self->interrupt_on_slot[slot]);
+    }
+
+    memcpy(buffer, buf, byte_count);
 
     // tell that we finished using the slot
     self->slot_in_use[slot] = false;
@@ -422,9 +428,7 @@ const void* AhciDevice() {
                     "AhciDevice", StorageDevice(), sizeof(ahci_device_t),
                     ctor, AhciDevice_ctor,
                     dtor, AhciDevice_dtor,
-                    storage_get_block_count, AhciDevice_get_block_count,
                     storage_read_block, AhciDevice_read_block,
-                    storage_get_block_size, AhciDevice_get_block_size,
                     0);
     }
     return class;
