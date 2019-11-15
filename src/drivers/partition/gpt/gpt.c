@@ -7,9 +7,13 @@
 #include "gpt.h"
 
 bool check_gpt(storage_device_t* storage) {
+    ASSERT(storage != NULL);
+
     size_t block_size = storage_get_block_size(storage);
     // TODO: storage size
     bool valid = false;
+
+    // TODO: locks
 
     // read the header
     void* buffer = mm_allocate_pages(storage_get_block_size(storage));
@@ -39,4 +43,16 @@ bool check_gpt(storage_device_t* storage) {
 cleanup:
     mm_free_pages(buffer, block_size);
     return valid;
+}
+
+error_t gpt_parse(storage_device_t* storage) {
+    error_t err = NO_ERROR;
+    ASSERT(storage != NULL);
+
+    // TODO: locks
+
+
+
+cleanup:
+    return err;
 }
