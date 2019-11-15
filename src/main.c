@@ -8,8 +8,8 @@
 #include <smp/percpu_storage.h>
 #include <smp/smp.h>
 
-#include <drivers/ahci/ahci.h>
-#include <drivers/pci/pci.h>
+#include <drivers/storage/ahci/ahci.h>
+#include <drivers/bus/pci/pci.h>
 
 #include <memory/pmm.h>
 #include <memory/vmm.h>
@@ -21,7 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <tboot.h>
-#include <drivers/storage_object.h>
+#include <drivers/storage/storage_object.h>
 
 static thread_t* init_thread = NULL;
 
@@ -29,19 +29,23 @@ static void kernel_init_thread() {
     debug_log("[+] In init thread!\n");
 
     acpi_init();
+
+    // start by doing bus initialization (other drivers might use it)
     pci_init();
 
-    // do driver initialization
+    // do storage device initialization
     ahci_scan();
 
+    // mount all of the storage devices
+    for(list_entry_t* link = storage_objects.next; link != &storage_objects; link = link->next) {
+        storage_device_t* storage = CR(link, storage_device_t, link);
+        debug_log("[*] attempting to mount %s\n", storage->name);
+        storage_mount(storage);
+    }
+
+    // TODO: mount all partitions
+
     debug_log("[+] Driver initialization finished!\n");
-
-    uint8_t buffer[512];
-
-    ASSERT(!is_list_empty(&storage_objects));
-    storage_device_t* storage = CR(storage_objects.next, storage_device_t, link);
-    debug_print(storage);
-    ASSERT(!IS_ERROR(storage_read_block(storage, 0, buffer)));
 
     while(true);
 }

@@ -33,6 +33,10 @@ typedef struct storage_device {
     // link to the rest of entries
     list_entry_t link;
 
+    // the drive name
+    // TODO: Should this be unique?
+    char name[255];
+
     // the partitions mounted on this device
     list_entry_t partitions;
 } storage_device_t;

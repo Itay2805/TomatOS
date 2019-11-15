@@ -1,6 +1,7 @@
 #ifndef TOMATKERNEL_PCI_SPEC_H
 #define TOMATKERNEL_PCI_SPEC_H
 
+#include <interrupts/apic/lapic.h>
 #include <libc/stddef.h>
 
 typedef struct pci_reg_command {

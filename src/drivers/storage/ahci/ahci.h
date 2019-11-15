@@ -1,8 +1,8 @@
 #ifndef TOMATKERNEL_AHCI_H
 #define TOMATKERNEL_AHCI_H
 
-#include <drivers/storage_object.h>
-#include <drivers/pci/pci.h>
+#include <drivers/storage/storage_object.h>
+#include <drivers/bus/pci/pci.h>
 
 #include <objects/object.h>
 

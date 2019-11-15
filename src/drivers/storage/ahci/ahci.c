@@ -1,12 +1,16 @@
-#include <drivers/storage_object.h>
-#include <drivers/pci/pci.h>
-#include <drivers/pci/pci_spec.h>
-#include <memory/vmm.h>
+#include <drivers/storage/storage_object.h>
+#include <drivers/bus/pci/pci_spec.h>
+#include <drivers/bus/pci/pci.h>
+
 #include <processes/process.h>
+
+#include <memory/vmm.h>
 #include <stb/stb_ds.h>
 #include <util/defs.h>
-#include "ahci.h"
+#include <stb/stb_sprintf.h>
+
 #include "sata_spec.h"
+#include "ahci.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Ahci controller implementation
@@ -134,7 +138,7 @@ const void* AhciController() {
                     ctor, AhciController_ctor,
                     dtor, AhciController_dtor,
                     0
-                );
+        );
     }
     return class;
 }
@@ -225,14 +229,13 @@ static void do_identify(ahci_device_t* self) {
     }
 
     // prepare the model name
-    char buffer[20 + 1] = {0};
     for(int i = 0; i < 10; i++) {
-        buffer[i * 2 + 0] = (char)((identify->model_number[i] >> 8u) & 0xFFu);
-        buffer[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
+        self->super.name[i * 2 + 0] = (char)((identify->model_number[i] >> 8u) & 0xFFu);
+        self->super.name[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
     }
 
     // now do stuff with the identify data
-    debug_log("[*] ahci: \tfound: %s\n", buffer);
+    debug_log("[*] ahci: found SATA (%s)\n", self->super.name);
 
     //figure the sector size
     self->block_size = 512;
@@ -268,7 +271,6 @@ static void do_identify(ahci_device_t* self) {
  * it takes in the controller and port struct as parameters and will make
  * sure to allocate the fis and command lists, identify the disk and size
  * of block, and preallocate a command table [er block
-
  */
 static void* AhciDevice_ctor(void* _self, va_list ap) {
     ahci_device_t* self = super_ctor(AhciDevice(), _self, ap);
@@ -423,7 +425,7 @@ const void* AhciDevice() {
                     storage_get_block_count, AhciDevice_get_block_count,
                     storage_read_block, AhciDevice_read_block,
                     storage_get_block_size, AhciDevice_get_block_size,
-                0);
+                    0);
     }
     return class;
 }

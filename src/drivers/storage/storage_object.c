@@ -1,5 +1,5 @@
+#include <drivers/partition/gpt/gpt.h>
 #include "storage_object.h"
-
 
 lock_t storage_objects_lock = 0;
 list_entry_t storage_objects = INIT_LIST_ENTRY(storage_objects);
@@ -66,6 +66,16 @@ const void* StorageDevice() {
                 0);
     }
     return class;
+}
+
+error_t storage_mount(void* _self) {
+    storage_device_t* self = cast(StorageDevice(), _self);
+
+    if(check_gpt(self)) {
+        debug_log("Found GPT partition\n");
+    }
+
+    return NO_ERROR;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

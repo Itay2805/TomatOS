@@ -2,6 +2,8 @@
 #include <acpi/tables/fadt.h>
 #include <processes/process.h>
 
+#include <drivers/bus/pci/pci.h>
+
 #include <memory/vmm.h>
 #include <memory/mm.h>
 #include <util/arch.h>
@@ -10,7 +12,6 @@
 #include <string.h>
 
 #include <lai/host.h>
-#include <drivers/pci/pci.h>
 #include <util/defs.h>
 
 
