@@ -92,9 +92,9 @@ static void* AhciController_ctor(void* _self, va_list ap) {
                 case AHCI_SIGNATURE_SATA:
                     self->devices[i] = new(AhciDevice(), self, port);
 
-                    acquire_lock(&storage_obejcts_lock);
-                    arrpush(storage_objects, self->devices[i]);
-                    release_lock(&storage_obejcts_lock);
+                    acquire_lock(&storage_objects_lock);
+                    insert_tail_list(&storage_objects, &self->devices[i]->super.link);
+                    release_lock(&storage_objects_lock);
                     break;
 
                 default:
@@ -171,73 +171,11 @@ static int find_free_slot(ahci_device_t* dev) {
 }
 
 /**
- * This is the port initialization function
+ * Identify the given device
  *
- * it takes in the controller and port struct as parameters and will make
- * sure to allocate the fis and command lists, identify the disk and size
- * of block, and preallocate a command table [er block
- *
- * @param _self
- * @param ap
- * @return
+ * this will initialize whatever is needed to get the device ready to work
  */
-static void* AhciDevice_ctor(void* _self, va_list ap) {
-    ahci_device_t* self = super_ctor(AhciDevice(), _self, ap);
-
-    self->controller = cast(AhciController(), va_arg(ap, ahci_controller_t*));
-    self->port = va_arg(ap, AHCI_HBA_PORT*);
-
-    // stop the device
-    self->port->cmd &= ~AHCI_PxCMD_ST;
-    memory_fence();
-    while(self->port->cmd & (AHCI_PxCMD_FR | AHCI_PxCMD_CR)) {
-        cpu_pause();
-    }
-    self->port->cmd &= ~AHCI_PxCMD_FRE;
-    memory_fence();
-
-    // allocate memory for the command list and fis
-    self->cl = mm_allocate_pages(SIZE_TO_PAGES(sizeof(AHCI_HBA_CMD_HEADER) * 32));
-    self->fis = mm_allocate_pages(SIZE_TO_PAGES(sizeof(AHCI_HBA_FIS)));
-
-    // set interrupts we wanna get
-    self->port->ie = (AHCI_PxIE_TFEE | AHCI_PxIE_DHRE);
-
-    uintptr_t phys_cl = DIRECT_TO_PHYSICAL((uintptr_t)self->cl);
-    self->port->clbu = ((phys_cl >> 32u) & 0xFFFFFFFF);
-    self->port->clb = phys_cl & 0xFFFFFFFF;
-
-    uintptr_t phys_fis = DIRECT_TO_PHYSICAL((uintptr_t)self->fis);
-    self->port->fbu = ((phys_fis >> 32u) & 0xFFFFFFFF);
-    self->port->fb = phys_fis & 0xFFFFFFFF;
-
-    // setup receive fis
-    self->fis->dsfis.h.fis_type = FIS_TYPE_DMA_SETUP;
-    self->fis->psfis.h.fis_type = FIS_TYPE_PIO_SETUP;
-    self->fis->rfis.h.fis_type = FIS_TYPE_REG_D2H;
-    self->fis->sdbfis[0] = FIS_TYPE_DEV_BITS;
-
-    // initialize all of the command headers
-    // TODO: eventually make this a bit more dynamic or something
-    for(int i = 0; i < 32; i++) {
-        AHCI_HBA_CMD_HEADER* cmd = &self->cl[i];
-        AHCI_HBA_CMD_TBL* cmdtbl = mm_allocate_pages(SIZE_TO_PAGES(offsetof(AHCI_HBA_CMD_TBL, prdt_entry) + sizeof(AHCI_HBA_PRDT_ENTRY)));
-        uintptr_t phys_ctba = DIRECT_TO_PHYSICAL((uintptr_t)cmdtbl);
-        cmd->ctbau = ((phys_ctba >> 32u) & 0xFFFFFFFF);
-        cmd->ctba = phys_ctba & 0xFFFFFFFF;
-    }
-
-    // start the device again
-    memory_fence();
-    while(self->port->cmd & AHCI_PxCMD_CR) {
-        cpu_pause();
-    }
-    self->port->cmd |= (AHCI_PxCMD_FRE | AHCI_PxCMD_ST);
-    memory_fence();
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // identify
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static void do_identify(ahci_device_t* self) {
     // TODO: ugly af
 
     // prepare the command
@@ -322,6 +260,71 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
         cmdtbl->prdt_entry[0].i = 1;
 
     }
+}
+
+/**
+ * This is the port initialization function
+ *
+ * it takes in the controller and port struct as parameters and will make
+ * sure to allocate the fis and command lists, identify the disk and size
+ * of block, and preallocate a command table [er block
+
+ */
+static void* AhciDevice_ctor(void* _self, va_list ap) {
+    ahci_device_t* self = super_ctor(AhciDevice(), _self, ap);
+
+    self->controller = cast(AhciController(), va_arg(ap, ahci_controller_t*));
+    self->port = va_arg(ap, AHCI_HBA_PORT*);
+
+    // stop the device
+    self->port->cmd &= ~AHCI_PxCMD_ST;
+    memory_fence();
+    while(self->port->cmd & (AHCI_PxCMD_FR | AHCI_PxCMD_CR)) {
+        cpu_pause();
+    }
+    self->port->cmd &= ~AHCI_PxCMD_FRE;
+    memory_fence();
+
+    // allocate memory for the command list and fis
+    self->cl = mm_allocate_pages(SIZE_TO_PAGES(sizeof(AHCI_HBA_CMD_HEADER) * 32));
+    self->fis = mm_allocate_pages(SIZE_TO_PAGES(sizeof(AHCI_HBA_FIS)));
+
+    // set interrupts we wanna get
+    self->port->ie = (AHCI_PxIE_TFEE | AHCI_PxIE_DHRE);
+
+    uintptr_t phys_cl = DIRECT_TO_PHYSICAL((uintptr_t)self->cl);
+    self->port->clbu = ((phys_cl >> 32u) & 0xFFFFFFFF);
+    self->port->clb = phys_cl & 0xFFFFFFFF;
+
+    uintptr_t phys_fis = DIRECT_TO_PHYSICAL((uintptr_t)self->fis);
+    self->port->fbu = ((phys_fis >> 32u) & 0xFFFFFFFF);
+    self->port->fb = phys_fis & 0xFFFFFFFF;
+
+    // setup receive fis
+    self->fis->dsfis.h.fis_type = FIS_TYPE_DMA_SETUP;
+    self->fis->psfis.h.fis_type = FIS_TYPE_PIO_SETUP;
+    self->fis->rfis.h.fis_type = FIS_TYPE_REG_D2H;
+    self->fis->sdbfis[0] = FIS_TYPE_DEV_BITS;
+
+    // initialize all of the command headers
+    // TODO: eventually make this a bit more dynamic or something
+    for(int i = 0; i < 32; i++) {
+        AHCI_HBA_CMD_HEADER* cmd = &self->cl[i];
+        AHCI_HBA_CMD_TBL* cmdtbl = mm_allocate_pages(SIZE_TO_PAGES(offsetof(AHCI_HBA_CMD_TBL, prdt_entry) + sizeof(AHCI_HBA_PRDT_ENTRY)));
+        uintptr_t phys_ctba = DIRECT_TO_PHYSICAL((uintptr_t)cmdtbl);
+        cmd->ctbau = ((phys_ctba >> 32u) & 0xFFFFFFFF);
+        cmd->ctba = phys_ctba & 0xFFFFFFFF;
+    }
+
+    // start the device again
+    memory_fence();
+    while(self->port->cmd & AHCI_PxCMD_CR) {
+        cpu_pause();
+    }
+    self->port->cmd |= (AHCI_PxCMD_FRE | AHCI_PxCMD_ST);
+    memory_fence();
+
+    do_identify(self);
 
     return _self;
 }
@@ -331,6 +334,10 @@ static void* AhciDevice_dtor(void* _self) {
     // TODO: ahci dtor
     ASSERT(false);
     return _self;
+}
+
+static size_t AhciDevice_get_block_count(void* _self) {
+    ASSERT(false);
 }
 
 static size_t AhciDevice_get_block_size(void* _self) {
@@ -410,9 +417,10 @@ const void* AhciDevice() {
     static const void* class = NULL;
     if(class == NULL) {
         class = new(StorageDeviceClass(),
-                    "AhciDevice", Object(), sizeof(ahci_device_t),
+                    "AhciDevice", StorageDevice(), sizeof(ahci_device_t),
                     ctor, AhciDevice_ctor,
                     dtor, AhciDevice_dtor,
+                    storage_get_block_count, AhciDevice_get_block_count,
                     storage_read_block, AhciDevice_read_block,
                     storage_get_block_size, AhciDevice_get_block_size,
                 0);

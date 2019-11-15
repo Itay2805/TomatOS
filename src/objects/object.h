@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 
-#define	OBJECT_MAGIC 0xCAFEBABE
+#define	OBJECT_MAGIC 123456789
 
 typedef struct object {
     unsigned long magic;

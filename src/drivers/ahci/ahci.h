@@ -1,13 +1,15 @@
 #ifndef TOMATKERNEL_AHCI_H
 #define TOMATKERNEL_AHCI_H
 
-#include <objects/object.h>
+#include <drivers/storage_object.h>
 #include <drivers/pci/pci.h>
+
+#include <objects/object.h>
 
 #include "ahci_spec.h"
 
 typedef struct ahci_device {
-    object_t _;
+    storage_device_t super;
 
     struct ahci_controller* controller;
     AHCI_HBA_PORT* port;
@@ -26,7 +28,7 @@ typedef struct ahci_device {
 } ahci_device_t;
 
 typedef struct ahci_controller {
-    object_t _;
+    object_t super;
 
     pci_device_t* device;
     interrupt_handler_t interrupt;

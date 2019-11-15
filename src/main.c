@@ -38,7 +38,8 @@ static void kernel_init_thread() {
 
     uint8_t buffer[512];
 
-    void* storage = storage_objects[0];
+    ASSERT(!is_list_empty(&storage_objects));
+    storage_device_t* storage = CR(storage_objects.next, storage_device_t, link);
     debug_print(storage);
     ASSERT(!IS_ERROR(storage_read_block(storage, 0, buffer)));
 
