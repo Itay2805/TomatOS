@@ -99,7 +99,7 @@ static error_t scheduler_tick(interrupt_context_t* context, void* user_param) {
     thread_t* running_thread = get_percpu_storage()->running_thread;
 
     // check if there is nothing new to run
-    if(scheduler_queue.next == &scheduler_queue && running_thread != NULL) {
+    if(scheduler_queue.next == &scheduler_queue && running_thread != NULL && running_thread->state == THREAD_STATE_RUNNING) {
         // if so just cleanup
         goto cleanup;
     }
@@ -110,9 +110,9 @@ static error_t scheduler_tick(interrupt_context_t* context, void* user_param) {
 
         save_context(context, running_thread);
 
-        // set to normal if the thread is not waiting
-        if(running_thread->state != THREAD_WAITING) {
-            running_thread->state = THREAD_NORMAL;
+        // set to normal if the thread was running
+        if(running_thread->state == THREAD_STATE_RUNNING) {
+            running_thread->state = THREAD_STATE_NORMAL;
 
             // add it back to the scheduling queue
             insert_tail_list(&scheduler_queue, &running_thread->scheduler_link);
@@ -130,7 +130,7 @@ static error_t scheduler_tick(interrupt_context_t* context, void* user_param) {
         // load the context of the thread to run
         acquire_lock(&thread->lock);
         load_context(context, thread);
-        thread->state = THREAD_RUNNING;
+        thread->state = THREAD_STATE_RUNNING;
         release_lock(&thread->lock);
 
         // set the current thread to running

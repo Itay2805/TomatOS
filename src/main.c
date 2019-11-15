@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <tboot.h>
+#include <drivers/storage_object.h>
 
 static thread_t* init_thread = NULL;
 
@@ -32,6 +33,21 @@ static void kernel_init_thread() {
 
     // do driver initialization
     ahci_scan();
+
+    debug_log("[+] Driver initialization finished!\n");
+
+    uint8_t buffer[512];
+
+    void* storage = storage_objects[0];
+    debug_print(storage);
+    ASSERT(!IS_ERROR(storage_read_block(storage, 0, buffer)));
+
+    for(int i = 0; i < 512; i++) {
+        if(i != 0 && i % 16 == 0) {
+            debug_log("\n");
+        }
+        debug_log("%02x ", buffer[i]);
+    }
 
     while(true);
 }

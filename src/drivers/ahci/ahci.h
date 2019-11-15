@@ -6,6 +6,25 @@
 
 #include "ahci_spec.h"
 
+typedef struct ahci_device {
+    object_t _;
+
+    struct ahci_controller* controller;
+    AHCI_HBA_PORT* port;
+
+    lock_t slots_lock;
+    bool slot_in_use[32];
+    event_t interrupt_on_slot[32];
+
+    AHCI_HBA_CMD_HEADER* cl;
+    AHCI_HBA_FIS* fis;
+
+    size_t block_size;
+
+    // signalled whenever there is a new empty slot
+    event_t has_empty_slot;
+} ahci_device_t;
+
 typedef struct ahci_controller {
     object_t _;
 
@@ -13,17 +32,9 @@ typedef struct ahci_controller {
     interrupt_handler_t interrupt;
 
     AHCI_HBA* hba;
+
+    ahci_device_t* devices[32];
 } ahci_controller_t;
-
-typedef struct ahci_device {
-    object_t _;
-
-    ahci_controller_t* controller;
-    AHCI_HBA_PORT* port;
-
-    AHCI_HBA_CMD_HEADER* cl;
-    AHCI_HBA_FIS* fis;
-} ahci_device_t;
 
 const void* AhciDevice();
 

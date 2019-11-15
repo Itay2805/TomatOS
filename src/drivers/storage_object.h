@@ -26,7 +26,8 @@ extern void** storage_objects;
 const void* StorageDeviceClass();
 
 size_t storage_get_block_size(void* _self);
-error_t storage_read_block(void* _self, uintptr_t lba, void* buffer);
 
+// TODO: allow for reading multiple sectors at a time
+error_t storage_read_block(void* _self, uintptr_t lba, void* buffer);
 
 #endif //TOMATKERNEL_STORAGE_OBJECT_H

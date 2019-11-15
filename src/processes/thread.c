@@ -13,7 +13,7 @@ static void* Thread_ctor(void* _self, va_list ap) {
     process_t* parent = va_arg(ap, process_t*);
 
     self->parent = parent;
-    self->state = THREAD_WAITING;
+    self->state = THREAD_STATE_WAITING;
 
     self->cpu_state.rflags.IF = 1;
     self->cpu_state.rflags.ID = 1;

@@ -19,6 +19,9 @@ static void* StorageDeviceClass_ctor(void* _self, va_list ap) {
     return self;
 }
 
+lock_t storage_obejcts_lock;
+void** storage_objects;
+
 const void* StorageDeviceClass() {
     static const void* class = NULL;
     if(class == NULL) {

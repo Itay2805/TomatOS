@@ -30,14 +30,14 @@ typedef struct cpu_state {
 
 typedef enum thread_state {
     // this is a running thread
-    THREAD_RUNNING,
+    THREAD_STATE_RUNNING,
 
     // this is a thread that is waiting for something to
     // happen
-    THREAD_WAITING,
+    THREAD_STATE_WAITING,
 
     // this is a thread that is waiting to run
-    THREAD_NORMAL,
+    THREAD_STATE_NORMAL,
 } thread_state_t;
 
 typedef struct thread {

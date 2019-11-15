@@ -83,4 +83,14 @@ void* pci_get_config_space(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func
  */
 const char* pci_get_name(uint16_t class, uint16_t subclass, uint8_t prog_if);
 
+/**
+ * Will setup MSI for the given device
+ *
+ * The msi will fire in the given IRQ
+ *
+ * @param device    [IN] The PCI device to set the MSI to
+ * @param vector    [IN] The vector to set the MSI to
+ */
+void pci_msi_setup(pci_device_t* device, uint8_t vector);
+
 #endif //TOMATKERNEL_PCI_H

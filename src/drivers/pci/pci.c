@@ -299,3 +299,24 @@ void* pci_get_config_space(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func
     // return null if not found
     return NULL;
 }
+
+void pci_msi_setup(pci_device_t* device, uint8_t vector) {
+    ASSERT(device != NULL);
+    ASSERT(device->msi != NULL);
+
+    if(device->msi->bit64_capable) {
+        device->msi->bit64.data.vector = vector;
+        device->msi->bit64.data.delivery_mode = LAPIC_DELIVERY_MODE_FIXED;
+        device->msi->bit64.address_low.base_address = 0xFEE;
+        device->msi->bit64.address_low.destination_id = lapic_get_id();
+    }else {
+        device->msi->bit32.data.vector = vector;
+        device->msi->bit32.data.delivery_mode = LAPIC_DELIVERY_MODE_FIXED;
+        device->msi->bit32.address.base_address = 0xFEE;
+        device->msi->bit32.address.destination_id = lapic_get_id();
+    }
+    memory_fence();
+
+    device->msi->multiple_message_enable = false;
+    device->msi->msi_enable = true;
+}
