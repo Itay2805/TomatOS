@@ -1,5 +1,5 @@
 file: 'tomatos.img'
-size: 38M
+size: 100M
 type: gpt
 partitions:
   - fs: fat32
@@ -7,3 +7,7 @@ partitions:
     bootable: true
     content: 'image'
     label: boot
+  - fs: echfs
+    size: fit
+    content: 'rootfs'
+    label: tomatos

@@ -4,3 +4,9 @@
 [submodule "lib/lai"]
 	path = lib/lai
 	url = git@github.com:TomatOrg/lai.git
+[submodule "tools/image-builder"]
+	path = tools/image-builder
+	url = git@github.com:TomatOrg/image-builder.git
+[submodule "tools/echfs"]
+	path = tools/echfs
+	url = git@github.com:qword-os/echfs.git

@@ -151,19 +151,17 @@ image: bin/tomatos.img
 bin/tomatos.img: \
 		bin/image/EFI/BOOT/BOOTX64.EFI \
 		bin/image/tomatos.elf \
-		tools/image-builder.py
+		tools/echfs/echfs-utils
 	cp ./config/tomatboot.cfg ./bin/image/
 	cp ./boot/bin/BOOTX64.EFI ./bin/image/
-	cd bin && ../tools/image-builder.py ../config/image.yaml
+	export PATH='${PATH}:${PWD}/tools/echfs'; cd bin && ../tools/image-builder/image-builder.py ../config/image.yaml
 
 #########################
 # Tools we need
 #########################
 
-tools/image-builder.py:
-	mkdir -p tools
-	cd tools && wget https://raw.githubusercontent.com/TomatOrg/image-builder/master/image-builder.py
-	chmod +x tools/image-builder.py
+tools/echfs/echfs-utils:
+	$(MAKE) -C ./tools/echfs/ echfs-utils
 
 #########################
 # Running in QEMU
@@ -200,7 +198,3 @@ clean:
 clean-all:
 	$(MAKE) -C ./boot/ clean
 	rm -rf build bin
-
-# Delete all the tools
-clean-tools:
-	rm -rf tools

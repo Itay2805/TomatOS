@@ -1,13 +1,20 @@
-iso
+# Ignore cmake related stuff
 cmake*
 CMake*
-TomatKernel
 
+# Ignore build images
 *.iso
+*.img
+*.vdi
+*.vmdk
 
+# Ignore editor related folders
 .vscode
 .idea
 
+# Ignore immediate files
 bin
 build
-tools
+
+ # Ignore the UEFI firmware
+*.fd

@@ -6,21 +6,23 @@ The goal of this project is to waste my time.
 
 ## Kernel Features
 
-### Hardware
 * 64bit with all the basics (gdt, pmm, vmm...)
 * Uses UEFI for starting (with [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI))
 * ACPI
     * AML interpreter powered by [Lai](https://github.com/qword-os/lai)
-    * Used to create the SCI handler and iterating PCI devices properly
 * APIC
-    * Full Local + IO APIC support
-* PCI
-    * full scan + objects that abstract everything
 * SMP
-    * including a simple scheduler
-
-### Software
+* PCI
+* AHCI - read only but write will be implemented soon
 * Processes and Threads are supported
+* GPT
+* [EchFS](https://github.com/qword-os/echfs)
+
+## Building it
+First you need to clone the repo, make sure to do a recursive clone:
+```
+git clone git@github.com:TomatOrg/TomatOS.git --recurse-submodules
+```
 
 ## TODO
 * syscalls and usermode testing
