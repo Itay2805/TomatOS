@@ -1,4 +1,5 @@
 #include <string.h>
+#include <drivers/filesystem/echfs/echfs.h>
 #include "partition.h"
 
 static void* Partition_ctor(void* _self, va_list ap) {
@@ -44,7 +45,7 @@ error_t partition_read_block(void* _self, uint64_t lba, void* buffer, size_t siz
     partition_t* partition = cast(Partition(), _self);
 
     // make sure in range
-    CHECK(partition->lba_start + lba > partition->lba_end);
+    CHECK(partition->lba_start + lba <= partition->lba_end);
 
     // read it
     CHECK_AND_RETHROW(storage_read_block(partition->parent, partition->lba_start + lba, buffer, size));
@@ -60,7 +61,11 @@ error_t partition_mount(void* _self) {
     acquire_lock(&self->mount_lock);
     CHECK(self->filesystem == NULL);
 
-    CHECK_ERROR(false, ERROR_UNSUPPORTED);
+    if(check_echfs(self)) {
+        debug_log("[+] Found ECHFS\n");
+    }else {
+        CHECK_ERROR(false, ERROR_UNSUPPORTED);
+    }
 
 cleanup:
     release_lock(&self->mount_lock);

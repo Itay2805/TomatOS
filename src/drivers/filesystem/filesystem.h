@@ -5,6 +5,7 @@
 #include <util/error.h>
 #include <util/list.h>
 #include <util/sync.h>
+#include <drivers/partition/partition.h>
 
 typedef struct file_stat {
     size_t size;
@@ -28,6 +29,9 @@ typedef struct file_class {
 
 typedef struct filesystem {
     object_t super;
+
+    // the partition the filesystem is in
+    partition_t* parent;
 
     // all handles open for this filesystem
     lock_t files_lock;

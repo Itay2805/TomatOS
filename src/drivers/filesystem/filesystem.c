@@ -79,6 +79,7 @@ const void* FileClass() {
 static void* FileSystem_ctor(void* _self, va_list ap) {
     filesystem_t* self = super_ctor(FileSystem(), _self, ap);
 
+    self->parent = va_arg(ap, partition_t*);
     self->files = INIT_LIST_ENTRY(self->files);
 
     return self;
@@ -104,6 +105,18 @@ const void* FileSystem() {
     return class;
 }
 
+error_t fs_open(void* _self, const char* path, void** filehandle) {
+    filesystem_class_t* class = cast(FileSystemClass(), classOf(_self));
+    ASSERT(class->open != NULL);
+    return class->open(_self, path, filehandle);
+}
+
+error_t fs_stat(void* _self, const char* path, file_stat_t* state) {
+    filesystem_class_t* class = cast(FileSystemClass(), classOf(_self));
+    ASSERT(class->stat != NULL);
+    return class->stat(_self, path, state);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // File implementation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,4 +138,16 @@ const void* File() {
                 0);
     }
     return class;
+}
+
+error_t file_read(void* _self, size_t offset, void* buffer, size_t size) {
+    file_class_t* class = cast(FileClass(), classOf(_self));
+    ASSERT(class->read != NULL);
+    return class->read(_self, offset, buffer, size);
+}
+
+error_t file_close(void* _self) {
+    file_class_t* class = cast(FileClass(), classOf(_self));
+    ASSERT(class->close != NULL);
+    return class->close(_self);
 }
