@@ -19,10 +19,19 @@ The goal of this project is to waste my time.
 * [EchFS](https://github.com/qword-os/echfs)
 
 ## Building it
-First you need to clone the repo, make sure to do a recursive clone:
-```
-git clone git@github.com:TomatOrg/TomatOS.git --recurse-submodules
-```
 
-## TODO
-* syscalls and usermode testing
+### Requirements
+* clang-8
+* ld.lld-8
+* make
+* The requirements for [TomatBoot](https://github.com/TomatOrg/TomatBoot-UEFI#requirements)
+* The requirements for [image-builder](https://github.com/TomatOrg/image-builder#requirements)
+
+All you need to do is the following
+```shell script
+git clone git@github.com:TomatOrg/TomatOS.git --recurse-submodules
+cd TomatOS
+make
+```
+this should provide you with a bootable image under `bin/tomatos.img` which you can use in a VM or flash into a disk
+and boot it.
