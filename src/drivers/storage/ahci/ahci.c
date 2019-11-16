@@ -356,7 +356,9 @@ static error_t AhciDevice_read_block(void* _self, uintptr_t lba, void* buffer, s
     error_t err = NO_ERROR;
     ahci_device_t* self = cast(AhciDevice(), _self);
 
-    ASSERT(byte_count > 0 && byte_count <= self->super.block_size);
+    // check ranges
+    CHECK_ERROR(byte_count > 0 && byte_count <= self->super.block_size, ERROR_BAD_BUFFER_SIZE);
+    CHECK_ERROR(lba < self->super.block_count, ERROR_OUT_OF_RESOURCES);
 
     // wait to get a free slot
     int slot = find_free_slot(self);

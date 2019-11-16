@@ -22,28 +22,41 @@
 #include <stdint.h>
 #include <tboot.h>
 #include <drivers/storage/storage_object.h>
+#include <drivers/partition/partition.h>
 
 static thread_t* init_thread = NULL;
 
 static void kernel_init_thread() {
     debug_log("[+] In init thread!\n");
-
     acpi_init();
 
     // start by doing bus initialization (other drivers might use it)
+    debug_log("[+] Loading bus drivers\n");
     pci_init();
 
     // do storage device initialization
+    debug_log("[+] Loading storage drivers\n");
     ahci_scan();
 
     // mount all of the storage devices
+    debug_log("[+] Mounting partitions\n");
     for(list_entry_t* link = storage_objects.next; link != &storage_objects; link = link->next) {
         storage_device_t* storage = CR(link, storage_device_t, link);
-        debug_log("[*] attempting to mount %s\n", storage->name);
+        debug_log("[*] attempting to mount `%s`\n", storage->name);
         storage_mount(storage);
     }
 
-    // TODO: mount all partitions
+    debug_log("[+] Mounting filesystems\n");
+    for(list_entry_t* slink = storage_objects.next; slink != &storage_objects; slink = slink->next) {
+        storage_device_t* storage = CR(slink, storage_device_t, link);
+
+        for (list_entry_t* plink = storage->partitions.next; plink != &storage->partitions; plink = plink->next) {
+            partition_t* partition = CR(plink, partition_t, link);
+
+            debug_log("[*] attempting to mount `%s`\n", partition->name);
+            partition_mount(partition);
+        }
+    }
 
     debug_log("[+] Driver initialization finished!\n");
 

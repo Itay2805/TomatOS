@@ -14,7 +14,6 @@
 #define RELAXED_POKE32(addr) RELAXED_POKE(uint32_t, addr)
 #define RELAXED_POKE64(addr) RELAXED_POKE(uint64_t, addr)
 
-
 #define ALIGN_DOWN(n, a) (((uint64_t)n) & ~((a) - 1ul))
 #define ALIGN_UP(n, a) ALIGN_DOWN(((uint64_t)n) + (a) - 1ul, (a))
 #define ALIGN_PAGE_DOWN(n) ALIGN_DOWN(n, PAGE_SIZE)
@@ -25,5 +24,8 @@
 #define SIGNATURE_16(A, B)                      ((A) | (B << 8))
 #define SIGNATURE_32(A, B, C, D)                (SIGNATURE_16 (A, B) | (SIGNATURE_16 (C, D) << 16))
 #define SIGNATURE_64(A, B, C, D, E, F, G, H)    (SIGNATURE_32 (A, B, C, D) | ((uint64_t) (SIGNATURE_32 (E, F, G, H)) << 32))
+
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 
 #endif //TOMATKERNEL_DEFS_H

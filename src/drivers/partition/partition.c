@@ -21,6 +21,8 @@ static void* Partition_ctor(void* _self, va_list ap) {
 static void* Partition_dtor(void* _self) {
     partition_t* self = super_dtor(Partition(), _self);
 
+    partition_unmount(self);
+
     remove_entry_list(&self->link);
 
     return self;
@@ -36,3 +38,47 @@ const void* Partition() {
     }
     return class;
 }
+
+error_t partition_read_block(void* _self, uint64_t lba, void* buffer, size_t size) {
+    error_t err = NO_ERROR;
+    partition_t* partition = cast(Partition(), _self);
+
+    // make sure in range
+    CHECK(partition->lba_start + lba > partition->lba_end);
+
+    // read it
+    CHECK_AND_RETHROW(storage_read_block(partition->parent, partition->lba_start + lba, buffer, size));
+
+cleanup:
+    return err;
+}
+
+error_t partition_mount(void* _self) {
+    error_t err = NO_ERROR;
+    partition_t* self = cast(Partition(), _self);
+
+    acquire_lock(&self->mount_lock);
+    CHECK(self->filesystem == NULL);
+
+    CHECK_ERROR(false, ERROR_UNSUPPORTED);
+
+cleanup:
+    release_lock(&self->mount_lock);
+    return err;
+}
+
+error_t partition_unmount(void* _self) {
+    error_t err = NO_ERROR;
+    partition_t* self = cast(Partition(), _self);
+
+    acquire_lock(&self->mount_lock);
+    CHECK(self->filesystem != NULL);
+
+    delete(self->filesystem);
+    self->filesystem = NULL;
+
+cleanup:
+    release_lock(&self->mount_lock);
+    return err;
+}
+

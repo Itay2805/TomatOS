@@ -42,6 +42,7 @@ typedef struct storage_device {
     uint64_t block_size;
 
     // the partitions mounted on this device
+    lock_t mount_lock;
     list_entry_t partitions;
 } storage_device_t;
 

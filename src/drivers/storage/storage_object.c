@@ -70,16 +70,20 @@ error_t storage_mount(void* _self) {
     error_t err = NO_ERROR;
     storage_device_t* self = cast(StorageDevice(), _self);
 
+    acquire_lock(&self->mount_lock);
+    CHECK(is_list_empty(&self->partitions));
+
     // check if gpt
     if(check_gpt(self)) {
         CHECK_AND_RETHROW(gpt_parse(self));
 
     // not a valid partition scheme
     }else {
-        CHECK_FAILED_ERROR(ERROR_NOT_FOUND);
+        CHECK_FAILED_ERROR(ERROR_UNSUPPORTED);
     }
 
 cleanup:
+    release_lock(&self->mount_lock);
     return NO_ERROR;
 }
 
