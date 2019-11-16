@@ -379,6 +379,8 @@ static const char* tboot_mmap_names[] = {
     [TBOOT_MEMORY_TYPE_ACPI_RECLAIM] = "ACPI Reclaim",
     [TBOOT_MEMORY_TYPE_USABLE] = "Useable",
     [TBOOT_MEMORY_TYPE_ACPI_NVS] = "ACPI NVS",
+    [TBOOT_MEMORY_TYPE_BOOT_INFO] = "TomatBoot - Boot Info",
+    [TBOOT_MEMORY_TYPE_KERNEL] = "Kernel",
 };
 
 void pmm_init(tboot_info_t* info) {
