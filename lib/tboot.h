@@ -1,7 +1,7 @@
 #ifndef TOMATBOOT_UEFI_TBOOT_H
 #define TOMATBOOT_UEFI_TBOOT_H
 
-#include <stddef.h>
+#include <stdint.h>
 
 /*
  * The magic passed as a parameter to the kernel
@@ -50,6 +50,11 @@
 #define TBOOT_MEMORY_TYPE_KERNEL        6
 
 /*
+ * This represent the module at the given index
+ */
+#define TBOOT_MEMORY_TYPE_MODULE_N(n)   ((n) + 10)
+
+/*
  * Entry in the memory map, the type is one of
  * the TBOOT_MEMORY_TYPE_*
  */
@@ -59,7 +64,39 @@ typedef struct tboot_mmap_entry {
     uint64_t len;
 } __attribute__((packed)) tboot_mmap_entry_t;
 
+/**
+ * Entry in the modules list, the base is where it was loaded
+ * and the len is the length in memory. the name is taken from
+ * the configuration file.
+ */
+typedef struct tboot_module {
+    uint64_t base;
+    uint64_t len;
+    char* name;
+} __attribute__((packed)) tboot_module_t;
+
+/**
+ * The main boot structure, contains all the info you would just need
+ */
 typedef struct tboot_info {
+
+    /**
+     * The features that the loader supports, if the bit is
+     * off then the data for that entry should be ignored,
+     * otherwise the data is valid
+     */
+    union {
+        struct {
+            uint64_t mmap : 1;
+            uint64_t framebuffer : 1;
+            uint64_t cmdline : 1;
+            uint64_t modules : 1;
+            uint64_t tsc_freq : 1;
+            uint64_t rsdp : 1;
+        };
+        uint64_t raw;
+    } flags;
+
     /**
      * The memory map, contains information about the memory
      */
@@ -69,12 +106,17 @@ typedef struct tboot_info {
     } __attribute__((packed)) mmap;
 
     /**
-     * The framebuffer, it is in BGRX format
+     * The framebuffer, it is in BGRA format
      */
     struct {
+        // the physical address
         uint64_t addr;
+        // the width in pixels
         uint32_t width;
+        // the height in pixels
         uint32_t height;
+        // pixels per scanline
+        uint32_t pitch;
     } __attribute__((packed)) framebuffer;
 
     /**
@@ -85,6 +127,14 @@ typedef struct tboot_info {
         uint32_t length;
         char* cmdline;
     } __attribute__((packed)) cmdline;
+
+    /**
+     * The boot modules, loaded according to the config file
+     */
+    struct {
+        uint64_t count;
+        tboot_module_t* entries;
+    } __attribute__((packed)) modules;
 
     /**
      * The frequency (ticks per second) of the TSC
