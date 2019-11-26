@@ -1,26 +1,21 @@
 #include <acpi/tables/mcfg.h>
 #include <memory/vmm.h>
+#include <lai/core.h>
+
+#include <stb/stb_ds.h>
 #include <util/defs.h>
 #include <processes/process.h>
-#include <lai/core.h>
-#include <stb/stb_ds.h>
-#include "pci.h"
+
 #include "pci_spec.h"
+#include "pci.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The pci device object
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static void* PciDevice_ctor(void* _self, va_list ap) {
-    pci_device_t* self = super_ctor(PciDevice(), _self, ap);
+static pci_device_t* new_pci_device(pci_device_t* parent, uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func) {
+    pci_device_t* self = mm_allocate_pool(sizeof(pci_device_t));
 
-    // get the arguments
-    pci_device_t* parent = va_arg(ap, pci_device_t*);
-    uint16_t seg = va_arg(ap, uint32_t);
-    uint8_t bus = va_arg(ap, uint32_t);
-    uint8_t slot = va_arg(ap, uint32_t);
-    uint8_t func = va_arg(ap, uint32_t);
-    
     // set the stuff
     self->parent = parent;
     self->segment = seg;
@@ -111,22 +106,6 @@ static void* PciDevice_ctor(void* _self, va_list ap) {
     return self;
 }
 
-static void* PciDevice_dtor(void* _self) {
-    pci_device_t* self = super_dtor(PciDevice(), _self);
-    return self;
-}
-
-const void* PciDevice() {
-    static const void* class = NULL;
-    if(class == NULL) {
-        class = new(Class(),
-                "PciDevice", Object(), sizeof(pci_device_t),
-                ctor, PciDevice_ctor,
-                dtor, PciDevice_dtor);
-    }
-    return class;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // PCI Scanning
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,7 +130,7 @@ static void init_device(uint16_t segment, uint8_t bus, uint8_t slot, uint8_t fun
     }
 
     // initialize the device
-    pci_device_t* device = new(PciDevice(), parent, segment, bus, slot, func);
+    pci_device_t* device = new_pci_device(parent, segment, bus, slot, func);
 
     // log it nicely
     debug_log("[*] \t%04x:%02x:%02x.%x -> %s (%04x:%04x)\n",

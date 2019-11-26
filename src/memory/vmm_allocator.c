@@ -298,7 +298,7 @@ error_t vmm_allocate(vmm_handle_t* handle, uintptr_t* virt, size_t size, page_pe
 
     if(*virt == 0) {
         start = find_free_pages(handle, max_address, 0, page_count);
-        CHECK_ERROR(start != 0, ERROR_OUT_OF_RESOURCES);
+        CHECK_ERROR(start != 0, ERROR_OUT_OF_RESOURCE);
     }
 
     CHECK_AND_RETHROW(convert_page(handle, start, page_count, true));

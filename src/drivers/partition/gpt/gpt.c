@@ -20,7 +20,7 @@ bool check_gpt(storage_device_t* storage) {
 
     // read the header
     GPT_TABLE_HEADER header = {};
-    ASSERT(!IS_ERROR(storage_read_block(storage, 1, &header, sizeof(GPT_TABLE_HEADER))));
+    ASSERT(!IS_ERROR(storage_read(storage, storage->block_size, &header, sizeof(GPT_TABLE_HEADER))));
 
     if(header.signature != SIGNATURE_64('E','F','I',' ','P','A','R','T')) goto cleanup;
     if(header.revision != 0x00010000) goto cleanup;
@@ -52,22 +52,14 @@ error_t gpt_parse(storage_device_t* storage) {
     GPT_TABLE_HEADER header = {};
 
     CHECK_ERROR(storage != NULL, ERROR_INVALID_PARAMETER);
+    CHECK_AND_RETHROW(storage_read(storage, 1, &header, sizeof(GPT_TABLE_HEADER)));
 
-    const size_t entries_per_lba = storage->block_size / sizeof(GPT_PARTITION_ENTRY);
-    entries = mm_allocate_pages(SIZE_TO_PAGES(storage->block_size));
-
-    CHECK_AND_RETHROW(storage_read_block(storage, 1, &header, sizeof(GPT_TABLE_HEADER)));
+    entries = mm_allocate_pages(SIZE_TO_PAGES(sizeof(GPT_PARTITION_ENTRY) * header.number_of_partition_entries));
+    CHECK_AND_RETHROW(storage_read(storage, header.partition_entry_lba * storage->block_size, entries, sizeof(GPT_PARTITION_ENTRY) * header.number_of_partition_entries));
 
     // iterate over all the entries
-    uint64_t current_lba = header.partition_entry_lba;
     for(int i = 0; i < header.number_of_partition_entries; i++) {
-        // check if should read the next block of entries
-        if(i % entries_per_lba == 0) {
-            CHECK_AND_RETHROW(storage_read_block(storage, current_lba, entries, storage->block_size));
-            current_lba++;
-        }
-
-        GPT_PARTITION_ENTRY* entry = &entries[i % entries_per_lba];
+        GPT_PARTITION_ENTRY* entry = &entries[i];
 
         // not an actual entry
         if(entry->unique_partition_guid.low == 0 && entry->unique_partition_guid.high == 0) {
@@ -86,10 +78,12 @@ error_t gpt_parse(storage_device_t* storage) {
         }
 
         // create the partition and add it to the parent
-        partition_t* part = new(Partition(), storage, entry->starting_lba, entry->ending_lba, name);
+        partition_t* part = mm_allocate_pool(sizeof(partition_t));
+        part->device.type = DEVICE_PARTITION;
+        strcpy(part->device.name, name);
 
         // log it nicely
-        debug_log("[+] gpt: added partition `%s`\n", part->name);
+        debug_log("[+] gpt: added partition `%s`\n", part->device.name);
     }
 
 cleanup:

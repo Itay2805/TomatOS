@@ -10,138 +10,34 @@
 #include <stb/stb_sprintf.h>
 
 #include "sata_spec.h"
+#include "ahci_spec.h"
 #include "ahci.h"
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Ahci controller implementation
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+typedef struct ahci_device {
+    storage_device_t super;
 
-static error_t handle_ahci_interrupt(interrupt_context_t* context, void* _self) {
-    error_t err = NO_ERROR;
-    ahci_controller_t* self = cast(AhciController(), _self);
+    struct ahci_controller* controller;
+    AHCI_HBA_PORT* port;
 
-//    // make sure the device is responsible for the interrupt
-//    if(!self->device->header->status.interrupt) {
-//        goto not_our_device;
-//    }
+    lock_t slots_lock;
+    bool slot_in_use[32];
+    event_t interrupt_on_slot[32];
 
-    for(int i = 0; i < 32; i++) {
-        // check if the port is valid and if we got an interrupt on it
-        if(self->devices[i] != NULL && self->hba->is & (1u << i)) {
-            ahci_device_t* device = self->devices[i];
-            if(device->port->is & (AHCI_PxIS_TFES)) {
-                debug_log("[-] ahci: TFES: %b", device->fis->rfis.error);
-                ASSERT(false);
-            }
+    AHCI_HBA_CMD_HEADER* cl;
+    AHCI_HBA_FIS* fis;
 
-            // if related to transaction complete
-            if(self->hba->is & AHCI_PxIS_DHRS) {
-                for (size_t j = 0; j < 32; j++) {
-                    // if this is clear then it is done and we should notify the waiting thread
-                    if ((device->port->ci & (1u << j)) == 0 && device->slot_in_use[j]) {
-                        event_signal(&device->interrupt_on_slot[j]);
-                    }
-                }
-            }
-        }
-    }
+    // signalled whenever there is a new empty slot
+    event_t has_empty_slot;
+} ahci_device_t;
 
+typedef struct ahci_controller {
+    pci_device_t* device;
+    interrupt_handler_t interrupt;
 
-cleanup:
-    lapic_send_eoi();
+    AHCI_HBA* hba;
 
-not_our_device:
-    return err;
-}
-
-static void* AhciController_ctor(void* _self, va_list ap) {
-    ahci_controller_t* self = super_ctor(AhciController(), _self, ap);
-
-    self->device = cast(PciDevice(), va_arg(ap, void*));
-
-    // setup the device (enable bus master and enable interrupts)
-    self->device->header->command.bus_master_enable = true;
-    self->device->header->command.interrupt_disable = false;
-
-    // setup smi if can
-    self->interrupt.name = "AHCI Controller";
-    self->interrupt.callback = handle_ahci_interrupt;
-    self->interrupt.user_param = self;
-    self->interrupt.vector = -1;
-    interrupt_register(&self->interrupt);
-    pci_msi_setup(self->device, self->interrupt.vector);
-
-    // initialize the bar (and map it)
-    ASSERT(self->device->bars[5].base != 0);
-    self->hba = (AHCI_HBA*) self->device->bars[5].base;
-    vmm_map(&kernel_process->vmm_handle, DIRECT_TO_PHYSICAL(self->device->bars[5].base), self->device->bars[5].base, sizeof(AHCI_HBA), PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
-
-    // bios handoff
-    if(self->hba->cap2 & AHCI_CAP2_BOH) {
-        self->hba->bohc |= AHCI_BOHC_OOS;
-        memory_fence();
-        while(!(self->hba->bohc & (AHCI_BOHC_OOS | AHCI_BOHC_BOS))) {
-            cpu_pause();
-        }
-    }
-
-    // enable interrupts
-    self->hba->ghc |= AHCI_GHC_IE;
-
-    // probe ports
-    for(size_t i = 0; i < 32; i++) {
-        if(self->hba->pi & (1u << i)) {
-            AHCI_HBA_PORT* port = &self->hba->ports[i];
-            switch(port->sig) {
-                case AHCI_SIGNATURE_SATA:
-                    self->devices[i] = new(AhciDevice(), self, port);
-
-                    acquire_lock(&storage_objects_lock);
-                    insert_tail_list(&storage_objects, &self->devices[i]->super.link);
-                    release_lock(&storage_objects_lock);
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-
-    return self;
-}
-
-static void* AhciController_dtor(void* _self, va_list ap) {
-    ahci_controller_t* self = super_dtor(AhciController(), _self);
-
-    // disable the bus mastering and interrupts of the device
-    self->device->header->command.bus_master_enable = false;
-    self->device->header->command.interrupt_disable = true;
-
-    // free the interrupt handler
-    interrupt_free(&self->interrupt);
-
-    // disable MSI
-    if(self->device->msi != NULL) {
-        self->device->msi->msi_enable = false;
-    }
-
-    // TODO: delete all device objects related to this object
-
-    return _self;
-}
-
-const void* AhciController() {
-    static const void* class = NULL;
-    if(class == NULL) {
-        class = new(Class(),
-                    "AhciController", Object(), sizeof(ahci_controller_t),
-                    ctor, AhciController_ctor,
-                    dtor, AhciController_dtor,
-                    0
-        );
-    }
-    return class;
-}
+    ahci_device_t* devices[32];
+} ahci_controller_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Ahci device implementation
@@ -172,6 +68,88 @@ static int find_free_slot(ahci_device_t* dev) {
 
     release_lock(&dev->slots_lock);
     return -1;
+}
+
+/**
+ * This is the block read function
+ *
+ * it takes in the block address and returns reads the block into the buffer
+ *
+ * @remark
+ * Right now this is not the most optimized method to do this... would be better if you could
+ * request a range of blocks or something and it would handle that for you, because block at a time
+ * might be too slow...
+ */
+static error_t ahci_read_block(ahci_device_t* self, uintptr_t lba, void* buffer, size_t byte_count) {
+    error_t err = NO_ERROR;
+
+    // check ranges
+    CHECK_ERROR(lba < self->super.lba_limit, ERROR_OUT_OF_RESOURCE);
+
+    // wait to get a free slot
+    int slot = find_free_slot(self);
+    while(slot == -1) {
+        event_wait(&self->has_empty_slot);
+        slot = find_free_slot(self);
+    }
+
+    // get the command
+    AHCI_HBA_CMD_HEADER* cmd = &self->cl[slot];
+    cmd->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t);
+    cmd->w = 0;
+    cmd->prdtl = 1;
+
+    // get the buffer that the result will be written to
+    AHCI_HBA_CMD_TBL* cmdtbl = (AHCI_HBA_CMD_TBL*)PHYSICAL_TO_DIRECT(cmd->ctba | ((uintptr_t)cmd->ctbau << 32u));
+    void* buf = (void*)PHYSICAL_TO_DIRECT(cmdtbl->prdt_entry[0].dba | ((uint64_t)cmdtbl->prdt_entry[0].dbau) << 32u);
+
+    // setup the fis
+    FIS_REG_H2D* fis = (FIS_REG_H2D*)&cmdtbl->cfis;
+    memset(fis, 0, sizeof(FIS_REG_H2D));
+    fis->h.fis_type = FIS_TYPE_REG_H2D;
+    fis->command = ATA_CMD_READ_DMA_EXT;
+    fis->device = (1 << 6); // lba mode
+    fis->h.c = 1;
+    fis->lba0 = lba & 0xFFu;
+    fis->lba1 = ((lba >> 8u) & 0xFFu);
+    fis->lba2 = ((lba >> 16u) & 0xFFu);
+    fis->lba3 = ((lba >> 24u) & 0xFFu);
+    fis->lba4 = ((lba >> 32u) & 0xFFu);
+    fis->lba5 = ((lba >> 40u) & 0xFFu);
+    fis->countl = 1;
+    fis->counth = 0;
+
+    // wait till not busy to issue the command
+    memory_fence();
+    while(self->port->tfd & (AHCI_PxTFD_STS_BSY | AHCI_PxTFD_STS_DRQ)) {
+        cpu_pause();
+    }
+
+    // issue the command
+    self->port->ci |= 1u << slot;
+
+    // TODO: I had some problems with this being too racy to use the event_wait, because the interrupt
+    //       would fire before the thread was added to the event, making a it lock up for now just busy
+    //       wait, reading is fast anyways
+    // wait for completion
+    while(true) {
+        if((self->port->ci & (1u << slot)) == 0) {
+            break;
+        }else if(self->port->is & AHCI_PxIS_TFES) {
+            CHECK_FAILED();
+        }
+        cpu_pause();
+    }
+
+    // copy it
+    memcpy(buffer, buf, byte_count);
+
+    // tell that we finished using the slot
+    self->slot_in_use[slot] = false;
+    event_signal(&self->has_empty_slot);
+
+cleanup:
+    return err;
 }
 
 /**
@@ -230,8 +208,8 @@ static void do_identify(ahci_device_t* self) {
 
     // prepare the model name
     for(int i = 0; i < 10; i++) {
-        self->super.name[i * 2 + 0] = (char)((identify->model_number[i] >> 8u) & 0xFFu);
-        self->super.name[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
+        self->super.device.name[i * 2 + 0] = (char)((identify->model_number[i] >> 8u) & 0xFFu);
+        self->super.device.name[i * 2 + 1] = (char)(identify->model_number[i] & 0xFFu);
     }
 
     //figure the sector size
@@ -241,10 +219,10 @@ static void do_identify(ahci_device_t* self) {
     }
 
     // figure the block count
-    self->super.block_count = POKE32(identify->total_addressable_logical_sectors);
+    self->super.lba_limit = POKE32(identify->total_addressable_logical_sectors);
 
     // now do stuff with the identify data
-    debug_log("[*] ahci: found SATA (%s) - %dx%d\n", self->super.name, self->super.block_count, self->super.block_size);
+    debug_log("[*] ahci: found SATA (%s) - %dx%d\n", self->super.device.name, self->super.lba_limit, self->super.block_size);
 
     // free the buffers
     mm_free_pages((void*)identify, SIZE_TO_PAGES(sizeof(ATA_IDENTIFY_DATA)));
@@ -268,6 +246,51 @@ static void do_identify(ahci_device_t* self) {
     }
 }
 
+static error_t ahci_read(ahci_device_t* self, uintptr_t offset, void* buffer, size_t len) {
+    error_t err = NO_ERROR;
+
+    char* temp_page = NULL;
+    char* current_buffer = buffer;
+    uintptr_t current_lba = offset / self->super.block_size;
+
+    // check if this starts from the middle of a page or something
+    size_t skip_from_start = offset % self->super.block_size;
+    size_t length_at_start = self->super.block_size - skip_from_start;
+    if(skip_from_start != 0) {
+        temp_page = mm_allocate_pages(1);
+
+        CHECK_AND_RETHROW(ahci_read_block(self, current_lba, temp_page, self->super.block_size));
+        memcpy(current_buffer, temp_page + skip_from_start, length_at_start);
+        current_buffer += offset % self->super.block_size;
+        current_lba++;
+
+        mm_free_pages(temp_page, 1);
+        temp_page = NULL;
+    }
+
+    // now we should be block aligned, so we can read full blocks
+    // TODO: we could probably optimize this by doing bigger requests to the disk...
+    size_t blocks_to_read = (len - length_at_start) / self->super.block_size;
+    while(blocks_to_read > 0) {
+        ahci_read_block(self, current_lba, current_buffer, self->super.block_size);
+        current_buffer += self->super.block_size;
+        blocks_to_read--;
+        current_lba++;
+    }
+
+    // check if we still have some left to read at the end
+    size_t size_to_read = (len - length_at_start) % self->super.block_size;
+    if(size_to_read != 0) {
+        CHECK_AND_RETHROW(ahci_read_block(self, current_lba, current_buffer, size_to_read));
+    }
+
+cleanup:
+    if(temp_page != NULL) {
+        mm_free_pages(temp_page, 1);
+    }
+    return err;
+}
+
 /**
  * This is the port initialization function
  *
@@ -275,11 +298,15 @@ static void do_identify(ahci_device_t* self) {
  * sure to allocate the fis and command lists, identify the disk and size
  * of block, and preallocate a command table [er block
  */
-static void* AhciDevice_ctor(void* _self, va_list ap) {
-    ahci_device_t* self = super_ctor(AhciDevice(), _self, ap);
+static ahci_device_t* new_ahci_device(ahci_controller_t* controller, AHCI_HBA_PORT* port) {
+    ahci_device_t* self = mm_allocate_pool(sizeof(ahci_device_t));
 
-    self->controller = cast(AhciController(), va_arg(ap, ahci_controller_t*));
-    self->port = va_arg(ap, AHCI_HBA_PORT*);
+    self->controller = controller;
+    self->port = port;
+
+    self->super.device.type = DEVICE_STORAGE;
+    self->super.partitions = INIT_LIST_ENTRY(self->super.partitions);
+    self->super.read = (error_t (*)(struct storage_device *, uintptr_t, void *, size_t)) ahci_read;
 
     // stop the device
     self->port->cmd &= ~AHCI_PxCMD_ST;
@@ -295,7 +322,8 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
     self->fis = mm_allocate_pages(SIZE_TO_PAGES(sizeof(AHCI_HBA_FIS)));
 
     // set interrupts we wanna get
-    self->port->ie = (AHCI_PxIE_TFEE | AHCI_PxIE_DHRE);
+    // TODO: renable eventually
+    self->port->ie = 0; //(AHCI_PxIE_TFEE | AHCI_PxIE_DHRE);
 
     uintptr_t phys_cl = DIRECT_TO_PHYSICAL((uintptr_t)self->cl);
     self->port->clbu = ((phys_cl >> 32u) & 0xFFFFFFFF);
@@ -331,109 +359,105 @@ static void* AhciDevice_ctor(void* _self, va_list ap) {
 
     do_identify(self);
 
-    return _self;
+    return self;
 }
 
-static void* AhciDevice_dtor(void* _self) {
-    __attribute__((unused)) ahci_device_t* self = super_dtor(AhciDevice(), _self);
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Ahci controller implementation
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    ASSERT(false);
-
-    return _self;
-}
-
-/**
- * This is the block read function
- *
- * it takes in the block address and returns reads the block into the buffer
- *
- * @remark
- * Right now this is not the most optimized method to do this... would be better if you could
- * request a range of blocks or something and it would handle that for you, because block at a time
- * might be too slow...
- */
-static error_t AhciDevice_read_block(void* _self, uintptr_t lba, void* buffer, size_t byte_count) {
+static error_t handle_ahci_interrupt(interrupt_context_t* context, void* _self) {
     error_t err = NO_ERROR;
-    ahci_device_t* self = cast(AhciDevice(), _self);
+    ahci_controller_t* self = _self;
 
-    // check ranges
-    CHECK_ERROR(byte_count > 0 && byte_count <= self->super.block_size, ERROR_BAD_BUFFER_SIZE);
-    CHECK_ERROR(lba < self->super.block_count, ERROR_OUT_OF_RESOURCES);
+//    // make sure the device is responsible for the interrupt
+//    if(!self->device->header->status.interrupt) {
+//        goto not_our_device;
+//    }
 
-    // wait to get a free slot
-    int slot = find_free_slot(self);
-    while(slot == -1) {
-        event_wait(&self->has_empty_slot);
-        slot = find_free_slot(self);
+    for(int i = 0; i < 32; i++) {
+        // check if the port is valid and if we got an interrupt on it
+        if(self->devices[i] != NULL && self->hba->is & (1u << i)) {
+            ahci_device_t* device = self->devices[i];
+            if(device->port->is & (AHCI_PxIS_TFES)) {
+                debug_log("[-] ahci: TFES: %b", device->fis->rfis.error);
+                ASSERT(false);
+            }
+
+            // if related to transaction complete
+            if(self->hba->is & AHCI_PxIS_DHRS) {
+                for (size_t j = 0; j < 32; j++) {
+                    // if this is clear then it is done and we should notify the waiting thread
+                    if ((device->port->ci & (1u << j)) == 0 && device->slot_in_use[j]) {
+                        event_signal(&device->interrupt_on_slot[j]);
+                    }
+                }
+            }
+        }
     }
 
-    // get the command
-    AHCI_HBA_CMD_HEADER* cmd = &self->cl[slot];
-    cmd->cfl = sizeof(FIS_REG_H2D) / sizeof(uint32_t);
-    cmd->w = 0;
-    cmd->prdtl = 1;
-
-    // get the buffer that the result will be written to
-    AHCI_HBA_CMD_TBL* cmdtbl = (AHCI_HBA_CMD_TBL*)PHYSICAL_TO_DIRECT(cmd->ctba | ((uintptr_t)cmd->ctbau << 32u));
-    void* buf = (void*)PHYSICAL_TO_DIRECT(cmdtbl->prdt_entry[0].dba | ((uint64_t)cmdtbl->prdt_entry[0].dbau) << 32u);
-
-    // setup the fis
-    FIS_REG_H2D* fis = (FIS_REG_H2D*)&cmdtbl->cfis;
-    memset(fis, 0, sizeof(FIS_REG_H2D));
-    fis->h.fis_type = FIS_TYPE_REG_H2D;
-    fis->command = ATA_CMD_READ_DMA_EXT;
-    fis->device = (1 << 6); // lba mode
-    fis->h.c = 1;
-    fis->lba0 = lba & 0xFFu;
-    fis->lba1 = ((lba >> 8u) & 0xFFu);
-    fis->lba2 = ((lba >> 16u) & 0xFFu);
-    fis->lba3 = ((lba >> 24u) & 0xFFu);
-    fis->lba4 = ((lba >> 32u) & 0xFFu);
-    fis->lba5 = ((lba >> 40u) & 0xFFu);
-    fis->countl = 1;
-    fis->counth = 0;
-
-    // wait till not busy to issue the command
-    memory_fence();
-    while(self->port->tfd & (AHCI_PxTFD_STS_BSY | AHCI_PxTFD_STS_DRQ)) {
-        cpu_pause();
-    }
-
-    // issue the command
-    self->port->ci |= 1u << slot;
-
-    // wait a little
-    for(volatile int i = 0; i < 10000; i++) {
-        cpu_pause();
-    }
-
-    // was it fast enough that we did not get it yet?
-    if((self->port->ci & (1u << slot)) != 0) {
-        // wait for the interrupt and then copy the buffer
-        event_wait(&self->interrupt_on_slot[slot]);
-    }
-
-    memcpy(buffer, buf, byte_count);
-
-    // tell that we finished using the slot
-    self->slot_in_use[slot] = false;
-    event_signal(&self->has_empty_slot);
 
 cleanup:
+    lapic_send_eoi();
+
+not_our_device:
     return err;
 }
 
-const void* AhciDevice() {
-    static const void* class = NULL;
-    if(class == NULL) {
-        class = new(StorageDeviceClass(),
-                    "AhciDevice", StorageDevice(), sizeof(ahci_device_t),
-                    ctor, AhciDevice_ctor,
-                    dtor, AhciDevice_dtor,
-                    storage_read_block, AhciDevice_read_block,
-                    0);
+static ahci_controller_t* new_ahci_controller(pci_device_t* device) {
+    ahci_controller_t* self = mm_allocate_pool(sizeof(ahci_controller_t));
+
+    self->device = device;
+
+    // setup the device (enable bus master and enable interrupts)
+    self->device->header->command.bus_master_enable = true;
+    self->device->header->command.interrupt_disable = false;
+
+    // setup smi if can
+    self->interrupt.name = "AHCI Controller";
+    self->interrupt.callback = handle_ahci_interrupt;
+    self->interrupt.user_param = self;
+    self->interrupt.vector = -1;
+    interrupt_register(&self->interrupt);
+    pci_msi_setup(self->device, self->interrupt.vector);
+
+    // initialize the bar (and map it)
+    ASSERT(self->device->bars[5].base != 0);
+    self->hba = (AHCI_HBA*) self->device->bars[5].base;
+    vmm_map(&kernel_process->vmm_handle, DIRECT_TO_PHYSICAL(self->device->bars[5].base), self->device->bars[5].base, sizeof(AHCI_HBA), PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+
+    // bios handoff
+    if(self->hba->cap2 & AHCI_CAP2_BOH) {
+        self->hba->bohc |= AHCI_BOHC_OOS;
+        memory_fence();
+        while(!(self->hba->bohc & (AHCI_BOHC_OOS | AHCI_BOHC_BOS))) {
+            cpu_pause();
+        }
     }
-    return class;
+
+    // enable interrupts
+    self->hba->ghc |= AHCI_GHC_IE;
+
+    // probe ports
+    for(size_t i = 0; i < 32; i++) {
+        if(self->hba->pi & (1u << i)) {
+            AHCI_HBA_PORT* port = &self->hba->ports[i];
+            switch(port->sig) {
+                case AHCI_SIGNATURE_SATA:
+                    self->devices[i] = new_ahci_device(self, port);
+
+                    acquire_lock(&storage_objects_lock);
+                    insert_tail_list(&storage_objects, &self->devices[i]->super.device.link);
+                    release_lock(&storage_objects_lock);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    return self;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -476,7 +500,8 @@ void ahci_scan() {
         // if the device is supported intialize the controller
         // it will make sure to initialize all the children
         if(supported) {
-            new(AhciController(), pci);
+            // TODO: what do I do with the result of this
+            new_ahci_controller(pci);
         }
     }
 }

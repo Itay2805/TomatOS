@@ -16,6 +16,9 @@ static list_entry_t scheduler_queue = INIT_LIST_ENTRY(scheduler_queue);
  * it will load everything including the cpu, fpu, segment registers and others
  */
 static void load_context(interrupt_context_t* context, thread_t* thread) {
+    ASSERT(context != NULL);
+    ASSERT(thread != NULL);
+
     // copy the registers (This is shit)
     context->rip = thread->cpu_state.rip;
     context->rdi = thread->cpu_state.rdi;
@@ -64,6 +67,9 @@ static void load_context(interrupt_context_t* context, thread_t* thread) {
  * @param thread    [IN]    The thread to save the context to
  */
 static void save_context(interrupt_context_t *context, thread_t *thread) {
+    ASSERT(context != NULL);
+    ASSERT(thread != NULL);
+
     thread->cpu_state.rip = context->rip;
     thread->cpu_state.rdi = context->rdi;
     thread->cpu_state.rsi = context->rsi;
@@ -197,7 +203,7 @@ static bool registered_once = false;
 
 void per_cpu_scheduler_init() {
     // create the idle thread of this thread
-    get_percpu_storage()->idle_thread = new(Thread(), kernel_process, idle_thread_loop);
+    get_percpu_storage()->idle_thread = new_thread(kernel_process, idle_thread_loop);
 
     // register the interrupt handlers
     if(!registered_once) {

@@ -7,17 +7,15 @@
 #include "process.h"
 #include "thread.h"
 
-static void* Thread_ctor(void* _self, va_list ap) {
-    thread_t* self = super_ctor(Thread(), _self, ap);
-
-    process_t* parent = va_arg(ap, process_t*);
+thread_t* new_thread(struct process* parent, void* entry) {
+    thread_t* self = mm_allocate_pool(sizeof(thread_t));
 
     self->parent = parent;
     self->state = THREAD_STATE_WAITING;
 
     self->cpu_state.rflags.IF = 1;
     self->cpu_state.rflags.ID = 1;
-    self->cpu_state.rip = va_arg(ap, uintptr_t);
+    self->cpu_state.rip = (uint64_t) entry;
 
     self->kernel_stack = (uintptr_t)mm_allocate_pages(1);
     self->kernel_stack_size = PAGE_SIZE;
@@ -38,20 +36,3 @@ static void* Thread_ctor(void* _self, va_list ap) {
 
     return self;
 }
-
-static void* Thread_dtor(void* _self, va_list ap) {
-    // TODO: this
-    ASSERT(0);
-}
-
-const void* Thread() {
-    static const void* class = NULL;
-    if(class == NULL) {
-        class = new(Class(),
-                "Thread", Object(), sizeof(thread_t),
-                ctor, Thread_ctor,
-                dtor, Thread_dtor);
-    }
-    return class;
-}
-

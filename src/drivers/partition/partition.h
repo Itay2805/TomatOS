@@ -1,41 +1,39 @@
 #ifndef TOMATKERNEL_PARTITION_H
 #define TOMATKERNEL_PARTITION_H
 
-#include <objects/object.h>
 #include <util/list.h>
 #include <drivers/storage/storage_object.h>
 
+struct filesystem;
+
 typedef struct partition {
-    object_t super;
+    device_t device;
 
-    char name[255];
-
+    // the parent of the partition
     storage_device_t* parent;
 
+    // the limits of the partition
     uint64_t lba_start;
     uint64_t lba_end;
 
-    list_entry_t link;
-
+    // mount look
     lock_t mount_lock;
-    void* filesystem;
+    struct filesystem* filesystem;
 } partition_t;
-
-const void* Partition();
 
 /**
  * Read from a partition
  */
-error_t partition_read_block(void* _self, uint64_t lba, void* buffer, size_t size);
+error_t partition_read(partition_t* self, uint64_t offset, void* buffer, size_t length);
 
 /**
  * Attempt to mount the partition into a filesystem
  */
-error_t partition_mount(void* _self);
+error_t partition_mount(partition_t* self);
 
 /**
  * Unmount the mounted filesystem
  */
-error_t partition_unmount(void* _self);
+error_t partition_unmount(partition_t* self);
 
 #endif //TOMATKERNEL_PARTITION_H

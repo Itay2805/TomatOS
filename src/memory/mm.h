@@ -29,7 +29,7 @@ void mm_free_pages(void* ptr, size_t page_count);
  *
  * @param size  [IN] The size to allocate
  */
-void* mm_pool_allocate(size_t size);
+void* mm_allocate_pool(size_t size);
 
 /**
  * Reallocate an element in the pool
@@ -44,6 +44,6 @@ void* mm_pool_realloc(void* ptr, size_t size);
  *
  * @param ptr   [IN] The pointer to free
  */
-void mm_pool_free(void* ptr);
+void mm_free_pool(void* ptr);
 
 #endif //TOMATKERNEL_MM_H

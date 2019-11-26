@@ -11,6 +11,7 @@ void debug_log(const char* fmt, ...);
     do { \
         if(!(expr)) { \
             debug_log("[-] Assertion failed at %s:%d!", __FILENAME__, __LINE__); \
+            asm("xchg %bx, %bx"); \
             while(1); \
         } \
     } while(0)

@@ -1,24 +1,24 @@
 #ifndef TOMATKERNEL_PROCESS_H
 #define TOMATKERNEL_PROCESS_H
 
-#include <objects/object.h>
 #include <util/list.h>
 #include <memory/vmm.h>
 #include "thread.h"
 
 typedef struct process {
-    object_t _;
-
     lock_t lock;
     vmm_handle_t vmm_handle;
-    thread_t** threads;
+    thread_t** threads; // TODO: Turn into a hashmap?
 } process_t;
 
+/**
+ * This is the kernel process
+ */
 extern process_t* kernel_process;
 
 /**
- * Get the process cast
+ * Create a new process
  */
-const void* Process();
+process_t* new_process();
 
 #endif //TOMATKERNEL_PROCESS_H

@@ -1,7 +1,6 @@
 #ifndef TOMATKERNEL_PCI_H
 #define TOMATKERNEL_PCI_H
 
-#include <objects/object.h>
 #include <interrupts/apic/lapic.h>
 #include "pci_spec.h"
 
@@ -17,8 +16,6 @@ typedef struct pci_sig {
 } pci_sig_t;
 
 typedef struct pci_device {
-    object_t _;
-
     // the port
     uint16_t segment;
     uint8_t bus;
@@ -49,8 +46,6 @@ typedef struct pci_device {
     // link
     list_entry_t link;
 } pci_device_t;
-
-const void* PciDevice();
 
 /**
  * Array of pci devices

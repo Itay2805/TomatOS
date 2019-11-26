@@ -1,7 +1,6 @@
 #ifndef TOMATKERNEL_THREAD_H
 #define TOMATKERNEL_THREAD_H
 
-#include <objects/object.h>
 #include <util/sync.h>
 #include <util/arch.h>
 #include <util/list.h>
@@ -41,8 +40,6 @@ typedef enum thread_state {
 } thread_state_t;
 
 typedef struct thread {
-    object_t _;
-
     struct process* parent;
     lock_t lock;
 
@@ -58,6 +55,6 @@ typedef struct thread {
     list_entry_t scheduler_link;
 } thread_t;
 
-const void* Thread();
+thread_t* new_thread(struct process* parent, void* entry);
 
 #endif //TOMATKERNEL_THREAD_H

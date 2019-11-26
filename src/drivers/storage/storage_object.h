@@ -1,7 +1,8 @@
 #ifndef TOMATKERNEL_STORAGE_OBJECT_H
 #define TOMATKERNEL_STORAGE_OBJECT_H
 
-#include <objects/object.h>
+#include <drivers/device.h>
+
 #include <util/error.h>
 #include <util/sync.h>
 
@@ -19,51 +20,40 @@ extern list_entry_t storage_objects;
 // Class and object definitions
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef struct storage_device_class {
-    class_t super;
-
-    error_t (*read_block)(void* self, uintptr_t lba, void* buffer, size_t byte_count);
-} storage_device_class_t;
-
 typedef struct storage_device {
-    object_t super;
+    // the device itself
+    device_t device;
 
-    // link to the rest of entries
-    list_entry_t link;
+    // size of a single block
+    size_t block_size;
 
-    // the drive name
-    // TODO: Should this be unique?
-    char name[255];
+    // the highest lba supported by the device
+    size_t lba_limit;
 
-    // the amount of addressable blocks
-    uint64_t block_count;
-
-    // the size of a single block
-    uint64_t block_size;
-
-    // the partitions mounted on this device
+    // the partitions mounted to the device
     lock_t mount_lock;
     list_entry_t partitions;
+
+    // block reading function
+    error_t (*read)(struct storage_device* self, uintptr_t offset, void* buffer, size_t length);
 } storage_device_t;
-
-/**
- * The storage device class, this has all the functions
- * needed for normal operation of the device
- */
-const void* StorageDeviceClass();
-
-/**
- * Generic Storage Device class handles everything which is going to
- * be common to every storage device
- */
-const void* StorageDevice();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Storage Device functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO: allow for reading multiple sectors at a time
-error_t storage_read_block(void* _self, uintptr_t lba, void* buffer, size_t byte_count);
+/**
+ * Read the length of bytes from the offset into the buffer.
+ *
+ * This does not require block alignment but it can be helpful for
+ * better performance.
+ *
+ * @param _self     [IN] The device to read from
+ * @param offset    [IN] The offset to the first byte to read
+ * @param buffer    [IN] The buffer to read to
+ * @param length    [IN] The amount of bytes to read
+ */
+error_t storage_read(storage_device_t* _self, uintptr_t offset, void* buffer, size_t length);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Generic storage device functions
@@ -77,12 +67,12 @@ error_t storage_read_block(void* _self, uintptr_t lba, void* buffer, size_t byte
  *
  * it is generic to all storage devices
  */
-error_t storage_mount(void* _self);
+error_t storage_mount(storage_device_t* _self);
 
 /**
  * Unmount the storage device, this will delete all the partitions mounted
  * on this storage device
  */
-error_t storage_unmount(void* _self);
+error_t storage_unmount(storage_device_t* _self);
 
 #endif //TOMATKERNEL_STORAGE_OBJECT_H

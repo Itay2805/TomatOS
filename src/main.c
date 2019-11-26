@@ -24,8 +24,10 @@
 #include <drivers/storage/storage_object.h>
 #include <drivers/partition/partition.h>
 
+__attribute__((unused))
 static thread_t* init_thread = NULL;
 
+__attribute__((unused))
 static void kernel_init_thread() {
     debug_log("[+] In init thread!\n");
     acpi_init();
@@ -41,19 +43,19 @@ static void kernel_init_thread() {
     // mount all of the storage devices
     debug_log("[+] Mounting partitions\n");
     for(list_entry_t* link = storage_objects.next; link != &storage_objects; link = link->next) {
-        storage_device_t* storage = CR(link, storage_device_t, link);
-        debug_log("[*] attempting to mount `%s`\n", storage->name);
+        storage_device_t* storage = CR(link, storage_device_t, device.link);
+        debug_log("[*] attempting to mount `%s`\n", storage->device.name);
         storage_mount(storage);
     }
 
     debug_log("[+] Mounting filesystems\n");
     for(list_entry_t* slink = storage_objects.next; slink != &storage_objects; slink = slink->next) {
-        storage_device_t* storage = CR(slink, storage_device_t, link);
+        storage_device_t* storage = CR(slink, storage_device_t, device.link);
 
         for (list_entry_t* plink = storage->partitions.next; plink != &storage->partitions; plink = plink->next) {
-            partition_t* partition = CR(plink, partition_t, link);
+            partition_t* partition = CR(plink, partition_t, device.link);
 
-            debug_log("[*] attempting to mount `%s`\n", partition->name);
+            debug_log("[*] attempting to mount `%s`\n", partition->device.name);
             partition_mount(partition);
         }
     }
@@ -92,10 +94,10 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     tss_init();
 
     // init kernel process and such
-    kernel_process = new(Process());
+    kernel_process = new_process();
     kernel_process->vmm_handle = kernel_handle;
-    init_thread = new(Thread(), kernel_process, kernel_init_thread);
-    scheduler_queue_thread(init_thread);
+//    init_thread = new_thread(kernel_process, kernel_init_thread);
+//    scheduler_queue_thread(init_thread);
 
     // do smp!
     smp_startup(info);

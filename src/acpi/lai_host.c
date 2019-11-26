@@ -16,7 +16,7 @@
 
 
 void* laihost_malloc(size_t size) {
-    return mm_pool_allocate(size);
+    return mm_allocate_pool(size);
 }
 
 void* laihost_realloc(void* ptr, size_t size) {
@@ -24,7 +24,7 @@ void* laihost_realloc(void* ptr, size_t size) {
 }
 
 void laihost_free(void* ptr) {
-    mm_pool_free(ptr);
+    mm_free_pool(ptr);
 }
 
 void laihost_log(int level, const char* msg) {

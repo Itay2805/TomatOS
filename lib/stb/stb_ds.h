@@ -404,7 +404,7 @@ CREDITS
 // allocations
 #include <memory/mm.h>
 #define STBDS_REALLOC(c,p,s) mm_pool_realloc(p,s)
-#define STBDS_FREE(c,p)      mm_pool_free(p)
+#define STBDS_FREE(c,p)      mm_free_pool(p)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
