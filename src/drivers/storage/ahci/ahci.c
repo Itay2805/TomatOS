@@ -255,8 +255,9 @@ static error_t ahci_read(ahci_device_t* self, uintptr_t offset, void* buffer, si
 
     // check if this starts from the middle of a page or something
     size_t skip_from_start = offset % self->super.block_size;
-    size_t length_at_start = self->super.block_size - skip_from_start;
+    size_t length_at_start = 0;
     if(skip_from_start != 0) {
+        length_at_start = self->super.block_size - skip_from_start;
         temp_page = mm_allocate_pages(1);
 
         CHECK_AND_RETHROW(ahci_read_block(self, current_lba, temp_page, self->super.block_size));

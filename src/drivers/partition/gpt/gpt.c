@@ -52,7 +52,7 @@ error_t gpt_parse(storage_device_t* storage) {
     GPT_TABLE_HEADER header = {};
 
     CHECK_ERROR(storage != NULL, ERROR_INVALID_PARAMETER);
-    CHECK_AND_RETHROW(storage_read(storage, 1, &header, sizeof(GPT_TABLE_HEADER)));
+    CHECK_AND_RETHROW(storage_read(storage, storage->block_size, &header, sizeof(GPT_TABLE_HEADER)));
 
     entries = mm_allocate_pages(SIZE_TO_PAGES(sizeof(GPT_PARTITION_ENTRY) * header.number_of_partition_entries));
     CHECK_AND_RETHROW(storage_read(storage, header.partition_entry_lba * storage->block_size, entries, sizeof(GPT_PARTITION_ENTRY) * header.number_of_partition_entries));
@@ -80,7 +80,14 @@ error_t gpt_parse(storage_device_t* storage) {
         // create the partition and add it to the parent
         partition_t* part = mm_allocate_pool(sizeof(partition_t));
         part->device.type = DEVICE_PARTITION;
+        part->parent = storage;
         strcpy(part->device.name, name);
+
+        part->lba_start = entry->starting_lba;
+        part->lba_end = entry->ending_lba;
+
+        // no need to lock, already locked by the main mount function
+        insert_head_list(&storage->partitions, &part->device.link);
 
         // log it nicely
         debug_log("[+] gpt: added partition `%s`\n", part->device.name);
@@ -88,7 +95,7 @@ error_t gpt_parse(storage_device_t* storage) {
 
 cleanup:
     if(entries != NULL) {
-        mm_free_pages(entries, SIZE_TO_PAGES(storage->block_size));
+        mm_free_pages(entries, SIZE_TO_PAGES(sizeof(GPT_PARTITION_ENTRY) * header.number_of_partition_entries));
     }
 
     return err;

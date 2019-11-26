@@ -24,10 +24,8 @@
 #include <drivers/storage/storage_object.h>
 #include <drivers/partition/partition.h>
 
-__attribute__((unused))
 static thread_t* init_thread = NULL;
 
-__attribute__((unused))
 static void kernel_init_thread() {
     debug_log("[+] In init thread!\n");
     acpi_init();
@@ -96,8 +94,8 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     // init kernel process and such
     kernel_process = new_process();
     kernel_process->vmm_handle = kernel_handle;
-//    init_thread = new_thread(kernel_process, kernel_init_thread);
-//    scheduler_queue_thread(init_thread);
+    init_thread = new_thread(kernel_process, kernel_init_thread);
+    scheduler_queue_thread(init_thread);
 
     // do smp!
     smp_startup(info);
