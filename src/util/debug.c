@@ -1,4 +1,5 @@
 #include <stb/stb_sprintf.h>
+#include <drivers/terminal/terminal.h>
 
 #include "arch.h"
 
@@ -45,6 +46,11 @@ void debug_log(const char* fmt, ...) {
 #ifdef VBOX_LOGGER
         vbox_write_char(*b);
 #endif
+
+#ifdef TERM_LOGGER
+        terminal_write_char(*b);
+#endif
+
         b++;
     }
 

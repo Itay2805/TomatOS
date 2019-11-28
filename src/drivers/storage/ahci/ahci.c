@@ -472,8 +472,8 @@ static pci_sig_t supported_devices[] = {
 };
 
 static const char* supported_devices_names[] = {
-        "Intel 82801IR/IO/IH (ICH9R/DO/DH) 6 port SATA Controller [AHCI mode]",
-        "Intel 82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]",
+        "Intel 82801IR/IO/IH (ICH9R/DO/DH) 6 port SATA Controller",
+        "Intel 82801HM/HEM (ICH8M/ICH8M-E) SATA Controller",
 };
 
 void ahci_scan() {

@@ -5,7 +5,7 @@ CC=clang-8
 LD=ld.lld-8
 
 # what loggers we want to support
-LOGGERS ?= E9 VBOX
+LOGGERS ?= E9 TERM
 
 .PHONY: all \
 		clean \

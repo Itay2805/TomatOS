@@ -23,6 +23,7 @@
 #include <tboot.h>
 #include <drivers/storage/storage_object.h>
 #include <drivers/partition/partition.h>
+#include <drivers/terminal/terminal.h>
 
 static thread_t* init_thread = NULL;
 
@@ -78,6 +79,9 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // convert the info pointer
     info = PHYSICAL_TO_DIRECT(info);
+
+    // setup the framebuffer
+    terminal_init(info);
 
     // init apic related stuff
     acpi_tables_init(info);
