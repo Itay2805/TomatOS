@@ -65,6 +65,7 @@ static void kernel_init_thread() {
 }
 
 void kernel_main(uint32_t magic, tboot_info_t* info) {
+    terminal_early_init(info);
     debug_log("[+] Entered kernel!\n");
 
     // we can init these right away
@@ -75,6 +76,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     // do memory initialization
     pmm_init(info);
     vmm_init(info);
+    terminal_disable();
     pmm_post_vmm();
 
     // convert the info pointer

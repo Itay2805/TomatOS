@@ -10,6 +10,7 @@
 static IA32_PAT_MEMTYPE pat_types[8];
 static uintptr_t memory_base = 0;
 
+//static bool support_global = false;
 static bool support_pat = false;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -289,6 +290,8 @@ void vmm_enable_cpu_features() {
     cpuid(CPUID_FUNCTION_EX_FEATURES, 0, (uint32_t*)&ex_features);
     cpuid(CPUID_FUNCTION_FEATURES_EX, 0, (uint32_t*)&features_ex);
 
+    debug_log("[*] cpu features: ");
+
     /**************************************************
      * Various features in cr0
      **************************************************/
@@ -302,6 +305,7 @@ void vmm_enable_cpu_features() {
      * No execute - must be supported
      **************************************************/
     ASSERT(ex_features.nx);
+    debug_log("NX ");
     IA32_EFER efer = { read_msr(MSR_CODE_IA32_EFER) };
     efer.nxe = true;
     write_msr(MSR_CODE_IA32_EFER, efer.raw);
@@ -309,39 +313,49 @@ void vmm_enable_cpu_features() {
     /***************************************************
      * Global pages - must be supported
      **************************************************/
-    ASSERT(ex_features.pge);
-    IA32_CR4 cr4 = { .raw = read_cr4() };
-    cr4.PGE = 1;
-    write_cr4(cr4.raw);
+//     if(ex_features.pge) {
+//         debug_log("PGE ");
+//         support_global = true;
+//         IA32_CR4 cr4 = { .raw = read_cr4() };
+//         cr4.PGE = 1;
+//         write_cr4(cr4.raw);
+//     }
 
     /**************************************************
      * UIMP - optional
      **************************************************/
-    if(features_ex.umip) {
-        cr4.UMIP = 1;
-        write_cr4(cr4.raw);
-    }
+//    if(features_ex.umip) {
+//        debug_log("UMIP ");
+//        IA32_CR4 cr4 = { .raw = read_cr4() };
+//        cr4.UMIP = 1;
+//        write_cr4(cr4.raw);
+//    }
 
     /**************************************************
      * SMEP - optional
      **************************************************/
-    if(features_ex.smep) {
-        cr4.SMEP = 1;
-        write_cr4(cr4.raw);
-    }
+//    if(features_ex.smep) {
+//        debug_log("SMEP ");
+//        IA32_CR4 cr4 = { .raw = read_cr4() };
+//        cr4.SMEP = 1;
+//        write_cr4(cr4.raw);
+//    }
 
     /**************************************************
      * SMAP - optional
      **************************************************/
-    if(features_ex.smap) {
-        cr4.SMAP = 1;
-        write_cr4(cr4.raw);
-    }
+//    if(features_ex.smap) {
+//        debug_log("SMAP ");
+//        IA32_CR4 cr4 = { .raw = read_cr4() };
+//        cr4.SMAP = 1;
+//        write_cr4(cr4.raw);
+//    }
 
     /**************************************************
      * PAT - optional
      **************************************************/
     if(ex_features.pat) {
+        debug_log("PAT ");
         support_pat = true;
 
         // setup the pat
@@ -368,6 +382,8 @@ void vmm_enable_cpu_features() {
         pat_types[6] = pat.pa6;
         pat_types[7] = pat.pa7;
     }
+
+    debug_log("\n");
 }
 
 bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t* physical, page_type_t* type) {

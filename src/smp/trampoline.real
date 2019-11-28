@@ -69,9 +69,9 @@ lgdt [gdt_ptr]
 mov edx, dword [SMP_KERNEL_PAGE_TABLE]
 mov cr3, edx
 
-; PAE+PGE+OSFXSR+OSXMMEXCPT
+; PAE
 mov eax, cr4
-or eax, (1 << 5) | (1 << 7) | (1 << 9) | (1 << 10)
+or eax, (1 << 5)
 mov cr4, eax
 
 ; Enable long mode
@@ -83,9 +83,13 @@ wrmsr
 
 ; Enable protected mode and paging
 mov eax, cr0
-or eax, (1 << 31) | (1 << 0) | (1 << 5); PE+PG+NE
+or eax, (1 << 31) | (1 << 0) ; PE+PG
 and eax, ~(0x60000000) ; disable CD+NW
 mov cr0, eax
+
+mov dx, 0xcf9
+mov ax, 6
+out dx, ax
 
 ; Jump into long mode
 jmp GDT_KERNEL_CODE:.mode64

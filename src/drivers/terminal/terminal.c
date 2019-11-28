@@ -24,7 +24,7 @@ static uint32_t bg_color = 0x000000;
 
 static bool is_inited = false;
 
-void terminal_init(tboot_info_t* info) {
+void terminal_early_init(tboot_info_t* info) {
     fb_width = info->framebuffer.width;
     fb_height = info->framebuffer.height;
     fb_pitch = info->framebuffer.pitch;
@@ -32,6 +32,24 @@ void terminal_init(tboot_info_t* info) {
     term_width = ALIGN_DOWN(fb_width, 8) / 8;
     term_height = ALIGN_DOWN(fb_height, 8) / 8;
 
+    // will be the same for now
+    framebuffer = (uint32_t*)info->framebuffer.addr;
+    backbuffer = (uint32_t*)info->framebuffer.addr;
+
+    // clear the screen
+    for(size_t i = 0; i < term_height * 8; i++) {
+        memset(framebuffer + i * fb_pitch, 0, 4 * fb_width);
+        memset(backbuffer + i * fb_pitch, 0, 4 * fb_width);
+    }
+
+    is_inited = true;
+}
+
+void terminal_disable() {
+    is_inited = false;
+}
+
+void terminal_init(tboot_info_t* info) {
     framebuffer = PHYSICAL_TO_DIRECT((uint32_t*)info->framebuffer.addr);
     backbuffer = mm_allocate_pages(SIZE_TO_PAGES(fb_width * fb_height * 4));
 
@@ -44,10 +62,8 @@ void terminal_init(tboot_info_t* info) {
     // map the framebuffer
     vmm_map(&kernel_handle, info->framebuffer.addr, (uintptr_t)framebuffer, fb_pitch * fb_height * 4, PAGE_SUPERVISOR_READWRITE, IA32_PAT_MEMTYPE_WC);
 
-    // clear the screen
     for(size_t i = 0; i < term_height * 8; i++) {
-        memset(framebuffer + i * fb_pitch, 0, 4 * fb_width);
-        memset(backbuffer + i * fb_pitch, 0, 4 * fb_width);
+        memcpy(backbuffer + i * fb_pitch, framebuffer + i * fb_pitch, 4 * fb_width);
     }
 
     is_inited = true;
@@ -65,7 +81,11 @@ static void draw_char(const char* bitmap) {
             }else {
                 color = bg_color;
             }
-            backbuffer[x + y * fb_width] = framebuffer[x + y * fb_pitch] = color;
+
+            framebuffer[x + y * fb_pitch] = color;
+            if(likely(backbuffer != framebuffer)) {
+                backbuffer[x + y * fb_width] = color;
+            }
         }
     }
 
@@ -75,11 +95,16 @@ static void draw_char(const char* bitmap) {
 static void scroll() {
     for(size_t i = 8; i < term_height * 8; i++) {
         memcpy(framebuffer + (i - 8) * fb_pitch, backbuffer + i * fb_width, 4 * fb_width);
-        memcpy(backbuffer + (i - 8) * fb_width, backbuffer + i * fb_width, 4 * fb_width);
+
+        if(likely(backbuffer != framebuffer)) {
+            memcpy(backbuffer + (i - 8) * fb_width, backbuffer + i * fb_width, 4 * fb_width);
+        }
     }
     for(size_t i = ((term_height - 1) * 8); i < term_height * 8; i++) {
         memset(framebuffer + i * fb_pitch, 0, 4 * fb_width);
-        memset(backbuffer + i * fb_pitch, 0, 4 * fb_width);
+        if(likely(backbuffer != framebuffer)) {
+            memset(backbuffer + i * fb_pitch, 0, 4 * fb_width);
+        }
     }
 }
 
