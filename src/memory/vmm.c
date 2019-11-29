@@ -4,6 +4,7 @@
 #include <util/arch.h>
 #include <tboot.h>
 #include <libc/string.h>
+#include <util/defs.h>
 #include "vmm.h"
 #include "pmm.h"
 
@@ -290,8 +291,6 @@ void vmm_enable_cpu_features() {
     cpuid(CPUID_FUNCTION_EX_FEATURES, 0, (uint32_t*)&ex_features);
     cpuid(CPUID_FUNCTION_FEATURES_EX, 0, (uint32_t*)&features_ex);
 
-    debug_log("[*] cpu features: ");
-
     /**************************************************
      * Various features in cr0
      **************************************************/
@@ -305,7 +304,6 @@ void vmm_enable_cpu_features() {
      * No execute - must be supported
      **************************************************/
     ASSERT(ex_features.nx);
-    debug_log("NX ");
     IA32_EFER efer = { read_msr(MSR_CODE_IA32_EFER) };
     efer.nxe = true;
     write_msr(MSR_CODE_IA32_EFER, efer.raw);
@@ -314,7 +312,6 @@ void vmm_enable_cpu_features() {
      * Global pages - must be supported
      **************************************************/
 //     if(ex_features.pge) {
-//         debug_log("PGE ");
 //         support_global = true;
 //         IA32_CR4 cr4 = { .raw = read_cr4() };
 //         cr4.PGE = 1;
@@ -325,7 +322,6 @@ void vmm_enable_cpu_features() {
      * UIMP - optional
      **************************************************/
 //    if(features_ex.umip) {
-//        debug_log("UMIP ");
 //        IA32_CR4 cr4 = { .raw = read_cr4() };
 //        cr4.UMIP = 1;
 //        write_cr4(cr4.raw);
@@ -335,7 +331,6 @@ void vmm_enable_cpu_features() {
      * SMEP - optional
      **************************************************/
 //    if(features_ex.smep) {
-//        debug_log("SMEP ");
 //        IA32_CR4 cr4 = { .raw = read_cr4() };
 //        cr4.SMEP = 1;
 //        write_cr4(cr4.raw);
@@ -345,7 +340,6 @@ void vmm_enable_cpu_features() {
      * SMAP - optional
      **************************************************/
 //    if(features_ex.smap) {
-//        debug_log("SMAP ");
 //        IA32_CR4 cr4 = { .raw = read_cr4() };
 //        cr4.SMAP = 1;
 //        write_cr4(cr4.raw);
@@ -355,7 +349,6 @@ void vmm_enable_cpu_features() {
      * PAT - optional
      **************************************************/
     if(ex_features.pat) {
-        debug_log("PAT ");
         support_pat = true;
 
         // setup the pat
@@ -382,8 +375,6 @@ void vmm_enable_cpu_features() {
         pat_types[6] = pat.pa6;
         pat_types[7] = pat.pa7;
     }
-
-    debug_log("\n");
 }
 
 bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t* physical, page_type_t* type) {
@@ -496,7 +487,7 @@ void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, 
 
     // allow to map zero page if the page has
     // a map zero permission
-    if(virt == 0) {
+    if(unlikely(virt == 0)) {
         ASSERT((perms & PAGE_MAP_ZERO) != 0);
     }
 
