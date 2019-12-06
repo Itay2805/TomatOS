@@ -29,6 +29,7 @@ static void vbox_write_char(char c) {
 static lock_t lock;
 
 void debug_log(const char* fmt, ...) {
+    bool state = save_and_disable_interrupts();
     acquire_lock(&lock);
 
     char buffer[128];
@@ -55,4 +56,5 @@ void debug_log(const char* fmt, ...) {
     }
 
     release_lock(&lock);
+    set_interrupt_state(state);
 }

@@ -115,5 +115,6 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     enable_interrupts();
     lapic_send_ipi_all_including_self(IPI_SCHEDULER_STARTUP);
 
-    ASSERT(false);
+    // basically wait until everything has started
+    while(false) cpu_pause();
 }

@@ -259,7 +259,10 @@ void vmm_init(tboot_info_t* info) {
     debug_log("[*] Preparing vmm\n");
 
     // allocate the pml4 of the kernel
-    pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, &kernel_handle.pml4_physical);
+    // it must be below the 4gb mark because otherwise the smp trampoline would
+    // not be able to load it correctly
+    kernel_handle.pml4_physical = UINT32_MAX;
+    pmm_allocate_pages(ALLOCATE_BELOW, MEM_VMM, 1, &kernel_handle.pml4_physical);
     memset((void*)kernel_handle.pml4_physical, 0, PAGE_SIZE);
 
     // enable features

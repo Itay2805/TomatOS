@@ -25,4 +25,6 @@ typedef unsigned long long  uint64_t;
 #define UINT32_MAX          ((uint32_t)4294967295u)
 #define UINT64_MAX          ((uint64_t)18446744073709551615ull)
 
+#define UINT64_C(x)         (x##ull)
+
 #endif //TOMATKERNEL_STDINT_H
