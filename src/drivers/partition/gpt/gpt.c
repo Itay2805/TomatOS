@@ -87,7 +87,7 @@ error_t gpt_parse(storage_device_t* storage) {
         part->lba_end = entry->ending_lba;
 
         // no need to lock, already locked by the main mount function
-        insert_head_list(&storage->partitions, &part->device.link);
+        insert_tail_list(&storage->partitions, &part->device.link);
 
         // log it nicely
         debug_log("[+] gpt: added partition `%s`\n", part->device.name);

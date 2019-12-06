@@ -1,4 +1,6 @@
 #include <drivers/partition/gpt/gpt.h>
+#include <drivers/partition/partition.h>
+#include <memory/mm.h>
 #include "storage_object.h"
 
 lock_t storage_objects_lock = 0;
@@ -14,9 +16,17 @@ error_t storage_mount(storage_device_t* self) {
     if(check_gpt(self)) {
         CHECK_AND_RETHROW(gpt_parse(self));
 
-    // not a valid partition scheme
+    // no partition scheme, mount as a single partition
     }else {
-        CHECK_FAILED_ERROR(ERROR_UNSUPPORTED);
+        partition_t* part = mm_allocate_pool(sizeof(partition_t));
+        part->device.type = DEVICE_PARTITION;
+        part->parent = self;
+        part->lba_start = 0;
+        part->lba_end = self->lba_limit;
+
+        insert_tail_list(&self->partitions, &part->device.link);
+
+        debug_log("[+] storage: Added a raw partition `%s`\n", self->device.name);
     }
 
 cleanup:
