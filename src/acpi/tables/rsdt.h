@@ -5,11 +5,6 @@
 
 #include <stdint.h>
 
-typedef struct acpi_xsdt {
-    acpi_header_t header;
-    uint64_t tables[0];
-} __attribute__((packed)) acpi_xsdt_t;
-
 extern acpi_rsdt_t* acpi_rsdt;
 extern acpi_xsdt_t* acpi_xsdt;
 
