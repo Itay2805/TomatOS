@@ -17,7 +17,7 @@ typedef struct mem_entry {
     list_entry_t link;
     bool temp;
 
-    memory_type_t type;
+    bool allocated;
     uintptr_t start;
     uintptr_t end;
 } mem_entry_t;
@@ -41,7 +41,7 @@ static lock_t lock;
 
 // forward declare these
 static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, size_t page_count);
-static void convert_page(uintptr_t start, size_t page_count, memory_type_t new_type);
+static void convert_page(uintptr_t start, size_t page_count, bool new_allocated);
 
 /**
  * Remove the entry from the map
@@ -64,11 +64,11 @@ static void remove_mem_map_entry(mem_entry_t* entry) {
 /**
  * Add a range of entries to the map
  *
- * @param type  [IN] The type of the range
- * @param start [IN] The start of the range
- * @param end   [IN] The end of the range
+ * @param allocated     [IN] Is the range allocated or not
+ * @param start         [IN] The start of the range
+ * @param end           [IN] The end of the range
  */
-static void add_range(memory_type_t type, uintptr_t start, uintptr_t end) {
+static void add_range(bool allocated, uintptr_t start, uintptr_t end) {
     DEBUG("%lx-%lx", start, end);
 
     ASSERT((start & PAGE_MASK) == 0);
@@ -80,7 +80,7 @@ static void add_range(memory_type_t type, uintptr_t start, uintptr_t end) {
         mem_entry_t* entry = CR(link, mem_entry_t, link);
         link = link->next;
 
-        if(entry->type != type) {
+        if(entry->allocated != allocated) {
             continue;
         }
 
@@ -95,7 +95,7 @@ static void add_range(memory_type_t type, uintptr_t start, uintptr_t end) {
 
     // add the entry
     temp_entries[temp_entries_count].temp = true;
-    temp_entries[temp_entries_count].type = type;
+    temp_entries[temp_entries_count].allocated = allocated;
     temp_entries[temp_entries_count].start = start;
     temp_entries[temp_entries_count].end = end;
     insert_tail_list(&mem_map, &temp_entries[temp_entries_count].link);
@@ -114,12 +114,12 @@ static void add_range(memory_type_t type, uintptr_t start, uintptr_t end) {
  *
  * @return Direct physical address
  */
-static void* allocate_pool_pages(memory_type_t type, size_t page_count) {
+static void* allocate_pool_pages(size_t page_count) {
     uintptr_t start = find_free_pages(mem_memory_top, 0, page_count);
     if(start == 0) {
         DEBUG("failed to allocate %d pages", page_count);
     }else {
-        convert_page(start, page_count, type);
+        convert_page(start, page_count, true);
     }
 
     return (void*)(start + memory_base);
@@ -135,7 +135,7 @@ static void* allocate_pool_pages(memory_type_t type, size_t page_count) {
  */
 static mem_entry_t* allocate_memory_map_entry() {
     if(is_list_empty(&free_entries_list)) {
-        mem_entry_t* free_descriptor_entries = allocate_pool_pages(MEM_PMM, 1);
+        mem_entry_t* free_descriptor_entries = allocate_pool_pages(1);
 
         if(free_descriptor_entries != NULL) {
             for(int i = 0; i < PAGE_SIZE / sizeof(mem_entry_t); i++) {
@@ -224,7 +224,7 @@ static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, s
         mem_entry_t* entry = CR(link, mem_entry_t, link);
 
         // only check free entries
-        if(entry->type != MEM_FREE) {
+        if(entry->allocated) {
             continue;
         }
 
@@ -240,7 +240,7 @@ static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, s
         if(desc_end >= max_address) {
             desc_end = max_address;
         }
-        desc_end = ((desc_end + 1) & (~(PAGE_SIZE - 1))) - 1;
+        desc_end = ((desc_end + 1u) & (~(PAGE_SIZE - 1u))) - 1u;
 
         // check the clipped end is good
         if(desc_end < desc_start) {
@@ -280,7 +280,7 @@ static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, s
  *
  * @retval ERROR_NOT_FOUND - Could not find the range where this page is in
  */
-static void convert_page(uintptr_t start, size_t page_count, memory_type_t new_type) {
+static void convert_page(uintptr_t start, size_t page_count, bool new_allocated) {
     size_t length = PAGES_TO_SIZE(page_count);
     uintptr_t end = start + length - 1;
 
@@ -305,7 +305,7 @@ static void convert_page(uintptr_t start, size_t page_count, memory_type_t new_t
             ASSERT(false);
         }
 
-        if(new_type != MEM_FREE) {
+        if(new_allocated) {
             if(entry->end < end) {
                 DEBUG("range 0x%lx-0x%lx covers multiple entries", start, end);
                 ASSERT(false);
@@ -317,10 +317,10 @@ static void convert_page(uintptr_t start, size_t page_count, memory_type_t new_t
             range_end = entry->end;
         }
 
-        DEBUG("%lx-%lx  to type %d", start, range_end, new_type);
+        DEBUG("%lx-%lx to %s", start, range_end, new_allocated ? "allocated" : "free");
 
-        if((new_type == MEM_FREE ? 0 : 1) ^ (entry->type == MEM_FREE ? 1 : 0)) {
-            if(entry->type == MEM_FREE) {
+        if((!new_allocated ? 0u : 1u) ^ (!entry->allocated ? 1u : 0u)) {
+            if(!entry->allocated) {
                 DEBUG("incompatible memory types, already free");
             }else {
                 DEBUG("incompatible memory types, already allocated");
@@ -338,7 +338,7 @@ static void convert_page(uintptr_t start, size_t page_count, memory_type_t new_t
             // pull from center
 
             temp_entries[temp_entries_count].temp = true;
-            temp_entries[temp_entries_count].type = entry->type;
+            temp_entries[temp_entries_count].allocated = entry->allocated;
             temp_entries[temp_entries_count].start = range_end + 1;
             temp_entries[temp_entries_count].end = entry->end;
 
@@ -359,8 +359,8 @@ static void convert_page(uintptr_t start, size_t page_count, memory_type_t new_t
         }
 
 
-        if(new_type != MEM_FREE) {
-            add_range(new_type, start, range_end);
+        if(new_allocated) {
+            add_range(true, start, range_end);
         }
 
         move_temp_entries();
@@ -404,7 +404,7 @@ void pmm_init(tboot_info_t* info) {
             }
 
             // add the range of addresses
-            add_range(MEM_FREE, entry->addr, entry->addr + entry->len);
+            add_range(false, entry->addr, entry->addr + entry->len);
             move_temp_entries();
         }
 
@@ -455,7 +455,7 @@ void pmm_post_vmm() {
     }
 }
 
-void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t page_count, uintptr_t* base) {
+void pmm_allocate_pages(allocate_type_t type, size_t page_count, uintptr_t* base) {
     ASSERT(type == ALLOCATE_ADDRESS || type == ALLOCATE_ANY || type == ALLOCATE_BELOW);
     ASSERT(base != NULL);
     ASSERT(page_count != 0);
@@ -486,7 +486,7 @@ void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t pag
         ASSERT(start != 0);
     }
 
-    convert_page(start, page_count, mem_type);
+    convert_page(start, page_count, true);
 
     *base = start;
 
@@ -509,7 +509,7 @@ void pmm_free_pages(uintptr_t base, size_t page_count) {
 
     ASSERT(link != &mem_map);
 
-    convert_page(base, page_count, MEM_FREE);
+    convert_page(base, page_count, false);
 
     release_lock(&lock);
 }

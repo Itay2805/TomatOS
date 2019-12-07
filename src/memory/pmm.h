@@ -13,26 +13,6 @@ typedef enum allocate_type {
     ALLOCATE_ADDRESS,
 } allocate_type_t;
 
-typedef enum memory_type {
-    // free memory that can be used to allocate
-    MEM_FREE,
-
-    // other memory types
-    MEM_OTHER,
-
-    // memory that the kernel allocated for itself
-    MEM_KERNEL_DATA,
-
-    // memory used by the pmm
-    MEM_PMM,
-
-    // memory used by the vmm
-    MEM_VMM,
-
-    // memory that a driver for dma
-    MEM_DMA,
-} memory_type_t;
-
 /**
  * Initialize the pmm
  */
@@ -60,11 +40,10 @@ void pmm_post_vmm();
  * to convert the page range into another type
  *
  * @param type          [IN]    What should the allocation do
- * @param mem_type      [IN]    The type of memory we are allocating
  * @param page_count    [IN]    The amount of pages to allocate
  * @param base          [OUT]   The allocate page (physical memory)
  */
-void pmm_allocate_pages(allocate_type_t type, memory_type_t mem_type, size_t page_count, uintptr_t* base);
+void pmm_allocate_pages(allocate_type_t type, size_t page_count, uintptr_t* base);
 
 /**
  * Will free the pages so they can be allocated again

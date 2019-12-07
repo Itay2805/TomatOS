@@ -168,7 +168,7 @@ static void set_pte(
     PML4E* pml4e = &pml4[va.one_gb.pml4e];
     if(!pml4e->present) {
         uintptr_t addr;
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, &addr);
+        pmm_allocate_pages(ALLOCATE_ANY, 1, &addr);
         memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pml4e->present = true;
@@ -187,7 +187,7 @@ static void set_pte(
     PDPTE* pdpte = &pdpt[va.one_gb.pdpte];
     if(!pdpte->present) {
         uintptr_t addr;
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, &addr);
+        pmm_allocate_pages(ALLOCATE_ANY, 1, &addr);
         memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pdpte->present = true;
@@ -209,7 +209,7 @@ static void set_pte(
     PDE* pde = &pd[va.two_mb.pde];
     if(!pde->present) {
         uintptr_t addr;
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, &addr);
+        pmm_allocate_pages(ALLOCATE_ANY, 1, &addr);
         memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pde->present = true;
@@ -262,7 +262,7 @@ void vmm_init(tboot_info_t* info) {
     // it must be below the 4gb mark because otherwise the smp trampoline would
     // not be able to load it correctly
     kernel_handle.pml4_physical = UINT32_MAX;
-    pmm_allocate_pages(ALLOCATE_BELOW, MEM_VMM, 1, &kernel_handle.pml4_physical);
+    pmm_allocate_pages(ALLOCATE_BELOW, 1, &kernel_handle.pml4_physical);
     memset((void*)kernel_handle.pml4_physical, 0, PAGE_SIZE);
 
     // enable features

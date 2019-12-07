@@ -28,7 +28,7 @@ void percpu_storage_init() {
 
     // allocate and clear the per cpu storage
     size_t size = sizeof(per_cpu_storage_t) * lapic_count;
-    pmm_allocate_pages(ALLOCATE_ANY, MEM_KERNEL_DATA, SIZE_TO_PAGES(size), (uintptr_t*)&per_cpu_storage);
+    pmm_allocate_pages(ALLOCATE_ANY, SIZE_TO_PAGES(size), (uintptr_t*)&per_cpu_storage);
     per_cpu_storage = PHYSICAL_TO_DIRECT(per_cpu_storage);
     memset(per_cpu_storage, 0, size);
 

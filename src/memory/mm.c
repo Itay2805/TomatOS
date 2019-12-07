@@ -8,7 +8,7 @@
 // TODO: return pointer instead of uintptr
 void* mm_allocate_pages(size_t page_count) {
     uintptr_t ptr;
-    pmm_allocate_pages(ALLOCATE_ANY, MEM_KERNEL_DATA, page_count, &ptr);
+    pmm_allocate_pages(ALLOCATE_ANY, page_count, &ptr);
     memset(PHYSICAL_TO_DIRECT((void*)ptr), 0, PAGES_TO_SIZE(page_count));
     return PHYSICAL_TO_DIRECT((void*)ptr);
 }

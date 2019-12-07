@@ -17,7 +17,7 @@ static list_entry_t free_entries_list = { &free_entries_list, &free_entries_list
 ////////////////////////////////////////////////////////////////////////
 
 static uintptr_t find_free_pages(vmm_handle_t* handle, uintptr_t max_address, uintptr_t min_address, size_t page_count);
-static error_t convert_page(vmm_handle_t* handle, uintptr_t start, size_t page_count, memory_type_t new_allocated);
+static error_t convert_page(vmm_handle_t* handle, uintptr_t start, size_t page_count, bool new_allocated);
 
 /**
  * Remove the entry from the map
@@ -45,7 +45,7 @@ static map_entry_t* allocate_memory_map_entry() {
     acquire_lock(&free_entries_lock);
     if(is_list_empty(&free_entries_list)) {
         map_entry_t* free_descriptor_entries = NULL;
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_VMM, 1, (uintptr_t*)&free_descriptor_entries);
+        pmm_allocate_pages(ALLOCATE_ANY, 1, (uintptr_t*)&free_descriptor_entries);
 
         if(free_descriptor_entries != NULL) {
             for(int i = 0; i < PAGE_SIZE / sizeof(map_entry_t); i++) {
@@ -131,7 +131,7 @@ static uintptr_t find_free_pages(vmm_handle_t* handle, uintptr_t max_address, ui
         map_entry_t* entry = CR(link, map_entry_t, link);
 
         // only check free entries
-        if(!entry->allocated) {
+        if(entry->allocated) {
             continue;
         }
 
@@ -147,7 +147,7 @@ static uintptr_t find_free_pages(vmm_handle_t* handle, uintptr_t max_address, ui
         if(desc_end >= max_address) {
             desc_end = max_address;
         }
-        desc_end = ((desc_end + 1) & (~(PAGE_SIZE - 1))) - 1;
+        desc_end = ((desc_end + 1u) & (~(PAGE_SIZE - 1u))) - 1u;
 
         // check the clipped end is good
         if(desc_end < desc_start) {
@@ -181,13 +181,13 @@ static uintptr_t find_free_pages(vmm_handle_t* handle, uintptr_t max_address, ui
 /**
  * Will convert the pages to a certain memory type
  *
- * @param start         [IN] Base address
- * @param page_count    [IN] Amount of pages to convert
- * @param new_allocated      [IN] The new type
+ * @param start                 [IN] Base address
+ * @param page_count            [IN] Amount of pages to convert
+ * @param new_allocated         [IN] Change to allocated or not
  *
  * @retval ERROR_NOT_FOUND - Could not find the range where this page is in
  */
-static error_t convert_page(vmm_handle_t* handle, uintptr_t start, size_t page_count, memory_type_t new_allocated) {
+static error_t convert_page(vmm_handle_t* handle, uintptr_t start, size_t page_count, bool new_allocated) {
     error_t err = NO_ERROR;
     size_t length = PAGES_TO_SIZE(page_count);
     uintptr_t end = start + length - 1;
@@ -210,7 +210,7 @@ static error_t convert_page(vmm_handle_t* handle, uintptr_t start, size_t page_c
 
         CHECK_ERROR(link != &handle->map, ERROR_NOT_FOUND);
 
-        if(!new_allocated) {
+        if(new_allocated) {
             CHECK_ERROR(entry->end >= end, ERROR_NOT_FOUND);
         }
 
@@ -219,7 +219,7 @@ static error_t convert_page(vmm_handle_t* handle, uintptr_t start, size_t page_c
             range_end = entry->end;
         }
 
-        if((new_allocated ? 0 : 1) ^ (entry->allocated ? 1 : 0)) {
+        if((new_allocated ? 0u : 1u) ^ (entry->allocated ? 1u : 0u)) {
 //            if(entry->allocated) {
 //                DEBUG("incompatible memory types, already free");
 //            }else {
@@ -256,7 +256,7 @@ static error_t convert_page(vmm_handle_t* handle, uintptr_t start, size_t page_c
         }
 
 
-        if(new_allocated != MEM_FREE) {
+        if(new_allocated) {
             add_range(handle, new_allocated, start, range_end);
         }
 
@@ -309,7 +309,7 @@ error_t vmm_allocate(vmm_handle_t* handle, uintptr_t* virt, size_t size, page_pe
     uintptr_t current_va = start;
     while(current_va < start + size) {
         uintptr_t addr;
-        pmm_allocate_pages(ALLOCATE_ANY, MEM_OTHER, 1, &addr);
+        pmm_allocate_pages(ALLOCATE_ANY, 1, &addr);
         vmm_map(handle, addr, current_va, PAGE_SIZE, perms, DEFAULT_CACHE);
         current_va += PAGE_SIZE;
     }
@@ -337,7 +337,7 @@ error_t vmm_free(vmm_handle_t* handle, uintptr_t virt, size_t size) {
 
     CHECK_ERROR(link != &handle->map, ERROR_NOT_FOUND);
 
-    CHECK_AND_RETHROW(convert_page(handle, virt, SIZE_TO_PAGES(size), MEM_FREE));
+    CHECK_AND_RETHROW(convert_page(handle, virt, SIZE_TO_PAGES(size), false));
 
 cleanup:
     release_lock(&handle->lock);
