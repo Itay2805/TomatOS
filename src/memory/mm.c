@@ -72,6 +72,11 @@ void* mm_pool_realloc(void* ptr, size_t size) {
         pool_alloc_head_t* head = (pool_alloc_head_t *) ((uintptr_t)ptr - offsetof(pool_alloc_head_t, data));
         ASSERT(head->magic == 0xCAFEBABE);
 
+        // if already big enough to hold everything then just return the same pointer
+        if(offsetof(pool_alloc_head_t, data) + size <= head->size) {
+            return ptr;
+        }
+
         // allocate and copy it
         void* newptr = mm_allocate_pool(size);
         memcpy(newptr, ptr, head->size > size ? size : head->size);
