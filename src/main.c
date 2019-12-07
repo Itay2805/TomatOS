@@ -24,6 +24,7 @@
 #include <drivers/storage/storage_object.h>
 #include <drivers/partition/partition.h>
 #include <drivers/terminal/terminal.h>
+#include <string.h>
 
 static thread_t* init_thread = NULL;
 
@@ -89,6 +90,12 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     acpi_tables_init(info);
     apic_init();
 
+    // init kernel process and such
+    kernel_process = new_process();
+    kernel_process->vmm_handle = kernel_handle;
+    init_thread = new_thread(kernel_process, kernel_init_thread);
+    scheduler_queue_thread(init_thread);
+
     // prepare the storage
     percpu_storage_init();
 
@@ -96,12 +103,6 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     debug_log("[*] Finishing BSP init\n");
     lapic_init();
     tss_init();
-
-    // init kernel process and such
-    kernel_process = new_process();
-    kernel_process->vmm_handle = kernel_handle;
-    init_thread = new_thread(kernel_process, kernel_init_thread);
-    scheduler_queue_thread(init_thread);
 
     // do smp!
     smp_startup(info);

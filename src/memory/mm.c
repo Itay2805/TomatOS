@@ -1,4 +1,5 @@
 #include <libc/string.h>
+#include <processes/process.h>
 #include "mm.h"
 
 #include "pmm.h"
@@ -14,6 +15,28 @@ void* mm_allocate_pages(size_t page_count) {
 
 void mm_free_pages(void* ptr, size_t page_count) {
     pmm_free_pages(DIRECT_TO_PHYSICAL((uintptr_t)ptr), page_count);
+}
+
+uintptr_t mm_allocate_stack(size_t page_count) {
+    uintptr_t stack = (uintptr_t)mm_allocate_pages(page_count + 2);
+
+    // unmap the first and last page to act as a guard
+    vmm_unmap(&kernel_process->vmm_handle, stack, PAGE_SIZE);
+    vmm_unmap(&kernel_process->vmm_handle, stack + PAGE_SIZE + PAGES_TO_SIZE(page_count), PAGE_SIZE);
+
+    // return the address before the last page
+    return stack + PAGE_SIZE + PAGES_TO_SIZE(page_count);
+}
+
+void mm_free_stack(uintptr_t stack, size_t page_count) {
+    uintptr_t actual_stack_base = stack - PAGE_SIZE - page_count;
+
+    // map the first and last page
+    vmm_map(&kernel_process->vmm_handle, DIRECT_TO_PHYSICAL(actual_stack_base), actual_stack_base, PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+    vmm_map(&kernel_process->vmm_handle, DIRECT_TO_PHYSICAL(stack + PAGE_SIZE + PAGES_TO_SIZE(page_count)), stack + PAGE_SIZE + PAGES_TO_SIZE(page_count), PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+
+    // free it all
+    mm_free_pages((void*)actual_stack_base, page_count + 2);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

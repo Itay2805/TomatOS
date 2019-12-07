@@ -267,7 +267,7 @@ void* pci_get_config_space(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t func
 
             // map it if not mapped
             if(!vmm_is_mapped(&kernel_process->vmm_handle, PHYSICAL_TO_DIRECT(phys), PAGE_SIZE)) {
-                vmm_map(&kernel_process->vmm_handle, phys, PHYSICAL_TO_DIRECT(phys), PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+                vmm_map(&kernel_process->vmm_handle, phys, PHYSICAL_TO_DIRECT(phys), PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, IA32_PAT_MEMTYPE_UC);
             }
 
             // return the buffer

@@ -23,6 +23,21 @@ void* mm_allocate_pages(size_t page_count);
 void mm_free_pages(void* ptr, size_t page_count);
 
 /**
+ * Will allocate a kernel stack with a page guard
+ *
+ * @param page_count    [IN] The stack size in pages
+ */
+uintptr_t mm_allocate_stack(size_t page_count);
+
+/**
+ * Will free the stack and it's guards
+ *
+ * @param stack         [IN] The stack to free
+ * @param page_count    [IN] The stack size in pages
+ */
+void mm_free_stack(uintptr_t stack, size_t page_count);
+
+/**
  * Allocate memory from a memory pool
  *
  * The idea is to allow for more efficient smaller allocations

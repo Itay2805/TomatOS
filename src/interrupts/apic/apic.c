@@ -39,7 +39,7 @@ void apic_init() {
 
         // TODO: how much size do we actually need to map?
         if(!vmm_is_mapped(&kernel_handle, PHYSICAL_TO_DIRECT((uintptr_t)cur->mmio_base), PAGE_SIZE)) {
-            vmm_map(&kernel_handle, cur->mmio_base, PHYSICAL_TO_DIRECT((uintptr_t)cur->mmio_base), PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+            vmm_map(&kernel_handle, cur->mmio_base, PHYSICAL_TO_DIRECT((uintptr_t)cur->mmio_base), PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, IA32_PAT_MEMTYPE_UC);
         }
     }
 }

@@ -425,7 +425,7 @@ static ahci_controller_t* new_ahci_controller(pci_device_t* device) {
     // initialize the bar (and map it)
     ASSERT(self->device->bars[5].base != 0);
     self->hba = (AHCI_HBA*) self->device->bars[5].base;
-    vmm_map(&kernel_process->vmm_handle, DIRECT_TO_PHYSICAL(self->device->bars[5].base), self->device->bars[5].base, sizeof(AHCI_HBA), PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+    vmm_map(&kernel_process->vmm_handle, DIRECT_TO_PHYSICAL(self->device->bars[5].base), self->device->bars[5].base, sizeof(AHCI_HBA), PAGE_SUPERVISOR_READWRITE, IA32_PAT_MEMTYPE_UC);
 
     // bios handoff
     if(self->hba->cap2 & AHCI_CAP2_BOH) {

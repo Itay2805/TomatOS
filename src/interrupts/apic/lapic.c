@@ -65,7 +65,7 @@ error_t lapic_init() {
 
     mmio_base = (char*)PHYSICAL_TO_DIRECT((uintptr_t)acpi_madt->lapic_addr);
     if(!vmm_is_mapped(&kernel_handle, (uintptr_t)mmio_base, PAGE_SIZE)) {
-        vmm_map(&kernel_handle, acpi_madt->lapic_addr, (uintptr_t)mmio_base, PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
+        vmm_map(&kernel_handle, acpi_madt->lapic_addr, (uintptr_t)mmio_base, PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, IA32_PAT_MEMTYPE_UC);
     }
 
     debug_log("[*] \tInitializing Local APIC #%d\n", lapic_get_id());
