@@ -44,11 +44,15 @@ BINS := $(REALFILES:%.real=build/%.bin)
 
 # Sources, all c files basically
 SRCS += $(shell find src -type f -name '*.c')
+SRCS += $(shell find src -type f -name '*.cpp')
 SRCS += $(shell find src -type f -name '*.asm')
-SRCS += $(shell find lib -type f -name '*.c')
-OBJS := $(SRCS:%=build/%.o)
 
-# All the dirs
+# Include libraries
+SRCS += $(shell find lib/libc -type f -name '*.c')
+SRCS += $(shell find lib/stb -type f -name '*.c')
+
+# Get all the objects and dirs
+OBJS := $(SRCS:%=build/%.o)
 OBJDIRS := $(dir $(OBJS) $(BINS))
 
 # Set the flags
@@ -57,11 +61,9 @@ COMMON_CFLAGS += \
 	-Wall \
 	-mno-sse \
 	-ffreestanding \
-	-nostdlib \
 	-nostdinc \
 	-mno-red-zone \
 	-mcmodel=kernel \
-	-Wno-unused-label \
 	-fno-pie \
 	-static \
 	-g
@@ -89,6 +91,13 @@ KERNEL_CFLAGS += -Isrc/
 # Set the loggers
 KERNEL_CFLAGS += $(LOGGERS:%=-D%_LOGGER)
 
+# The kernel cppflags
+KERNEL_CPPFLAGS := \
+    $(KERNEL_CFLAGS) \
+    -std=c++17 \
+     -fno-rtti \
+     -fno-exceptions
+
 # Set the linking flags
 LDFLAGS += \
 	--oformat elf_amd64 \
@@ -115,6 +124,10 @@ build/lib/lai/%.c.o: lib/lai/%.c
 # build real mode asm code
 build/%.bin: %.real
 	nasm -f bin -o $@ $<
+
+# Compile kernel cpp files
+build/%.cpp.o: %.cpp
+	$(CC) $(KERNEL_CPPFLAGS) -D __FILENAME__="\"$<\"" -c -o $@ $<
 
 # Compile kernel c files
 build/%.c.o: %.c
