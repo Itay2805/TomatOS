@@ -24,6 +24,9 @@ namespace util {
 
         void release();
 
+        spinlock& operator=(const spinlock&) = delete;
+        spinlock(const spinlock&) = delete;
+
     };
 
 
@@ -42,6 +45,9 @@ namespace util {
         ~spinlock_guard() {
             lock.release();
         }
+
+        spinlock_guard& operator=(const spinlock_guard&) = delete;
+        spinlock_guard(const spinlock_guard&) = delete;
 
     };
 

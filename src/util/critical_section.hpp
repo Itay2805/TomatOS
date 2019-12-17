@@ -21,6 +21,9 @@ namespace util {
         critical_section(spinlock& lock);
         ~critical_section();
 
+        critical_section& operator=(const critical_section&) = delete;
+        critical_section(const critical_section&) = delete;
+
     };
 
 }
