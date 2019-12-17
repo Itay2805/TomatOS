@@ -4,6 +4,8 @@
 #include <arch/paging.h>
 
 #include <tboot.h>
+#include <util/spinlock.hpp>
+#include <util/critical_section.hpp>
 #include "pmm.hpp"
 
 #if 0
@@ -34,7 +36,7 @@ static bool freeing = false;
 
 static list_entry free_entries_list = { &free_entries_list, &free_entries_list };
 
-// TODO: static lock_t lock;
+static spinlock pmm_lock;
 
 ////////////////////////////////////////////////////////////////////////
 // Memory map manipulation
@@ -461,7 +463,7 @@ namespace mem::pmm {
         ASSERT(base != NULL);
         ASSERT(page_count != 0);
 
-// TODO:        acquire_lock(&lock);
+        util::critical_section section(pmm_lock);
 
         uintptr_t start = *base;
         uintptr_t end = 0;
@@ -490,12 +492,10 @@ namespace mem::pmm {
         convert_page(start, page_count, true);
 
         *base = start;
-
-// TODO:        release_lock(&lock);
     }
 
     void free_pages(uintptr_t base, size_t page_count) {
-//  TODO       acquire_lock(&lock);
+        util::critical_section section(pmm_lock);
 
         // find the entry
         mem_entry* entry;
@@ -511,8 +511,6 @@ namespace mem::pmm {
         ASSERT(link != &mem_map);
 
         convert_page(base, page_count, false);
-
-//  TODO:       release_lock(&lock);
     }
 
 }

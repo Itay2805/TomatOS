@@ -5,7 +5,7 @@ OUTPUT_ARCH(i386:x86-64)
 SECTIONS
 {
     /* ========== Multiboot ========== */
-	. = 0x0100000;
+	. = 0x0200000;
 	kernel_physical_start = .;
 
     .tboot.text ALIGN(4K) :

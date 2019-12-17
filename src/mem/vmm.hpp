@@ -42,10 +42,6 @@ namespace mem::vmm {
         ZERO_PAGE = 4 << 0
     };
 
-    inline constexpr permission operator|(permission a, permission b) {
-        return a = static_cast<permission>(a | b);
-    }
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Vmm functions
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,8 +49,6 @@ namespace mem::vmm {
     struct vmm_handle {
         uintptr_t pml4_physical;
     };
-
-
 
 }
 
