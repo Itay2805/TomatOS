@@ -26,6 +26,7 @@ namespace util {
 
         spinlock& operator=(const spinlock&) = delete;
         spinlock(const spinlock&) = delete;
+        spinlock() = default;
 
     };
 

@@ -10,6 +10,8 @@ namespace proc {
 
     public:
 
+
+
     };
 
     /*
@@ -22,6 +24,6 @@ namespace proc {
     /**
      * this will initialize the kernel process
      */
-    void init_kernel_process();
+    void init_kernel_process(mem::vmm::context& context);
 
 }

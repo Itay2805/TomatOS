@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <util/spinlock.hpp>
 #include <arch/msr.hpp>
+#include <tboot.h>
 
 #ifdef VMM_NO_DIRECT_BOUNDS_CHECK
     #define CHECK_BOUNDS(...)
@@ -162,17 +163,12 @@ namespace mem::vmm {
     /**
      * Initialize the vmm
      */
-    void init();
+    void init(tboot_info_t* info);
 
     /**
      * Will enable various cpu features on the current processor
      */
     void enable_cpu_features();
-
-    /**
-     *
-     */
-    void switch_context(context& context);
 
 }
 

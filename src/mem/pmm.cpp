@@ -414,6 +414,10 @@ namespace mem::pmm {
         }
     }
 
+    void post_vmm_init() {
+        debug_log("[*] Pmm post vmm setup\n");
+    }
+
 //    void post_vmm_init() {
 //        debug_log("[*] Pmm post vmm setup\n");
 //
@@ -458,14 +462,14 @@ namespace mem::pmm {
 //        }
 //    }
 
-    void allocate_pages(allocate_type type, size_t page_count, uintptr_t* base) {
+    uintptr_t allocate_pages(allocate_type type, size_t page_count, uintptr_t base) {
         ASSERT(type == ALLOCATE_ADDRESS || type == ALLOCATE_ANY || type == ALLOCATE_BELOW);
         ASSERT(base != NULL);
         ASSERT(page_count != 0);
 
         util::critical_section section(pmm_lock);
 
-        uintptr_t start = *base;
+        uintptr_t start = base;
         uintptr_t end = 0;
         uintptr_t max_address = mem_memory_top;
 
@@ -491,7 +495,7 @@ namespace mem::pmm {
 
         convert_page(start, page_count, true);
 
-        *base = start;
+        return start;
     }
 
     void free_pages(uintptr_t base, size_t page_count) {

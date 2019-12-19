@@ -39,9 +39,10 @@ namespace mem::pmm {
      *
      * @param type          [IN]    What should the allocation do
      * @param page_count    [IN]    The amount of pages to allocate
-     * @param base          [OUT]   The allocate page (physical memory)
+     * @param base          [IN]    The base to allocate from (assuming ALLOCATE_ADDRESS type)
+     * @return   The allocated page (physical memory)
      */
-    void allocate_pages(allocate_type type, size_t page_count, uintptr_t* base);
+    uintptr_t allocate_pages(allocate_type type, size_t page_count, uintptr_t base = 0);
 
     /**
      * Will free the pages so they can be allocated again
