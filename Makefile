@@ -50,6 +50,7 @@ SRCS += $(shell find src -type f -name '*.asm')
 # Include libraries
 SRCS += $(shell find lib/libc -type f -name '*.c')
 SRCS += $(shell find lib/stb -type f -name '*.c')
+SRCS += $(shell find lib/stb -type f -name '*.cpp')
 
 # Get all the objects and dirs
 OBJS := $(SRCS:%=build/%.o)

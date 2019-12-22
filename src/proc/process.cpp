@@ -1,4 +1,5 @@
 #include <util/cpp_runtime.h>
+#include <string.h>
 #include "process.hpp"
 
 namespace proc {
@@ -7,8 +8,8 @@ namespace proc {
     // process class
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    process::process(bool kernel) {
-        if(kernel) {
+    process::process(bool kproc) {
+        if(kproc) {
             this->vmm_context = mem::vmm::kernel;
         }else {
             this->vmm_context = new (vmm_context_buffer) mem::vmm::context();
