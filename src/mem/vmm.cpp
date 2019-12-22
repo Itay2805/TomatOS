@@ -2,6 +2,7 @@
 #include <arch/intrin.hpp>
 #include <arch/paging.h>
 #include <string.h>
+#include <arch/cpuid.hpp>
 
 #include "pmm.hpp"
 #include "vmm.hpp"
@@ -43,27 +44,9 @@ namespace mem::vmm {
             case SIZE_4KB: return 4096l;
             case SIZE_2MB: return 4096l * 512l;
             case SIZE_1GB: return 4096l * 512l * 512l;
-            default:
-                ASSERT(false);
+            default: ASSERT(false);
         }
     }
-
-//    static int pat_type_config[] = {
-//        [arch::IA32_PAT_MEMTYPE_WP] = 2,
-//        [arch::IA32_PAT_MEMTYPE_WC] = 3,
-//        [arch::IA32_PAT_MEMTYPE_WB] = 4,
-//        [arch::IA32_PAT_MEMTYPE_WT] = 5,
-//        [arch::IA32_PAT_MEMTYPE_UCM] = 6,
-//        [arch::IA32_PAT_MEMTYPE_UC] = 7
-//    };
-//
-//    static void get_pat_flags_from_mem_type(arch::IA32_PAT_MEMTYPE mem_type, bool* pwt_flag, bool* pcd_flag, bool* pat_flag) {
-//        // Vol 3A, Table 11-11. Selection of PAT Entries with PAT, PCD, and PWT Flags
-//        int index = pat_type_config[mem_type];
-//        *pwt_flag = (index & (1 << 0)) != 0;
-//        *pcd_flag = (index & (1 << 1)) != 0;
-//        *pat_flag = (index & (1 << 2)) != 0;
-//    }
 
     void context::set_pte(uintptr_t virt, uintptr_t phys, bool user, bool write, bool no_exec, bool pwt, bool pcd, bool pat) {
         VA_ADDRESS va = { virt };
@@ -159,7 +142,7 @@ namespace mem::vmm {
      */
     bool context::get_entry_at_virtual_address(void *virtual_address, void **entry, page_size *page_size) {
       VA_ADDRESS va = {(uintptr_t) virtual_address};
-      PML4E *pml4 = (PML4E *) (memory_base + pml4_physical);
+      PML4E* pml4 = (PML4E *) (memory_base + pml4_physical);
 
       ASSERT(page_size != nullptr);
       ASSERT(entry != nullptr);
@@ -169,7 +152,7 @@ namespace mem::vmm {
         return false;
       }
 
-      PDPTE *pdpt = (PDPTE *) (memory_base + (pml4e.addr << page_shift));
+      PDPTE* pdpt = (PDPTE *) (memory_base + (pml4e.addr << page_shift));
       PDPTE pdpte = pdpt[va.one_gb.pdpte];
       if (!pdpte.present) {
         *page_size = SIZE_1GB;
@@ -260,7 +243,7 @@ namespace mem::vmm {
     }
 
     bool context::is_mapped(void* virt, size_t range) {
-        ASSERT(virt != 0);
+        ASSERT(virt != nullptr);
         ASSERT(range > 0);
         uintptr_t addr = (uintptr_t)virt;
 
@@ -283,7 +266,7 @@ namespace mem::vmm {
     void context::map(uintptr_t phys, void* virt, size_t size, permission perms, cache_policy cache) {
         // allow to map zero page if the page has
         // a map zero permission
-        if(virt == 0) {
+        if(virt == nullptr) {
             ASSERT((perms & ZERO_PAGE) != 0);
         }
 
@@ -350,9 +333,31 @@ namespace mem::vmm {
         debug_log("[*] \tmapping kernel\n");
         kernel->map(KERNEL_PHYSICAL_START, KERNEL_VIRTUAL_START, KERNEL_PHYSICAL_END - KERNEL_PHYSICAL_START, (permission)(EXECUTE | WRITE | KERNEL));
 
+        enable_cpu_features();
+
         debug_log("[*] \tSwitching to kernel page table\n");
         memory_base = direct_mapping_base;
         kernel->switch_to_context();
+    }
+
+    void enable_cpu_features() {
+        using namespace arch;
+
+        // structures we may check
+        CPUID_EX_FEATURES ex_features = { 0 };
+        cpuid(cpuid_function::ex_features, 0, (uint32_t*)&ex_features);
+
+        // structures we might change
+        IA32_EFER efer = { .raw = read_msr(MSR_CODE_IA32_EFER) };
+
+        /**************************************************
+         * No execute - must be supported
+         **************************************************/
+         ASSERT(ex_features.nx);
+         efer.nxe = 1;
+
+         // commit all the changes
+         write_msr(MSR_CODE_IA32_EFER, efer.raw);
     }
 
 }

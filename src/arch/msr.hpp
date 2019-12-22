@@ -50,6 +50,27 @@ namespace arch {
     } IA32_PAT;
     static_assert(sizeof(IA32_PAT) == sizeof(uint64_t));
 
+    constexpr int MSR_CODE_IA32_EFER = 0xC0000080;
+
+    typedef union _IA32_EFER
+    {
+        uint64_t raw;
+        struct {
+            // Enables SYSCALL/SYSRET instructions in 64bit
+            uint64_t sce : 1;
+            uint64_t _reserved0 : 7;
+            // Enables IA-32e mode operation
+            uint64_t lme : 1;
+            uint64_t _reserved1 : 1;
+            // Indicates IA-32e mode is active when set
+            uint64_t lma : 1;
+            // Execute Disable Bit Enable
+            uint64_t nxe : 1;
+            uint64_t _reserved2 : 52;
+        };
+    } IA32_EFER;
+    static_assert(sizeof(uint64_t) == sizeof(IA32_EFER));
+
     uint64_t read_msr(uint32_t code);
     void write_msr(uint32_t code, uint64_t value);
 

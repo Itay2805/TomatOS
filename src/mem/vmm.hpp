@@ -20,18 +20,21 @@ namespace mem::vmm {
 
     constexpr uintptr_t direct_mapping_base = 0xFFFF800000000000ul;
 
-    inline constexpr uintptr_t physical_to_direct(uintptr_t a) {
-        CHECK_BOUNDS(a <= UINT64_MAX - direct_mapping_base);
-        return a + direct_mapping_base;
+    template<typename T>
+    inline constexpr T physical_to_direct(T a) {
+        CHECK_BOUNDS((uintptr_t)a <= UINT64_MAX - direct_mapping_base);
+        return (T)((uintptr_t)a + direct_mapping_base);
     }
 
-    inline constexpr uintptr_t direct_to_physical(uintptr_t a) {
-        CHECK_BOUNDS(a >= direct_mapping_base);
-        return a - direct_mapping_base;
+    template<typename T>
+    inline constexpr T direct_to_physical(T a) {
+        CHECK_BOUNDS((uintptr_t)a >= direct_mapping_base);
+        return (T)((uintptr_t)a - direct_mapping_base);
     }
 
-    inline constexpr bool is_kernel_ptr(uintptr_t ptr) {
-        return ptr >= direct_mapping_base;
+    template<typename T>
+    inline constexpr bool is_kernel_ptr(T ptr) {
+        return ((uintptr_t)ptr) >= direct_mapping_base;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

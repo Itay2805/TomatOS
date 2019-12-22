@@ -7,6 +7,7 @@
 #include <util/spinlock.hpp>
 #include <util/critical_section.hpp>
 #include "pmm.hpp"
+#include "vmm.hpp"
 
 #if 0
 #define DEBUG(fmt, ...) debug_log("[*] PMM_DEBUG: %s:%d: " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__)
@@ -416,51 +417,49 @@ namespace mem::pmm {
 
     void post_vmm_init() {
         debug_log("[*] Pmm post vmm setup\n");
-    }
 
-//    void post_vmm_init() {
-//        debug_log("[*] Pmm post vmm setup\n");
-//
-//        // set the memory base
-//        memory_base = DIRECT_MAPPING_BASE;
-//
-//        // update the mem map
-//        if(!IS_KERNEL_PTR(mem_map.prev)) {
-//            mem_map.prev = PHYSICAL_TO_DIRECT(mem_map.prev);
-//        }
-//
-//        if(!IS_KERNEL_PTR(mem_map.next)) {
-//            mem_map.next = PHYSICAL_TO_DIRECT(mem_map.next);
-//        }
-//
-//        for(list_entry_t* link = mem_map.next; link != &mem_map; link = link->next) {
-//            if(!IS_KERNEL_PTR(link->prev)) {
-//                link->prev = PHYSICAL_TO_DIRECT(link->prev);
-//            }
-//            if(!IS_KERNEL_PTR(link->next)) {
-//                link->next = PHYSICAL_TO_DIRECT(link->next);
-//            }
-//        }
-//
-//
-//        // update the free entries list
-//        if(!IS_KERNEL_PTR(free_entries_list.prev)) {
-//            free_entries_list.prev = PHYSICAL_TO_DIRECT(free_entries_list.prev);
-//        }
-//
-//        if(!IS_KERNEL_PTR(free_entries_list.next)) {
-//            free_entries_list.next = PHYSICAL_TO_DIRECT(free_entries_list.next);
-//        }
-//
-//        for(list_entry_t* link = free_entries_list.next; link != &free_entries_list; link = link->next) {
-//            if(!IS_KERNEL_PTR(link->prev)) {
-//                link->prev = PHYSICAL_TO_DIRECT(link->prev);
-//            }
-//            if(!IS_KERNEL_PTR(link->next)) {
-//                link->next = PHYSICAL_TO_DIRECT(link->next);
-//            }
-//        }
-//    }
+        using namespace mem::vmm;
+
+        // set the memory base
+        memory_base = direct_mapping_base;
+
+        // update the mem map
+        if(!is_kernel_ptr(mem_map.prev)) {
+            mem_map.prev = physical_to_direct(mem_map.prev);
+        }
+
+        if(!is_kernel_ptr(mem_map.next)) {
+            mem_map.next = physical_to_direct(mem_map.next);
+        }
+
+        for(list_entry* link = mem_map.next; link != &mem_map; link = link->next) {
+            if(!is_kernel_ptr(link->prev)) {
+                link->prev = physical_to_direct(link->prev);
+            }
+            if(!is_kernel_ptr(link->next)) {
+                link->next = physical_to_direct(link->next);
+            }
+        }
+
+
+        // update the free entries list
+        if(!is_kernel_ptr(free_entries_list.prev)) {
+            free_entries_list.prev = physical_to_direct(free_entries_list.prev);
+        }
+
+        if(!is_kernel_ptr(free_entries_list.next)) {
+            free_entries_list.next = physical_to_direct(free_entries_list.next);
+        }
+
+        for(list_entry* link = free_entries_list.next; link != &free_entries_list; link = link->next) {
+            if(!is_kernel_ptr(link->prev)) {
+                link->prev = physical_to_direct(link->prev);
+            }
+            if(!is_kernel_ptr(link->next)) {
+                link->next = physical_to_direct(link->next);
+            }
+        }
+    }
 
     uintptr_t allocate_pages(allocate_type type, size_t page_count, uintptr_t base) {
         ASSERT(type == ALLOCATE_ADDRESS || type == ALLOCATE_ANY || type == ALLOCATE_BELOW);

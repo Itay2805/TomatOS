@@ -95,7 +95,37 @@ namespace arch {
      */
     IA32_EFLAGS read_eflags();
 
+    void write_cr0(uint64_t value);
+    uint64_t read_cr0();
+
+    void write_cr2(uint64_t value);
+    uint64_t read_cr2();
+
     void write_cr3(uint64_t value);
     uint64_t read_cr3();
+
+    void write_cr4(uint64_t value);
+    uint64_t read_cr4();
+
+    struct __attribute__((packed)) IA32_IDT_ENTRY {
+        uint64_t handler_low : 16;
+        uint64_t selector : 16;
+        uint64_t ist : 3;
+        uint64_t _zero1 : 5;
+        uint64_t gate_type : 4;
+        uint64_t _zero2 : 1;
+        uint64_t ring : 2;
+        uint64_t present : 1;
+        uint64_t handler_high : 48;
+        uint64_t _zero3 : 32;
+    };
+
+    struct __attribute__((packed)) IA32_IDT {
+        uint16_t limit;
+        IA32_IDT_ENTRY* base;
+    };
+
+    void read_idtr(IA32_IDT* idtr);
+    void write_idtr(IA32_IDT* idtr);
 
 }

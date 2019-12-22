@@ -1,0 +1,266 @@
+#pragma once
+
+#include <stdint.h>
+
+namespace arch {
+
+    enum class cpuid_function : unsigned long long {
+        // Basic cpu information
+        basic_vendor = 0,
+        basic_features = 1,
+        basic_tlb = 2,
+        basic_serial = 3,
+
+        // Structured Extended Feature Flags Enumeration Leaf
+        features_ex = 7,
+
+        // Time Stamp Counter/Core Crystal Clock Information-leaf
+        tsc = 0x15,
+
+        // Processor Frequency Information Leaf
+        frequency = 0x16,
+
+        // Extended Function CPUID Information
+        ex_maxfunc = 0x80000000,
+        ex_features = 0x80000001,
+    };
+
+    // Vol 2A, Table 3-17. Information Returned by CPUID Instruction
+    typedef struct _CPUID_BASIC_VENDOR
+    {
+        uint32_t max_basic_info;
+        char vendor[12];
+    } CPUID_BASIC_VENDOR;
+    static_assert(sizeof(uint32_t[4]) == sizeof(CPUID_BASIC_VENDOR));
+
+    // Vol 2A, Table 3-17. Information Returned by CPUID Instruction
+    // Vol 2A, Figure 3-6. Version Information Returned by CPUID in EAX
+    // Vol 2A, Table 3-19. Feature Information Returned in the ECX Register
+    // Vol 2A, Table 3-20. More on Feature Information Returned in the EDX Register
+    // https://en.wikipedia.org/wiki/CPUID#EAX=1:_Processor_Info_and_Feature_Bits
+    typedef struct _CPUID_BASIC_FEATURES
+    {
+        uint32_t steppingId : 4;      //!< EAX 0-3    Stepping ID
+        uint32_t model : 4;           //!< EAX 4-7    Model
+        uint32_t familyId : 4;        //!< EAX 8-11   Family (0FH for the Pentium 4 Processor Family)
+        uint32_t processorType : 2;   //!< EAX 12-13  See CPUID_PROCESSOR_TYPE
+        uint32_t reserved0 : 2;       //!< EAX 14-15  0
+        uint32_t exModelId : 4;       //!< EAX 16-19  Extended Model ID (0)
+        uint32_t exFamilyId : 8;      //!< EAX 20-27  Extended Family ID (0)
+        uint32_t reserved1 : 4;       //!< EAX 28-31  0
+        uint32_t brandIndex : 8;      //!< EBX 0-7    Brand index
+        uint32_t clflushLineSize : 8; //!< EBX 8-15   CLFLUSH line size (Value ? 8 = cache line size in bytes; used also by CLFLUSHOPT).
+        uint32_t maxApicId : 8;       //!< EBX 16-23  Maximum number of addressable IDs for logical processors in this physical package
+        uint32_t initialApicId : 8;   //!< EBX 24-31  Initial APIC ID
+        uint32_t sse3 : 1;            //!< ECX 0      Prescott New Instructions-SSE3 (PNI)
+        uint32_t pclmulqdq : 1;       //!< ECX 1      PCLMULQDQ support
+        uint32_t dtes64 : 1;          //!< ECX 2      64-bit debug store (edx bit 21)
+        uint32_t monitor : 1;         //!< ECX 3      MONITOR and MWAIT instructions (SSE3)
+        uint32_t dscpl : 1;           //!< ECX 4      CPL qualified debug store
+        uint32_t vmx : 1;             //!< ECX 5      Virtual Machine eXtensions
+        uint32_t smx : 1;             //!< ECX 6      Safer Mode Extensions (LaGrande)
+        uint32_t est : 1;             //!< ECX 7      Enhanced SpeedStep
+        uint32_t tm2 : 1;             //!< ECX 8      Thermal Monitor 2
+        uint32_t ssse3 : 1;           //!< ECX 9      Supplemental SSE3 instructions
+        uint32_t cnxtid : 1;          //!< ECX 10     L1 Context ID
+        uint32_t sdbg : 1;            //!< ECX 11     Silicon Debug interface
+        uint32_t fma : 1;             //!< ECX 12     Fused multiply-add (FMA3)
+        uint32_t cx16 : 1;            //!< ECX 13     CMPXCHG16B instruction
+        uint32_t xtpr : 1;            //!< ECX 14     Can disable sending task priority messages
+        uint32_t pdcm : 1;            //!< ECX 15     Perfmon & debug capability
+        uint32_t reserved2 : 1;       //!< ECX 16     0
+        uint32_t pcid : 1;            //!< ECX 17     Process context identifiers (CR4 bit 17)
+        uint32_t dca : 1;             //!< ECX 18     Direct cache access for DMA writes
+        uint32_t sse41 : 1;           //!< ECX 19     SSE4.1 instructions
+        uint32_t sse42 : 1;           //!< ECX 20     SSE4.2 instructions
+        uint32_t x2apic : 1;          //!< ECX 21     x2APIC support
+        uint32_t movbe : 1;           //!< ECX 22     MOVBE instruction (big-endian)
+        uint32_t popcnt : 1;          //!< ECX 23     POPCNT instruction
+        uint32_t tscdeadline : 1;     //!< ECX 24     APIC supports one-shot operation using a TSC deadline value
+        uint32_t aes : 1;             //!< ECX 25     AES instruction set
+        uint32_t xsave : 1;           //!< ECX 26     XSAVE, XRESTOR, XSETBV, XGETBV
+        uint32_t osxsave : 1;         //!< ECX 27     XSAVE enabled by OS
+        uint32_t avx : 1;             //!< ECX 28     Advanced Vector Extensions
+        uint32_t f16c : 1;            //!< ECX 29     F16C (half-precision) FP support
+        uint32_t rdrnd : 1;           //!< ECX 30     RDRAND (on-chip random number generator) support
+        uint32_t hypervisor : 1;      //!< ECX 31     Running on a hypervisor
+        uint32_t fpu : 1;             //!< EDX 0      Onboard x87 FPU
+        uint32_t vme : 1;             //!< EDX 1      Virtual 8086 mode extensions (such as VIF, VIP, PIV)
+        uint32_t de : 1;              //!< EDX 2      Debugging extensions (CR4 bit 3)
+        uint32_t pse : 1;             //!< EDX 3      Page Size Extension
+        uint32_t tsc : 1;             //!< EDX 4      Time Stamp Counter
+        uint32_t msr : 1;             //!< EDX 5      Model-specific registers
+        uint32_t pae : 1;             //!< EDX 6      Physical Address Extension
+        uint32_t mce : 1;             //!< EDX 7      Machine Check Exception
+        uint32_t cx8 : 1;             //!< EDX 8      CMPXCHG8 (compare-and-swap) instruction
+        uint32_t apic : 1;            //!< EDX 9      Onboard Advanced Programmable Interrupt Controller
+        uint32_t reserved3 : 1;       //!< EDX 10     0
+        uint32_t sep : 1;             //!< EDX 11     SYSENTER and SYSEXIT instructions
+        uint32_t mtrr : 1;            //!< EDX 12     Memory Type Range Registers
+        uint32_t pge : 1;             //!< EDX 13     Page Global Enable bit in CR4
+        uint32_t mca : 1;             //!< EDX 14     Machine check architecture
+        uint32_t cmov : 1;            //!< EDX 15     Conditional move and FCMOV instructions
+        uint32_t pat : 1;             //!< EDX 16     Page Attribute Table
+        uint32_t pse36 : 1;           //!< EDX 17     36-bit page size extension
+        uint32_t psn : 1;             //!< EDX 18     Processor Serial Number
+        uint32_t clfsh : 1;           //!< EDX 19     CLFLUSH instruction (SSE2)
+        uint32_t reserved4 : 1;       //!< EDX 20     0
+        uint32_t ds : 1;              //!< EDX 21     Debug store: save trace of executed jumps
+        uint32_t acpi : 1;            //!< EDX 22     Onboard thermal control MSRs for ACPI
+        uint32_t mmx : 1;             //!< EDX 23     MMX instructions
+        uint32_t fxsr : 1;            //!< EDX 24     FXSAVE, FXRESTOR instructions, CR4 bit 9
+        uint32_t sse : 1;             //!< EDX 25     SSE instructions (a.k.a. Katmai New Instructions)
+        uint32_t sse2 : 1;            //!< EDX 26     SSE2 instructions
+        uint32_t ss : 1;              //!< EDX 27     CPU cache supports self-snoop
+        uint32_t htt : 1;             //!< EDX 28     Hyper-threading
+        uint32_t tm : 1;              //!< EDX 29     Thermal monitor automatically limits temperature
+        uint32_t ia64 : 1;            //!< EDX 30     IA64 processor emulating x86
+        uint32_t pbe : 1;             //!< EDX 31     Pending Break Enable (PBE# pin) wakeup support
+    } CPUID_BASIC_FEATURES;
+    static_assert(sizeof(uint32_t[4]) == sizeof(CPUID_BASIC_FEATURES));
+
+    //! Vol 2A, Table 3-17. Information Returned by CPUID Instruction
+    // https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
+    typedef struct _CPUID_FEATURES_EX
+    {
+        uint32_t dwMaxExSubFunc;      //!< EAX 0-31   Reports the maximum input value for supported leaf 7 sub-leaves
+        uint32_t fsgbase : 1;         //!< EBX 0      Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1
+        uint32_t ia32TscAdjust : 1;   //!< EBX 1      IA32_TSC_ADJUST MSR is supported if 1
+        uint32_t sgx : 1;             //!< EBX 2      Software Guard Extensions
+        uint32_t bm1 : 1;             //!< EBX 3      Bit Manipulation Instruction Set 1
+        uint32_t hle : 1;             //!< EBX 4      Transactional Synchronization Extensions
+        uint32_t avx2 : 1;            //!< EBX 5      Advanced Vector Extensions 2
+        uint32_t fdpExcptnOnly : 1;   //!< EBX 6      FDP_EXCPTN_ONLY. x87 FPU Data Pointer updated only on x87 exceptions if 1
+        uint32_t smep : 1;            //!< EBX 7      Supervisor-Mode Execution Prevention
+        uint32_t bmi2 : 1;            //!< EBX 8      Bit Manipulation Instruction Set 2
+        uint32_t erms : 1;            //!< EBX 9      Enhanced REP MOVSB/STOSB
+        uint32_t invcpid : 1;         //!< EBX 10     INVPCID instruction
+        uint32_t rtm : 1;             //!< EBX 11     Transactional Synchronization Extensions
+        uint32_t pqm : 1;             //!< EBX 12     Platform Quality of Service Monitoring
+        uint32_t depFpuCsDs : 1;      //!< EBX 13     FPU CS and FPU DS deprecated
+        uint32_t mpx : 1;             //!< EBX 14     Intel MPX (Memory Protection Extensions)
+        uint32_t pqe : 1;             //!< EBX 15     Platform Quality of Service Enforcement
+        uint32_t avx512f : 1;         //!< EBX 16     AVX-512 Foundation
+        uint32_t avx512fdq : 1;       //!< EBX 17     AVX-512 DWORD and QWORD Instructions
+        uint32_t rdseed : 1;          //!< EBX 18     RDSEED instruction
+        uint32_t adx : 1;             //!< EBX 19     Intel ADX (Multi-Precision Add-Carry Instruction Extensions)
+        uint32_t smap : 1;            //!< EBX 20     Supervisor Mode Access Prevention
+        uint32_t avx512ifma : 1;      //!< EBX 21     AVX-512 Integer Fused Multiply-Add Instructions
+        uint32_t pcommit : 1;         //!< EBX 22     PCOMMIT instruction
+        uint32_t clflushopt : 1;      //!< EBX 23     CLFLUSHOPT instruction
+        uint32_t clwb : 1;            //!< EBX 24     CLWB instruction
+        uint32_t intelPt : 1;         //!< EBX 25     Intel Processor Trace
+        uint32_t avx512pf : 1;        //!< EBX 26     AVX-512 Prefetch Instructions
+        uint32_t avx512er : 1;        //!< EBX 27     AVX-512 Exponential and Reciprocal Instructions
+        uint32_t avx512cd : 1;        //!< EBX 28     AVX-512 Conflict Detection Instructions
+        uint32_t sha : 1;             //!< EBX 29     Intel SHA extensions
+        uint32_t avx512bw : 1;        //!< EBX 30     AVX-512 Byte and Word Instructions
+        uint32_t avx512vl : 1;        //!< EBX 31     AVX-512 Vector Length Extensions
+        uint32_t prefetchwt1 : 1;     //!< ECX 0      PREFETCHWT1
+        uint32_t avx512vbmi : 1;      //!< ECX 1      AVX-512 Vector Bit Manipulation Instructions
+        uint32_t umip : 1;            //!< ECX 2      User-mode Instruction Prevention
+        uint32_t pku : 1;             //!< ECX 3      Memory Protection Keys for User-mode pages
+        uint32_t ospke : 1;           //!< ECX 4      PKU enabled by OS
+        uint32_t reserved0 : 1;       //!< ECX 5      0
+        uint32_t avx512vbmi2 : 1;     //!< ECX 6      AVX-512 Vector Bit Manipulation Instructions 2
+        uint32_t reserved1 : 1;       //!< ECX 7      0
+        uint32_t gfni : 1;            //!< ECX 8      Galois Field instructions
+        uint32_t vaes : 1;            //!< ECX 9      AES instruction set (VEX-256/EVEX)
+        uint32_t vpclmulqdq : 1;      //!< ECX 10     CLMUL instruction set (VEX-256/EVEX)
+        uint32_t avx512vnni : 1;      //!< ECX 11     AVX-512 Vector Neural Network Instructions
+        uint32_t avx512bitalg : 1;    //!< ECX 12     AVX-512 BITALG instructions
+        uint32_t reserved2 : 1;       //!< ECX 13     0
+        uint32_t mawau : 8;           //!< ECX 14-21  The value of userspace MPX Address-Width Adjust used by the BNDLDX and BNDSTX Intel MPX instructions in 64 - bit mode
+        uint32_t rdpid : 1;           //!< ECX 22     Read Processor ID
+        uint32_t reserved3 : 7;       //!< ECX 23-29  0
+        uint32_t sgxLc : 1;           //!< ECX 30     SGX Launch Configuration
+        uint32_t reserved4 : 1;       //!< ECX 31     0
+        uint32_t reserved5 : 2;       //!< EDX 0-1    0
+        uint32_t avx512vnniw : 1;     //!< EDX 2      AVX-512 4-register Neural Network Instructions
+        uint32_t avx512maps : 1;      //!< EDX 2      AVX-512 4-register Multiply Accumulation Single precision
+        uint32_t reserved6 : 22;      //!< EDX 4-25   0
+        uint32_t specCtrl : 1;        //!< EDX 26     Speculation Control: Indirect Branch Restricted Speculation(IBRS) and Indirect Branch Prediction Barrier(IBPB)
+        uint32_t reserved7 : 5;       //!< EDX 27-31  0
+    } CPUID_FEATURES_EX;
+    static_assert(sizeof(uint32_t[4]) == sizeof(CPUID_FEATURES_EX));
+
+    //! Vol 2A, Table 3-17. Information Returned by CPUID Instruction
+    // https://en.wikipedia.org/wiki/CPUID#EAX=80000001h:_Extended_Processor_Info_and_Feature_Bits
+    typedef struct _CPUID_EX_FEATURES
+    {
+        uint32_t reserved0;           //!< EAX 0-31
+        uint32_t reserved1;           //!< EBX 0-31
+        uint32_t lahfLm : 1;          //!< ECX 0      LAHF/SAHF in long mode
+        uint32_t cmpLegacy : 1;       //!< ECX 1      Hyper-threading not valid
+        uint32_t svm : 1;             //!< ECX 2      Secure Virtual Machine
+        uint32_t extApic : 1;         //!< ECX 3      Extended APIC space
+        uint32_t cr8Legacy : 1;       //!< ECX 4      CR8 in 32-bit mode
+        uint32_t abm : 1;             //!< ECX 5      Advanced bit manipulation (LZCNT and POPCNT)
+        uint32_t sse4a : 1;           //!< ECX 6      SSE4a
+        uint32_t misAlignSse : 1;     //!< ECX 7      Misaligned SSE mode
+        uint32_t prefetchNow : 1;     //!< ECX 8      PREFETCH and PREFETCHW instructions
+        uint32_t osvw : 1;            //!< ECX 9      OS Visible Workaround
+        uint32_t ibs : 1;             //!< ECX 10     Instruction Based Sampling
+        uint32_t xop : 1;             //!< ECX 11     XOP instruction set
+        uint32_t skinit : 1;          //!< ECX 12     SKINIT/STGI instructions
+        uint32_t wdt : 1;             //!< ECX 13     Watchdog timer
+        uint32_t reserved2 : 1;       //!< ECX 14     0
+        uint32_t lwp : 1;             //!< ECX 15     Light Weight Profiling
+        uint32_t fma4 : 1;            //!< ECX 16     4 operands fused multiply-add
+        uint32_t tce : 1;             //!< ECX 17     Translation Cache Extension
+        uint32_t reserved3 : 1;       //!< ECX 18     0
+        uint32_t nodeIdMsr : 1;       //!< ECX 19     NodeID MSR
+        uint32_t reserved4 : 1;       //!< ECX 20     0
+        uint32_t tbm : 1;             //!< ECX 21     Trailing Bit Manipulation
+        uint32_t topoext : 1;         //!< ECX 22     Topology Extensions
+        uint32_t perfctrCore : 1;     //!< ECX 23     Core performance counter extensions
+        uint32_t perfctrNb : 1;       //!< ECX 24     NB performance counter extensions
+        uint32_t reserved5 : 1;       //!< ECX 25     0
+        uint32_t dbx : 1;             //!< ECX 26     Data breakpoint extensions
+        uint32_t perftsc : 1;         //!< ECX 27     Performance TSC
+        uint32_t pcxi2i : 1;          //!< ECX 28     L2I perf counter extensions
+        uint32_t reserved6 : 3;       //!< ECX 29-31
+        uint32_t fpu : 1;             //!< EDX 0      Onboard x87 FPU
+        uint32_t vme : 1;             //!< EDX 1      Virtual mode extensions (VIF)
+        uint32_t de : 1;              //!< EDX 2      Debugging extensions (CR4 bit 3)
+        uint32_t pse : 1;             //!< EDX 3      Page Size Extension
+        uint32_t tsc : 1;             //!< EDX 4      Time Stamp Counter
+        uint32_t msr : 1;             //!< EDX 5      Model-specific registers
+        uint32_t pae : 1;             //!< EDX 6      Physical Address Extension
+        uint32_t mce : 1;             //!< EDX 7      Machine Check Exception
+        uint32_t cx8 : 1;             //!< EDX 8      CMPXCHG8 (compare-and-swap) instruction
+        uint32_t apic : 1;            //!< EDX 9      Onboard Advanced Programmable Interrupt Controller
+        uint32_t reserved7 : 1;       //!< EDX 10     0
+        uint32_t syscall : 1;         //!< EDX 11     SYSCALL and SYSRET instructions
+        uint32_t mtrr : 1;            //!< EDX 12     Memory Type Range Registers
+        uint32_t pge : 1;             //!< EDX 13     Page Global Enable bit in CR4
+        uint32_t mca : 1;             //!< EDX 14     Machine check architecture
+        uint32_t cmov : 1;            //!< EDX 15     Conditional move and FCMOV instructions
+        uint32_t pat : 1;             //!< EDX 16     Page Attribute Table
+        uint32_t pse36 : 1;           //!< EDX 17     36-bit page size extension
+        uint32_t reserved8 : 1;       //!< EDX 18     0
+        uint32_t mp : 1;              //!< EDX 19     Multiprocessor Capable
+        uint32_t nx : 1;              //!< EDX 20     NX bit
+        uint32_t reserved9 : 1;       //!< EDX 21     0
+        uint32_t mmxext : 1;          //!< EDX 22     Extended MMX
+        uint32_t mmx : 1;             //!< EDX 23     MMX instructions
+        uint32_t fxsr : 1;            //!< EDX 24     FXSAVE, FXRSTOR instructions, CR4 bit 9
+        uint32_t fxsropt : 1;         //!< EDX 25     FXSAVE/FXRSTOR optimizations
+        uint32_t oneGbPages : 1;      //!< EDX 26     1GB pages
+        uint32_t rdtscp : 1;          //!< EDX 27     RDTSCP instruction
+        uint32_t reservedA : 1;       //!< EDX 28     0
+        uint32_t lm : 1;              //!< EDX 29     Long mode
+        uint32_t threeDNowExt : 1;    //!< EDX 30     Extended 3DNow!
+        uint32_t threeDNow : 1;       //!< EDX 31     3DNow!
+    } CPUID_EX_FEATURES;
+    static_assert(sizeof(uint32_t[4]) == sizeof(CPUID_EX_FEATURES));
+
+    // Vol 2A, Table 3-17. Information Returned by CPUID Instruction
+    #define CPUID_EAX 0
+    #define CPUID_EBX 1
+    #define CPUID_ECX 2
+    #define CPUID_EDX 3
+
+    void cpuid(cpuid_function code, int subcode, uint32_t data[4]);
+
+}
