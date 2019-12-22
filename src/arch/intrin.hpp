@@ -95,4 +95,7 @@ namespace arch {
      */
     IA32_EFLAGS read_eflags();
 
+    void write_cr3(uint64_t value);
+    uint64_t read_cr3();
+
 }

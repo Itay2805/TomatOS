@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <tboot.h>
+#include <proc/process.hpp>
 
 extern "C" void kernel_main(uint64_t magic, tboot_info_t* info) {
     debug_log("[+] Entered kernel!\n");
@@ -12,6 +13,8 @@ extern "C" void kernel_main(uint64_t magic, tboot_info_t* info) {
     mem::pmm::init(info);
     mem::vmm::init(info);
     mem::pmm::post_vmm_init();
+
+    proc::init_kernel_process();
 
     ASSERT(false);
 }

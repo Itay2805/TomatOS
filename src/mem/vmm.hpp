@@ -7,9 +7,9 @@
 #include <tboot.h>
 
 #ifdef VMM_NO_DIRECT_BOUNDS_CHECK
-    #define CHECK_BOUNDS(...)
+#define CHECK_BOUNDS(...)
 #else
-    #define CHECK_BOUNDS  ASSERT
+#define CHECK_BOUNDS  ASSERT
 #endif
 
 namespace mem::vmm {
@@ -73,8 +73,10 @@ namespace mem::vmm {
 
         /**
          * Will create a context ready have stuff mapped to it
+         *
+         * @param kernel    [IN] If false will copy the kernel's mapping, otherwise will only allocate the pml4
          */
-        context();
+        explicit context(bool kernel = false);
 
         /**
          * Will free the context and everything related to it
@@ -146,7 +148,7 @@ namespace mem::vmm {
          * @param size      [IN]        The size that is going to be allocated
          * @param perms     [IN]        Page permissions
          */
-         void allocate(uintptr_t* virt, size_t size, permission perms);
+        void allocate(uintptr_t* virt, size_t size, permission perms);
 
         /**
          * Free the page and unmap it
@@ -156,9 +158,22 @@ namespace mem::vmm {
          * @param virt      [IN]    The virt base to free from
          * @param size      [IN]    The size to free and unmap
          */
-         void free(uintptr_t virt, size_t size);
+        void free(uintptr_t virt, size_t size);
+
+        /**
+         * Will switch to this context
+         */
+        void switch_to_context();
+
+    protected:
+
+        bool get_entry_at_virtual_address(void* virtual_address, void** entry, page_size* page_size);
+
+        void set_pte(uintptr_t virt, uintptr_t phys, bool user, bool write, bool no_exec, bool pwt, bool pcd, bool pat);
 
     };
+
+    extern context* kernel;
 
     /**
      * Initialize the vmm

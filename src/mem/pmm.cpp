@@ -464,7 +464,6 @@ namespace mem::pmm {
 
     uintptr_t allocate_pages(allocate_type type, size_t page_count, uintptr_t base) {
         ASSERT(type == ALLOCATE_ADDRESS || type == ALLOCATE_ANY || type == ALLOCATE_BELOW);
-        ASSERT(base != NULL);
         ASSERT(page_count != 0);
 
         util::critical_section section(pmm_lock);

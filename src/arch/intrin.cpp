@@ -51,5 +51,15 @@ namespace arch {
         return eflags;
     }
 
+    void write_cr3(uint64_t value) {
+        asm volatile ( "mov %0, %%cr3" : : "r"(value) );
+    }
+
+    uint64_t read_cr3() {
+        uint64_t val;
+        asm volatile ( "mov %%cr3, %0" : "=r"(val) );
+        return val;
+    }
+
 }
 

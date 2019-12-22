@@ -6,11 +6,15 @@ namespace proc {
 
     class process {
     private:
-        mem::vmm::context vmm_context;
+        _Alignas(alignof(mem::vmm::context)) uint8_t vmm_context_buffer[sizeof(mem::vmm::context)];
+        mem::vmm::context* vmm_context;
 
     public:
 
+        process(bool kernel = false);
+        ~process();
 
+        inline mem::vmm::context* vmm() { return this->vmm_context; }
 
     };
 
@@ -24,6 +28,6 @@ namespace proc {
     /**
      * this will initialize the kernel process
      */
-    void init_kernel_process(mem::vmm::context& context);
+    void init_kernel_process();
 
 }

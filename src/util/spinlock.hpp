@@ -14,7 +14,7 @@ namespace util {
             LOCK_ACQUIRED
         };
 
-        volatile uint32_t latch = LOCK_RELEASED;
+        _Atomic uint32_t latch = LOCK_RELEASED;
 
     public:
 
