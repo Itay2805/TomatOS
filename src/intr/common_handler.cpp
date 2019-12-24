@@ -70,12 +70,13 @@ namespace intr {
         // term_disable();
 
         // print error name
-        const char* name = 0;
+        const char* name = nullptr;
         if(regs->int_num <= sizeof(ISR_NAMES) / sizeof(char*)) {
             name = ISR_NAMES[regs->int_num];
         }
-        if(name == 0) {
-            debug_log("[-] Unhandled interrupt: %x\n", regs->int_num);
+        if(name == nullptr) {
+            debug_log("[!] Unhandled interrupt: %x\n", regs->int_num);
+            return;
         }else {
             debug_log("[-] Exception occurred: %s\n", name);
         }
@@ -88,21 +89,21 @@ namespace intr {
             case 13: // General Protection Fault
                 if(regs->error_code != 0) {
                     debug_log("[-] Selector(processor=%s, table=%s, index=%d)\n",
-                              PROCESSOR_NAME[regs->error_code & 0b1],
-                              TABLE_NAME[(regs->error_code >> 1) & 0b11],
-                              (int) (regs->error_code & 0xFFF8));
+                              PROCESSOR_NAME[regs->error_code & 0b1u],
+                              TABLE_NAME[(regs->error_code >> 1u) & 0b11u],
+                              (int) (regs->error_code & 0xFFF8u));
                 }
                 break;
             case 14: // page fault
-                debug_log("[-] Reason: %s\n", PRESENT_NAMES[regs->error_code & 1]);
+                debug_log("[-] Reason: %s\n", PRESENT_NAMES[regs->error_code & 1u]);
                 debug_log("[-] Address: 0x%p\n", (void *)arch::read_cr2());
-                debug_log("[-] Mode: %s\n", USER_NAME[(regs->error_code >> 2) & 1]);
-                if(((regs->error_code >> 4) & 1) != 0) {
+                debug_log("[-] Mode: %s\n", USER_NAME[(regs->error_code >> 2u) & 1u]);
+                if(((regs->error_code >> 4u) & 1u) != 0) {
                     debug_log("[-] Operation: Instruction Fetch\n");
-                }else if(((regs->error_code >> 3) & 1) != 0) {
+                }else if(((regs->error_code >> 3u) & 1u) != 0) {
                     debug_log("[-] Operation: Reserved write\n");
                 }else {
-                    debug_log("[-] Operation: %s\n", OPERATION_NAME[(regs->error_code >> 1) & 1]);
+                    debug_log("[-] Operation: %s\n", OPERATION_NAME[(regs->error_code >> 1u) & 1u]);
                 }
                 break;
             default:
@@ -130,16 +131,12 @@ namespace intr {
         debug_log("[-] SS =%04x DPL=%d\n", regs->ss & 0xFFF8, regs->ss & 0b11);
         debug_log("[-] CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x\n", arch::read_cr0(), arch::read_cr2(), arch::read_cr3(), arch::read_cr4());
 
-        arch::IA32_IDT idt;
+        arch::IA32_IDT idt = {0};
         read_idtr(&idt);
         debug_log("[-] IDT=%016llx %08llx\n", idt.base, idt.base);
 
-        if(name != nullptr) {
-            debug_log("[-] :(\n");
-            ASSERT(false);
-        }else {
-            debug_log("[!] ignoring...\n");
-        }
+        debug_log("[-] :(\n");
+        ASSERT(false);
     }
 
     extern "C" void common_interrupt_handler(interrupt_context ctx) {

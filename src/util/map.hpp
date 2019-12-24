@@ -18,7 +18,7 @@ namespace util {
             hmfree(stb_map);
         }
 
-        [[nodiscard]] inline int length() const {
+        [[nodiscard]] inline int len() const {
             return hmlen(stb_map);
         }
 
@@ -26,12 +26,28 @@ namespace util {
             return hmgeti(stb_map, key);
         }
 
-        inline Value& at(int index) {
+        inline Key& key_at(int index) {
+            return stb_map[index].key;
+        }
+
+        inline const Key& key_at(int index) const {
+            return stb_map[index].key;
+        }
+
+        inline Value& value_at(int index) {
             return stb_map[index].value;
         }
 
-        inline const Value& at(int index) const {
+        inline const Value& value_at(int index) const {
             return stb_map[index].value;
+        }
+
+        inline Value& get(Key key) {
+            return hmget(stb_map, key);
+        }
+
+        inline const Value& get(Key key) const {
+            return hmget(stb_map, key);
         }
 
         inline Value& get(Key& key) {
@@ -46,11 +62,14 @@ namespace util {
             hmdefault(stb_map, value);
         }
 
-        inline void put(Key& key, Value& value) {
+        inline void put(const Key& key, const Value& value) {
             hmput(stb_map, key, value);
         }
 
-        inline void del(Key& key) {
+        inline void del(const Key& key) {
+            auto entry = &stb_map[hmgeti(stb_map, key)];
+            entry->key.~Key();
+            entry->value.~Value();
             hmdel(stb_map, key);
         }
 

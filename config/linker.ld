@@ -22,18 +22,22 @@ SECTIONS
 
     .rodata ALIGN(4K) : AT (ADDR (.rodata) - 0xFFFFFFFFC0000000)
     {
-        *(.rodata)
+        *(.rodata*)
+
+        kernel_ctors_start = .;
+        *(.ctors)
+        kernel_ctors_end = .;
     }
 
 	.data ALIGN(4K) : AT (ADDR (.data) - 0xFFFFFFFFC0000000)
 	{
-	    *(.data)
+	    *(.data*)
 	}
 
 	.bss ALIGN(4K) : AT (ADDR (.bss) - 0xFFFFFFFFC0000000)
 	{
 	    *(COMMON)
-	    *(.bss)
+	    *(.bss*)
 	}
 
 	kernel_physical_end = . - 0xFFFFFFFFC0000000;

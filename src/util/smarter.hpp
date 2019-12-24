@@ -78,11 +78,11 @@ namespace util {
 
         counter &operator= (const counter &) = delete;
 
+    protected:
         ~counter() {
             ASSERT(!_count);
         }
 
-    protected:
         virtual void dispose() = 0;
 
     public:
@@ -164,7 +164,7 @@ namespace util {
         }
 
         void destruct() {
-            get()->~T();
+            get()->T::~T();
         }
 
     private:
@@ -190,8 +190,8 @@ namespace util {
 
     template<typename T, typename Deallocator = default_deallocator>
     struct meta_object
-            : crtp_counter<meta_object<T, Deallocator>, dispose_memory>,
-              crtp_counter<meta_object<T, Deallocator>, dispose_object> {
+            : private crtp_counter<meta_object<T, Deallocator>, dispose_memory>,
+              private crtp_counter<meta_object<T, Deallocator>, dispose_object> {
         friend struct crtp_counter<meta_object, dispose_memory>;
         friend struct crtp_counter<meta_object, dispose_object>;
 
@@ -219,6 +219,10 @@ namespace util {
         }
 
     private:
+        // Suppress Clang's warning about hidden virtual functions.
+        using crtp_counter<meta_object, dispose_object>::dispose;
+        using crtp_counter<meta_object, dispose_memory>::dispose;
+
         void dispose(dispose_object) {
             _bx.destruct();
         }
@@ -412,21 +416,21 @@ namespace util {
 
         weak_ptr(const shared_ptr<T, H> &ptr)
                 : _object{ptr.get()}, _ctr{ptr.ctr()} {
-            assert(_ctr->holder());
+            ASSERT(_ctr->holder());
             _ctr->holder()->increment();
         }
 
         template<typename X>
         weak_ptr(const shared_ptr<X, H> &ptr)
                 : _object{ptr.get()}, _ctr{ptr.ctr()} {
-            assert(_ctr->holder());
+            ASSERT(_ctr->holder());
             _ctr->holder()->increment();
         }
 
         weak_ptr(const weak_ptr &other)
                 : _object{other.object}, _ctr{other.ctr} {
             if(_ctr) {
-                assert(_ctr->holder());
+                ASSERT(_ctr->holder());
                 _ctr->holder()->increment();
             }
         }
@@ -438,7 +442,7 @@ namespace util {
 
         ~weak_ptr() {
             if(_ctr) {
-                assert(_ctr->holder());
+                ASSERT(_ctr->holder());
                 _ctr->holder()->decrement();
             }
         }
