@@ -1,5 +1,5 @@
 #include <util/list_entry.hpp>
-#include <util/debug.h>
+#include <util/debug.hpp>
 
 #include <arch/paging.h>
 
@@ -57,7 +57,7 @@ static void convert_page(uintptr_t start, size_t page_count, bool new_allocated)
  */
 static void remove_mem_map_entry(mem_entry* entry) {
     entry->link.remove();
-    entry->link.next = NULL;
+    entry->link.next = nullptr;
 
     // if this is not a null entry add it to the free entries list
     if(!entry->temp) {
@@ -141,12 +141,12 @@ static mem_entry* allocate_memory_map_entry() {
     if(free_entries_list.is_empty()) {
         mem_entry* free_descriptor_entries = (mem_entry*)allocate_pool_pages(1);
 
-        if(free_descriptor_entries != NULL) {
+        if(free_descriptor_entries != nullptr) {
             for(int i = 0; i < arch::paging::page_size / sizeof(mem_entry); i++) {
                 free_entries_list.insert_tail(&free_descriptor_entries[i].link);
             }
         }else {
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -173,16 +173,16 @@ static void move_temp_entries() {
 
         temp_entries_count -= 1;
 
-        if(temp_entries[temp_entries_count].link.next != NULL) {
+        if(temp_entries[temp_entries_count].link.next != nullptr) {
             // move entry to global memory
             temp_entries[temp_entries_count].link.remove();
-            temp_entries[temp_entries_count].link.next = NULL;
+            temp_entries[temp_entries_count].link.next = nullptr;
 
             *entry = temp_entries[temp_entries_count];
             entry->temp = false;
 
             // find insertion location
-            list_entry* link = NULL;
+            list_entry* link = nullptr;
             for(link = mem_map.next; link != &mem_map; link = link->next) {
                 mem_entry* entry2 = CR(link, mem_entry, link);
                 if(!entry2->temp && entry2->start > entry->start) {
@@ -295,8 +295,8 @@ static void convert_page(uintptr_t start, size_t page_count, bool new_allocated)
     while(start < end) {
 
         // find good entry
-        mem_entry* entry = NULL;
-        list_entry* link = NULL;
+        mem_entry* entry = nullptr;
+        list_entry* link = nullptr;
         for(link = mem_map.next; link != &mem_map; link = link->next) {
             entry = CR(link, mem_entry, link);
             if(entry->start <= start && entry->end > start) {
@@ -359,7 +359,7 @@ static void convert_page(uintptr_t start, size_t page_count, bool new_allocated)
         // if empty remove from map
         if(entry->start == entry->end + 1) {
             remove_mem_map_entry(entry);
-            entry = NULL;
+            entry = nullptr;
         }
 
 
@@ -393,12 +393,12 @@ namespace mem::pmm {
          *       stuff as reserved
          */
 
-        debug_log("[+] Preparing pmm\n");
+        util::log() << "[+] Preparing pmm";
 
         // go over the entries
         for(int i = 0; i < info->mmap.count; i++) {
             tboot_mmap_entry_t* entry = &info->mmap.entries[i];
-            debug_log("[*] \t%p-%p: (%lx) %s\n", entry->addr, entry->addr + entry->len, entry->len, tboot_mmap_names[entry->type]);
+            util::log() << "[*] \t" << frg::hex_fmt(entry->addr) << "-" << frg::hex_fmt(entry->addr + entry->len) << ": (" << frg::hex_fmt(entry->len) << ") " << tboot_mmap_names[entry->type] << frg::endlog;
 
             // add useable entries
             if(entry->type == TBOOT_MEMORY_TYPE_USABLE) {
@@ -416,7 +416,7 @@ namespace mem::pmm {
     }
 
     void post_vmm_init() {
-        debug_log("[*] Pmm post vmm setup\n");
+        util::log() << "[*] Pmm post vmm setup" << frg::endlog;
 
         using namespace mem::vmm;
 

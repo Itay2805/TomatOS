@@ -5,8 +5,8 @@
 
 namespace proc {
 
-    thread::thread(util::shared_ptr<process> parent)
-        : parent(util::weak_ptr(parent))
+    thread::thread(std::shared_ptr<process> parent)
+        : parent(std::weak_ptr(parent))
         , tlock()
         , state(thread_state::WAITING)
         , context()
@@ -91,7 +91,7 @@ namespace proc {
         ASSERT(proc);
         {
             util::critical_section cs(proc->lock());
-            proc->threads.del(this->_tid);
+            proc->threads.remove(this->_tid);
         }
 
         //******************************

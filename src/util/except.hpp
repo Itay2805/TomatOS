@@ -1,7 +1,7 @@
 #ifndef TOMATKERNEL_ERROR_H
 #define TOMATKERNEL_ERROR_H
 
-#include "debug.h"
+#include "debug.hpp"
 
 typedef enum error {
     NO_ERROR,

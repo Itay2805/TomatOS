@@ -316,12 +316,12 @@ namespace mem::vmm {
     #define KERNEL_VIRTUAL_START ((void*)0xFFFFFFFFC0200000)
 
     void init(tboot_info_t *info) {
-        debug_log("[*] Preparing vmm\n");
+        util::log() << "[*] Preparing vmm" << frg::endlog;
 
         // create the kernel context
         kernel = new (kernel_context_buffer) context(true);
 
-        debug_log("[*] \tmapping direct map\n");
+        util::log() << "[*] \tmapping direct map" << frg::endlog;
         for(int i = 0; i < info->mmap.count; i++) {
             tboot_mmap_entry_t* entry = &info->mmap.entries[i];
 
@@ -330,12 +330,12 @@ namespace mem::vmm {
             }
         }
 
-        debug_log("[*] \tmapping kernel\n");
+        util::log() << "[*] \tmapping kernel" << frg::endlog;
         kernel->map(KERNEL_PHYSICAL_START, KERNEL_VIRTUAL_START, KERNEL_PHYSICAL_END - KERNEL_PHYSICAL_START, (permission)(EXECUTE | WRITE | KERNEL));
 
         enable_cpu_features();
 
-        debug_log("[*] \tSwitching to kernel page table\n");
+        util::log() << "[*] \tSwitching to kernel page table" << frg::endlog;
         memory_base = direct_mapping_base;
         kernel->switch_to_context();
     }

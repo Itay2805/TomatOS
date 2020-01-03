@@ -49,8 +49,6 @@ SRCS += $(shell find src -type f -name '*.asm')
 
 # Include libraries
 SRCS += $(shell find lib/libc -type f -name '*.c')
-SRCS += $(shell find lib/stb -type f -name '*.c')
-SRCS += $(shell find lib/stb -type f -name '*.cpp')
 
 # Get all the objects and dirs
 OBJS := $(SRCS:%=build/%.o)
@@ -61,6 +59,9 @@ COMMON_CFLAGS += \
 	-target x86_64-unknown-elf \
 	-Wall \
 	-mno-sse \
+	-mno-sse2 \
+	-mno-mmx \
+	-mno-80387 \
 	-ffreestanding \
 	-nostdinc \
 	-mno-red-zone \
@@ -84,9 +85,12 @@ KERNEL_CFLAGS = \
 KERNEL_CFLAGS += -DSTB_SPRINTF_NOFLOAT
 
 # Add kernel include dirs
-KERNEL_CFLAGS += -Ilib/
+KERNEL_CFLAGS += -Ilib/cxxshim/stage2/include
+KERNEL_CFLAGS += -Ilib/frigg/include
+KERNEL_CFLAGS += -Ilib/libsmarter/include
 KERNEL_CFLAGS += -Ilib/libc
-KERNEL_CFLAGS += -Ilib/lai/include
+KERNEL_CFLAGS += -Ilib/
+#KERNEL_CFLAGS += -Ilib/lai/include
 KERNEL_CFLAGS += -Isrc/
 
 # Set the loggers
@@ -96,8 +100,8 @@ KERNEL_CFLAGS += $(LOGGERS:%=-D%_LOGGER)
 KERNEL_CPPFLAGS := \
     $(KERNEL_CFLAGS) \
     -std=c++17 \
-     -fno-rtti \
-     -fno-exceptions
+    -fno-rtti \
+    -fno-exceptions
 
 # Set the linking flags
 LDFLAGS += \

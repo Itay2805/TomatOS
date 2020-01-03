@@ -24,9 +24,11 @@ SECTIONS
     {
         *(.rodata*)
 
-        kernel_ctors_start = .;
-        *(.ctors)
-        kernel_ctors_end = .;
+        /* Constructors */
+        __init_array_start = .;
+        KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+        KEEP (*(.init_array .ctors))
+        __init_array_end = .;
     }
 
 	.data ALIGN(4K) : AT (ADDR (.data) - 0xFFFFFFFFC0000000)

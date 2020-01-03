@@ -10,3 +10,12 @@
 [submodule "tools/echfs"]
 	path = tools/echfs
 	url = git@github.com:qword-os/echfs.git
+[submodule "lib/cxxshim"]
+	path = lib/cxxshim
+	url = git@github.com:TomatOrg/cxxshim.git
+[submodule "lib/frigg"]
+	path = lib/frigg
+	url = git@github.com:TomatOrg/frigg.git
+[submodule "lib/libsmarter"]
+	path = lib/libsmarter
+	url = git@github.com:TomatOrg/libsmarter.git

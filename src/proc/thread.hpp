@@ -1,9 +1,9 @@
 #pragma once
 
-#include <util/smarter.hpp>
 #include <util/spinlock.hpp>
 #include <util/list_entry.hpp>
 #include <intr/interrupts.hpp>
+#include <smarter.hpp>
 
 namespace proc {
 
@@ -41,7 +41,7 @@ namespace proc {
 
     class thread {
     private:
-        util::weak_ptr<process> parent;
+        std::weak_ptr<process> parent;
         util::spinlock tlock;
         thread_state state;
 
@@ -50,7 +50,7 @@ namespace proc {
         int _tid;
 
     public:
-        explicit thread(util::shared_ptr<process> parent);
+        explicit thread(std::shared_ptr<process> parent);
         ~thread();
 
         /**

@@ -1,5 +1,5 @@
 #include "list_entry.hpp"
-#include "debug.h"
+#include "debug.hpp"
 
 namespace util {
 

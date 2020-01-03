@@ -18,11 +18,11 @@ namespace util {
 
     public:
 
-        void acquire();
+        void lock();
 
-        bool acquire_or_fail();
+        bool lock_or_fail();
 
-        void release();
+        void unlock();
 
         spinlock& operator=(const spinlock&) = delete;
         spinlock(const spinlock&) = delete;
@@ -40,11 +40,11 @@ namespace util {
         explicit spinlock_guard(spinlock& lock)
             : lock(lock)
         {
-            lock.acquire();
+            lock.lock();
         }
 
         ~spinlock_guard() {
-            lock.release();
+            lock.unlock();
         }
 
         spinlock_guard& operator=(const spinlock_guard&) = delete;

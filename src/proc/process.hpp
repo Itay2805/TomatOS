@@ -2,7 +2,7 @@
 
 #include <mem/vmm.hpp>
 #include <util/map.hpp>
-#include <util/smarter.hpp>
+#include <smarter.hpp>
 
 namespace proc {
 
@@ -17,7 +17,7 @@ namespace proc {
         _Alignas(alignof(mem::vmm::context)) uint8_t vmm_context_buffer[sizeof(mem::vmm::context)]{0};
         mem::vmm::context* vmm_context;
 
-        util::map<int, util::shared_ptr<thread>> threads;
+        util::map<int, std::shared_ptr<thread>> threads;
         int next_tid = 1;
 
         friend thread;
@@ -30,7 +30,7 @@ namespace proc {
         /*
          * Will create a new thread for this process
          */
-        util::shared_ptr<thread> create_thread();
+        std::shared_ptr<thread> create_thread();
 
         /**
          * Get the VMM context of the process
@@ -58,7 +58,7 @@ namespace proc {
      * all kernel threads live in
      * this process
      */
-    extern util::shared_ptr<process> kernel;
+    extern std::shared_ptr<process> kernel;
 
     /*
      * lock related to anything to do with the processes map
@@ -68,11 +68,11 @@ namespace proc {
     /*
      * The processes map, contains all the processes except of the kernel
      */
-    extern util::map<int, util::shared_ptr<process>> processes;
+    extern util::map<int, std::shared_ptr<process>> processes;
 
     /**
      * Will create a new process
      */
-    util::shared_ptr<process> create_process(bool kernel = false);
+    std::shared_ptr<process> create_process(bool kernel = false);
 
 }

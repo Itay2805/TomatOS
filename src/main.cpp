@@ -10,7 +10,9 @@
 #include <proc/thread.hpp>
 
 extern "C" void kernel_main(uint64_t magic, tboot_info_t* info) {
-    debug_log("[+] Entered kernel!\n");
+    // init the logger and try to log something
+    util::init_debug_logger();
+    util::log() << "[+] Entered kernel!" << frg::endlog;
 
     // initialize interrupt handler
     arch::idt::init();
@@ -23,6 +25,8 @@ extern "C" void kernel_main(uint64_t magic, tboot_info_t* info) {
     // run the constructors (should be safe now
     // that we have the vmm initialized)
     util::call_ctors();
+
+    util::log() << "Hello World!" << frg::endlog;
 
     // create the kernel process
     proc::kernel = proc::create_process(true);

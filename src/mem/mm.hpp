@@ -1,8 +1,26 @@
 #pragma once
 
 #include <stddef.h>
+#include <frg/slab.hpp>
+#include <util/spinlock.hpp>
 
 namespace mem {
+
+    /**
+     * This is the policy of the allocator
+     * will simply allow the allocator to map
+     * and unmap memory as it needs
+     */
+    struct allocator_policy {
+        [[nodiscard]]
+        uintptr_t map(size_t size) const;
+        void unmap(uintptr_t addr, size_t size) const;
+    };
+
+    /**
+     * This is the allocator used for memory allocations
+     */
+    extern frg::slab_allocator<allocator_policy, util::spinlock> allocator;
 
     /**
      * Allocate pages
@@ -21,29 +39,5 @@ namespace mem {
      * @param page_count    [IN] The pages to free
      */
     void free_pages(void* ptr, size_t page_count);
-
-    /**
-     * Allocate memory from a memory pool
-     *
-     * The idea is to allow for more efficient smaller allocations
-     *
-     * @param size  [IN] The size to allocate
-     */
-    void* allocate_pool(size_t size);
-
-    /**
-     * Reallocate an element in the pool
-     *
-     * @param ptr   [IN] The old pointer
-     * @param size  [IN] The new size to allocate
-     */
-    void* realloc_pool(void* ptr, size_t size);
-
-    /**
-     * Free memory allocated from the memory pool
-     *
-     * @param ptr   [IN] The pointer to free
-     */
-    void free_pool(void* ptr);
 
 }

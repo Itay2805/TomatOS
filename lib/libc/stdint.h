@@ -27,4 +27,6 @@ typedef __UINT64_TYPE__     uint64_t;
 
 #define UINT64_C(x)         (x##ull)
 
+#include <stddef.h>
+
 #endif //TOMATKERNEL_STDINT_H

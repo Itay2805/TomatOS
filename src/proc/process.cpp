@@ -30,10 +30,10 @@ namespace proc {
         vmm_context->~context();
     }
 
-    util::shared_ptr<thread> process::create_thread() {
+    std::shared_ptr<thread> process::create_thread() {
         util::critical_section cs(lock());
-        auto thread = util::make_shared<proc::thread>(processes.get(this->pid()));
-        this->threads.put(thread->tid(), thread);
+        auto thread = std::make_shared<proc::thread>(*processes.get(this->pid()));
+        this->threads.insert(thread->tid(), thread);
         return thread;
     }
 
@@ -41,18 +41,18 @@ namespace proc {
         // make sure not the kernel process
         ASSERT(this != kernel.get());
 
-        // delete all the threads
-        // make sure we also unlock this at the end
-        {
-            util::critical_section cs(this->lock());
-            while(this->threads.len()) {
-                this->threads.del(this->threads.key_at(this->threads.len() - 1));
-            }
-        }
+//        // delete all the threads
+//        // make sure we also unlock this at the end
+//        {
+//            util::critical_section cs(this->lock());
+//            while(this->threads.len()) {
+//                this->threads.del(this->threads.key_at(this->threads.len() - 1));
+//            }
+//        }
 
         // remove the process from the process list
         util::critical_section cs(proc::lock);
-        processes.del(this->pid());
+        processes.remove(this->pid());
         //******************************
         // DO NOT RUN CODE AFTER THIS
         //
@@ -69,15 +69,15 @@ namespace proc {
     // kernel process related
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    util::shared_ptr<process> kernel;
+    std::shared_ptr<process> kernel;
 
     util::spinlock lock;
-    util::map<int, util::shared_ptr<process>> processes;
+    util::map<int, std::shared_ptr<process>> processes;
 
-    util::shared_ptr<process> create_process(bool kernel) {
+    std::shared_ptr<process> create_process(bool kernel) {
         util::critical_section cs(lock);
-        auto proc = util::make_shared<process>(kernel);
-        processes.put(proc->pid(), proc);
+        auto proc = std::make_shared<process>(kernel);
+        processes.insert(proc->pid(), proc);
         return proc;
     }
 
