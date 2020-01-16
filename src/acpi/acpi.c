@@ -20,8 +20,12 @@ void acpi_tables_init(tboot_info_t* info) {
     mcfg_init();
     madt_init();
 
+#if ACPI_SUPPORT
     lai_set_acpi_revision(acpi_rsdp->revision);
+#endif
 }
+
+#if ACPI_SUPPORT
 
 static error_t sci_handler(interrupt_context_t* ctx, void* user_param) {
     return NO_ERROR;
@@ -41,3 +45,11 @@ void acpi_init() {
     interrupt_register(&handler);
     ASSERT(!IS_ERROR(ioapic_redirect(acpi_fadt->sci_irq, handler.vector, 0)));
 }
+
+#else
+
+void acpi_init() {
+    debug_log("[!] ACPI is disabled\n");
+}
+
+#endif

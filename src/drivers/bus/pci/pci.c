@@ -197,6 +197,8 @@ static void scan_bus(uint16_t segment, uint8_t bus) {
 void pci_init() {
     debug_log("[*] Iterating PCI devices\n");
 
+#if ACPI_SUPPORT
+
     // use AML to figure the bridges
     LAI_CLEANUP_STATE lai_state_t state;
     lai_init_state(&state);
@@ -245,6 +247,10 @@ void pci_init() {
         // this will recursively init all other devices as well
         scan_bus(seg_result, bbn_result);
     }
+
+#else
+    scan_bus(0, 0);
+#endif
 
     if(bus_stack != NULL) {
         arrfree(bus_stack);

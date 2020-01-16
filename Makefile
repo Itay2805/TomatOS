@@ -45,7 +45,8 @@ BINS := $(REALFILES:%.real=build/%.bin)
 # Sources, all c files basically
 SRCS += $(shell find src -type f -name '*.c')
 SRCS += $(shell find src -type f -name '*.asm')
-SRCS += $(shell find lib -type f -name '*.c')
+SRCS += $(shell find lib/libc -type f -name '*.c')
+SRCS += $(shell find lib/stb -type f -name '*.c')
 OBJS := $(SRCS:%=build/%.o)
 
 # All the dirs
@@ -56,6 +57,9 @@ COMMON_CFLAGS += \
 	-target x86_64-unknown-elf \
 	-Wall \
 	-mno-sse \
+	-mno-sse2 \
+	-mno-mmx \
+	-mno-80387 \
 	-ffreestanding \
 	-nostdlib \
 	-nostdinc \
@@ -81,9 +85,9 @@ KERNEL_CFLAGS = \
 KERNEL_CFLAGS += -DSTB_SPRINTF_NOFLOAT
 
 # Add kernel include dirs
-KERNEL_CFLAGS += -Ilib/
 KERNEL_CFLAGS += -Ilib/libc
 KERNEL_CFLAGS += -Ilib/lai/include
+KERNEL_CFLAGS += -Ilib/
 KERNEL_CFLAGS += -Isrc/
 
 # Set the loggers
@@ -133,7 +137,7 @@ build/%:
 #########################
 
 bin/image/EFI/BOOT/BOOTX64.EFI:
-	$(MAKE) -C ./boot/
+	$(MAKE) -C ./boot/ CLANG=$(CC)
 	mkdir -p bin/image/EFI/BOOT/
 	cp boot/bin/BOOTX64.EFI bin/image/EFI/BOOT/
 
