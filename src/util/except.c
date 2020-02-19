@@ -8,6 +8,8 @@ static const char* errors[] = {
     [ERROR_INVALID_PARAM] = "Invalid parameter",
     [ERROR_OUT_OF_RESOURCES] = "Out of resources",
     [ERROR_NOT_FOUND] = "Not found",
+    [ERROR_INVALID_TPL] = "Invalid Task Priority Level",
+    [ERROR_EOF] = "End of file",
 };
 
 const char* strerror(err_t err) {
@@ -15,9 +17,4 @@ const char* strerror(err_t err) {
         return "Unknown error";
     }
     return errors[err];
-}
-
-void panic(const char* panic_message) {
-    trace(panic_message);
-    while(1);
 }

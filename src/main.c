@@ -1,7 +1,13 @@
+#include <compo/fs/initrd/initrd.h>
+
 #include <event/timers/timer.h>
+
 #include <proc/process.h>
-#include <intr/apic/lapic.h>
+#include <proc/sched.h>
+
 #include <acpi/acpi.h>
+
+#include <intr/apic/lapic.h>
 #include <intr/intr.h>
 #include <intr/idt.h>
 #include <smp/pcpu.h>
@@ -9,27 +15,39 @@
 #include <util/serial.h>
 #include <util/trace.h>
 
+#include <mm/stack_allocator.h>
 #include <mm/pmm.h>
 #include <mm/vmm.h>
 #include <mm/gdt.h>
 #include <mm/mm.h>
 
 #include <tboot.h>
-#include <proc/sched.h>
-#include <mm/stack_allocator.h>
+#include <compo/component.h>
+
+static tboot_info_t* g_info;
 
 static void main_thread() {
     err_t err = NO_ERROR;
     TRACE("In main thread!");
 
-    // TESTTTTT
-    event_t timer;
-    CHECK_AND_RETHROW(create_event(TPL_APPLICATION, NULL, NULL, &timer));
-    CHECK_AND_RETHROW(set_timer(timer, TIMER_RELATIVE, MS_TO_100NS(5000)));
+    // start initializations
+    TRACE("Mounting initrd");
+    ASSERT(g_info->modules.count == 1);
+    create_initrd_fs(&g_info->modules.entries[0]);
 
-    TRACE("Waiting");
-    CHECK_AND_RETHROW(wait_for_event(1, &timer, NULL));
-    TRACE("Done!");
+    // get the component ()
+    component_t* comp;
+    CHECK_AND_RETHROW(get_primary(COMPONENT_FILESYSTEM, &comp));
+    filesystem_interface_t* fs = &comp->fs;
+
+    // open file
+    file_t file = NULL;
+    char buffer[256];
+    size_t size = sizeof(buffer);
+    CHECK_AND_RETHROW(fs->open(comp, "test.txt", &file));
+    CHECK_AND_RETHROW(fs->read(comp, file, buffer, &size));
+    CHECK_AND_RETHROW(fs->close(comp, file));
+    TRACE("%s", buffer);
 
 cleanup:
     while(1);
@@ -55,6 +73,8 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
 
     // convert the struct
     info = PHYSICAL_TO_DIRECT(info);
+    info->modules.entries = PHYSICAL_TO_DIRECT(info->modules.entries);
+    g_info = info;
 
     // BSP init
     lapic_init();

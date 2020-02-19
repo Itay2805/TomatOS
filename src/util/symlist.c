@@ -18,1061 +18,1104 @@ struct symlist_t symlist[] = {
 // 0000000000000090 B kernel_pcpu_data_size
 // 0000000000100000 B kernel_physical_start
 // 0000000000100000 R tboot_main
-// 000000000019b1d4 B kernel_physical_end
+// 000000000019c190 B kernel_physical_end
 // ffffffffc0101000 T acpi_tables_init
     {0xffffffffc0101000ull, "acpi_tables_init"},
 // ffffffffc0101040 T madt_init
     {0xffffffffc0101040ull, "madt_init"},
-// ffffffffc01012b0 T madt_get_next
-    {0xffffffffc01012b0ull, "madt_get_next"},
-// ffffffffc0101380 T rsdp_init
-    {0xffffffffc0101380ull, "rsdp_init"},
-// ffffffffc01014a0 T rsdt_init
-    {0xffffffffc01014a0ull, "rsdt_init"},
-// ffffffffc01015d0 T rsdt_search
-    {0xffffffffc01015d0ull, "rsdt_search"},
-// ffffffffc0101770 T trace_table
-    {0xffffffffc0101770ull, "trace_table"},
-// ffffffffc0101810 T __outbyte
-    {0xffffffffc0101810ull, "__outbyte"},
-// ffffffffc0101830 T __outdword
-    {0xffffffffc0101830ull, "__outdword"},
-// ffffffffc0101850 T __outword
-    {0xffffffffc0101850ull, "__outword"},
-// ffffffffc0101870 T __inbyte
-    {0xffffffffc0101870ull, "__inbyte"},
-// ffffffffc0101890 T __inword
-    {0xffffffffc0101890ull, "__inword"},
-// ffffffffc01018b0 T __indword
-    {0xffffffffc01018b0ull, "__indword"},
-// ffffffffc01018d0 T __readcr8
-    {0xffffffffc01018d0ull, "__readcr8"},
-// ffffffffc01018f0 T __writecr8
-    {0xffffffffc01018f0ull, "__writecr8"},
-// ffffffffc0101910 T __readcr4
-    {0xffffffffc0101910ull, "__readcr4"},
-// ffffffffc0101940 T __writecr4
-    {0xffffffffc0101940ull, "__writecr4"},
-// ffffffffc0101960 T __readcr3
-    {0xffffffffc0101960ull, "__readcr3"},
-// ffffffffc0101980 T __writecr3
-    {0xffffffffc0101980ull, "__writecr3"},
-// ffffffffc01019a0 T __readcr2
-    {0xffffffffc01019a0ull, "__readcr2"},
-// ffffffffc01019c0 T __writecr2
-    {0xffffffffc01019c0ull, "__writecr2"},
-// ffffffffc01019e0 T __readcr0
-    {0xffffffffc01019e0ull, "__readcr0"},
-// ffffffffc0101a10 T __writecr0
-    {0xffffffffc0101a10ull, "__writecr0"},
-// ffffffffc0101a30 T __readmsr
-    {0xffffffffc0101a30ull, "__readmsr"},
-// ffffffffc0101a70 T __writemsr
-    {0xffffffffc0101a70ull, "__writemsr"},
-// ffffffffc0101ab0 T __cpuid
-    {0xffffffffc0101ab0ull, "__cpuid"},
-// ffffffffc0101b10 T __cpuidex
-    {0xffffffffc0101b10ull, "__cpuidex"},
-// ffffffffc0101b70 T cpuid
-    {0xffffffffc0101b70ull, "cpuid"},
-// ffffffffc0101c10 T __invlpg
-    {0xffffffffc0101c10ull, "__invlpg"},
-// ffffffffc0101c30 T __halt
-    {0xffffffffc0101c30ull, "__halt"},
-// ffffffffc0101c40 T __nop
-    {0xffffffffc0101c40ull, "__nop"},
-// ffffffffc0101c50 T _BitScanReverse
-    {0xffffffffc0101c50ull, "_BitScanReverse"},
-// ffffffffc0101c90 T _BitScanReverse64
-    {0xffffffffc0101c90ull, "_BitScanReverse64"},
-// ffffffffc0101cd0 T __readmsr_efer
-    {0xffffffffc0101cd0ull, "__readmsr_efer"},
-// ffffffffc0101cf0 T __writemsr_efer
-    {0xffffffffc0101cf0ull, "__writemsr_efer"},
-// ffffffffc0101d10 T __readmsr_apic_base
-    {0xffffffffc0101d10ull, "__readmsr_apic_base"},
-// ffffffffc0101d30 T events_init
-    {0xffffffffc0101d30ull, "events_init"},
-// ffffffffc0101da0 T raise_tpl
-    {0xffffffffc0101da0ull, "raise_tpl"},
-// ffffffffc0101e20 T set_tpl
-    {0xffffffffc0101e20ull, "set_tpl"},
-// ffffffffc0101e80 T restore_tpl
-    {0xffffffffc0101e80ull, "restore_tpl"},
-// ffffffffc0101f70 t dispatch_event_notifies
-    {0xffffffffc0101f70ull, "dispatch_event_notifies"},
-// ffffffffc01020c0 T get_tpl
-    {0xffffffffc01020c0ull, "get_tpl"},
-// ffffffffc0102120 T create_event
-    {0xffffffffc0102120ull, "create_event"},
-// ffffffffc0102240 T signal_event
-    {0xffffffffc0102240ull, "signal_event"},
-// ffffffffc0102390 T check_event
-    {0xffffffffc0102390ull, "check_event"},
-// ffffffffc0102460 T wait_for_event
-    {0xffffffffc0102460ull, "wait_for_event"},
-// ffffffffc0102790 T close_event
-    {0xffffffffc0102790ull, "close_event"},
-// ffffffffc0102840 t aquire_event_lock
-    {0xffffffffc0102840ull, "aquire_event_lock"},
-// ffffffffc0102870 t release_event_lock
-    {0xffffffffc0102870ull, "release_event_lock"},
-// ffffffffc0102890 T init_pit8254
-    {0xffffffffc0102890ull, "init_pit8254"},
-// ffffffffc01028e0 t set_timer_period
-    {0xffffffffc01028e0ull, "set_timer_period"},
-// ffffffffc0102990 t interrupt_handler
-    {0xffffffffc0102990ull, "interrupt_handler"},
-// ffffffffc01029c0 t set_pit_count
-    {0xffffffffc01029c0ull, "set_pit_count"},
-// ffffffffc0102a20 T init_timer
-    {0xffffffffc0102a20ull, "init_timer"},
-// ffffffffc0102b60 t check_timers
-    {0xffffffffc0102b60ull, "check_timers"},
-// ffffffffc0102cc0 T timer_tick
-    {0xffffffffc0102cc0ull, "timer_tick"},
-// ffffffffc0102d30 T get_current_system_time
-    {0xffffffffc0102d30ull, "get_current_system_time"},
-// ffffffffc0102d50 T set_timer
-    {0xffffffffc0102d50ull, "set_timer"},
-// ffffffffc0102f40 t insert_event_timer
-    {0xffffffffc0102f40ull, "insert_event_timer"},
-// ffffffffc0102fe0 T ioapic_add
-    {0xffffffffc0102fe0ull, "ioapic_add"},
-// ffffffffc0103100 t ioapic_read
-    {0xffffffffc0103100ull, "ioapic_read"},
-// ffffffffc0103180 T ioapic_add_iso
-    {0xffffffffc0103180ull, "ioapic_add_iso"},
-// ffffffffc0103210 T ioapic_enable_interrupt
-    {0xffffffffc0103210ull, "ioapic_enable_interrupt"},
-// ffffffffc0103390 t get_ioapic
-    {0xffffffffc0103390ull, "get_ioapic"},
-// ffffffffc01034b0 t ioapic_write
-    {0xffffffffc01034b0ull, "ioapic_write"},
-// ffffffffc0103530 T ioapic_configure_interrupt
-    {0xffffffffc0103530ull, "ioapic_configure_interrupt"},
-// ffffffffc0103810 T get_apic_id
-    {0xffffffffc0103810ull, "get_apic_id"},
-// ffffffffc0103830 t lapic_read
-    {0xffffffffc0103830ull, "lapic_read"},
-// ffffffffc0103860 T lapic_init
-    {0xffffffffc0103860ull, "lapic_init"},
-// ffffffffc0103980 t lapic_write
-    {0xffffffffc0103980ull, "lapic_write"},
-// ffffffffc01039b0 T send_fixed_ipi
-    {0xffffffffc01039b0ull, "send_fixed_ipi"},
-// ffffffffc01039d0 T send_apic_eoi
-    {0xffffffffc01039d0ull, "send_apic_eoi"},
-// ffffffffc01039f0 t spurious_interrupt_handler
-    {0xffffffffc01039f0ull, "spurious_interrupt_handler"},
-// ffffffffc0103a10 T idt_init
-    {0xffffffffc0103a10ull, "idt_init"},
-// ffffffffc0104d30 t set_idt_entry
-    {0xffffffffc0104d30ull, "set_idt_entry"},
-// ffffffffc0104f00 T interrupts_init
-    {0xffffffffc0104f00ull, "interrupts_init"},
-// ffffffffc0104f70 T common_interrupt_handler
-    {0xffffffffc0104f70ull, "common_interrupt_handler"},
-// ffffffffc0105100 t default_interrupt_handler
-    {0xffffffffc0105100ull, "default_interrupt_handler"},
-// ffffffffc0105a20 T interrupt_register
-    {0xffffffffc0105a20ull, "interrupt_register"},
-// ffffffffc0105b90 T interrupt_free
-    {0xffffffffc0105b90ull, "interrupt_free"},
-// ffffffffc0105c20 t interrupt_allocate
-    {0xffffffffc0105c20ull, "interrupt_allocate"},
-// ffffffffc0105d90 T kernel_main
-    {0xffffffffc0105d90ull, "kernel_main"},
-// ffffffffc0105f20 t main_thread
-    {0xffffffffc0105f20ull, "main_thread"},
-// ffffffffc0106060 T init_tss_for_cpu
-    {0xffffffffc0106060ull, "init_tss_for_cpu"},
-// ffffffffc0106130 T mm_init
-    {0xffffffffc0106130ull, "mm_init"},
-// ffffffffc0106140 T mm_allocate
-    {0xffffffffc0106140ull, "mm_allocate"},
-// ffffffffc0106210 t tlsf_malloc
-    {0xffffffffc0106210ull, "tlsf_malloc"},
-// ffffffffc0106250 t tlsf_add_pool
-    {0xffffffffc0106250ull, "tlsf_add_pool"},
-// ffffffffc01063a0 T mm_reallocate
-    {0xffffffffc01063a0ull, "mm_reallocate"},
-// ffffffffc0106470 t tlsf_realloc
-    {0xffffffffc0106470ull, "tlsf_realloc"},
-// ffffffffc0106660 T mm_free
-    {0xffffffffc0106660ull, "mm_free"},
-// ffffffffc0106680 t tlsf_free
-    {0xffffffffc0106680ull, "tlsf_free"},
-// ffffffffc0106730 t tlsf_create
-    {0xffffffffc0106730ull, "tlsf_create"},
-// ffffffffc0106740 t control_construct
-    {0xffffffffc0106740ull, "control_construct"},
-// ffffffffc01067e0 t adjust_request_size
-    {0xffffffffc01067e0ull, "adjust_request_size"},
-// ffffffffc0106870 t block_locate_free
-    {0xffffffffc0106870ull, "block_locate_free"},
-// ffffffffc0106940 t block_prepare_used
-    {0xffffffffc0106940ull, "block_prepare_used"},
-// ffffffffc01069f0 t align_up
-    {0xffffffffc01069f0ull, "align_up"},
-// ffffffffc0106aa0 t mapping_search
-    {0xffffffffc0106aa0ull, "mapping_search"},
-// ffffffffc0106b10 t search_suitable_block
-    {0xffffffffc0106b10ull, "search_suitable_block"},
-// ffffffffc0106c50 t block_size
-    {0xffffffffc0106c50ull, "block_size"},
-// ffffffffc0106c70 t remove_free_block
-    {0xffffffffc0106c70ull, "remove_free_block"},
-// ffffffffc0106e00 t tlsf_fls_sizet
-    {0xffffffffc0106e00ull, "tlsf_fls_sizet"},
-// ffffffffc0106e60 t mapping_insert
-    {0xffffffffc0106e60ull, "mapping_insert"},
-// ffffffffc0106ef0 t tlsf_fls
-    {0xffffffffc0106ef0ull, "tlsf_fls"},
-// ffffffffc0106f40 t tlsf_ffs
-    {0xffffffffc0106f40ull, "tlsf_ffs"},
-// ffffffffc0106f70 t block_trim_free
-    {0xffffffffc0106f70ull, "block_trim_free"},
-// ffffffffc0107030 t block_mark_as_used
-    {0xffffffffc0107030ull, "block_mark_as_used"},
-// ffffffffc0107070 t block_to_ptr
-    {0xffffffffc0107070ull, "block_to_ptr"},
-// ffffffffc0107090 t block_is_free
-    {0xffffffffc0107090ull, "block_is_free"},
-// ffffffffc01070b0 t block_can_split
-    {0xffffffffc01070b0ull, "block_can_split"},
-// ffffffffc01070f0 t block_split
-    {0xffffffffc01070f0ull, "block_split"},
-// ffffffffc01072a0 t block_link_next
-    {0xffffffffc01072a0ull, "block_link_next"},
-// ffffffffc01072d0 t block_set_prev_free
-    {0xffffffffc01072d0ull, "block_set_prev_free"},
-// ffffffffc0107300 t block_insert
-    {0xffffffffc0107300ull, "block_insert"},
-// ffffffffc0107340 t offset_to_block
-    {0xffffffffc0107340ull, "offset_to_block"},
-// ffffffffc0107360 t align_ptr
-    {0xffffffffc0107360ull, "align_ptr"},
-// ffffffffc0107410 t block_set_size
-    {0xffffffffc0107410ull, "block_set_size"},
-// ffffffffc0107450 t block_mark_as_free
-    {0xffffffffc0107450ull, "block_mark_as_free"},
-// ffffffffc0107490 t block_set_free
-    {0xffffffffc0107490ull, "block_set_free"},
-// ffffffffc01074c0 t block_next
-    {0xffffffffc01074c0ull, "block_next"},
-// ffffffffc0107550 t block_is_last
-    {0xffffffffc0107550ull, "block_is_last"},
-// ffffffffc0107580 t insert_free_block
-    {0xffffffffc0107580ull, "insert_free_block"},
-// ffffffffc0107740 t block_set_prev_used
-    {0xffffffffc0107740ull, "block_set_prev_used"},
-// ffffffffc0107770 t block_set_used
-    {0xffffffffc0107770ull, "block_set_used"},
-// ffffffffc01077a0 t tlsf_pool_overhead
-    {0xffffffffc01077a0ull, "tlsf_pool_overhead"},
-// ffffffffc01077b0 t align_down
-    {0xffffffffc01077b0ull, "align_down"},
-// ffffffffc0107850 t block_from_ptr
-    {0xffffffffc0107850ull, "block_from_ptr"},
-// ffffffffc0107870 t block_merge_next
-    {0xffffffffc0107870ull, "block_merge_next"},
-// ffffffffc0107970 t block_trim_used
-    {0xffffffffc0107970ull, "block_trim_used"},
-// ffffffffc0107a30 t block_remove
-    {0xffffffffc0107a30ull, "block_remove"},
-// ffffffffc0107a70 t block_absorb
-    {0xffffffffc0107a70ull, "block_absorb"},
-// ffffffffc0107b10 t block_merge_prev
-    {0xffffffffc0107b10ull, "block_merge_prev"},
-// ffffffffc0107c10 t block_is_prev_free
-    {0xffffffffc0107c10ull, "block_is_prev_free"},
-// ffffffffc0107c30 t block_prev
-    {0xffffffffc0107c30ull, "block_prev"},
-// ffffffffc0107ca0 T pmm_init
-    {0xffffffffc0107ca0ull, "pmm_init"},
-// ffffffffc0107dc0 t add_range
-    {0xffffffffc0107dc0ull, "add_range"},
-// ffffffffc0108010 T pmm_post_vmm
-    {0xffffffffc0108010ull, "pmm_post_vmm"},
-// ffffffffc0108260 T pmm_allocate_pages
-    {0xffffffffc0108260ull, "pmm_allocate_pages"},
-// ffffffffc01085c0 t find_free_pages
-    {0xffffffffc01085c0ull, "find_free_pages"},
-// ffffffffc01087d0 t convert_page
-    {0xffffffffc01087d0ull, "convert_page"},
-// ffffffffc0108d00 T pmm_free_pages
-    {0xffffffffc0108d00ull, "pmm_free_pages"},
-// ffffffffc0108e20 t remove_mem_map_entry
-    {0xffffffffc0108e20ull, "remove_mem_map_entry"},
-// ffffffffc0108e70 t move_temp_entries
-    {0xffffffffc0108e70ull, "move_temp_entries"},
-// ffffffffc0109030 t allocate_memory_map_entry
-    {0xffffffffc0109030ull, "allocate_memory_map_entry"},
-// ffffffffc0109100 t allocate_pool_pages
-    {0xffffffffc0109100ull, "allocate_pool_pages"},
-// ffffffffc01091a0 T allocate_stack
-    {0xffffffffc01091a0ull, "allocate_stack"},
-// ffffffffc0109390 T free_stack
-    {0xffffffffc0109390ull, "free_stack"},
-// ffffffffc01094a0 t acquire_alloc_lock
-    {0xffffffffc01094a0ull, "acquire_alloc_lock"},
-// ffffffffc01094d0 t release_alloc_lock
-    {0xffffffffc01094d0ull, "release_alloc_lock"},
-// ffffffffc01094f0 T vmm_init
-    {0xffffffffc01094f0ull, "vmm_init"},
-// ffffffffc01096d0 T vmm_map
-    {0xffffffffc01096d0ull, "vmm_map"},
-// ffffffffc0109950 T vmm_set_handle
-    {0xffffffffc0109950ull, "vmm_set_handle"},
-// ffffffffc0109990 T vmm_enable_cpu_features
-    {0xffffffffc0109990ull, "vmm_enable_cpu_features"},
-// ffffffffc0109b30 T vmm_virtual_to_physical
-    {0xffffffffc0109b30ull, "vmm_virtual_to_physical"},
-// ffffffffc0109d20 t get_entry_at_virtual_address
-    {0xffffffffc0109d20ull, "get_entry_at_virtual_address"},
-// ffffffffc0109fa0 T vmm_is_mapped
-    {0xffffffffc0109fa0ull, "vmm_is_mapped"},
-// ffffffffc010a110 t page_size_by_type
-    {0xffffffffc010a110ull, "page_size_by_type"},
-// ffffffffc010a1c0 T vmm_unmap
-    {0xffffffffc010a1c0ull, "vmm_unmap"},
-// ffffffffc010a3f0 t set_pte
-    {0xffffffffc010a3f0ull, "set_pte"},
-// ffffffffc010aea0 T init_kernel_process
-    {0xffffffffc010aea0ull, "init_kernel_process"},
-// ffffffffc010aec0 T yield
-    {0xffffffffc010aec0ull, "yield"},
-// ffffffffc010aed0 T init_sched
-    {0xffffffffc010aed0ull, "init_sched"},
-// ffffffffc010b020 t preemption_callback
-    {0xffffffffc010b020ull, "preemption_callback"},
-// ffffffffc010b040 T queue_thread
-    {0xffffffffc010b040ull, "queue_thread"},
-// ffffffffc010b100 T sched_tick
-    {0xffffffffc010b100ull, "sched_tick"},
-// ffffffffc010b360 t yield_interrupt
-    {0xffffffffc010b360ull, "yield_interrupt"},
-// ffffffffc010b3d0 t idle_thread_func
-    {0xffffffffc010b3d0ull, "idle_thread_func"},
-// ffffffffc010b400 t sched_lock
-    {0xffffffffc010b400ull, "sched_lock"},
-// ffffffffc010b440 t sched_unlock
-    {0xffffffffc010b440ull, "sched_unlock"},
-// ffffffffc010b460 T spawn_thread
-    {0xffffffffc010b460ull, "spawn_thread"},
-// ffffffffc010b750 T pcpu_init_for_cpu
-    {0xffffffffc010b750ull, "pcpu_init_for_cpu"},
-// ffffffffc010b780 T pcpu_init_for_bsp
-    {0xffffffffc010b780ull, "pcpu_init_for_bsp"},
-// ffffffffc010b7a0 T get_pcpu_base
-    {0xffffffffc010b7a0ull, "get_pcpu_base"},
-// ffffffffc010b7b0 T spinlock_acquire_high_tpl_raw
-    {0xffffffffc010b7b0ull, "spinlock_acquire_high_tpl_raw"},
-// ffffffffc010b840 T spinlock_acquire_raw
-    {0xffffffffc010b840ull, "spinlock_acquire_raw"},
-// ffffffffc010b8c0 T spinlock_release
-    {0xffffffffc010b8c0ull, "spinlock_release"},
-// ffffffffc010b920 T strerror
-    {0xffffffffc010b920ull, "strerror"},
-// ffffffffc010b970 T panic
-    {0xffffffffc010b970ull, "panic"},
-// ffffffffc010b990 T is_node_in_list
-    {0xffffffffc010b990ull, "is_node_in_list"},
-// ffffffffc010ba90 t is_list_valid
-    {0xffffffffc010ba90ull, "is_list_valid"},
-// ffffffffc010bb80 T initialize_list_had
-    {0xffffffffc010bb80ull, "initialize_list_had"},
-// ffffffffc010bbf0 T insert_head_list
-    {0xffffffffc010bbf0ull, "insert_head_list"},
-// ffffffffc010bc90 T insert_tail_list
-    {0xffffffffc010bc90ull, "insert_tail_list"},
-// ffffffffc010bd30 T get_first_node
-    {0xffffffffc010bd30ull, "get_first_node"},
-// ffffffffc010bd90 T get_next_node
-    {0xffffffffc010bd90ull, "get_next_node"},
-// ffffffffc010bdf0 T get_prev_node
-    {0xffffffffc010bdf0ull, "get_prev_node"},
-// ffffffffc010be60 T is_list_empty
-    {0xffffffffc010be60ull, "is_list_empty"},
-// ffffffffc010bed0 T is_null
-    {0xffffffffc010bed0ull, "is_null"},
-// ffffffffc010bf00 T is_node_at_end
-    {0xffffffffc010bf00ull, "is_node_at_end"},
-// ffffffffc010bf50 T swap_list_entries
-    {0xffffffffc010bf50ull, "swap_list_entries"},
-// ffffffffc010c060 T remove_entry_list
-    {0xffffffffc010c060ull, "remove_entry_list"},
-// ffffffffc010c0f0 T serial_init
-    {0xffffffffc010c0f0ull, "serial_init"},
-// ffffffffc010c170 T serial_write
-    {0xffffffffc010c170ull, "serial_write"},
-// ffffffffc010c230 T serial_read
-    {0xffffffffc010c230ull, "serial_read"},
-// ffffffffc010c2b0 T serial_poll
-    {0xffffffffc010c2b0ull, "serial_poll"},
-// ffffffffc010c2e0 T trace
-    {0xffffffffc010c2e0ull, "trace"},
-// ffffffffc010c3c0 t stb_print_callback
-    {0xffffffffc010c3c0ull, "stb_print_callback"},
-// ffffffffc010c440 t common_stub
-    {0xffffffffc010c440ull, "common_stub"},
-// ffffffffc010c48d T handle_interrupt_request_00
-    {0xffffffffc010c48dull, "handle_interrupt_request_00"},
-// ffffffffc010c493 T handle_interrupt_request_01
-    {0xffffffffc010c493ull, "handle_interrupt_request_01"},
-// ffffffffc010c499 T handle_interrupt_request_02
-    {0xffffffffc010c499ull, "handle_interrupt_request_02"},
-// ffffffffc010c49f T handle_interrupt_request_03
-    {0xffffffffc010c49full, "handle_interrupt_request_03"},
-// ffffffffc010c4a5 T handle_interrupt_request_04
-    {0xffffffffc010c4a5ull, "handle_interrupt_request_04"},
-// ffffffffc010c4ab T handle_interrupt_request_05
-    {0xffffffffc010c4abull, "handle_interrupt_request_05"},
-// ffffffffc010c4b1 T handle_interrupt_request_06
-    {0xffffffffc010c4b1ull, "handle_interrupt_request_06"},
-// ffffffffc010c4b7 T handle_interrupt_request_07
-    {0xffffffffc010c4b7ull, "handle_interrupt_request_07"},
-// ffffffffc010c4bd T handle_interrupt_request_08
-    {0xffffffffc010c4bdull, "handle_interrupt_request_08"},
-// ffffffffc010c4c4 T handle_interrupt_request_09
-    {0xffffffffc010c4c4ull, "handle_interrupt_request_09"},
-// ffffffffc010c4cd T handle_interrupt_request_0a
-    {0xffffffffc010c4cdull, "handle_interrupt_request_0a"},
-// ffffffffc010c4d4 T handle_interrupt_request_0b
-    {0xffffffffc010c4d4ull, "handle_interrupt_request_0b"},
-// ffffffffc010c4db T handle_interrupt_request_0c
-    {0xffffffffc010c4dbull, "handle_interrupt_request_0c"},
-// ffffffffc010c4e2 T handle_interrupt_request_0d
-    {0xffffffffc010c4e2ull, "handle_interrupt_request_0d"},
-// ffffffffc010c4e9 T handle_interrupt_request_0e
-    {0xffffffffc010c4e9ull, "handle_interrupt_request_0e"},
-// ffffffffc010c4f0 T handle_interrupt_request_0f
-    {0xffffffffc010c4f0ull, "handle_interrupt_request_0f"},
-// ffffffffc010c4f9 T handle_interrupt_request_10
-    {0xffffffffc010c4f9ull, "handle_interrupt_request_10"},
-// ffffffffc010c500 T handle_interrupt_request_11
-    {0xffffffffc010c500ull, "handle_interrupt_request_11"},
-// ffffffffc010c509 T handle_interrupt_request_12
-    {0xffffffffc010c509ull, "handle_interrupt_request_12"},
-// ffffffffc010c512 T handle_interrupt_request_13
-    {0xffffffffc010c512ull, "handle_interrupt_request_13"},
-// ffffffffc010c51b T handle_interrupt_request_14
-    {0xffffffffc010c51bull, "handle_interrupt_request_14"},
-// ffffffffc010c524 T handle_interrupt_request_15
-    {0xffffffffc010c524ull, "handle_interrupt_request_15"},
-// ffffffffc010c52d T handle_interrupt_request_16
-    {0xffffffffc010c52dull, "handle_interrupt_request_16"},
-// ffffffffc010c536 T handle_interrupt_request_17
-    {0xffffffffc010c536ull, "handle_interrupt_request_17"},
-// ffffffffc010c53f T handle_interrupt_request_18
-    {0xffffffffc010c53full, "handle_interrupt_request_18"},
-// ffffffffc010c548 T handle_interrupt_request_19
-    {0xffffffffc010c548ull, "handle_interrupt_request_19"},
-// ffffffffc010c551 T handle_interrupt_request_1a
-    {0xffffffffc010c551ull, "handle_interrupt_request_1a"},
-// ffffffffc010c55a T handle_interrupt_request_1b
-    {0xffffffffc010c55aull, "handle_interrupt_request_1b"},
-// ffffffffc010c563 T handle_interrupt_request_1c
-    {0xffffffffc010c563ull, "handle_interrupt_request_1c"},
-// ffffffffc010c56c T handle_interrupt_request_1d
-    {0xffffffffc010c56cull, "handle_interrupt_request_1d"},
-// ffffffffc010c575 T handle_interrupt_request_1e
-    {0xffffffffc010c575ull, "handle_interrupt_request_1e"},
-// ffffffffc010c57c T handle_interrupt_request_1f
-    {0xffffffffc010c57cull, "handle_interrupt_request_1f"},
-// ffffffffc010c585 T handle_interrupt_request_20
-    {0xffffffffc010c585ull, "handle_interrupt_request_20"},
-// ffffffffc010c58e T handle_interrupt_request_21
-    {0xffffffffc010c58eull, "handle_interrupt_request_21"},
-// ffffffffc010c597 T handle_interrupt_request_22
-    {0xffffffffc010c597ull, "handle_interrupt_request_22"},
-// ffffffffc010c5a0 T handle_interrupt_request_23
-    {0xffffffffc010c5a0ull, "handle_interrupt_request_23"},
-// ffffffffc010c5a9 T handle_interrupt_request_24
-    {0xffffffffc010c5a9ull, "handle_interrupt_request_24"},
-// ffffffffc010c5b2 T handle_interrupt_request_25
-    {0xffffffffc010c5b2ull, "handle_interrupt_request_25"},
-// ffffffffc010c5bb T handle_interrupt_request_26
-    {0xffffffffc010c5bbull, "handle_interrupt_request_26"},
-// ffffffffc010c5c4 T handle_interrupt_request_27
-    {0xffffffffc010c5c4ull, "handle_interrupt_request_27"},
-// ffffffffc010c5cd T handle_interrupt_request_28
-    {0xffffffffc010c5cdull, "handle_interrupt_request_28"},
-// ffffffffc010c5d6 T handle_interrupt_request_29
-    {0xffffffffc010c5d6ull, "handle_interrupt_request_29"},
-// ffffffffc010c5df T handle_interrupt_request_2a
-    {0xffffffffc010c5dfull, "handle_interrupt_request_2a"},
-// ffffffffc010c5e8 T handle_interrupt_request_2b
-    {0xffffffffc010c5e8ull, "handle_interrupt_request_2b"},
-// ffffffffc010c5f1 T handle_interrupt_request_2c
-    {0xffffffffc010c5f1ull, "handle_interrupt_request_2c"},
-// ffffffffc010c5fa T handle_interrupt_request_2d
-    {0xffffffffc010c5faull, "handle_interrupt_request_2d"},
-// ffffffffc010c603 T handle_interrupt_request_2e
-    {0xffffffffc010c603ull, "handle_interrupt_request_2e"},
-// ffffffffc010c60c T handle_interrupt_request_2f
-    {0xffffffffc010c60cull, "handle_interrupt_request_2f"},
-// ffffffffc010c615 T handle_interrupt_request_30
-    {0xffffffffc010c615ull, "handle_interrupt_request_30"},
-// ffffffffc010c61e T handle_interrupt_request_31
-    {0xffffffffc010c61eull, "handle_interrupt_request_31"},
-// ffffffffc010c627 T handle_interrupt_request_32
-    {0xffffffffc010c627ull, "handle_interrupt_request_32"},
-// ffffffffc010c630 T handle_interrupt_request_33
-    {0xffffffffc010c630ull, "handle_interrupt_request_33"},
-// ffffffffc010c639 T handle_interrupt_request_34
-    {0xffffffffc010c639ull, "handle_interrupt_request_34"},
-// ffffffffc010c642 T handle_interrupt_request_35
-    {0xffffffffc010c642ull, "handle_interrupt_request_35"},
-// ffffffffc010c64b T handle_interrupt_request_36
-    {0xffffffffc010c64bull, "handle_interrupt_request_36"},
-// ffffffffc010c654 T handle_interrupt_request_37
-    {0xffffffffc010c654ull, "handle_interrupt_request_37"},
-// ffffffffc010c65d T handle_interrupt_request_38
-    {0xffffffffc010c65dull, "handle_interrupt_request_38"},
-// ffffffffc010c666 T handle_interrupt_request_39
-    {0xffffffffc010c666ull, "handle_interrupt_request_39"},
-// ffffffffc010c66f T handle_interrupt_request_3a
-    {0xffffffffc010c66full, "handle_interrupt_request_3a"},
-// ffffffffc010c678 T handle_interrupt_request_3b
-    {0xffffffffc010c678ull, "handle_interrupt_request_3b"},
-// ffffffffc010c681 T handle_interrupt_request_3c
-    {0xffffffffc010c681ull, "handle_interrupt_request_3c"},
-// ffffffffc010c68a T handle_interrupt_request_3d
-    {0xffffffffc010c68aull, "handle_interrupt_request_3d"},
-// ffffffffc010c693 T handle_interrupt_request_3e
-    {0xffffffffc010c693ull, "handle_interrupt_request_3e"},
-// ffffffffc010c69c T handle_interrupt_request_3f
-    {0xffffffffc010c69cull, "handle_interrupt_request_3f"},
-// ffffffffc010c6a5 T handle_interrupt_request_40
-    {0xffffffffc010c6a5ull, "handle_interrupt_request_40"},
-// ffffffffc010c6ae T handle_interrupt_request_41
-    {0xffffffffc010c6aeull, "handle_interrupt_request_41"},
-// ffffffffc010c6b7 T handle_interrupt_request_42
-    {0xffffffffc010c6b7ull, "handle_interrupt_request_42"},
-// ffffffffc010c6c0 T handle_interrupt_request_43
-    {0xffffffffc010c6c0ull, "handle_interrupt_request_43"},
-// ffffffffc010c6c9 T handle_interrupt_request_44
-    {0xffffffffc010c6c9ull, "handle_interrupt_request_44"},
-// ffffffffc010c6d2 T handle_interrupt_request_45
-    {0xffffffffc010c6d2ull, "handle_interrupt_request_45"},
-// ffffffffc010c6db T handle_interrupt_request_46
-    {0xffffffffc010c6dbull, "handle_interrupt_request_46"},
-// ffffffffc010c6e4 T handle_interrupt_request_47
-    {0xffffffffc010c6e4ull, "handle_interrupt_request_47"},
-// ffffffffc010c6ed T handle_interrupt_request_48
-    {0xffffffffc010c6edull, "handle_interrupt_request_48"},
-// ffffffffc010c6f6 T handle_interrupt_request_49
-    {0xffffffffc010c6f6ull, "handle_interrupt_request_49"},
-// ffffffffc010c6ff T handle_interrupt_request_4a
-    {0xffffffffc010c6ffull, "handle_interrupt_request_4a"},
-// ffffffffc010c708 T handle_interrupt_request_4b
-    {0xffffffffc010c708ull, "handle_interrupt_request_4b"},
-// ffffffffc010c711 T handle_interrupt_request_4c
-    {0xffffffffc010c711ull, "handle_interrupt_request_4c"},
-// ffffffffc010c71a T handle_interrupt_request_4d
-    {0xffffffffc010c71aull, "handle_interrupt_request_4d"},
-// ffffffffc010c723 T handle_interrupt_request_4e
-    {0xffffffffc010c723ull, "handle_interrupt_request_4e"},
-// ffffffffc010c72c T handle_interrupt_request_4f
-    {0xffffffffc010c72cull, "handle_interrupt_request_4f"},
-// ffffffffc010c735 T handle_interrupt_request_50
-    {0xffffffffc010c735ull, "handle_interrupt_request_50"},
-// ffffffffc010c73e T handle_interrupt_request_51
-    {0xffffffffc010c73eull, "handle_interrupt_request_51"},
-// ffffffffc010c747 T handle_interrupt_request_52
-    {0xffffffffc010c747ull, "handle_interrupt_request_52"},
-// ffffffffc010c750 T handle_interrupt_request_53
-    {0xffffffffc010c750ull, "handle_interrupt_request_53"},
-// ffffffffc010c759 T handle_interrupt_request_54
-    {0xffffffffc010c759ull, "handle_interrupt_request_54"},
-// ffffffffc010c762 T handle_interrupt_request_55
-    {0xffffffffc010c762ull, "handle_interrupt_request_55"},
-// ffffffffc010c76b T handle_interrupt_request_56
-    {0xffffffffc010c76bull, "handle_interrupt_request_56"},
-// ffffffffc010c774 T handle_interrupt_request_57
-    {0xffffffffc010c774ull, "handle_interrupt_request_57"},
-// ffffffffc010c77d T handle_interrupt_request_58
-    {0xffffffffc010c77dull, "handle_interrupt_request_58"},
-// ffffffffc010c786 T handle_interrupt_request_59
-    {0xffffffffc010c786ull, "handle_interrupt_request_59"},
-// ffffffffc010c78f T handle_interrupt_request_5a
-    {0xffffffffc010c78full, "handle_interrupt_request_5a"},
-// ffffffffc010c798 T handle_interrupt_request_5b
-    {0xffffffffc010c798ull, "handle_interrupt_request_5b"},
-// ffffffffc010c7a1 T handle_interrupt_request_5c
-    {0xffffffffc010c7a1ull, "handle_interrupt_request_5c"},
-// ffffffffc010c7aa T handle_interrupt_request_5d
-    {0xffffffffc010c7aaull, "handle_interrupt_request_5d"},
-// ffffffffc010c7b3 T handle_interrupt_request_5e
-    {0xffffffffc010c7b3ull, "handle_interrupt_request_5e"},
-// ffffffffc010c7bc T handle_interrupt_request_5f
-    {0xffffffffc010c7bcull, "handle_interrupt_request_5f"},
-// ffffffffc010c7c5 T handle_interrupt_request_60
-    {0xffffffffc010c7c5ull, "handle_interrupt_request_60"},
-// ffffffffc010c7ce T handle_interrupt_request_61
-    {0xffffffffc010c7ceull, "handle_interrupt_request_61"},
-// ffffffffc010c7d7 T handle_interrupt_request_62
-    {0xffffffffc010c7d7ull, "handle_interrupt_request_62"},
-// ffffffffc010c7e0 T handle_interrupt_request_63
-    {0xffffffffc010c7e0ull, "handle_interrupt_request_63"},
-// ffffffffc010c7e9 T handle_interrupt_request_64
-    {0xffffffffc010c7e9ull, "handle_interrupt_request_64"},
-// ffffffffc010c7f2 T handle_interrupt_request_65
-    {0xffffffffc010c7f2ull, "handle_interrupt_request_65"},
-// ffffffffc010c7fb T handle_interrupt_request_66
-    {0xffffffffc010c7fbull, "handle_interrupt_request_66"},
-// ffffffffc010c804 T handle_interrupt_request_67
-    {0xffffffffc010c804ull, "handle_interrupt_request_67"},
-// ffffffffc010c80d T handle_interrupt_request_68
-    {0xffffffffc010c80dull, "handle_interrupt_request_68"},
-// ffffffffc010c816 T handle_interrupt_request_69
-    {0xffffffffc010c816ull, "handle_interrupt_request_69"},
-// ffffffffc010c81f T handle_interrupt_request_6a
-    {0xffffffffc010c81full, "handle_interrupt_request_6a"},
-// ffffffffc010c828 T handle_interrupt_request_6b
-    {0xffffffffc010c828ull, "handle_interrupt_request_6b"},
-// ffffffffc010c831 T handle_interrupt_request_6c
-    {0xffffffffc010c831ull, "handle_interrupt_request_6c"},
-// ffffffffc010c83a T handle_interrupt_request_6d
-    {0xffffffffc010c83aull, "handle_interrupt_request_6d"},
-// ffffffffc010c843 T handle_interrupt_request_6e
-    {0xffffffffc010c843ull, "handle_interrupt_request_6e"},
-// ffffffffc010c84c T handle_interrupt_request_6f
-    {0xffffffffc010c84cull, "handle_interrupt_request_6f"},
-// ffffffffc010c855 T handle_interrupt_request_70
-    {0xffffffffc010c855ull, "handle_interrupt_request_70"},
-// ffffffffc010c85e T handle_interrupt_request_71
-    {0xffffffffc010c85eull, "handle_interrupt_request_71"},
-// ffffffffc010c867 T handle_interrupt_request_72
-    {0xffffffffc010c867ull, "handle_interrupt_request_72"},
-// ffffffffc010c870 T handle_interrupt_request_73
-    {0xffffffffc010c870ull, "handle_interrupt_request_73"},
-// ffffffffc010c879 T handle_interrupt_request_74
-    {0xffffffffc010c879ull, "handle_interrupt_request_74"},
-// ffffffffc010c882 T handle_interrupt_request_75
-    {0xffffffffc010c882ull, "handle_interrupt_request_75"},
-// ffffffffc010c88b T handle_interrupt_request_76
-    {0xffffffffc010c88bull, "handle_interrupt_request_76"},
-// ffffffffc010c894 T handle_interrupt_request_77
-    {0xffffffffc010c894ull, "handle_interrupt_request_77"},
-// ffffffffc010c89d T handle_interrupt_request_78
-    {0xffffffffc010c89dull, "handle_interrupt_request_78"},
-// ffffffffc010c8a6 T handle_interrupt_request_79
-    {0xffffffffc010c8a6ull, "handle_interrupt_request_79"},
-// ffffffffc010c8af T handle_interrupt_request_7a
-    {0xffffffffc010c8afull, "handle_interrupt_request_7a"},
-// ffffffffc010c8b8 T handle_interrupt_request_7b
-    {0xffffffffc010c8b8ull, "handle_interrupt_request_7b"},
-// ffffffffc010c8c1 T handle_interrupt_request_7c
-    {0xffffffffc010c8c1ull, "handle_interrupt_request_7c"},
-// ffffffffc010c8ca T handle_interrupt_request_7d
-    {0xffffffffc010c8caull, "handle_interrupt_request_7d"},
-// ffffffffc010c8d3 T handle_interrupt_request_7e
-    {0xffffffffc010c8d3ull, "handle_interrupt_request_7e"},
-// ffffffffc010c8dc T handle_interrupt_request_7f
-    {0xffffffffc010c8dcull, "handle_interrupt_request_7f"},
-// ffffffffc010c8e5 T handle_interrupt_request_80
-    {0xffffffffc010c8e5ull, "handle_interrupt_request_80"},
-// ffffffffc010c8f1 T handle_interrupt_request_81
-    {0xffffffffc010c8f1ull, "handle_interrupt_request_81"},
-// ffffffffc010c8fd T handle_interrupt_request_82
-    {0xffffffffc010c8fdull, "handle_interrupt_request_82"},
-// ffffffffc010c909 T handle_interrupt_request_83
-    {0xffffffffc010c909ull, "handle_interrupt_request_83"},
-// ffffffffc010c915 T handle_interrupt_request_84
-    {0xffffffffc010c915ull, "handle_interrupt_request_84"},
-// ffffffffc010c921 T handle_interrupt_request_85
-    {0xffffffffc010c921ull, "handle_interrupt_request_85"},
-// ffffffffc010c92d T handle_interrupt_request_86
-    {0xffffffffc010c92dull, "handle_interrupt_request_86"},
-// ffffffffc010c939 T handle_interrupt_request_87
-    {0xffffffffc010c939ull, "handle_interrupt_request_87"},
-// ffffffffc010c945 T handle_interrupt_request_88
-    {0xffffffffc010c945ull, "handle_interrupt_request_88"},
-// ffffffffc010c951 T handle_interrupt_request_89
-    {0xffffffffc010c951ull, "handle_interrupt_request_89"},
-// ffffffffc010c95d T handle_interrupt_request_8a
-    {0xffffffffc010c95dull, "handle_interrupt_request_8a"},
-// ffffffffc010c969 T handle_interrupt_request_8b
-    {0xffffffffc010c969ull, "handle_interrupt_request_8b"},
-// ffffffffc010c975 T handle_interrupt_request_8c
-    {0xffffffffc010c975ull, "handle_interrupt_request_8c"},
-// ffffffffc010c981 T handle_interrupt_request_8d
-    {0xffffffffc010c981ull, "handle_interrupt_request_8d"},
-// ffffffffc010c98d T handle_interrupt_request_8e
-    {0xffffffffc010c98dull, "handle_interrupt_request_8e"},
-// ffffffffc010c999 T handle_interrupt_request_8f
-    {0xffffffffc010c999ull, "handle_interrupt_request_8f"},
-// ffffffffc010c9a5 T handle_interrupt_request_90
-    {0xffffffffc010c9a5ull, "handle_interrupt_request_90"},
-// ffffffffc010c9b1 T handle_interrupt_request_91
-    {0xffffffffc010c9b1ull, "handle_interrupt_request_91"},
-// ffffffffc010c9bd T handle_interrupt_request_92
-    {0xffffffffc010c9bdull, "handle_interrupt_request_92"},
-// ffffffffc010c9c9 T handle_interrupt_request_93
-    {0xffffffffc010c9c9ull, "handle_interrupt_request_93"},
-// ffffffffc010c9d5 T handle_interrupt_request_94
-    {0xffffffffc010c9d5ull, "handle_interrupt_request_94"},
-// ffffffffc010c9e1 T handle_interrupt_request_95
-    {0xffffffffc010c9e1ull, "handle_interrupt_request_95"},
-// ffffffffc010c9ed T handle_interrupt_request_96
-    {0xffffffffc010c9edull, "handle_interrupt_request_96"},
-// ffffffffc010c9f9 T handle_interrupt_request_97
-    {0xffffffffc010c9f9ull, "handle_interrupt_request_97"},
-// ffffffffc010ca05 T handle_interrupt_request_98
-    {0xffffffffc010ca05ull, "handle_interrupt_request_98"},
-// ffffffffc010ca11 T handle_interrupt_request_99
-    {0xffffffffc010ca11ull, "handle_interrupt_request_99"},
-// ffffffffc010ca1d T handle_interrupt_request_9a
-    {0xffffffffc010ca1dull, "handle_interrupt_request_9a"},
-// ffffffffc010ca29 T handle_interrupt_request_9b
-    {0xffffffffc010ca29ull, "handle_interrupt_request_9b"},
-// ffffffffc010ca35 T handle_interrupt_request_9c
-    {0xffffffffc010ca35ull, "handle_interrupt_request_9c"},
-// ffffffffc010ca41 T handle_interrupt_request_9d
-    {0xffffffffc010ca41ull, "handle_interrupt_request_9d"},
-// ffffffffc010ca4d T handle_interrupt_request_9e
-    {0xffffffffc010ca4dull, "handle_interrupt_request_9e"},
-// ffffffffc010ca59 T handle_interrupt_request_9f
-    {0xffffffffc010ca59ull, "handle_interrupt_request_9f"},
-// ffffffffc010ca65 T handle_interrupt_request_a0
-    {0xffffffffc010ca65ull, "handle_interrupt_request_a0"},
-// ffffffffc010ca71 T handle_interrupt_request_a1
-    {0xffffffffc010ca71ull, "handle_interrupt_request_a1"},
-// ffffffffc010ca7d T handle_interrupt_request_a2
-    {0xffffffffc010ca7dull, "handle_interrupt_request_a2"},
-// ffffffffc010ca89 T handle_interrupt_request_a3
-    {0xffffffffc010ca89ull, "handle_interrupt_request_a3"},
-// ffffffffc010ca95 T handle_interrupt_request_a4
-    {0xffffffffc010ca95ull, "handle_interrupt_request_a4"},
-// ffffffffc010caa1 T handle_interrupt_request_a5
-    {0xffffffffc010caa1ull, "handle_interrupt_request_a5"},
-// ffffffffc010caad T handle_interrupt_request_a6
-    {0xffffffffc010caadull, "handle_interrupt_request_a6"},
-// ffffffffc010cab9 T handle_interrupt_request_a7
-    {0xffffffffc010cab9ull, "handle_interrupt_request_a7"},
-// ffffffffc010cac5 T handle_interrupt_request_a8
-    {0xffffffffc010cac5ull, "handle_interrupt_request_a8"},
-// ffffffffc010cad1 T handle_interrupt_request_a9
-    {0xffffffffc010cad1ull, "handle_interrupt_request_a9"},
-// ffffffffc010cadd T handle_interrupt_request_aa
-    {0xffffffffc010caddull, "handle_interrupt_request_aa"},
-// ffffffffc010cae9 T handle_interrupt_request_ab
-    {0xffffffffc010cae9ull, "handle_interrupt_request_ab"},
-// ffffffffc010caf5 T handle_interrupt_request_ac
-    {0xffffffffc010caf5ull, "handle_interrupt_request_ac"},
-// ffffffffc010cb01 T handle_interrupt_request_ad
-    {0xffffffffc010cb01ull, "handle_interrupt_request_ad"},
-// ffffffffc010cb0d T handle_interrupt_request_ae
-    {0xffffffffc010cb0dull, "handle_interrupt_request_ae"},
-// ffffffffc010cb19 T handle_interrupt_request_af
-    {0xffffffffc010cb19ull, "handle_interrupt_request_af"},
-// ffffffffc010cb25 T handle_interrupt_request_b0
-    {0xffffffffc010cb25ull, "handle_interrupt_request_b0"},
-// ffffffffc010cb31 T handle_interrupt_request_b1
-    {0xffffffffc010cb31ull, "handle_interrupt_request_b1"},
-// ffffffffc010cb3d T handle_interrupt_request_b2
-    {0xffffffffc010cb3dull, "handle_interrupt_request_b2"},
-// ffffffffc010cb49 T handle_interrupt_request_b3
-    {0xffffffffc010cb49ull, "handle_interrupt_request_b3"},
-// ffffffffc010cb55 T handle_interrupt_request_b4
-    {0xffffffffc010cb55ull, "handle_interrupt_request_b4"},
-// ffffffffc010cb61 T handle_interrupt_request_b5
-    {0xffffffffc010cb61ull, "handle_interrupt_request_b5"},
-// ffffffffc010cb6d T handle_interrupt_request_b6
-    {0xffffffffc010cb6dull, "handle_interrupt_request_b6"},
-// ffffffffc010cb79 T handle_interrupt_request_b7
-    {0xffffffffc010cb79ull, "handle_interrupt_request_b7"},
-// ffffffffc010cb85 T handle_interrupt_request_b8
-    {0xffffffffc010cb85ull, "handle_interrupt_request_b8"},
-// ffffffffc010cb91 T handle_interrupt_request_b9
-    {0xffffffffc010cb91ull, "handle_interrupt_request_b9"},
-// ffffffffc010cb9d T handle_interrupt_request_ba
-    {0xffffffffc010cb9dull, "handle_interrupt_request_ba"},
-// ffffffffc010cba9 T handle_interrupt_request_bb
-    {0xffffffffc010cba9ull, "handle_interrupt_request_bb"},
-// ffffffffc010cbb5 T handle_interrupt_request_bc
-    {0xffffffffc010cbb5ull, "handle_interrupt_request_bc"},
-// ffffffffc010cbc1 T handle_interrupt_request_bd
-    {0xffffffffc010cbc1ull, "handle_interrupt_request_bd"},
-// ffffffffc010cbcd T handle_interrupt_request_be
-    {0xffffffffc010cbcdull, "handle_interrupt_request_be"},
-// ffffffffc010cbd9 T handle_interrupt_request_bf
-    {0xffffffffc010cbd9ull, "handle_interrupt_request_bf"},
-// ffffffffc010cbe5 T handle_interrupt_request_c0
-    {0xffffffffc010cbe5ull, "handle_interrupt_request_c0"},
-// ffffffffc010cbf1 T handle_interrupt_request_c1
-    {0xffffffffc010cbf1ull, "handle_interrupt_request_c1"},
-// ffffffffc010cbfd T handle_interrupt_request_c2
-    {0xffffffffc010cbfdull, "handle_interrupt_request_c2"},
-// ffffffffc010cc09 T handle_interrupt_request_c3
-    {0xffffffffc010cc09ull, "handle_interrupt_request_c3"},
-// ffffffffc010cc15 T handle_interrupt_request_c4
-    {0xffffffffc010cc15ull, "handle_interrupt_request_c4"},
-// ffffffffc010cc21 T handle_interrupt_request_c5
-    {0xffffffffc010cc21ull, "handle_interrupt_request_c5"},
-// ffffffffc010cc2d T handle_interrupt_request_c6
-    {0xffffffffc010cc2dull, "handle_interrupt_request_c6"},
-// ffffffffc010cc39 T handle_interrupt_request_c7
-    {0xffffffffc010cc39ull, "handle_interrupt_request_c7"},
-// ffffffffc010cc45 T handle_interrupt_request_c8
-    {0xffffffffc010cc45ull, "handle_interrupt_request_c8"},
-// ffffffffc010cc51 T handle_interrupt_request_c9
-    {0xffffffffc010cc51ull, "handle_interrupt_request_c9"},
-// ffffffffc010cc5d T handle_interrupt_request_ca
-    {0xffffffffc010cc5dull, "handle_interrupt_request_ca"},
-// ffffffffc010cc69 T handle_interrupt_request_cb
-    {0xffffffffc010cc69ull, "handle_interrupt_request_cb"},
-// ffffffffc010cc75 T handle_interrupt_request_cc
-    {0xffffffffc010cc75ull, "handle_interrupt_request_cc"},
-// ffffffffc010cc81 T handle_interrupt_request_cd
-    {0xffffffffc010cc81ull, "handle_interrupt_request_cd"},
-// ffffffffc010cc8d T handle_interrupt_request_ce
-    {0xffffffffc010cc8dull, "handle_interrupt_request_ce"},
-// ffffffffc010cc99 T handle_interrupt_request_cf
-    {0xffffffffc010cc99ull, "handle_interrupt_request_cf"},
-// ffffffffc010cca5 T handle_interrupt_request_d0
-    {0xffffffffc010cca5ull, "handle_interrupt_request_d0"},
-// ffffffffc010ccb1 T handle_interrupt_request_d1
-    {0xffffffffc010ccb1ull, "handle_interrupt_request_d1"},
-// ffffffffc010ccbd T handle_interrupt_request_d2
-    {0xffffffffc010ccbdull, "handle_interrupt_request_d2"},
-// ffffffffc010ccc9 T handle_interrupt_request_d3
-    {0xffffffffc010ccc9ull, "handle_interrupt_request_d3"},
-// ffffffffc010ccd5 T handle_interrupt_request_d4
-    {0xffffffffc010ccd5ull, "handle_interrupt_request_d4"},
-// ffffffffc010cce1 T handle_interrupt_request_d5
-    {0xffffffffc010cce1ull, "handle_interrupt_request_d5"},
-// ffffffffc010cced T handle_interrupt_request_d6
-    {0xffffffffc010ccedull, "handle_interrupt_request_d6"},
-// ffffffffc010ccf9 T handle_interrupt_request_d7
-    {0xffffffffc010ccf9ull, "handle_interrupt_request_d7"},
-// ffffffffc010cd05 T handle_interrupt_request_d8
-    {0xffffffffc010cd05ull, "handle_interrupt_request_d8"},
-// ffffffffc010cd11 T handle_interrupt_request_d9
-    {0xffffffffc010cd11ull, "handle_interrupt_request_d9"},
-// ffffffffc010cd1d T handle_interrupt_request_da
-    {0xffffffffc010cd1dull, "handle_interrupt_request_da"},
-// ffffffffc010cd29 T handle_interrupt_request_db
-    {0xffffffffc010cd29ull, "handle_interrupt_request_db"},
-// ffffffffc010cd35 T handle_interrupt_request_dc
-    {0xffffffffc010cd35ull, "handle_interrupt_request_dc"},
-// ffffffffc010cd41 T handle_interrupt_request_dd
-    {0xffffffffc010cd41ull, "handle_interrupt_request_dd"},
-// ffffffffc010cd4d T handle_interrupt_request_de
-    {0xffffffffc010cd4dull, "handle_interrupt_request_de"},
-// ffffffffc010cd59 T handle_interrupt_request_df
-    {0xffffffffc010cd59ull, "handle_interrupt_request_df"},
-// ffffffffc010cd65 T handle_interrupt_request_e0
-    {0xffffffffc010cd65ull, "handle_interrupt_request_e0"},
-// ffffffffc010cd71 T handle_interrupt_request_e1
-    {0xffffffffc010cd71ull, "handle_interrupt_request_e1"},
-// ffffffffc010cd7d T handle_interrupt_request_e2
-    {0xffffffffc010cd7dull, "handle_interrupt_request_e2"},
-// ffffffffc010cd89 T handle_interrupt_request_e3
-    {0xffffffffc010cd89ull, "handle_interrupt_request_e3"},
-// ffffffffc010cd95 T handle_interrupt_request_e4
-    {0xffffffffc010cd95ull, "handle_interrupt_request_e4"},
-// ffffffffc010cda1 T handle_interrupt_request_e5
-    {0xffffffffc010cda1ull, "handle_interrupt_request_e5"},
-// ffffffffc010cdad T handle_interrupt_request_e6
-    {0xffffffffc010cdadull, "handle_interrupt_request_e6"},
-// ffffffffc010cdb9 T handle_interrupt_request_e7
-    {0xffffffffc010cdb9ull, "handle_interrupt_request_e7"},
-// ffffffffc010cdc5 T handle_interrupt_request_e8
-    {0xffffffffc010cdc5ull, "handle_interrupt_request_e8"},
-// ffffffffc010cdd1 T handle_interrupt_request_e9
-    {0xffffffffc010cdd1ull, "handle_interrupt_request_e9"},
-// ffffffffc010cddd T handle_interrupt_request_ea
-    {0xffffffffc010cdddull, "handle_interrupt_request_ea"},
-// ffffffffc010cde9 T handle_interrupt_request_eb
-    {0xffffffffc010cde9ull, "handle_interrupt_request_eb"},
-// ffffffffc010cdf5 T handle_interrupt_request_ec
-    {0xffffffffc010cdf5ull, "handle_interrupt_request_ec"},
-// ffffffffc010ce01 T handle_interrupt_request_ed
-    {0xffffffffc010ce01ull, "handle_interrupt_request_ed"},
-// ffffffffc010ce0d T handle_interrupt_request_ee
-    {0xffffffffc010ce0dull, "handle_interrupt_request_ee"},
-// ffffffffc010ce19 T handle_interrupt_request_ef
-    {0xffffffffc010ce19ull, "handle_interrupt_request_ef"},
-// ffffffffc010ce25 T handle_interrupt_request_f0
-    {0xffffffffc010ce25ull, "handle_interrupt_request_f0"},
-// ffffffffc010ce31 T handle_interrupt_request_f1
-    {0xffffffffc010ce31ull, "handle_interrupt_request_f1"},
-// ffffffffc010ce3d T handle_interrupt_request_f2
-    {0xffffffffc010ce3dull, "handle_interrupt_request_f2"},
-// ffffffffc010ce49 T handle_interrupt_request_f3
-    {0xffffffffc010ce49ull, "handle_interrupt_request_f3"},
-// ffffffffc010ce55 T handle_interrupt_request_f4
-    {0xffffffffc010ce55ull, "handle_interrupt_request_f4"},
-// ffffffffc010ce61 T handle_interrupt_request_f5
-    {0xffffffffc010ce61ull, "handle_interrupt_request_f5"},
-// ffffffffc010ce6d T handle_interrupt_request_f6
-    {0xffffffffc010ce6dull, "handle_interrupt_request_f6"},
-// ffffffffc010ce79 T handle_interrupt_request_f7
-    {0xffffffffc010ce79ull, "handle_interrupt_request_f7"},
-// ffffffffc010ce85 T handle_interrupt_request_f8
-    {0xffffffffc010ce85ull, "handle_interrupt_request_f8"},
-// ffffffffc010ce91 T handle_interrupt_request_f9
-    {0xffffffffc010ce91ull, "handle_interrupt_request_f9"},
-// ffffffffc010ce9d T handle_interrupt_request_fa
-    {0xffffffffc010ce9dull, "handle_interrupt_request_fa"},
-// ffffffffc010cea9 T handle_interrupt_request_fb
-    {0xffffffffc010cea9ull, "handle_interrupt_request_fb"},
-// ffffffffc010ceb5 T handle_interrupt_request_fc
-    {0xffffffffc010ceb5ull, "handle_interrupt_request_fc"},
-// ffffffffc010cec1 T handle_interrupt_request_fd
-    {0xffffffffc010cec1ull, "handle_interrupt_request_fd"},
-// ffffffffc010cecd T handle_interrupt_request_fe
-    {0xffffffffc010cecdull, "handle_interrupt_request_fe"},
-// ffffffffc010ced9 T handle_interrupt_request_ff
-    {0xffffffffc010ced9ull, "handle_interrupt_request_ff"},
-// ffffffffc010cef0 t fix_data_segment
-    {0xffffffffc010cef0ull, "fix_data_segment"},
-// ffffffffc010cf01 T gdt_fix_segments
-    {0xffffffffc010cf01ull, "gdt_fix_segments"},
-// ffffffffc010cf20 T memset
-    {0xffffffffc010cf20ull, "memset"},
-// ffffffffc010cf80 T memcmp
-    {0xffffffffc010cf80ull, "memcmp"},
-// ffffffffc010d020 T memcpy
-    {0xffffffffc010d020ull, "memcpy"},
-// ffffffffc010d0a0 T memmove
-    {0xffffffffc010d0a0ull, "memmove"},
-// ffffffffc010d1a0 T strcmp
-    {0xffffffffc010d1a0ull, "strcmp"},
-// ffffffffc010d230 T strlen
-    {0xffffffffc010d230ull, "strlen"},
-// ffffffffc010d280 T stbsp_set_separators
-    {0xffffffffc010d280ull, "stbsp_set_separators"},
-// ffffffffc010d2b0 T stbsp_vsprintfcb
-    {0xffffffffc010d2b0ull, "stbsp_vsprintfcb"},
-// ffffffffc010f6a0 t stbsp__lead_sign
-    {0xffffffffc010f6a0ull, "stbsp__lead_sign"},
-// ffffffffc010f730 T stbsp_sprintf
-    {0xffffffffc010f730ull, "stbsp_sprintf"},
-// ffffffffc010f7a0 T stbsp_vsnprintf
-    {0xffffffffc010f7a0ull, "stbsp_vsnprintf"},
-// ffffffffc010f8e0 t stbsp__count_clamp_callback
-    {0xffffffffc010f8e0ull, "stbsp__count_clamp_callback"},
-// ffffffffc010f920 t stbsp__clamp_callback
-    {0xffffffffc010f920ull, "stbsp__clamp_callback"},
-// ffffffffc010fa60 T stbsp_snprintf
-    {0xffffffffc010fa60ull, "stbsp_snprintf"},
-// ffffffffc010fac0 T stbsp_vsprintf
-    {0xffffffffc010fac0ull, "stbsp_vsprintf"},
-// ffffffffc010fb10 T stbds_arrgrowf
-    {0xffffffffc010fb10ull, "stbds_arrgrowf"},
-// ffffffffc010fd10 T stbds_rand_seed
-    {0xffffffffc010fd10ull, "stbds_rand_seed"},
-// ffffffffc010fd30 T stbds_hash_string
-    {0xffffffffc010fd30ull, "stbds_hash_string"},
-// ffffffffc010fe40 T stbds_hash_bytes
-    {0xffffffffc010fe40ull, "stbds_hash_bytes"},
-// ffffffffc0110090 t stbds_siphash_bytes
-    {0xffffffffc0110090ull, "stbds_siphash_bytes"},
-// ffffffffc0110640 T stbds_hmfree_func
-    {0xffffffffc0110640ull, "stbds_hmfree_func"},
-// ffffffffc0110710 T stbds_strreset
-    {0xffffffffc0110710ull, "stbds_strreset"},
-// ffffffffc0110780 T stbds_hmget_key_ts
-    {0xffffffffc0110780ull, "stbds_hmget_key_ts"},
-// ffffffffc01108f0 t stbds_hm_find_slot
-    {0xffffffffc01108f0ull, "stbds_hm_find_slot"},
-// ffffffffc0110ba0 T stbds_hmget_key
-    {0xffffffffc0110ba0ull, "stbds_hmget_key"},
-// ffffffffc0110c00 T stbds_hmput_default
-    {0xffffffffc0110c00ull, "stbds_hmput_default"},
-// ffffffffc0110ce0 T stbds_hmput_key
-    {0xffffffffc0110ce0ull, "stbds_hmput_key"},
-// ffffffffc0111430 t stbds_make_hash_index
-    {0xffffffffc0111430ull, "stbds_make_hash_index"},
-// ffffffffc01119c0 t stbds_probe_position
-    {0xffffffffc01119c0ull, "stbds_probe_position"},
-// ffffffffc0111a00 t stbds_is_key_equal
-    {0xffffffffc0111a00ull, "stbds_is_key_equal"},
-// ffffffffc0111aa0 t stbds_strdup
-    {0xffffffffc0111aa0ull, "stbds_strdup"},
-// ffffffffc0111b00 T stbds_stralloc
-    {0xffffffffc0111b00ull, "stbds_stralloc"},
-// ffffffffc0111cd0 T stbds_shmode_func
-    {0xffffffffc0111cd0ull, "stbds_shmode_func"},
-// ffffffffc0111d70 T stbds_hmdel_key
-    {0xffffffffc0111d70ull, "stbds_hmdel_key"},
-// ffffffffc01120d0 t stbds_log2
-    {0xffffffffc01120d0ull, "stbds_log2"},
-// ffffffffc0116000 d early_current_tpl
-// ffffffffc0116008 d handler
-// ffffffffc0116038 D pit8254
-// ffffffffc0116040 d timers_list
-// ffffffffc0116050 d sv_handler
-// ffffffffc0116080 D idt
-// ffffffffc0116090 d ISR_NAMES
-// ffffffffc0116140 d PROCESSOR_NAME
-// ffffffffc0116150 d TABLE_NAME
-// ffffffffc0116170 d PRESENT_NAMES
-// ffffffffc0116180 d USER_NAME
-// ffffffffc0116190 d OPERATION_NAME
-// ffffffffc01161a0 d gdt_entries
-// ffffffffc01161d8 D gdt
-// ffffffffc01161f0 d tboot_mmap_names
-// ffffffffc0116218 d mem_map
-// ffffffffc0116228 d free_entries_list
-// ffffffffc0116238 d free_blocks
-// ffffffffc0116248 d used_blocks
-// ffffffffc0116258 d stack_allocation
-// ffffffffc0116260 D process_list
-// ffffffffc0116270 D kernel_process
-// ffffffffc01162e0 d handler
-// ffffffffc0116310 d threads_queue
-// ffffffffc0116320 d errors
-// ffffffffc0116350 d stbsp__period
-// ffffffffc0116351 d stbsp__comma
-// ffffffffc0116360 d stbsp_vsprintfcb.hex
-// ffffffffc0116380 d stbsp_vsprintfcb.hexu
-// ffffffffc0116394 d stbsp__digitpair
-// ffffffffc0116460 d stbds_hash_seed
-// ffffffffc0116470 D symlist
-// ffffffffc0116480 D bsp_pcpu_data
-// ffffffffc0117000 B acpi_madt
-// ffffffffc0117008 B acpi_rsdp
-// ffffffffc0117010 B acpi_xsdp
-// ffffffffc0117018 B acpi_rsdt
-// ffffffffc0117020 B acpi_xsdt
-// ffffffffc0117030 b notify_queues
-// ffffffffc0117230 b notify_queues_pending
-// ffffffffc0117238 b event_lock
-// ffffffffc0117258 b period
-// ffffffffc0117260 b timer
-// ffffffffc0117268 b check_timers_event
-// ffffffffc0117270 b current_system_time
-// ffffffffc0117278 b timer_lock
-// ffffffffc0117298 b ioapics
-// ffffffffc01172a0 b isos
-// ffffffffc01172a8 b initialized_once
-// ffffffffc01172b0 b idt_entries
-// ffffffffc01182b0 b interrupt_handlers
-// ffffffffc01192b0 b interrupt_vector
-// ffffffffc0119624 b index
-// ffffffffc0119628 b control
-// ffffffffc011afb0 b mem_memory_top
-// ffffffffc011afb8 b memory_base
-// ffffffffc011afc0 b lock
-// ffffffffc011afe0 b temp_entries
-// ffffffffc011b170 b temp_entries_count
-// ffffffffc011b178 b freeing
-// ffffffffc011b180 b lock
-// ffffffffc011b1a0 b memory_base
-// ffffffffc011b1a8 b support_1gb
-// ffffffffc011b1a9 b support_global
-// ffffffffc011b1b0 B process_lock
-// ffffffffc011b1d0 b flag
-// ffffffffc019b1d4 B kernel_virtual_end
-// ffffffffc019b1d4 b tmp_kernel_stack
+// ffffffffc01012c0 T madt_get_next
+    {0xffffffffc01012c0ull, "madt_get_next"},
+// ffffffffc0101390 T rsdp_init
+    {0xffffffffc0101390ull, "rsdp_init"},
+// ffffffffc01014b0 T rsdt_init
+    {0xffffffffc01014b0ull, "rsdt_init"},
+// ffffffffc01015f0 T rsdt_search
+    {0xffffffffc01015f0ull, "rsdt_search"},
+// ffffffffc0101790 T trace_table
+    {0xffffffffc0101790ull, "trace_table"},
+// ffffffffc0101830 T __outbyte
+    {0xffffffffc0101830ull, "__outbyte"},
+// ffffffffc0101850 T __outdword
+    {0xffffffffc0101850ull, "__outdword"},
+// ffffffffc0101870 T __outword
+    {0xffffffffc0101870ull, "__outword"},
+// ffffffffc0101890 T __inbyte
+    {0xffffffffc0101890ull, "__inbyte"},
+// ffffffffc01018b0 T __inword
+    {0xffffffffc01018b0ull, "__inword"},
+// ffffffffc01018d0 T __indword
+    {0xffffffffc01018d0ull, "__indword"},
+// ffffffffc01018f0 T __readcr8
+    {0xffffffffc01018f0ull, "__readcr8"},
+// ffffffffc0101910 T __writecr8
+    {0xffffffffc0101910ull, "__writecr8"},
+// ffffffffc0101930 T __readcr4
+    {0xffffffffc0101930ull, "__readcr4"},
+// ffffffffc0101960 T __writecr4
+    {0xffffffffc0101960ull, "__writecr4"},
+// ffffffffc0101980 T __readcr3
+    {0xffffffffc0101980ull, "__readcr3"},
+// ffffffffc01019a0 T __writecr3
+    {0xffffffffc01019a0ull, "__writecr3"},
+// ffffffffc01019c0 T __readcr2
+    {0xffffffffc01019c0ull, "__readcr2"},
+// ffffffffc01019e0 T __writecr2
+    {0xffffffffc01019e0ull, "__writecr2"},
+// ffffffffc0101a00 T __readcr0
+    {0xffffffffc0101a00ull, "__readcr0"},
+// ffffffffc0101a30 T __writecr0
+    {0xffffffffc0101a30ull, "__writecr0"},
+// ffffffffc0101a50 T __readmsr
+    {0xffffffffc0101a50ull, "__readmsr"},
+// ffffffffc0101a90 T __writemsr
+    {0xffffffffc0101a90ull, "__writemsr"},
+// ffffffffc0101ad0 T __cpuid
+    {0xffffffffc0101ad0ull, "__cpuid"},
+// ffffffffc0101b30 T __cpuidex
+    {0xffffffffc0101b30ull, "__cpuidex"},
+// ffffffffc0101b90 T cpuid
+    {0xffffffffc0101b90ull, "cpuid"},
+// ffffffffc0101c30 T __invlpg
+    {0xffffffffc0101c30ull, "__invlpg"},
+// ffffffffc0101c50 T __halt
+    {0xffffffffc0101c50ull, "__halt"},
+// ffffffffc0101c60 T __nop
+    {0xffffffffc0101c60ull, "__nop"},
+// ffffffffc0101c70 T _BitScanReverse
+    {0xffffffffc0101c70ull, "_BitScanReverse"},
+// ffffffffc0101cb0 T _BitScanReverse64
+    {0xffffffffc0101cb0ull, "_BitScanReverse64"},
+// ffffffffc0101cf0 T __readmsr_efer
+    {0xffffffffc0101cf0ull, "__readmsr_efer"},
+// ffffffffc0101d10 T __writemsr_efer
+    {0xffffffffc0101d10ull, "__writemsr_efer"},
+// ffffffffc0101d30 T __readmsr_apic_base
+    {0xffffffffc0101d30ull, "__readmsr_apic_base"},
+// ffffffffc0101d50 T generate_device_address
+    {0xffffffffc0101d50ull, "generate_device_address"},
+// ffffffffc0101e90 T register_component
+    {0xffffffffc0101e90ull, "register_component"},
+// ffffffffc0102060 T get_component
+    {0xffffffffc0102060ull, "get_component"},
+// ffffffffc01021b0 T get_next_component
+    {0xffffffffc01021b0ull, "get_next_component"},
+// ffffffffc01021d0 T get_primary
+    {0xffffffffc01021d0ull, "get_primary"},
+// ffffffffc01022d0 T set_primary
+    {0xffffffffc01022d0ull, "set_primary"},
+// ffffffffc0102310 T tar_tell
+    {0xffffffffc0102310ull, "tar_tell"},
+// ffffffffc0102420 T tar_read
+    {0xffffffffc0102420ull, "tar_read"},
+// ffffffffc0102630 T create_initrd_fs
+    {0xffffffffc0102630ull, "create_initrd_fs"},
+// ffffffffc01027b0 t tar_size
+    {0xffffffffc01027b0ull, "tar_size"},
+// ffffffffc0102830 t tar_open
+    {0xffffffffc0102830ull, "tar_open"},
+// ffffffffc0102a00 t tar_is_readonly
+    {0xffffffffc0102a00ull, "tar_is_readonly"},
+// ffffffffc0102a80 t tar_eof
+    {0xffffffffc0102a80ull, "tar_eof"},
+// ffffffffc0102ba0 t tar_seek
+    {0xffffffffc0102ba0ull, "tar_seek"},
+// ffffffffc0102e30 t tar_close
+    {0xffffffffc0102e30ull, "tar_close"},
+// ffffffffc0102eb0 T sha1_transform
+    {0xffffffffc0102eb0ull, "sha1_transform"},
+// ffffffffc0103260 T sha1_init
+    {0xffffffffc0103260ull, "sha1_init"},
+// ffffffffc01032f0 T sha1_update
+    {0xffffffffc01032f0ull, "sha1_update"},
+// ffffffffc01033a0 T sha1_final
+    {0xffffffffc01033a0ull, "sha1_final"},
+// ffffffffc0103660 T events_init
+    {0xffffffffc0103660ull, "events_init"},
+// ffffffffc01036d0 T raise_tpl
+    {0xffffffffc01036d0ull, "raise_tpl"},
+// ffffffffc0103760 T set_tpl
+    {0xffffffffc0103760ull, "set_tpl"},
+// ffffffffc01037c0 T restore_tpl
+    {0xffffffffc01037c0ull, "restore_tpl"},
+// ffffffffc01038b0 t dispatch_event_notifies
+    {0xffffffffc01038b0ull, "dispatch_event_notifies"},
+// ffffffffc0103a00 T get_tpl
+    {0xffffffffc0103a00ull, "get_tpl"},
+// ffffffffc0103a60 T create_event
+    {0xffffffffc0103a60ull, "create_event"},
+// ffffffffc0103b80 T signal_event
+    {0xffffffffc0103b80ull, "signal_event"},
+// ffffffffc0103cd0 T check_event
+    {0xffffffffc0103cd0ull, "check_event"},
+// ffffffffc0103da0 T wait_for_event
+    {0xffffffffc0103da0ull, "wait_for_event"},
+// ffffffffc01040d0 T close_event
+    {0xffffffffc01040d0ull, "close_event"},
+// ffffffffc0104180 t aquire_event_lock
+    {0xffffffffc0104180ull, "aquire_event_lock"},
+// ffffffffc01041a0 t release_event_lock
+    {0xffffffffc01041a0ull, "release_event_lock"},
+// ffffffffc01041c0 T init_pit8254
+    {0xffffffffc01041c0ull, "init_pit8254"},
+// ffffffffc0104210 t set_timer_period
+    {0xffffffffc0104210ull, "set_timer_period"},
+// ffffffffc01042c0 t interrupt_handler
+    {0xffffffffc01042c0ull, "interrupt_handler"},
+// ffffffffc01042f0 t set_pit_count
+    {0xffffffffc01042f0ull, "set_pit_count"},
+// ffffffffc0104350 T init_timer
+    {0xffffffffc0104350ull, "init_timer"},
+// ffffffffc01044a0 t check_timers
+    {0xffffffffc01044a0ull, "check_timers"},
+// ffffffffc01045f0 T timer_tick
+    {0xffffffffc01045f0ull, "timer_tick"},
+// ffffffffc0104660 T get_current_system_time
+    {0xffffffffc0104660ull, "get_current_system_time"},
+// ffffffffc0104680 T set_timer
+    {0xffffffffc0104680ull, "set_timer"},
+// ffffffffc0104850 t insert_event_timer
+    {0xffffffffc0104850ull, "insert_event_timer"},
+// ffffffffc01048f0 T ioapic_add
+    {0xffffffffc01048f0ull, "ioapic_add"},
+// ffffffffc0104a10 t ioapic_read
+    {0xffffffffc0104a10ull, "ioapic_read"},
+// ffffffffc0104a90 T ioapic_add_iso
+    {0xffffffffc0104a90ull, "ioapic_add_iso"},
+// ffffffffc0104b20 T ioapic_enable_interrupt
+    {0xffffffffc0104b20ull, "ioapic_enable_interrupt"},
+// ffffffffc0104ca0 t get_ioapic
+    {0xffffffffc0104ca0ull, "get_ioapic"},
+// ffffffffc0104dc0 t ioapic_write
+    {0xffffffffc0104dc0ull, "ioapic_write"},
+// ffffffffc0104e40 T ioapic_configure_interrupt
+    {0xffffffffc0104e40ull, "ioapic_configure_interrupt"},
+// ffffffffc0105130 T get_apic_id
+    {0xffffffffc0105130ull, "get_apic_id"},
+// ffffffffc0105150 t lapic_read
+    {0xffffffffc0105150ull, "lapic_read"},
+// ffffffffc0105180 T lapic_init
+    {0xffffffffc0105180ull, "lapic_init"},
+// ffffffffc01052a0 t lapic_write
+    {0xffffffffc01052a0ull, "lapic_write"},
+// ffffffffc01052d0 T send_fixed_ipi
+    {0xffffffffc01052d0ull, "send_fixed_ipi"},
+// ffffffffc01052f0 T send_apic_eoi
+    {0xffffffffc01052f0ull, "send_apic_eoi"},
+// ffffffffc0105310 t spurious_interrupt_handler
+    {0xffffffffc0105310ull, "spurious_interrupt_handler"},
+// ffffffffc0105330 T idt_init
+    {0xffffffffc0105330ull, "idt_init"},
+// ffffffffc0106650 t set_idt_entry
+    {0xffffffffc0106650ull, "set_idt_entry"},
+// ffffffffc0106820 T interrupts_init
+    {0xffffffffc0106820ull, "interrupts_init"},
+// ffffffffc0106890 T common_interrupt_handler
+    {0xffffffffc0106890ull, "common_interrupt_handler"},
+// ffffffffc0106a20 t default_interrupt_handler
+    {0xffffffffc0106a20ull, "default_interrupt_handler"},
+// ffffffffc0107360 T interrupt_register
+    {0xffffffffc0107360ull, "interrupt_register"},
+// ffffffffc01074f0 T interrupt_free
+    {0xffffffffc01074f0ull, "interrupt_free"},
+// ffffffffc0107580 t interrupt_allocate
+    {0xffffffffc0107580ull, "interrupt_allocate"},
+// ffffffffc01076f0 T kernel_main
+    {0xffffffffc01076f0ull, "kernel_main"},
+// ffffffffc0107880 t main_thread
+    {0xffffffffc0107880ull, "main_thread"},
+// ffffffffc0107aa0 T init_tss_for_cpu
+    {0xffffffffc0107aa0ull, "init_tss_for_cpu"},
+// ffffffffc0107b70 T mm_init
+    {0xffffffffc0107b70ull, "mm_init"},
+// ffffffffc0107b80 T mm_allocate
+    {0xffffffffc0107b80ull, "mm_allocate"},
+// ffffffffc0107c50 t tlsf_malloc
+    {0xffffffffc0107c50ull, "tlsf_malloc"},
+// ffffffffc0107c90 t tlsf_add_pool
+    {0xffffffffc0107c90ull, "tlsf_add_pool"},
+// ffffffffc0107de0 T mm_reallocate
+    {0xffffffffc0107de0ull, "mm_reallocate"},
+// ffffffffc0107eb0 t tlsf_realloc
+    {0xffffffffc0107eb0ull, "tlsf_realloc"},
+// ffffffffc01080b0 T mm_free
+    {0xffffffffc01080b0ull, "mm_free"},
+// ffffffffc01080d0 t tlsf_free
+    {0xffffffffc01080d0ull, "tlsf_free"},
+// ffffffffc0108190 t tlsf_create
+    {0xffffffffc0108190ull, "tlsf_create"},
+// ffffffffc01081a0 t control_construct
+    {0xffffffffc01081a0ull, "control_construct"},
+// ffffffffc0108240 t adjust_request_size
+    {0xffffffffc0108240ull, "adjust_request_size"},
+// ffffffffc01082d0 t block_locate_free
+    {0xffffffffc01082d0ull, "block_locate_free"},
+// ffffffffc01083b0 t block_prepare_used
+    {0xffffffffc01083b0ull, "block_prepare_used"},
+// ffffffffc0108460 t align_up
+    {0xffffffffc0108460ull, "align_up"},
+// ffffffffc0108510 t mapping_search
+    {0xffffffffc0108510ull, "mapping_search"},
+// ffffffffc0108580 t search_suitable_block
+    {0xffffffffc0108580ull, "search_suitable_block"},
+// ffffffffc01086c0 t block_size
+    {0xffffffffc01086c0ull, "block_size"},
+// ffffffffc01086e0 t remove_free_block
+    {0xffffffffc01086e0ull, "remove_free_block"},
+// ffffffffc0108880 t tlsf_fls_sizet
+    {0xffffffffc0108880ull, "tlsf_fls_sizet"},
+// ffffffffc01088e0 t mapping_insert
+    {0xffffffffc01088e0ull, "mapping_insert"},
+// ffffffffc0108970 t tlsf_fls
+    {0xffffffffc0108970ull, "tlsf_fls"},
+// ffffffffc01089c0 t tlsf_ffs
+    {0xffffffffc01089c0ull, "tlsf_ffs"},
+// ffffffffc01089f0 t block_trim_free
+    {0xffffffffc01089f0ull, "block_trim_free"},
+// ffffffffc0108ab0 t block_mark_as_used
+    {0xffffffffc0108ab0ull, "block_mark_as_used"},
+// ffffffffc0108af0 t block_to_ptr
+    {0xffffffffc0108af0ull, "block_to_ptr"},
+// ffffffffc0108b10 t block_is_free
+    {0xffffffffc0108b10ull, "block_is_free"},
+// ffffffffc0108b30 t block_can_split
+    {0xffffffffc0108b30ull, "block_can_split"},
+// ffffffffc0108b70 t block_split
+    {0xffffffffc0108b70ull, "block_split"},
+// ffffffffc0108d30 t block_link_next
+    {0xffffffffc0108d30ull, "block_link_next"},
+// ffffffffc0108d60 t block_set_prev_free
+    {0xffffffffc0108d60ull, "block_set_prev_free"},
+// ffffffffc0108d90 t block_insert
+    {0xffffffffc0108d90ull, "block_insert"},
+// ffffffffc0108dd0 t offset_to_block
+    {0xffffffffc0108dd0ull, "offset_to_block"},
+// ffffffffc0108df0 t align_ptr
+    {0xffffffffc0108df0ull, "align_ptr"},
+// ffffffffc0108ea0 t block_set_size
+    {0xffffffffc0108ea0ull, "block_set_size"},
+// ffffffffc0108ee0 t block_mark_as_free
+    {0xffffffffc0108ee0ull, "block_mark_as_free"},
+// ffffffffc0108f20 t block_set_free
+    {0xffffffffc0108f20ull, "block_set_free"},
+// ffffffffc0108f50 t block_next
+    {0xffffffffc0108f50ull, "block_next"},
+// ffffffffc0108ff0 t block_is_last
+    {0xffffffffc0108ff0ull, "block_is_last"},
+// ffffffffc0109020 t insert_free_block
+    {0xffffffffc0109020ull, "insert_free_block"},
+// ffffffffc01091f0 t block_set_prev_used
+    {0xffffffffc01091f0ull, "block_set_prev_used"},
+// ffffffffc0109220 t block_set_used
+    {0xffffffffc0109220ull, "block_set_used"},
+// ffffffffc0109250 t tlsf_pool_overhead
+    {0xffffffffc0109250ull, "tlsf_pool_overhead"},
+// ffffffffc0109260 t align_down
+    {0xffffffffc0109260ull, "align_down"},
+// ffffffffc0109300 t block_from_ptr
+    {0xffffffffc0109300ull, "block_from_ptr"},
+// ffffffffc0109320 t block_merge_next
+    {0xffffffffc0109320ull, "block_merge_next"},
+// ffffffffc0109430 t block_trim_used
+    {0xffffffffc0109430ull, "block_trim_used"},
+// ffffffffc01094f0 t block_remove
+    {0xffffffffc01094f0ull, "block_remove"},
+// ffffffffc0109530 t block_absorb
+    {0xffffffffc0109530ull, "block_absorb"},
+// ffffffffc01095e0 t block_merge_prev
+    {0xffffffffc01095e0ull, "block_merge_prev"},
+// ffffffffc01096f0 t block_is_prev_free
+    {0xffffffffc01096f0ull, "block_is_prev_free"},
+// ffffffffc0109710 t block_prev
+    {0xffffffffc0109710ull, "block_prev"},
+// ffffffffc0109790 T pmm_init
+    {0xffffffffc0109790ull, "pmm_init"},
+// ffffffffc0109910 t add_range
+    {0xffffffffc0109910ull, "add_range"},
+// ffffffffc0109b80 T pmm_post_vmm
+    {0xffffffffc0109b80ull, "pmm_post_vmm"},
+// ffffffffc0109dd0 T pmm_allocate_pages
+    {0xffffffffc0109dd0ull, "pmm_allocate_pages"},
+// ffffffffc010a160 t find_free_pages
+    {0xffffffffc010a160ull, "find_free_pages"},
+// ffffffffc010a370 t convert_page
+    {0xffffffffc010a370ull, "convert_page"},
+// ffffffffc010a8e0 T pmm_free_pages
+    {0xffffffffc010a8e0ull, "pmm_free_pages"},
+// ffffffffc010a9f0 t remove_mem_map_entry
+    {0xffffffffc010a9f0ull, "remove_mem_map_entry"},
+// ffffffffc010aa40 t move_temp_entries
+    {0xffffffffc010aa40ull, "move_temp_entries"},
+// ffffffffc010ac00 t allocate_memory_map_entry
+    {0xffffffffc010ac00ull, "allocate_memory_map_entry"},
+// ffffffffc010acd0 t allocate_pool_pages
+    {0xffffffffc010acd0ull, "allocate_pool_pages"},
+// ffffffffc010ad70 T allocate_stack
+    {0xffffffffc010ad70ull, "allocate_stack"},
+// ffffffffc010af70 T free_stack
+    {0xffffffffc010af70ull, "free_stack"},
+// ffffffffc010b080 t acquire_alloc_lock
+    {0xffffffffc010b080ull, "acquire_alloc_lock"},
+// ffffffffc010b0a0 t release_alloc_lock
+    {0xffffffffc010b0a0ull, "release_alloc_lock"},
+// ffffffffc010b0c0 T vmm_init
+    {0xffffffffc010b0c0ull, "vmm_init"},
+// ffffffffc010b2a0 T vmm_map
+    {0xffffffffc010b2a0ull, "vmm_map"},
+// ffffffffc010b510 T vmm_set_handle
+    {0xffffffffc010b510ull, "vmm_set_handle"},
+// ffffffffc010b550 T vmm_enable_cpu_features
+    {0xffffffffc010b550ull, "vmm_enable_cpu_features"},
+// ffffffffc010b700 T vmm_virtual_to_physical
+    {0xffffffffc010b700ull, "vmm_virtual_to_physical"},
+// ffffffffc010b900 t get_entry_at_virtual_address
+    {0xffffffffc010b900ull, "get_entry_at_virtual_address"},
+// ffffffffc010bb80 T vmm_is_mapped
+    {0xffffffffc010bb80ull, "vmm_is_mapped"},
+// ffffffffc010bd00 t page_size_by_type
+    {0xffffffffc010bd00ull, "page_size_by_type"},
+// ffffffffc010bdb0 T vmm_unmap
+    {0xffffffffc010bdb0ull, "vmm_unmap"},
+// ffffffffc010bff0 t set_pte
+    {0xffffffffc010bff0ull, "set_pte"},
+// ffffffffc010cab0 T init_kernel_process
+    {0xffffffffc010cab0ull, "init_kernel_process"},
+// ffffffffc010cad0 T yield
+    {0xffffffffc010cad0ull, "yield"},
+// ffffffffc010cae0 T init_sched
+    {0xffffffffc010cae0ull, "init_sched"},
+// ffffffffc010cc30 t preemption_callback
+    {0xffffffffc010cc30ull, "preemption_callback"},
+// ffffffffc010cc50 T queue_thread
+    {0xffffffffc010cc50ull, "queue_thread"},
+// ffffffffc010cd10 T sched_tick
+    {0xffffffffc010cd10ull, "sched_tick"},
+// ffffffffc010cf70 t yield_interrupt
+    {0xffffffffc010cf70ull, "yield_interrupt"},
+// ffffffffc010cfe0 t idle_thread_func
+    {0xffffffffc010cfe0ull, "idle_thread_func"},
+// ffffffffc010d010 t sched_lock
+    {0xffffffffc010d010ull, "sched_lock"},
+// ffffffffc010d050 t sched_unlock
+    {0xffffffffc010d050ull, "sched_unlock"},
+// ffffffffc010d070 T spawn_thread
+    {0xffffffffc010d070ull, "spawn_thread"},
+// ffffffffc010d350 T pcpu_init_for_cpu
+    {0xffffffffc010d350ull, "pcpu_init_for_cpu"},
+// ffffffffc010d380 T pcpu_init_for_bsp
+    {0xffffffffc010d380ull, "pcpu_init_for_bsp"},
+// ffffffffc010d3a0 T get_pcpu_base
+    {0xffffffffc010d3a0ull, "get_pcpu_base"},
+// ffffffffc010d3b0 T spinlock_acquire_high_tpl
+    {0xffffffffc010d3b0ull, "spinlock_acquire_high_tpl"},
+// ffffffffc010d420 T spinlock_acquire
+    {0xffffffffc010d420ull, "spinlock_acquire"},
+// ffffffffc010d470 T spinlock_release
+    {0xffffffffc010d470ull, "spinlock_release"},
+// ffffffffc010d4b0 T strerror
+    {0xffffffffc010d4b0ull, "strerror"},
+// ffffffffc010d500 T is_node_in_list
+    {0xffffffffc010d500ull, "is_node_in_list"},
+// ffffffffc010d600 t is_list_valid
+    {0xffffffffc010d600ull, "is_list_valid"},
+// ffffffffc010d710 T initialize_list_had
+    {0xffffffffc010d710ull, "initialize_list_had"},
+// ffffffffc010d790 T insert_head_list
+    {0xffffffffc010d790ull, "insert_head_list"},
+// ffffffffc010d830 T insert_tail_list
+    {0xffffffffc010d830ull, "insert_tail_list"},
+// ffffffffc010d8d0 T get_first_node
+    {0xffffffffc010d8d0ull, "get_first_node"},
+// ffffffffc010d940 T get_next_node
+    {0xffffffffc010d940ull, "get_next_node"},
+// ffffffffc010d9b0 T get_prev_node
+    {0xffffffffc010d9b0ull, "get_prev_node"},
+// ffffffffc010da20 T is_list_empty
+    {0xffffffffc010da20ull, "is_list_empty"},
+// ffffffffc010daa0 T is_null
+    {0xffffffffc010daa0ull, "is_null"},
+// ffffffffc010dad0 T is_node_at_end
+    {0xffffffffc010dad0ull, "is_node_at_end"},
+// ffffffffc010db20 T swap_list_entries
+    {0xffffffffc010db20ull, "swap_list_entries"},
+// ffffffffc010dc40 T remove_entry_list
+    {0xffffffffc010dc40ull, "remove_entry_list"},
+// ffffffffc010dce0 T serial_init
+    {0xffffffffc010dce0ull, "serial_init"},
+// ffffffffc010dd60 T serial_write
+    {0xffffffffc010dd60ull, "serial_write"},
+// ffffffffc010de30 T serial_read
+    {0xffffffffc010de30ull, "serial_read"},
+// ffffffffc010deb0 T serial_poll
+    {0xffffffffc010deb0ull, "serial_poll"},
+// ffffffffc010dee0 T trace
+    {0xffffffffc010dee0ull, "trace"},
+// ffffffffc010e050 t common_stub
+    {0xffffffffc010e050ull, "common_stub"},
+// ffffffffc010e09d T handle_interrupt_request_00
+    {0xffffffffc010e09dull, "handle_interrupt_request_00"},
+// ffffffffc010e0a3 T handle_interrupt_request_01
+    {0xffffffffc010e0a3ull, "handle_interrupt_request_01"},
+// ffffffffc010e0a9 T handle_interrupt_request_02
+    {0xffffffffc010e0a9ull, "handle_interrupt_request_02"},
+// ffffffffc010e0af T handle_interrupt_request_03
+    {0xffffffffc010e0afull, "handle_interrupt_request_03"},
+// ffffffffc010e0b5 T handle_interrupt_request_04
+    {0xffffffffc010e0b5ull, "handle_interrupt_request_04"},
+// ffffffffc010e0bb T handle_interrupt_request_05
+    {0xffffffffc010e0bbull, "handle_interrupt_request_05"},
+// ffffffffc010e0c1 T handle_interrupt_request_06
+    {0xffffffffc010e0c1ull, "handle_interrupt_request_06"},
+// ffffffffc010e0c7 T handle_interrupt_request_07
+    {0xffffffffc010e0c7ull, "handle_interrupt_request_07"},
+// ffffffffc010e0cd T handle_interrupt_request_08
+    {0xffffffffc010e0cdull, "handle_interrupt_request_08"},
+// ffffffffc010e0d4 T handle_interrupt_request_09
+    {0xffffffffc010e0d4ull, "handle_interrupt_request_09"},
+// ffffffffc010e0dd T handle_interrupt_request_0a
+    {0xffffffffc010e0ddull, "handle_interrupt_request_0a"},
+// ffffffffc010e0e4 T handle_interrupt_request_0b
+    {0xffffffffc010e0e4ull, "handle_interrupt_request_0b"},
+// ffffffffc010e0eb T handle_interrupt_request_0c
+    {0xffffffffc010e0ebull, "handle_interrupt_request_0c"},
+// ffffffffc010e0f2 T handle_interrupt_request_0d
+    {0xffffffffc010e0f2ull, "handle_interrupt_request_0d"},
+// ffffffffc010e0f9 T handle_interrupt_request_0e
+    {0xffffffffc010e0f9ull, "handle_interrupt_request_0e"},
+// ffffffffc010e100 T handle_interrupt_request_0f
+    {0xffffffffc010e100ull, "handle_interrupt_request_0f"},
+// ffffffffc010e109 T handle_interrupt_request_10
+    {0xffffffffc010e109ull, "handle_interrupt_request_10"},
+// ffffffffc010e110 T handle_interrupt_request_11
+    {0xffffffffc010e110ull, "handle_interrupt_request_11"},
+// ffffffffc010e119 T handle_interrupt_request_12
+    {0xffffffffc010e119ull, "handle_interrupt_request_12"},
+// ffffffffc010e122 T handle_interrupt_request_13
+    {0xffffffffc010e122ull, "handle_interrupt_request_13"},
+// ffffffffc010e12b T handle_interrupt_request_14
+    {0xffffffffc010e12bull, "handle_interrupt_request_14"},
+// ffffffffc010e134 T handle_interrupt_request_15
+    {0xffffffffc010e134ull, "handle_interrupt_request_15"},
+// ffffffffc010e13d T handle_interrupt_request_16
+    {0xffffffffc010e13dull, "handle_interrupt_request_16"},
+// ffffffffc010e146 T handle_interrupt_request_17
+    {0xffffffffc010e146ull, "handle_interrupt_request_17"},
+// ffffffffc010e14f T handle_interrupt_request_18
+    {0xffffffffc010e14full, "handle_interrupt_request_18"},
+// ffffffffc010e158 T handle_interrupt_request_19
+    {0xffffffffc010e158ull, "handle_interrupt_request_19"},
+// ffffffffc010e161 T handle_interrupt_request_1a
+    {0xffffffffc010e161ull, "handle_interrupt_request_1a"},
+// ffffffffc010e16a T handle_interrupt_request_1b
+    {0xffffffffc010e16aull, "handle_interrupt_request_1b"},
+// ffffffffc010e173 T handle_interrupt_request_1c
+    {0xffffffffc010e173ull, "handle_interrupt_request_1c"},
+// ffffffffc010e17c T handle_interrupt_request_1d
+    {0xffffffffc010e17cull, "handle_interrupt_request_1d"},
+// ffffffffc010e185 T handle_interrupt_request_1e
+    {0xffffffffc010e185ull, "handle_interrupt_request_1e"},
+// ffffffffc010e18c T handle_interrupt_request_1f
+    {0xffffffffc010e18cull, "handle_interrupt_request_1f"},
+// ffffffffc010e195 T handle_interrupt_request_20
+    {0xffffffffc010e195ull, "handle_interrupt_request_20"},
+// ffffffffc010e19e T handle_interrupt_request_21
+    {0xffffffffc010e19eull, "handle_interrupt_request_21"},
+// ffffffffc010e1a7 T handle_interrupt_request_22
+    {0xffffffffc010e1a7ull, "handle_interrupt_request_22"},
+// ffffffffc010e1b0 T handle_interrupt_request_23
+    {0xffffffffc010e1b0ull, "handle_interrupt_request_23"},
+// ffffffffc010e1b9 T handle_interrupt_request_24
+    {0xffffffffc010e1b9ull, "handle_interrupt_request_24"},
+// ffffffffc010e1c2 T handle_interrupt_request_25
+    {0xffffffffc010e1c2ull, "handle_interrupt_request_25"},
+// ffffffffc010e1cb T handle_interrupt_request_26
+    {0xffffffffc010e1cbull, "handle_interrupt_request_26"},
+// ffffffffc010e1d4 T handle_interrupt_request_27
+    {0xffffffffc010e1d4ull, "handle_interrupt_request_27"},
+// ffffffffc010e1dd T handle_interrupt_request_28
+    {0xffffffffc010e1ddull, "handle_interrupt_request_28"},
+// ffffffffc010e1e6 T handle_interrupt_request_29
+    {0xffffffffc010e1e6ull, "handle_interrupt_request_29"},
+// ffffffffc010e1ef T handle_interrupt_request_2a
+    {0xffffffffc010e1efull, "handle_interrupt_request_2a"},
+// ffffffffc010e1f8 T handle_interrupt_request_2b
+    {0xffffffffc010e1f8ull, "handle_interrupt_request_2b"},
+// ffffffffc010e201 T handle_interrupt_request_2c
+    {0xffffffffc010e201ull, "handle_interrupt_request_2c"},
+// ffffffffc010e20a T handle_interrupt_request_2d
+    {0xffffffffc010e20aull, "handle_interrupt_request_2d"},
+// ffffffffc010e213 T handle_interrupt_request_2e
+    {0xffffffffc010e213ull, "handle_interrupt_request_2e"},
+// ffffffffc010e21c T handle_interrupt_request_2f
+    {0xffffffffc010e21cull, "handle_interrupt_request_2f"},
+// ffffffffc010e225 T handle_interrupt_request_30
+    {0xffffffffc010e225ull, "handle_interrupt_request_30"},
+// ffffffffc010e22e T handle_interrupt_request_31
+    {0xffffffffc010e22eull, "handle_interrupt_request_31"},
+// ffffffffc010e237 T handle_interrupt_request_32
+    {0xffffffffc010e237ull, "handle_interrupt_request_32"},
+// ffffffffc010e240 T handle_interrupt_request_33
+    {0xffffffffc010e240ull, "handle_interrupt_request_33"},
+// ffffffffc010e249 T handle_interrupt_request_34
+    {0xffffffffc010e249ull, "handle_interrupt_request_34"},
+// ffffffffc010e252 T handle_interrupt_request_35
+    {0xffffffffc010e252ull, "handle_interrupt_request_35"},
+// ffffffffc010e25b T handle_interrupt_request_36
+    {0xffffffffc010e25bull, "handle_interrupt_request_36"},
+// ffffffffc010e264 T handle_interrupt_request_37
+    {0xffffffffc010e264ull, "handle_interrupt_request_37"},
+// ffffffffc010e26d T handle_interrupt_request_38
+    {0xffffffffc010e26dull, "handle_interrupt_request_38"},
+// ffffffffc010e276 T handle_interrupt_request_39
+    {0xffffffffc010e276ull, "handle_interrupt_request_39"},
+// ffffffffc010e27f T handle_interrupt_request_3a
+    {0xffffffffc010e27full, "handle_interrupt_request_3a"},
+// ffffffffc010e288 T handle_interrupt_request_3b
+    {0xffffffffc010e288ull, "handle_interrupt_request_3b"},
+// ffffffffc010e291 T handle_interrupt_request_3c
+    {0xffffffffc010e291ull, "handle_interrupt_request_3c"},
+// ffffffffc010e29a T handle_interrupt_request_3d
+    {0xffffffffc010e29aull, "handle_interrupt_request_3d"},
+// ffffffffc010e2a3 T handle_interrupt_request_3e
+    {0xffffffffc010e2a3ull, "handle_interrupt_request_3e"},
+// ffffffffc010e2ac T handle_interrupt_request_3f
+    {0xffffffffc010e2acull, "handle_interrupt_request_3f"},
+// ffffffffc010e2b5 T handle_interrupt_request_40
+    {0xffffffffc010e2b5ull, "handle_interrupt_request_40"},
+// ffffffffc010e2be T handle_interrupt_request_41
+    {0xffffffffc010e2beull, "handle_interrupt_request_41"},
+// ffffffffc010e2c7 T handle_interrupt_request_42
+    {0xffffffffc010e2c7ull, "handle_interrupt_request_42"},
+// ffffffffc010e2d0 T handle_interrupt_request_43
+    {0xffffffffc010e2d0ull, "handle_interrupt_request_43"},
+// ffffffffc010e2d9 T handle_interrupt_request_44
+    {0xffffffffc010e2d9ull, "handle_interrupt_request_44"},
+// ffffffffc010e2e2 T handle_interrupt_request_45
+    {0xffffffffc010e2e2ull, "handle_interrupt_request_45"},
+// ffffffffc010e2eb T handle_interrupt_request_46
+    {0xffffffffc010e2ebull, "handle_interrupt_request_46"},
+// ffffffffc010e2f4 T handle_interrupt_request_47
+    {0xffffffffc010e2f4ull, "handle_interrupt_request_47"},
+// ffffffffc010e2fd T handle_interrupt_request_48
+    {0xffffffffc010e2fdull, "handle_interrupt_request_48"},
+// ffffffffc010e306 T handle_interrupt_request_49
+    {0xffffffffc010e306ull, "handle_interrupt_request_49"},
+// ffffffffc010e30f T handle_interrupt_request_4a
+    {0xffffffffc010e30full, "handle_interrupt_request_4a"},
+// ffffffffc010e318 T handle_interrupt_request_4b
+    {0xffffffffc010e318ull, "handle_interrupt_request_4b"},
+// ffffffffc010e321 T handle_interrupt_request_4c
+    {0xffffffffc010e321ull, "handle_interrupt_request_4c"},
+// ffffffffc010e32a T handle_interrupt_request_4d
+    {0xffffffffc010e32aull, "handle_interrupt_request_4d"},
+// ffffffffc010e333 T handle_interrupt_request_4e
+    {0xffffffffc010e333ull, "handle_interrupt_request_4e"},
+// ffffffffc010e33c T handle_interrupt_request_4f
+    {0xffffffffc010e33cull, "handle_interrupt_request_4f"},
+// ffffffffc010e345 T handle_interrupt_request_50
+    {0xffffffffc010e345ull, "handle_interrupt_request_50"},
+// ffffffffc010e34e T handle_interrupt_request_51
+    {0xffffffffc010e34eull, "handle_interrupt_request_51"},
+// ffffffffc010e357 T handle_interrupt_request_52
+    {0xffffffffc010e357ull, "handle_interrupt_request_52"},
+// ffffffffc010e360 T handle_interrupt_request_53
+    {0xffffffffc010e360ull, "handle_interrupt_request_53"},
+// ffffffffc010e369 T handle_interrupt_request_54
+    {0xffffffffc010e369ull, "handle_interrupt_request_54"},
+// ffffffffc010e372 T handle_interrupt_request_55
+    {0xffffffffc010e372ull, "handle_interrupt_request_55"},
+// ffffffffc010e37b T handle_interrupt_request_56
+    {0xffffffffc010e37bull, "handle_interrupt_request_56"},
+// ffffffffc010e384 T handle_interrupt_request_57
+    {0xffffffffc010e384ull, "handle_interrupt_request_57"},
+// ffffffffc010e38d T handle_interrupt_request_58
+    {0xffffffffc010e38dull, "handle_interrupt_request_58"},
+// ffffffffc010e396 T handle_interrupt_request_59
+    {0xffffffffc010e396ull, "handle_interrupt_request_59"},
+// ffffffffc010e39f T handle_interrupt_request_5a
+    {0xffffffffc010e39full, "handle_interrupt_request_5a"},
+// ffffffffc010e3a8 T handle_interrupt_request_5b
+    {0xffffffffc010e3a8ull, "handle_interrupt_request_5b"},
+// ffffffffc010e3b1 T handle_interrupt_request_5c
+    {0xffffffffc010e3b1ull, "handle_interrupt_request_5c"},
+// ffffffffc010e3ba T handle_interrupt_request_5d
+    {0xffffffffc010e3baull, "handle_interrupt_request_5d"},
+// ffffffffc010e3c3 T handle_interrupt_request_5e
+    {0xffffffffc010e3c3ull, "handle_interrupt_request_5e"},
+// ffffffffc010e3cc T handle_interrupt_request_5f
+    {0xffffffffc010e3ccull, "handle_interrupt_request_5f"},
+// ffffffffc010e3d5 T handle_interrupt_request_60
+    {0xffffffffc010e3d5ull, "handle_interrupt_request_60"},
+// ffffffffc010e3de T handle_interrupt_request_61
+    {0xffffffffc010e3deull, "handle_interrupt_request_61"},
+// ffffffffc010e3e7 T handle_interrupt_request_62
+    {0xffffffffc010e3e7ull, "handle_interrupt_request_62"},
+// ffffffffc010e3f0 T handle_interrupt_request_63
+    {0xffffffffc010e3f0ull, "handle_interrupt_request_63"},
+// ffffffffc010e3f9 T handle_interrupt_request_64
+    {0xffffffffc010e3f9ull, "handle_interrupt_request_64"},
+// ffffffffc010e402 T handle_interrupt_request_65
+    {0xffffffffc010e402ull, "handle_interrupt_request_65"},
+// ffffffffc010e40b T handle_interrupt_request_66
+    {0xffffffffc010e40bull, "handle_interrupt_request_66"},
+// ffffffffc010e414 T handle_interrupt_request_67
+    {0xffffffffc010e414ull, "handle_interrupt_request_67"},
+// ffffffffc010e41d T handle_interrupt_request_68
+    {0xffffffffc010e41dull, "handle_interrupt_request_68"},
+// ffffffffc010e426 T handle_interrupt_request_69
+    {0xffffffffc010e426ull, "handle_interrupt_request_69"},
+// ffffffffc010e42f T handle_interrupt_request_6a
+    {0xffffffffc010e42full, "handle_interrupt_request_6a"},
+// ffffffffc010e438 T handle_interrupt_request_6b
+    {0xffffffffc010e438ull, "handle_interrupt_request_6b"},
+// ffffffffc010e441 T handle_interrupt_request_6c
+    {0xffffffffc010e441ull, "handle_interrupt_request_6c"},
+// ffffffffc010e44a T handle_interrupt_request_6d
+    {0xffffffffc010e44aull, "handle_interrupt_request_6d"},
+// ffffffffc010e453 T handle_interrupt_request_6e
+    {0xffffffffc010e453ull, "handle_interrupt_request_6e"},
+// ffffffffc010e45c T handle_interrupt_request_6f
+    {0xffffffffc010e45cull, "handle_interrupt_request_6f"},
+// ffffffffc010e465 T handle_interrupt_request_70
+    {0xffffffffc010e465ull, "handle_interrupt_request_70"},
+// ffffffffc010e46e T handle_interrupt_request_71
+    {0xffffffffc010e46eull, "handle_interrupt_request_71"},
+// ffffffffc010e477 T handle_interrupt_request_72
+    {0xffffffffc010e477ull, "handle_interrupt_request_72"},
+// ffffffffc010e480 T handle_interrupt_request_73
+    {0xffffffffc010e480ull, "handle_interrupt_request_73"},
+// ffffffffc010e489 T handle_interrupt_request_74
+    {0xffffffffc010e489ull, "handle_interrupt_request_74"},
+// ffffffffc010e492 T handle_interrupt_request_75
+    {0xffffffffc010e492ull, "handle_interrupt_request_75"},
+// ffffffffc010e49b T handle_interrupt_request_76
+    {0xffffffffc010e49bull, "handle_interrupt_request_76"},
+// ffffffffc010e4a4 T handle_interrupt_request_77
+    {0xffffffffc010e4a4ull, "handle_interrupt_request_77"},
+// ffffffffc010e4ad T handle_interrupt_request_78
+    {0xffffffffc010e4adull, "handle_interrupt_request_78"},
+// ffffffffc010e4b6 T handle_interrupt_request_79
+    {0xffffffffc010e4b6ull, "handle_interrupt_request_79"},
+// ffffffffc010e4bf T handle_interrupt_request_7a
+    {0xffffffffc010e4bfull, "handle_interrupt_request_7a"},
+// ffffffffc010e4c8 T handle_interrupt_request_7b
+    {0xffffffffc010e4c8ull, "handle_interrupt_request_7b"},
+// ffffffffc010e4d1 T handle_interrupt_request_7c
+    {0xffffffffc010e4d1ull, "handle_interrupt_request_7c"},
+// ffffffffc010e4da T handle_interrupt_request_7d
+    {0xffffffffc010e4daull, "handle_interrupt_request_7d"},
+// ffffffffc010e4e3 T handle_interrupt_request_7e
+    {0xffffffffc010e4e3ull, "handle_interrupt_request_7e"},
+// ffffffffc010e4ec T handle_interrupt_request_7f
+    {0xffffffffc010e4ecull, "handle_interrupt_request_7f"},
+// ffffffffc010e4f5 T handle_interrupt_request_80
+    {0xffffffffc010e4f5ull, "handle_interrupt_request_80"},
+// ffffffffc010e501 T handle_interrupt_request_81
+    {0xffffffffc010e501ull, "handle_interrupt_request_81"},
+// ffffffffc010e50d T handle_interrupt_request_82
+    {0xffffffffc010e50dull, "handle_interrupt_request_82"},
+// ffffffffc010e519 T handle_interrupt_request_83
+    {0xffffffffc010e519ull, "handle_interrupt_request_83"},
+// ffffffffc010e525 T handle_interrupt_request_84
+    {0xffffffffc010e525ull, "handle_interrupt_request_84"},
+// ffffffffc010e531 T handle_interrupt_request_85
+    {0xffffffffc010e531ull, "handle_interrupt_request_85"},
+// ffffffffc010e53d T handle_interrupt_request_86
+    {0xffffffffc010e53dull, "handle_interrupt_request_86"},
+// ffffffffc010e549 T handle_interrupt_request_87
+    {0xffffffffc010e549ull, "handle_interrupt_request_87"},
+// ffffffffc010e555 T handle_interrupt_request_88
+    {0xffffffffc010e555ull, "handle_interrupt_request_88"},
+// ffffffffc010e561 T handle_interrupt_request_89
+    {0xffffffffc010e561ull, "handle_interrupt_request_89"},
+// ffffffffc010e56d T handle_interrupt_request_8a
+    {0xffffffffc010e56dull, "handle_interrupt_request_8a"},
+// ffffffffc010e579 T handle_interrupt_request_8b
+    {0xffffffffc010e579ull, "handle_interrupt_request_8b"},
+// ffffffffc010e585 T handle_interrupt_request_8c
+    {0xffffffffc010e585ull, "handle_interrupt_request_8c"},
+// ffffffffc010e591 T handle_interrupt_request_8d
+    {0xffffffffc010e591ull, "handle_interrupt_request_8d"},
+// ffffffffc010e59d T handle_interrupt_request_8e
+    {0xffffffffc010e59dull, "handle_interrupt_request_8e"},
+// ffffffffc010e5a9 T handle_interrupt_request_8f
+    {0xffffffffc010e5a9ull, "handle_interrupt_request_8f"},
+// ffffffffc010e5b5 T handle_interrupt_request_90
+    {0xffffffffc010e5b5ull, "handle_interrupt_request_90"},
+// ffffffffc010e5c1 T handle_interrupt_request_91
+    {0xffffffffc010e5c1ull, "handle_interrupt_request_91"},
+// ffffffffc010e5cd T handle_interrupt_request_92
+    {0xffffffffc010e5cdull, "handle_interrupt_request_92"},
+// ffffffffc010e5d9 T handle_interrupt_request_93
+    {0xffffffffc010e5d9ull, "handle_interrupt_request_93"},
+// ffffffffc010e5e5 T handle_interrupt_request_94
+    {0xffffffffc010e5e5ull, "handle_interrupt_request_94"},
+// ffffffffc010e5f1 T handle_interrupt_request_95
+    {0xffffffffc010e5f1ull, "handle_interrupt_request_95"},
+// ffffffffc010e5fd T handle_interrupt_request_96
+    {0xffffffffc010e5fdull, "handle_interrupt_request_96"},
+// ffffffffc010e609 T handle_interrupt_request_97
+    {0xffffffffc010e609ull, "handle_interrupt_request_97"},
+// ffffffffc010e615 T handle_interrupt_request_98
+    {0xffffffffc010e615ull, "handle_interrupt_request_98"},
+// ffffffffc010e621 T handle_interrupt_request_99
+    {0xffffffffc010e621ull, "handle_interrupt_request_99"},
+// ffffffffc010e62d T handle_interrupt_request_9a
+    {0xffffffffc010e62dull, "handle_interrupt_request_9a"},
+// ffffffffc010e639 T handle_interrupt_request_9b
+    {0xffffffffc010e639ull, "handle_interrupt_request_9b"},
+// ffffffffc010e645 T handle_interrupt_request_9c
+    {0xffffffffc010e645ull, "handle_interrupt_request_9c"},
+// ffffffffc010e651 T handle_interrupt_request_9d
+    {0xffffffffc010e651ull, "handle_interrupt_request_9d"},
+// ffffffffc010e65d T handle_interrupt_request_9e
+    {0xffffffffc010e65dull, "handle_interrupt_request_9e"},
+// ffffffffc010e669 T handle_interrupt_request_9f
+    {0xffffffffc010e669ull, "handle_interrupt_request_9f"},
+// ffffffffc010e675 T handle_interrupt_request_a0
+    {0xffffffffc010e675ull, "handle_interrupt_request_a0"},
+// ffffffffc010e681 T handle_interrupt_request_a1
+    {0xffffffffc010e681ull, "handle_interrupt_request_a1"},
+// ffffffffc010e68d T handle_interrupt_request_a2
+    {0xffffffffc010e68dull, "handle_interrupt_request_a2"},
+// ffffffffc010e699 T handle_interrupt_request_a3
+    {0xffffffffc010e699ull, "handle_interrupt_request_a3"},
+// ffffffffc010e6a5 T handle_interrupt_request_a4
+    {0xffffffffc010e6a5ull, "handle_interrupt_request_a4"},
+// ffffffffc010e6b1 T handle_interrupt_request_a5
+    {0xffffffffc010e6b1ull, "handle_interrupt_request_a5"},
+// ffffffffc010e6bd T handle_interrupt_request_a6
+    {0xffffffffc010e6bdull, "handle_interrupt_request_a6"},
+// ffffffffc010e6c9 T handle_interrupt_request_a7
+    {0xffffffffc010e6c9ull, "handle_interrupt_request_a7"},
+// ffffffffc010e6d5 T handle_interrupt_request_a8
+    {0xffffffffc010e6d5ull, "handle_interrupt_request_a8"},
+// ffffffffc010e6e1 T handle_interrupt_request_a9
+    {0xffffffffc010e6e1ull, "handle_interrupt_request_a9"},
+// ffffffffc010e6ed T handle_interrupt_request_aa
+    {0xffffffffc010e6edull, "handle_interrupt_request_aa"},
+// ffffffffc010e6f9 T handle_interrupt_request_ab
+    {0xffffffffc010e6f9ull, "handle_interrupt_request_ab"},
+// ffffffffc010e705 T handle_interrupt_request_ac
+    {0xffffffffc010e705ull, "handle_interrupt_request_ac"},
+// ffffffffc010e711 T handle_interrupt_request_ad
+    {0xffffffffc010e711ull, "handle_interrupt_request_ad"},
+// ffffffffc010e71d T handle_interrupt_request_ae
+    {0xffffffffc010e71dull, "handle_interrupt_request_ae"},
+// ffffffffc010e729 T handle_interrupt_request_af
+    {0xffffffffc010e729ull, "handle_interrupt_request_af"},
+// ffffffffc010e735 T handle_interrupt_request_b0
+    {0xffffffffc010e735ull, "handle_interrupt_request_b0"},
+// ffffffffc010e741 T handle_interrupt_request_b1
+    {0xffffffffc010e741ull, "handle_interrupt_request_b1"},
+// ffffffffc010e74d T handle_interrupt_request_b2
+    {0xffffffffc010e74dull, "handle_interrupt_request_b2"},
+// ffffffffc010e759 T handle_interrupt_request_b3
+    {0xffffffffc010e759ull, "handle_interrupt_request_b3"},
+// ffffffffc010e765 T handle_interrupt_request_b4
+    {0xffffffffc010e765ull, "handle_interrupt_request_b4"},
+// ffffffffc010e771 T handle_interrupt_request_b5
+    {0xffffffffc010e771ull, "handle_interrupt_request_b5"},
+// ffffffffc010e77d T handle_interrupt_request_b6
+    {0xffffffffc010e77dull, "handle_interrupt_request_b6"},
+// ffffffffc010e789 T handle_interrupt_request_b7
+    {0xffffffffc010e789ull, "handle_interrupt_request_b7"},
+// ffffffffc010e795 T handle_interrupt_request_b8
+    {0xffffffffc010e795ull, "handle_interrupt_request_b8"},
+// ffffffffc010e7a1 T handle_interrupt_request_b9
+    {0xffffffffc010e7a1ull, "handle_interrupt_request_b9"},
+// ffffffffc010e7ad T handle_interrupt_request_ba
+    {0xffffffffc010e7adull, "handle_interrupt_request_ba"},
+// ffffffffc010e7b9 T handle_interrupt_request_bb
+    {0xffffffffc010e7b9ull, "handle_interrupt_request_bb"},
+// ffffffffc010e7c5 T handle_interrupt_request_bc
+    {0xffffffffc010e7c5ull, "handle_interrupt_request_bc"},
+// ffffffffc010e7d1 T handle_interrupt_request_bd
+    {0xffffffffc010e7d1ull, "handle_interrupt_request_bd"},
+// ffffffffc010e7dd T handle_interrupt_request_be
+    {0xffffffffc010e7ddull, "handle_interrupt_request_be"},
+// ffffffffc010e7e9 T handle_interrupt_request_bf
+    {0xffffffffc010e7e9ull, "handle_interrupt_request_bf"},
+// ffffffffc010e7f5 T handle_interrupt_request_c0
+    {0xffffffffc010e7f5ull, "handle_interrupt_request_c0"},
+// ffffffffc010e801 T handle_interrupt_request_c1
+    {0xffffffffc010e801ull, "handle_interrupt_request_c1"},
+// ffffffffc010e80d T handle_interrupt_request_c2
+    {0xffffffffc010e80dull, "handle_interrupt_request_c2"},
+// ffffffffc010e819 T handle_interrupt_request_c3
+    {0xffffffffc010e819ull, "handle_interrupt_request_c3"},
+// ffffffffc010e825 T handle_interrupt_request_c4
+    {0xffffffffc010e825ull, "handle_interrupt_request_c4"},
+// ffffffffc010e831 T handle_interrupt_request_c5
+    {0xffffffffc010e831ull, "handle_interrupt_request_c5"},
+// ffffffffc010e83d T handle_interrupt_request_c6
+    {0xffffffffc010e83dull, "handle_interrupt_request_c6"},
+// ffffffffc010e849 T handle_interrupt_request_c7
+    {0xffffffffc010e849ull, "handle_interrupt_request_c7"},
+// ffffffffc010e855 T handle_interrupt_request_c8
+    {0xffffffffc010e855ull, "handle_interrupt_request_c8"},
+// ffffffffc010e861 T handle_interrupt_request_c9
+    {0xffffffffc010e861ull, "handle_interrupt_request_c9"},
+// ffffffffc010e86d T handle_interrupt_request_ca
+    {0xffffffffc010e86dull, "handle_interrupt_request_ca"},
+// ffffffffc010e879 T handle_interrupt_request_cb
+    {0xffffffffc010e879ull, "handle_interrupt_request_cb"},
+// ffffffffc010e885 T handle_interrupt_request_cc
+    {0xffffffffc010e885ull, "handle_interrupt_request_cc"},
+// ffffffffc010e891 T handle_interrupt_request_cd
+    {0xffffffffc010e891ull, "handle_interrupt_request_cd"},
+// ffffffffc010e89d T handle_interrupt_request_ce
+    {0xffffffffc010e89dull, "handle_interrupt_request_ce"},
+// ffffffffc010e8a9 T handle_interrupt_request_cf
+    {0xffffffffc010e8a9ull, "handle_interrupt_request_cf"},
+// ffffffffc010e8b5 T handle_interrupt_request_d0
+    {0xffffffffc010e8b5ull, "handle_interrupt_request_d0"},
+// ffffffffc010e8c1 T handle_interrupt_request_d1
+    {0xffffffffc010e8c1ull, "handle_interrupt_request_d1"},
+// ffffffffc010e8cd T handle_interrupt_request_d2
+    {0xffffffffc010e8cdull, "handle_interrupt_request_d2"},
+// ffffffffc010e8d9 T handle_interrupt_request_d3
+    {0xffffffffc010e8d9ull, "handle_interrupt_request_d3"},
+// ffffffffc010e8e5 T handle_interrupt_request_d4
+    {0xffffffffc010e8e5ull, "handle_interrupt_request_d4"},
+// ffffffffc010e8f1 T handle_interrupt_request_d5
+    {0xffffffffc010e8f1ull, "handle_interrupt_request_d5"},
+// ffffffffc010e8fd T handle_interrupt_request_d6
+    {0xffffffffc010e8fdull, "handle_interrupt_request_d6"},
+// ffffffffc010e909 T handle_interrupt_request_d7
+    {0xffffffffc010e909ull, "handle_interrupt_request_d7"},
+// ffffffffc010e915 T handle_interrupt_request_d8
+    {0xffffffffc010e915ull, "handle_interrupt_request_d8"},
+// ffffffffc010e921 T handle_interrupt_request_d9
+    {0xffffffffc010e921ull, "handle_interrupt_request_d9"},
+// ffffffffc010e92d T handle_interrupt_request_da
+    {0xffffffffc010e92dull, "handle_interrupt_request_da"},
+// ffffffffc010e939 T handle_interrupt_request_db
+    {0xffffffffc010e939ull, "handle_interrupt_request_db"},
+// ffffffffc010e945 T handle_interrupt_request_dc
+    {0xffffffffc010e945ull, "handle_interrupt_request_dc"},
+// ffffffffc010e951 T handle_interrupt_request_dd
+    {0xffffffffc010e951ull, "handle_interrupt_request_dd"},
+// ffffffffc010e95d T handle_interrupt_request_de
+    {0xffffffffc010e95dull, "handle_interrupt_request_de"},
+// ffffffffc010e969 T handle_interrupt_request_df
+    {0xffffffffc010e969ull, "handle_interrupt_request_df"},
+// ffffffffc010e975 T handle_interrupt_request_e0
+    {0xffffffffc010e975ull, "handle_interrupt_request_e0"},
+// ffffffffc010e981 T handle_interrupt_request_e1
+    {0xffffffffc010e981ull, "handle_interrupt_request_e1"},
+// ffffffffc010e98d T handle_interrupt_request_e2
+    {0xffffffffc010e98dull, "handle_interrupt_request_e2"},
+// ffffffffc010e999 T handle_interrupt_request_e3
+    {0xffffffffc010e999ull, "handle_interrupt_request_e3"},
+// ffffffffc010e9a5 T handle_interrupt_request_e4
+    {0xffffffffc010e9a5ull, "handle_interrupt_request_e4"},
+// ffffffffc010e9b1 T handle_interrupt_request_e5
+    {0xffffffffc010e9b1ull, "handle_interrupt_request_e5"},
+// ffffffffc010e9bd T handle_interrupt_request_e6
+    {0xffffffffc010e9bdull, "handle_interrupt_request_e6"},
+// ffffffffc010e9c9 T handle_interrupt_request_e7
+    {0xffffffffc010e9c9ull, "handle_interrupt_request_e7"},
+// ffffffffc010e9d5 T handle_interrupt_request_e8
+    {0xffffffffc010e9d5ull, "handle_interrupt_request_e8"},
+// ffffffffc010e9e1 T handle_interrupt_request_e9
+    {0xffffffffc010e9e1ull, "handle_interrupt_request_e9"},
+// ffffffffc010e9ed T handle_interrupt_request_ea
+    {0xffffffffc010e9edull, "handle_interrupt_request_ea"},
+// ffffffffc010e9f9 T handle_interrupt_request_eb
+    {0xffffffffc010e9f9ull, "handle_interrupt_request_eb"},
+// ffffffffc010ea05 T handle_interrupt_request_ec
+    {0xffffffffc010ea05ull, "handle_interrupt_request_ec"},
+// ffffffffc010ea11 T handle_interrupt_request_ed
+    {0xffffffffc010ea11ull, "handle_interrupt_request_ed"},
+// ffffffffc010ea1d T handle_interrupt_request_ee
+    {0xffffffffc010ea1dull, "handle_interrupt_request_ee"},
+// ffffffffc010ea29 T handle_interrupt_request_ef
+    {0xffffffffc010ea29ull, "handle_interrupt_request_ef"},
+// ffffffffc010ea35 T handle_interrupt_request_f0
+    {0xffffffffc010ea35ull, "handle_interrupt_request_f0"},
+// ffffffffc010ea41 T handle_interrupt_request_f1
+    {0xffffffffc010ea41ull, "handle_interrupt_request_f1"},
+// ffffffffc010ea4d T handle_interrupt_request_f2
+    {0xffffffffc010ea4dull, "handle_interrupt_request_f2"},
+// ffffffffc010ea59 T handle_interrupt_request_f3
+    {0xffffffffc010ea59ull, "handle_interrupt_request_f3"},
+// ffffffffc010ea65 T handle_interrupt_request_f4
+    {0xffffffffc010ea65ull, "handle_interrupt_request_f4"},
+// ffffffffc010ea71 T handle_interrupt_request_f5
+    {0xffffffffc010ea71ull, "handle_interrupt_request_f5"},
+// ffffffffc010ea7d T handle_interrupt_request_f6
+    {0xffffffffc010ea7dull, "handle_interrupt_request_f6"},
+// ffffffffc010ea89 T handle_interrupt_request_f7
+    {0xffffffffc010ea89ull, "handle_interrupt_request_f7"},
+// ffffffffc010ea95 T handle_interrupt_request_f8
+    {0xffffffffc010ea95ull, "handle_interrupt_request_f8"},
+// ffffffffc010eaa1 T handle_interrupt_request_f9
+    {0xffffffffc010eaa1ull, "handle_interrupt_request_f9"},
+// ffffffffc010eaad T handle_interrupt_request_fa
+    {0xffffffffc010eaadull, "handle_interrupt_request_fa"},
+// ffffffffc010eab9 T handle_interrupt_request_fb
+    {0xffffffffc010eab9ull, "handle_interrupt_request_fb"},
+// ffffffffc010eac5 T handle_interrupt_request_fc
+    {0xffffffffc010eac5ull, "handle_interrupt_request_fc"},
+// ffffffffc010ead1 T handle_interrupt_request_fd
+    {0xffffffffc010ead1ull, "handle_interrupt_request_fd"},
+// ffffffffc010eadd T handle_interrupt_request_fe
+    {0xffffffffc010eaddull, "handle_interrupt_request_fe"},
+// ffffffffc010eae9 T handle_interrupt_request_ff
+    {0xffffffffc010eae9ull, "handle_interrupt_request_ff"},
+// ffffffffc010eb00 t fix_data_segment
+    {0xffffffffc010eb00ull, "fix_data_segment"},
+// ffffffffc010eb11 T gdt_fix_segments
+    {0xffffffffc010eb11ull, "gdt_fix_segments"},
+// ffffffffc010eb30 T memset
+    {0xffffffffc010eb30ull, "memset"},
+// ffffffffc010eb90 T memcmp
+    {0xffffffffc010eb90ull, "memcmp"},
+// ffffffffc010ec30 T memcpy
+    {0xffffffffc010ec30ull, "memcpy"},
+// ffffffffc010ecb0 T memmove
+    {0xffffffffc010ecb0ull, "memmove"},
+// ffffffffc010edb0 T strcmp
+    {0xffffffffc010edb0ull, "strcmp"},
+// ffffffffc010ee40 T strlen
+    {0xffffffffc010ee40ull, "strlen"},
+// ffffffffc010ee90 T stbsp_set_separators
+    {0xffffffffc010ee90ull, "stbsp_set_separators"},
+// ffffffffc010eec0 T stbsp_vsprintfcb
+    {0xffffffffc010eec0ull, "stbsp_vsprintfcb"},
+// ffffffffc01112b0 t stbsp__lead_sign
+    {0xffffffffc01112b0ull, "stbsp__lead_sign"},
+// ffffffffc0111340 T stbsp_sprintf
+    {0xffffffffc0111340ull, "stbsp_sprintf"},
+// ffffffffc01113b0 T stbsp_vsnprintf
+    {0xffffffffc01113b0ull, "stbsp_vsnprintf"},
+// ffffffffc01114f0 t stbsp__count_clamp_callback
+    {0xffffffffc01114f0ull, "stbsp__count_clamp_callback"},
+// ffffffffc0111530 t stbsp__clamp_callback
+    {0xffffffffc0111530ull, "stbsp__clamp_callback"},
+// ffffffffc0111670 T stbsp_snprintf
+    {0xffffffffc0111670ull, "stbsp_snprintf"},
+// ffffffffc01116d0 T stbsp_vsprintf
+    {0xffffffffc01116d0ull, "stbsp_vsprintf"},
+// ffffffffc0111720 T stbds_arrgrowf
+    {0xffffffffc0111720ull, "stbds_arrgrowf"},
+// ffffffffc0111920 T stbds_rand_seed
+    {0xffffffffc0111920ull, "stbds_rand_seed"},
+// ffffffffc0111940 T stbds_hash_string
+    {0xffffffffc0111940ull, "stbds_hash_string"},
+// ffffffffc0111a50 T stbds_hash_bytes
+    {0xffffffffc0111a50ull, "stbds_hash_bytes"},
+// ffffffffc0111ca0 t stbds_siphash_bytes
+    {0xffffffffc0111ca0ull, "stbds_siphash_bytes"},
+// ffffffffc0112250 T stbds_hmfree_func
+    {0xffffffffc0112250ull, "stbds_hmfree_func"},
+// ffffffffc0112320 T stbds_strreset
+    {0xffffffffc0112320ull, "stbds_strreset"},
+// ffffffffc0112390 T stbds_hmget_key_ts
+    {0xffffffffc0112390ull, "stbds_hmget_key_ts"},
+// ffffffffc0112500 t stbds_hm_find_slot
+    {0xffffffffc0112500ull, "stbds_hm_find_slot"},
+// ffffffffc01127b0 T stbds_hmget_key
+    {0xffffffffc01127b0ull, "stbds_hmget_key"},
+// ffffffffc0112810 T stbds_hmput_default
+    {0xffffffffc0112810ull, "stbds_hmput_default"},
+// ffffffffc01128f0 T stbds_hmput_key
+    {0xffffffffc01128f0ull, "stbds_hmput_key"},
+// ffffffffc0113040 t stbds_make_hash_index
+    {0xffffffffc0113040ull, "stbds_make_hash_index"},
+// ffffffffc01135d0 t stbds_probe_position
+    {0xffffffffc01135d0ull, "stbds_probe_position"},
+// ffffffffc0113610 t stbds_is_key_equal
+    {0xffffffffc0113610ull, "stbds_is_key_equal"},
+// ffffffffc01136b0 t stbds_strdup
+    {0xffffffffc01136b0ull, "stbds_strdup"},
+// ffffffffc0113710 T stbds_stralloc
+    {0xffffffffc0113710ull, "stbds_stralloc"},
+// ffffffffc01138e0 T stbds_shmode_func
+    {0xffffffffc01138e0ull, "stbds_shmode_func"},
+// ffffffffc0113980 T stbds_hmdel_key
+    {0xffffffffc0113980ull, "stbds_hmdel_key"},
+// ffffffffc0113ce0 t stbds_log2
+    {0xffffffffc0113ce0ull, "stbds_log2"},
+// ffffffffc0117000 d fs_components
+// ffffffffc0117010 d all_components
+// ffffffffc0117020 d type_to_name
+// ffffffffc0117028 d component
+// ffffffffc0117098 d early_current_tpl
+// ffffffffc01170a0 d handler
+// ffffffffc01170d0 D pit8254
+// ffffffffc01170d8 d timers_list
+// ffffffffc01170e8 d sv_handler
+// ffffffffc0117118 D idt
+// ffffffffc0117130 d ISR_NAMES
+// ffffffffc01171e0 d PROCESSOR_NAME
+// ffffffffc01171f0 d TABLE_NAME
+// ffffffffc0117210 d PRESENT_NAMES
+// ffffffffc0117220 d USER_NAME
+// ffffffffc0117230 d OPERATION_NAME
+// ffffffffc0117240 d gdt_entries
+// ffffffffc0117278 D gdt
+// ffffffffc0117290 d tboot_mmap_names
+// ffffffffc01172b8 d mem_map
+// ffffffffc01172c8 d free_entries_list
+// ffffffffc01172d8 d free_blocks
+// ffffffffc01172e8 d used_blocks
+// ffffffffc01172f8 d stack_allocation
+// ffffffffc0117300 D process_list
+// ffffffffc0117310 D kernel_process
+// ffffffffc0117350 d handler
+// ffffffffc0117380 d threads_queue
+// ffffffffc0117390 d errors
+// ffffffffc01173d0 d stbsp__period
+// ffffffffc01173d1 d stbsp__comma
+// ffffffffc01173e0 d stbsp_vsprintfcb.hex
+// ffffffffc0117400 d stbsp_vsprintfcb.hexu
+// ffffffffc0117414 d stbsp__digitpair
+// ffffffffc01174e0 d stbds_hash_seed
+// ffffffffc01174f0 D symlist
+// ffffffffc0117500 D bsp_pcpu_data
+// ffffffffc0118000 B acpi_madt
+// ffffffffc0118008 B acpi_rsdp
+// ffffffffc0118010 B acpi_xsdp
+// ffffffffc0118018 B acpi_rsdt
+// ffffffffc0118020 B acpi_xsdt
+// ffffffffc0118028 b components_lock
+// ffffffffc0118030 b primary_components
+// ffffffffc0118038 b initrd_files
+// ffffffffc0118040 b lock
+// ffffffffc0118050 b notify_queues
+// ffffffffc0118250 b notify_queues_pending
+// ffffffffc0118254 b event_lock
+// ffffffffc0118260 b period
+// ffffffffc0118268 b timer
+// ffffffffc0118270 b check_timers_event
+// ffffffffc0118278 b current_system_time
+// ffffffffc0118280 b timer_lock
+// ffffffffc0118288 b ioapics
+// ffffffffc0118290 b isos
+// ffffffffc0118298 b initialized_once
+// ffffffffc01182a0 b idt_entries
+// ffffffffc01192a0 b interrupt_handlers
+// ffffffffc011a2a0 b interrupt_vector
+// ffffffffc011a614 b index
+// ffffffffc011a618 b g_info
+// ffffffffc011a620 b control
+// ffffffffc011bfb0 b mem_memory_top
+// ffffffffc011bfb8 b memory_base
+// ffffffffc011bfc0 b lock
+// ffffffffc011bfd0 b temp_entries
+// ffffffffc011c160 b temp_entries_count
+// ffffffffc011c168 b freeing
+// ffffffffc011c16c b lock
+// ffffffffc011c178 b memory_base
+// ffffffffc011c180 b support_1gb
+// ffffffffc011c181 b support_global
+// ffffffffc011c184 B process_lock
+// ffffffffc011c18c b flag
+// ffffffffc019c190 B kernel_virtual_end
+// ffffffffc019c190 b tmp_kernel_stack
 // 
 //not enough values to unpack (expected 3, got 1)
-    {0xffffffffffffffff, ""}
+    {0xffffffffc019c190, "__kernel_end"}
 };
 

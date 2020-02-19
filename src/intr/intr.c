@@ -9,6 +9,7 @@
 #include <string.h>
 #include <mm/vmm.h>
 #include <proc/sched.h>
+#include <util/def.h>
 
 #include "intr.h"
 
@@ -77,7 +78,7 @@ static void default_interrupt_handler(interrupt_context_t *regs) {
         name = ISR_NAMES[regs->int_num];
     }
     if(name == 0) {
-        trace("[-] Unhandled interrupt: %x\n", regs->int_num);
+        trace("[-] Unhandled interrupt: %lx\n", regs->int_num);
     }else {
         if (regs->int_num == EXCEPTION_BREAKPOINT && __readcr2() == PANIC_CR2_MAGIC) {
             trace("[-] Got a kernel panic\n");
@@ -150,23 +151,23 @@ static void default_interrupt_handler(interrupt_context_t *regs) {
     size_t off = 0;
     name = symlist_name_from_address(&off, regs->rip);
 
-    trace("[-] RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx\n", regs->rax, regs->rbx, regs->rcx, regs->rdx);
-    trace("[-] RSI=%016llx RDI=%016llx RBP=%016llx RSP=%016llx\n", regs->rsi, regs->rdi, regs->rbp, regs->rsp);
-    trace("[-] R8 =%016llx R9 =%016llx R10=%016llx R11=%016llx\n", regs->r8, regs->r9, regs->r10, regs->r10);
-    trace("[-] R12=%016llx R13=%016llx R14=%016llx R15=%016llx\n", regs->r12, regs->r13, regs->r14, regs->r15);
-    trace("[-] RIP=%016llx <%s+%x> RFL=%08lx [%c%c%c%c%c%c%c] CPL=%d\n", regs->rip, name, off, (uint32_t)regs->rflags.raw, _if, _tf, _sf, _zf, _af, _pf, _cf, cpl);
-    trace("[-] CS =%04x                  DPL=%d\n", regs->cs & 0xFFF8, regs->cs & 0b11);
-    trace("[-] DS =%04x                  DPL=%d\n", regs->ds & 0xFFF8, regs->ds & 0b11);
-    trace("[-] SS =%04x                  DPL=%d\n", regs->ss & 0xFFF8, regs->ss & 0b11);
-    trace("[-] GS =     %016llx DPL= \n", __readmsr(MSR_CODE_IA32_GS_BASE));
-    trace("[-] FS =     %016llx DPL= \n", __readmsr(MSR_CODE_IA32_FS_BASE));
-    trace("[-] CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x\n", __readcr0(), __readcr2(), __readcr3(), __readcr4());
+    trace("[-] RAX=%016lx RBX=%016lx RCX=%016lx RDX=%016lx\n", regs->rax, regs->rbx, regs->rcx, regs->rdx);
+    trace("[-] RSI=%016lx RDI=%016lx RBP=%016lx RSP=%016lx\n", regs->rsi, regs->rdi, regs->rbp, regs->rsp);
+    trace("[-] R8 =%016lx R9 =%016lx R10=%016lx R11=%016lx\n", regs->r8, regs->r9, regs->r10, regs->r10);
+    trace("[-] R12=%016lx R13=%016lx R14=%016lx R15=%016lx\n", regs->r12, regs->r13, regs->r14, regs->r15);
+    trace("[-] RIP=%016lx <%s+%lx> RFL=%08x [%c%c%c%c%c%c%c] CPL=%d\n", regs->rip, name, off, (uint32_t)regs->rflags.raw, _if, _tf, _sf, _zf, _af, _pf, _cf, cpl);
+    trace("[-] CS =%04lx                  DPL=%ld\n", regs->cs & 0xFFF8, regs->cs & 0b11);
+    trace("[-] DS =%04lx                  DPL=%ld\n", regs->ds & 0xFFF8, regs->ds & 0b11);
+    trace("[-] SS =%04lx                  DPL=%ld\n", regs->ss & 0xFFF8, regs->ss & 0b11);
+    trace("[-] GS =     %016lx DPL= \n", __readmsr(MSR_CODE_IA32_GS_BASE));
+    trace("[-] FS =     %016lx DPL= \n", __readmsr(MSR_CODE_IA32_FS_BASE));
+    trace("[-] CR0=%08lx CR2=%016lx CR3=%016lx CR4=%08lx\n", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
 
     uintptr_t* base_ptr = (uintptr_t*)regs->rbp;
     trace("[-] Stack trace:\n");
     for (;;) {
         // check if the page is mapped
-        if (!vmm_is_mapped(current_vmm_handle, (uintptr_t)base_ptr, sizeof(uintptr_t) * 2)) {
+        if (!vmm_is_mapped(current_vmm_handle, (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
             break;
         }
 
@@ -180,7 +181,7 @@ static void default_interrupt_handler(interrupt_context_t *regs) {
 
         name = symlist_name_from_address(&off, ret_addr);
         if (name != NULL) {
-            trace("[-] \t[0x%016llx] <%s+%x>\n", ret_addr, name, off);
+            trace("[-] \t[0x%016lx] <%s+%lx>\n", ret_addr, name, off);
         }
 
         if (old_bp == 0) {

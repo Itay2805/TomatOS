@@ -7,6 +7,8 @@ print('#include <util/symlist.h>')
 print()
 print('struct symlist_t symlist[] = {')
 
+highest = 0xffffffffffffffff
+
 try:
     output = subprocess.check_output(['nm', sys.argv[1], '-n']).decode(sys.stdout.encoding)
 
@@ -20,9 +22,10 @@ try:
             'U',        # undefined
         ]:
             print(f'    {{0x{address}ull, "{repr(name)[1:-1]}"}},')
+        highest = int(address, 16)
 except Exception as e:
     print('//' + str(e))
 
-print('    {0xffffffffffffffff, ""}')
+print('    {' + hex(highest) + ', "__kernel_end"}')
 print('};')
 print('')

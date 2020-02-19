@@ -1,5 +1,6 @@
 # ignore clion stuff
 .idea
+cmake-build-debug
 
 # Ignore build output
 bin

@@ -5,6 +5,16 @@ CLANG_LD := ld.lld-9
 default: bin/tomatos.img
 
 #########################
+# initrd
+#########################
+
+INITRD_FILES := $(shell ls initrd)
+INITRD_FILES_PATH := $(SRCS:%=initrd/%.o)
+
+bin/image/initrd.tar: $(INITRD_FILES_PATH) | bin/image
+	cd initrd && tar -cf ../$@ $(INITRD_FILES)
+
+#########################
 # Sources and flag setup
 #########################
 
@@ -36,6 +46,8 @@ COMMON_CFLAGS += \
 	-mcmodel=kernel \
 	-Wno-unused-label \
 	-static \
+	-O3 \
+	-flto \
 	-g
 
 # Set the linking flags
@@ -71,11 +83,11 @@ KERNEL_CFLAGS += -Isrc/
 
 # Link everything
 bin/image/tomatos.elf: $(BINS) $(OBJS)
-	mkdir -p bin/image
 	# generate fake symlist
 	./scripts/generate_symbols.py > src/util/symlist.c
 	$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
 	$(CLANG_LD) $(LDFLAGS) -o $@ $(OBJS) build/src/util/symlist.c.o
+
 	# generate real symlist
 	./scripts/generate_symbols.py "$@" > src/util/symlist.c
 	$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
@@ -96,6 +108,12 @@ build/%.asm.o: %.asm
 	@mkdir -p $(@D)
 	nasm $(NASMFLAGS) -o $@ $<
 
+#
+# Create bin folder
+#
+bin/image:
+	mkdir -p $@
+
 #########################
 # For testing
 #########################
@@ -105,7 +123,7 @@ bin/image/EFI/BOOT/BOOTX64.EFI:
 	mkdir -p bin/image/EFI/BOOT/
 	cp boot/bin/BOOTX64.EFI bin/image/EFI/BOOT/
 
-bin/tomatos.img: \
+bin/tomatos.img: bin/image/initrd.tar \
 		bin/image/EFI/BOOT/BOOTX64.EFI \
 		bin/image/tomatos.elf
 	cp ./tools/tomatboot.cfg ./bin/image/

@@ -54,7 +54,7 @@ void lapic_init() {
 
     // set the apic base of the cpu
     vmm_map(&kernel_process.vmm_handle, LOCAL_APIC_BASE, PHYSICAL_TO_DIRECT(LOCAL_APIC_BASE), PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
-    TRACE("Local APIC init #%d", get_apic_id());
+    TRACE("Local APIC init #%lu", get_apic_id());
 
     // setup svr
     LOCAL_APIC_SVR svr = { .raw = lapic_read(XAPIC_SPURIOUS_VECTOR_OFFSET) };

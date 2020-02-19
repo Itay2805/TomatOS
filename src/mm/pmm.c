@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <tboot.h>
 #include <sync/spinlock.h>
+#include <util/def.h>
 
 #include "pmm.h"
 #include "vmm.h"
@@ -382,7 +383,12 @@ void pmm_init(tboot_info_t* info) {
     // go over the entries
     for(int i = 0; i < info->mmap.count; i++) {
         tboot_mmap_entry_t* entry = &info->mmap.entries[i];
-        TRACE("\t%p-%p: (%lx) %s", entry->addr, entry->addr + entry->len, entry->len, tboot_mmap_names[entry->type]);
+
+        if (ARRAY_LEN(tboot_mmap_names) > entry->type) {
+            TRACE("\t%lx-%lx: (%lx) %s", entry->addr, entry->addr + entry->len, entry->len, tboot_mmap_names[entry->type]);
+        } else {
+            TRACE("\t%lx-%lx: (%lx) %d", entry->addr, entry->addr + entry->len, entry->len, entry->type);
+        }
 
         // add useable entries
         if(entry->type == TBOOT_MEMORY_TYPE_USABLE) {

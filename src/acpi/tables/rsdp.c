@@ -17,8 +17,8 @@ void rsdp_init(tboot_info_t* info) {
     }
 
     if (acpi_xsdp) {
-        TRACE("\tRSDP 0x%016p %08x (v%02d %6.6s)", info->rsdp, acpi_xsdp->length, acpi_rsdp->revision, acpi_rsdp->oem);
+        TRACE("\tRSDP 0x%016lx %08x (v%02d %6.6s)", info->rsdp, acpi_xsdp->length, acpi_rsdp->revision, acpi_rsdp->oem);
     } else {
-        TRACE("\tRSDP 0x%016p -------- (v%02d %6.6s)", info->rsdp, acpi_rsdp->revision, acpi_rsdp->oem);
+        TRACE("\tRSDP 0x%016lx -------- (v%02d %6.6s)", info->rsdp, acpi_rsdp->revision, acpi_rsdp->oem);
     }
 }

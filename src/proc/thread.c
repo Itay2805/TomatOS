@@ -33,7 +33,7 @@ err_t spawn_thread(process_t* parent, uintptr_t rip, uintptr_t stack, thread_t**
 
     // set the initial context
     thread->cpu_context.rip = rip;
-    thread->cpu_context.rsp = stack;
+    thread->cpu_context.rsp = stack - 16;
     thread->cpu_context.rflags.always_one = 1;
     thread->cpu_context.rflags.IF = 1;
     thread->cpu_context.rflags.ID = 1;

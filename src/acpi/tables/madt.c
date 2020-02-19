@@ -19,7 +19,7 @@ void madt_init() {
             } break;
             case MADT_TYPE_IOAPIC: {
                 madt_ioapic_t* ioapic = &cur->ioapic;
-                TRACE("\t\tI/O APIC #%d (0x%016p)", ioapic->id, ioapic->mmio_base);
+                TRACE("\t\tI/O APIC #%d (0x%016x)", ioapic->id, ioapic->mmio_base);
                 ioapic_add(ioapic->mmio_base, ioapic->gsi_base);
             } break;
             case MADT_TYPE_ISO: {

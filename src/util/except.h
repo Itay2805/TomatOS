@@ -15,18 +15,18 @@ typedef enum err {
     ERROR_OUT_OF_RESOURCES,
     ERROR_NOT_FOUND,
     ERROR_INVALID_TPL,
+    ERROR_EOF,
 } err_t;
 
 #define IS_ERROR(err) (err != NO_ERROR)
 
 const char* strerror(err_t err);
-void panic(const char* panic_message);
 
 #define CHECK_ERROR_LABEL_TRACE(expr, error, label, fmt, ...) \
     do { \
         if (!(expr)) { \
             err = error; \
-            trace("[-] Check failed with error `%s` int function %s (%s:%d)\n", strerror(err), __func__, __FILENAME__, __LINE__); \
+            trace("[-] Check failed with error `%s` in function %s (%s:%d)\n", strerror(err), __func__, __FILENAME__, __LINE__); \
             if (fmt[0] != '\0') { \
                 trace("[-] " fmt "\n", ## __VA_ARGS__); \
             } \
@@ -37,6 +37,7 @@ void panic(const char* panic_message);
 #define CHECK_ERROR_TRACE(expr, error, fmt, ...) CHECK_ERROR_LABEL_TRACE(expr, error, cleanup, fmt, ## __VA_ARGS__)
 #define CHECK_ERROR(expr, error) CHECK_ERROR_LABEL_TRACE(expr, error, cleanup, "")
 #define CHECK(expr) CHECK_ERROR(expr, ERROR_CHECK_FAILED)
+#define CHECK_FAIL_ERROR(err) CHECK_ERROR(0, err)
 #define CHECK_FAIL() CHECK(0)
 
 #define CHECK_AND_RETHROW_LABEL(error, label) \
@@ -60,7 +61,7 @@ void panic(const char* panic_message);
 #define ASSERT(expr) \
     do { \
         if (!(expr)) { \
-            trace("GOT ASSERTION at %s (%s:%d)!!! " # expr "\n", __func__, __FILENAME__, __LINE__); \
+            trace("GOT ASSERTION at %s (%s:%d)!!! %s\n", __func__, __FILENAME__, __LINE__, # expr); \
             __writecr2(PANIC_CR2_MAGIC); \
             while(1) asm volatile("int $3"); \
         } \
