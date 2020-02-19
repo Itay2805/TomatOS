@@ -1,20 +1,6 @@
-# Ignore cmake related stuff
-cmake*
-CMake*
-
-# Ignore build images
-*.iso
-*.img
-*.vdi
-*.vmdk
-
-# Ignore editor related folders
-.vscode
+# ignore clion stuff
 .idea
 
-# Ignore immediate files
+# Ignore build output
 bin
 build
-
- # Ignore the UEFI firmware
-*.fd

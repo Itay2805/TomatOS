@@ -1,6 +1,8 @@
-#ifndef TOMATKERNEL_SMP_H
-#define TOMATKERNEL_SMP_H
+#ifndef __SMP_SMP_H__
+#define __SMP_SMP_H__
 
-void smp_startup(tboot_info_t* info);
+#include <stdatomic.h>
 
-#endif //TOMATKERNEL_SMP_H
+void smp_startup_all_aps(atomic_flag* flag);
+
+#endif //__SMP_SMP_H__

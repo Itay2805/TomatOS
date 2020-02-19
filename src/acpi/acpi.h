@@ -1,17 +1,8 @@
-#ifndef TOMATKERNEL_ACPI_H
-#define TOMATKERNEL_ACPI_H
+#ifndef __ACPI_ACPI_H__
+#define __ACPI_ACPI_H__
 
 #include <tboot.h>
 
-/**
- * will search for all the acpi tables
- */
 void acpi_tables_init(tboot_info_t* info);
 
-/**
- * Initialize everything ACPI related
- *
- */
-void acpi_init();
-
-#endif //TOMATKERNEL_ACPI_H
+#endif //__ACPI_ACPI_H__

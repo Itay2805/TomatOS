@@ -1,39 +1,41 @@
-#include <stddef.h>
-#include <util/debug.h>
-#include <memory/vmm.h>
+#include <util/except.h>
+#include <intr/apic/ioapic.h>
 #include "madt.h"
+#include "rsdt.h"
 
 acpi_madt_t* acpi_madt = NULL;
 
 void madt_init() {
-    acpi_madt = (acpi_madt_t*) rsdt_search("APIC", 0);
+    acpi_madt = (acpi_madt_t*)rsdt_search("APIC", 0);
     ASSERT(acpi_madt != NULL);
-    debug_log("[+] \tMADT - %p, entries:\n", DIRECT_TO_PHYSICAL(acpi_madt));
+    trace_table(&acpi_madt->header);
 
     madt_entry_t* cur = &acpi_madt->entries[0];
     for(uintptr_t addr = (uintptr_t) acpi_madt->entries; addr < (uintptr_t)acpi_madt->entries + (acpi_madt->header.length - sizeof(acpi_madt_t)); addr += cur->length, cur = (madt_entry_t *) addr) {
         switch(cur->type) {
             case MADT_TYPE_LAPIC: {
                 madt_lapic_t* lapic = &cur->lapic;
-                debug_log("[*] \t\tLAPIC: #%d, PID: #%d (%s)\n", lapic->id, lapic->processor_id, lapic->processor_enabled ? "enabled" : "disabled");
+                TRACE("\t\tLAPIC: #%d, PID: #%d (%s)", lapic->id, lapic->processor_id, lapic->processor_enabled ? "enabled" : "disabled");
             } break;
             case MADT_TYPE_IOAPIC: {
                 madt_ioapic_t* ioapic = &cur->ioapic;
-                debug_log("[*] \t\tI/O APIC #%d (0x%016p)\n", ioapic->id, ioapic->mmio_base);
+                TRACE("\t\tI/O APIC #%d (0x%016p)", ioapic->id, ioapic->mmio_base);
+                ioapic_add(ioapic->mmio_base, ioapic->gsi_base);
             } break;
             case MADT_TYPE_ISO: {
                 madt_iso_t* iso = &cur->iso;
-                debug_log("[*] \t\tISO %d->%d:%d\n", iso->gsi, iso->bus_source, iso->irq_source);
+                TRACE("\t\tISO %d:%d->%d", iso->bus_source, iso->irq_source, iso->gsi);
+                ioapic_add_iso(iso);
             } break;
             case MADT_TYPE_NMI: {
                 madt_nmi_t* nmi = &cur->nmi;
-                debug_log("[*] \t\tNMI on ");
+                trace("[*] \t\tNMI on ");
                 if(nmi->processor_id == 0xFF) {
-                    debug_log("all processors");
+                    trace("all processors");
                 }else {
-                    debug_log("processor #%d", nmi->processor_id);
+                    trace("processor #%d", nmi->processor_id);
                 }
-                debug_log(", LINT: %d\n", nmi->lint);
+                trace(", LINT: %d\n", nmi->lint);
             } break;
             default:break;
         }

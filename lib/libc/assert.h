@@ -1,8 +1,6 @@
-#ifndef TOMATKERNEL_ASSERT_H
-#define TOMATKERNEL_ASSERT_H
+#ifndef __LIBC_ASSERT_H__
+#define __LIBC_ASSERT_H__
 
-#include <util/debug.h>
+#define static_assert(x) _Static_assert(x, # x)
 
-#define assert(x) ASSERT(x)
-
-#endif //TOMATKERNEL_ASSERT_H
+#endif //__LIBC_ASSERT_H__

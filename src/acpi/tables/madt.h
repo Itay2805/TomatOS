@@ -1,8 +1,9 @@
-#ifndef TOMATKERNEL_MADT_H
-#define TOMATKERNEL_MADT_H
+#ifndef __ACPI_TABLES_MADT_H__
+#define __ACPI_TABLES_MADT_H__
+
+#include "table.h"
 
 #include <stdint.h>
-#include "rsdt.h"
 
 #define MADT_TYPE_LAPIC             0
 #define MADT_TYPE_IOAPIC            1
@@ -75,4 +76,4 @@ void madt_init();
  */
 void* madt_get_next(int type, int index);
 
-#endif //TOMATKERNEL_MADT_H
+#endif //__ACPI_TABLES_MADT_H__

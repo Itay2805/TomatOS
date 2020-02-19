@@ -1,121 +1,86 @@
-#include <processes/scheduler.h>
-#include <processes/process.h>
-#include <processes/thread.h>
-
-#include <interrupts/apic/lapic.h>
-#include <interrupts/apic/apic.h>
-
-#include <smp/percpu_storage.h>
-#include <smp/smp.h>
-
-#include <drivers/storage/ahci/ahci.h>
-#include <drivers/bus/pci/pci.h>
-
-#include <memory/pmm.h>
-#include <memory/vmm.h>
-
-#include <util/debug.h>
-#include <util/stall.h>
+#include <event/timers/timer.h>
+#include <proc/process.h>
+#include <intr/apic/lapic.h>
 #include <acpi/acpi.h>
+#include <intr/intr.h>
+#include <intr/idt.h>
+#include <smp/pcpu.h>
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <util/serial.h>
+#include <util/trace.h>
+
+#include <mm/pmm.h>
+#include <mm/vmm.h>
+#include <mm/gdt.h>
+#include <mm/mm.h>
+
 #include <tboot.h>
-#include <drivers/storage/storage_object.h>
-#include <drivers/partition/partition.h>
-#include <drivers/terminal/terminal.h>
-#include <string.h>
+#include <proc/sched.h>
+#include <mm/stack_allocator.h>
 
-static thread_t* init_thread = NULL;
+static void main_thread() {
+    err_t err = NO_ERROR;
+    TRACE("In main thread!");
 
-static void kernel_init_thread() {
-    debug_log("[+] In init thread!\n");
-    acpi_init();
+    // TESTTTTT
+    event_t timer;
+    CHECK_AND_RETHROW(create_event(TPL_APPLICATION, NULL, NULL, &timer));
+    CHECK_AND_RETHROW(set_timer(timer, TIMER_RELATIVE, MS_TO_100NS(5000)));
 
-    // start by doing bus initialization (other drivers might use it)
-    debug_log("[+] Loading bus drivers\n");
-    pci_init();
+    TRACE("Waiting");
+    CHECK_AND_RETHROW(wait_for_event(1, &timer, NULL));
+    TRACE("Done!");
 
-    // do storage device initialization
-    debug_log("[+] Loading storage drivers\n");
-    ahci_scan();
-
-    // mount all of the storage devices
-    debug_log("[+] Mounting partitions\n");
-    for(list_entry_t* link = storage_objects.next; link != &storage_objects; link = link->next) {
-        storage_device_t* storage = CR(link, storage_device_t, device.link);
-        debug_log("[*] attempting to mount `%s`\n", storage->device.name);
-        storage_mount(storage);
-    }
-
-    debug_log("[+] Mounting filesystems\n");
-    for(list_entry_t* slink = storage_objects.next; slink != &storage_objects; slink = slink->next) {
-        storage_device_t* storage = CR(slink, storage_device_t, device.link);
-
-        for (list_entry_t* plink = storage->partitions.next; plink != &storage->partitions; plink = plink->next) {
-            partition_t* partition = CR(plink, partition_t, device.link);
-
-            debug_log("[*] attempting to mount `%s`\n", partition->device.name);
-            partition_mount(partition);
-        }
-    }
-
-    debug_log("[+] Driver initialization finished!\n");
-
-    while(true);
+cleanup:
+    while(1);
 }
 
 void kernel_main(uint32_t magic, tboot_info_t* info) {
-    terminal_early_init(info);
-    debug_log("[+] Entered kernel!\n");
+    err_t err = NO_ERROR;
+    serial_init();
+    TRACE("Hello from kernel, magic = %x", magic);
 
-    // we can init these right away
-    stall_init(info);
-    interrupts_init();
+    // super early init
     idt_init();
+    interrupts_init();
+    pcpu_init_for_bsp();
 
-    // do memory initialization
+    // memory initialization
     pmm_init(info);
     vmm_init(info);
-    terminal_disable();
     pmm_post_vmm();
+    mm_init();
+    init_tss_for_cpu();
+    // TODO: idt init with the proper ists
 
-    // convert the info pointer
+    // convert the struct
     info = PHYSICAL_TO_DIRECT(info);
 
-    // setup the framebuffer
-    terminal_init(info);
-
-    // init apic related stuff
-    acpi_tables_init(info);
-    apic_init();
-
-    // init kernel process and such
-    kernel_process = new_process();
-    kernel_process->vmm_handle = kernel_handle;
-    init_thread = new_thread(kernel_process, kernel_init_thread);
-    scheduler_queue_thread(init_thread);
-
-    // prepare the storage
-    percpu_storage_init();
-
-    // finish the initialization of the bsp
-    debug_log("[*] Finishing BSP init\n");
+    // BSP init
     lapic_init();
-    tss_init();
 
-    // do smp!
-    smp_startup(info);
+    // early kernel init
+    init_kernel_process();
+    acpi_tables_init(info);
+    events_init();
+    init_timer();
+    init_sched();
 
-    // and now finish by starting our scheduler and
-    // kicks starting it on all cores
-    debug_log("[+] Scheduler startup!\n");
-    per_cpu_scheduler_init();
+    // TODO: smp
 
-    // enable interrupts and send the ipi
-    enable_interrupts();
-    lapic_send_ipi_all_including_self(IPI_SCHEDULER_STARTUP);
+    // setup main thread
+    // will start at high level, should make everything play nicely when doing
+    // the yield to start with the tasking. also make sure interrupts are off
+    // by default, they will be enabled by the thread when going back to low tpl
+    CHECK_AND_RETHROW(spawn_thread(&kernel_process, (uintptr_t)main_thread, allocate_stack(), NULL));
 
-    // basically wait until everything has started
-    while(false) cpu_pause();
+    // kickstart everything by restoring the tpl
+    // this will cause the scheduler to yield and
+    // everything should just start nicely
+    TRACE("Starting threading");
+    restore_tpl(TPL_APPLICATION);
+    while(1) asm volatile ("hlt" ::: "memory");
+
+cleanup:
+    ASSERT(!"Early kernel init failed, halting system");
 }

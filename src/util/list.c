@@ -1,6 +1,6 @@
-#include <libc/stddef.h>
 #include "list.h"
-#include "debug.h"
+
+#include "except.h"
 
 static bool is_list_valid(list_entry_t* list) {
     ASSERT(list != NULL);

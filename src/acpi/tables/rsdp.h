@@ -1,17 +1,18 @@
-#ifndef TOMATKERNEL_RSDP_H
-#define TOMATKERNEL_RSDP_H
+#ifndef __ACPI_TABLES_RSDP_H__
+#define __ACPI_TABLES_RSDP_H__
 
-#include "tables.h"
+#include <stdint.h>
+#include <tboot.h>
 
-typedef struct acpi_rsdp {
+typedef struct acpi_rsdp_t {
     char signature[8];
     uint8_t checksum;
     char oem[6];
     uint8_t revision;
     uint32_t rsdt;
-} __attribute__((packed)) acpi_rsdp1_t;
+}__attribute__((packed)) acpi_rsdp_t;
 
-typedef struct acpi_rsdp2 {
+typedef struct acpi_xsdp_t {
     char signature[8];
     uint8_t checksum;
     char oem[6];
@@ -20,14 +21,11 @@ typedef struct acpi_rsdp2 {
     uint32_t length;
     uint64_t xsdt;
     uint8_t extended_checksum;
-} __attribute__((packed)) acpi_rsdp2_t;
+}__attribute__((packed)) acpi_xsdp_t;
 
-extern acpi_rsdp2_t* acpi_rsdp2;
-extern acpi_rsdp1_t* acpi_rsdp;
+extern acpi_rsdp_t* acpi_rsdp;
+extern acpi_xsdp_t* acpi_xsdp;
 
-/**
- * Will search for the rsdp
- */
 void rsdp_init(tboot_info_t* info);
 
-#endif //TOMATKERNEL_RSDP_H
+#endif //__ACPI_TABLES_RSDP_H__

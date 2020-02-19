@@ -1,16 +1,24 @@
-#include <memory/vmm.h>
+#include <util/except.h>
+#include <mm/vmm.h>
 #include "rsdp.h"
 
-acpi_rsdp1_t* acpi_rsdp;
-acpi_rsdp2_t* acpi_rsdp2;
+acpi_rsdp_t* acpi_rsdp = NULL;
+acpi_xsdp_t* acpi_xsdp = NULL;
 
 void rsdp_init(tboot_info_t* info) {
-    ASSERT(info->rsdp != NULL);
+    ASSERT(info->rsdp != (uintptr_t)NULL);
 
-    acpi_rsdp = (acpi_rsdp1_t*)PHYSICAL_TO_DIRECT(info->rsdp);
-    if(acpi_rsdp->revision >= 2) {
-        acpi_rsdp2 = (acpi_rsdp2_t*)acpi_rsdp;
+    // set the default table
+    acpi_rsdp = (acpi_rsdp_t*)PHYSICAL_TO_DIRECT(info->rsdp);
+
+    // if we have version two then set the version two variable as well
+    if (acpi_rsdp->revision >= 2) {
+        acpi_xsdp = (acpi_xsdp_t*)acpi_rsdp;
     }
 
-    debug_log("[+] \tRSDP - %p (Rev. %d)\n", info->rsdp, acpi_rsdp->revision);
+    if (acpi_xsdp) {
+        TRACE("\tRSDP 0x%016p %08x (v%02d %6.6s)", info->rsdp, acpi_xsdp->length, acpi_rsdp->revision, acpi_rsdp->oem);
+    } else {
+        TRACE("\tRSDP 0x%016p -------- (v%02d %6.6s)", info->rsdp, acpi_rsdp->revision, acpi_rsdp->oem);
+    }
 }

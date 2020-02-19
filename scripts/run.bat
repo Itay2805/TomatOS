@@ -1,0 +1,1 @@
+qemu-system-x86_64 -bios ..\tools\OVMF.fd -hda ..\bin\tomatos.img -monitor telnet:localhost:4321,server,nowait -debugcon stdio

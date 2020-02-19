@@ -1,19 +1,14 @@
-#ifndef TOMATKERNEL_LIST_H
-#define TOMATKERNEL_LIST_H
-
-//////////////////////////////////////////////////////////////////////////////
-// Linked list implementation
-//
-// This is going to be a general purpose list which is going to be
-// used for a bunch of stuff that need to be stored in a list like manner
-//////////////////////////////////////////////////////////////////////////////
+#ifndef __UTIL_LIST_H__
+#define __UTIL_LIST_H__
 
 #include <stdbool.h>
-#include <stddef.h>
 
 #define CR(record, type, field) ((type*)((char*)(record) - (char*)offsetof(type, field)))
 
 #define INIT_LIST_ENTRY(var) ((list_entry_t){ &var, &var })
+
+#define FOR_EACH_IN_LIST(list, link) \
+    for(list_entry_t* link = (list).next; link != &(list); link = link->next)
 
 typedef struct list_entry {
     struct list_entry* next;
@@ -44,4 +39,4 @@ list_entry_t* swap_list_entries(list_entry_t* first, list_entry_t* second);
 
 list_entry_t* remove_entry_list(list_entry_t* entry);
 
-#endif //TOMATKERNEL_LIST_H
+#endif //__UTIL_LIST_H__
