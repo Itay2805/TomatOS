@@ -84,12 +84,12 @@ KERNEL_CFLAGS += -Isrc/
 # Link everything
 bin/image/tomatos.elf: $(BINS) $(OBJS)
 	# generate fake symlist
-	./scripts/generate_symbols.py > src/util/symlist.c
+	python3 ./scripts/generate_symbols.py > src/util/symlist.c
 	$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
 	$(CLANG_LD) $(LDFLAGS) -o $@ $(OBJS) build/src/util/symlist.c.o
 
 	# generate real symlist
-	./scripts/generate_symbols.py "$@" > src/util/symlist.c
+	python3 ./scripts/generate_symbols.py "$@" > src/util/symlist.c
 	$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
 	$(CLANG_LD) $(LDFLAGS) -o $@ $(OBJS) build/src/util/symlist.c.o
 
@@ -128,7 +128,7 @@ bin/tomatos.img: bin/image/initrd.tar \
 		bin/image/tomatos.elf
 	cp ./tools/tomatboot.cfg ./bin/image/
 	cp ./boot/bin/BOOTX64.EFI ./bin/image/
-	cd bin && ../tools/image-builder/image-builder.py ../tools/image.yaml
+	cd bin && python3 ../tools/image-builder/image-builder.py ../tools/image.yaml
 
 #########################
 # Clean
