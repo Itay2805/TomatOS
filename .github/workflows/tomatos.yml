@@ -25,5 +25,11 @@ jobs:
       run: sudo pip3 install -U setuptools && sudo pip3 install -U pyyaml
     
     # Finally build it 
-    - name: make
-      run: make
+    - name: Build and Create image
+      run: make bin/tomatos.img
+    
+    # Once we done upload the artificat 
+    - uses: actions/upload-artifact@v1
+      with:
+        name: Bootable Image
+        path: bin/tomatos.img
