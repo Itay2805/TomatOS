@@ -22,7 +22,7 @@ jobs:
       run: sudo apt install mtools nasm
     
     - name: Install python packages
-      run: sudo pip3 install -U setuptools pyyaml
+      run: sudo pip3 install -U setuptools && sudo pip3 install -U pyyaml
     
     # Finally build it 
     - name: make
