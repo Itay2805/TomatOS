@@ -19,7 +19,7 @@ jobs:
     
     # Setup 
     - name: Install packages
-      run: sudo apt install mtools
+      run: sudo apt install mtools nasm
     - name: Install python packages
       run: sudo pip3 install pyyaml
     
