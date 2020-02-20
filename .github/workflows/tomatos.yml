@@ -31,5 +31,5 @@ jobs:
     # Once we done upload the artificat 
     - uses: actions/upload-artifact@v1
       with:
-        name: Bootable Image
+        name: tomatos.img
         path: bin/tomatos.img
