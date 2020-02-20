@@ -6,10 +6,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    
+    # Checkout everything
     - uses: actions/checkout@v2
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        git config --global url."https://github.com/".insteadOf "git@github.com:"
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+    
+    # Setup 
     - name: Install packages
-      run: sudo apt install clang-9 lld-9 mtools
+      run: sudo apt install mtools
     - name: Install python packages
       run: sudo pip3 install pyyaml
+    
+    # Finally build it 
     - name: make
       run: make
