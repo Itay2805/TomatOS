@@ -1,0 +1,15 @@
+name: TomatOS
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install packages
+      run: sudo apt install clang-9 lld-9 mtools
+    - name: Install python packages
+      run: sudo pip3 install pyyaml
+    - name: make
+      run: make
