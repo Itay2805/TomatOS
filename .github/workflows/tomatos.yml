@@ -1,0 +1,35 @@
+name: TomatOS
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    
+    # Checkout everything
+    - uses: actions/checkout@v2
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        git config --global url."https://github.com/".insteadOf "git@github.com:"
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+    
+    # Setup 
+    - name: Install packages
+      run: sudo apt install mtools nasm
+    
+    - name: Install python packages
+      run: sudo pip3 install -U setuptools && sudo pip3 install -U pyyaml
+    
+    # Finally build it 
+    - name: Build and Create image
+      run: make bin/tomatos.img
+    
+    # Once we done upload the artificat 
+    - uses: actions/upload-artifact@v1
+      with:
+        name: tomatos.img
+        path: bin/tomatos.img
