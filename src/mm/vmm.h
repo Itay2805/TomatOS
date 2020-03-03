@@ -8,6 +8,10 @@
 #include <stdint.h>
 #include <tboot.h>
 #include <smp/pcpu.h>
+#include <util/list.h>
+#include "pmm.h"
+
+#define USERSPACE_END               0x00007fffffffffffull
 
 // ~140TB of tb for physical memory mappings
 #define DIRECT_MAPPING_BASE         0xffff800000000000ul
@@ -53,8 +57,8 @@ typedef enum page_type {
  */
 typedef struct vmm_handle {
     uintptr_t pml4_physical;
-//    list_entry_t map;
     spinlock_t lock;
+    list_entry_t umem;
 } vmm_handle_t;
 
 /**
@@ -91,9 +95,12 @@ void vmm_enable_cpu_features();
 bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t* physical, page_type_t* type);
 
 /**
+ * Get the current vmm handle
+ */
+vmm_handle_t* vmm_get_handle();
+
+/**
  * Will switch to the given address space
- *
- * TODO: Store reference to the handle in the per cpu storage
  */
 void vmm_set_handle(vmm_handle_t* handle);
 
@@ -104,7 +111,7 @@ void vmm_set_handle(vmm_handle_t* handle);
  *
  * @param handle    [OUT] The out handle
  */
-void vmm_create_page_table(vmm_handle_t* handle);
+void vmm_create_address_space(vmm_handle_t* handle);
 
 /**
  * Will destroy and free the vmm handle
@@ -136,9 +143,9 @@ bool vmm_is_mapped(vmm_handle_t* handle, uintptr_t addr, size_t size);
  *
  * @param handle    [IN] The handle
  * @param addr      [IN] The virtual address to unmap
- * @param size      [IN] The size to unmap
+ * @param size      [IN] The amount of bytes to unmap
  */
-void vmm_unmap(vmm_handle_t* handle, uintptr_t addr, size_t size);
+void vmm_unmap(vmm_handle_t* handle, uintptr_t addr, size_t page_count);
 
 /**
  * Will map the given range of addresses at the virtual address
@@ -155,5 +162,52 @@ void vmm_unmap(vmm_handle_t* handle, uintptr_t addr, size_t size);
  * @param cache     [IN] The cache policy for the range
  */
 void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, page_perms_t perms, uint32_t /* IA32_PAT_MEMTYPE */ cache);
+
+/**
+ * Will set the page perms to the new perms
+ *
+ * @param handle    [IN] The handle to the page map
+ * @param virt      [IN] The virtual address to start from
+ * @param size      [IN] The amount of bytes to change
+ * @param perms     [IN] The new permissions
+ */
+void vmm_set_perms(vmm_handle_t* handle, uintptr_t virt, size_t size, page_perms_t perms);
+
+/**
+ * Allocate virtual memory for the user (mapped at lower memory)
+ *
+ * @remark
+ * Using the PAGE_SUPERVISOR bit will cause an assert
+ *
+ * @param handle        [IN]    The VMM handle
+ * @param type          [IN]    The allocation type
+ * @param virt          [OUT]   The output virtual address, also used as base for ALLOCATE_BELOW and ALLOCATE_ADDRESS
+ * @param page_count    [IN]    The amount of pages to allocate
+ * @param perms         [IN]    The permissions
+ */
+err_t vmm_user_allocate(vmm_handle_t* handle, allocate_type_t type, uintptr_t* virt, size_t page_count, page_perms_t perms);
+
+/**
+ * Free memory allocated for userspace
+ *
+ * @param handle        [IN] The VMM handle
+ * @param virt          [IN] The base to free from
+ * @param page_count    [IN] The amount of pages to free
+ */
+err_t vmm_user_free(vmm_handle_t* handle, uintptr_t virt, size_t page_count);
+
+/**
+ * Create the userspace memory allocator for the given handle
+ *
+ * @param handle        [IN] The handle
+ */
+void vmm_create_user_mem(vmm_handle_t* handle);
+
+/**
+ * Destroy the userspace memory allocator of the handle
+ *
+ * @param handle        [IN] The handle
+ */
+void vmm_destroy_user_mem(vmm_handle_t* handle);
 
 #endif //__MM_VMM_H__

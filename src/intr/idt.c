@@ -2,6 +2,7 @@
 
 #include "idt.h"
 #include "isrs.h"
+#include "intr.h"
 
 static idt_entry_t idt_entries[0xFF + 1];
 
@@ -279,4 +280,27 @@ void idt_init() {
     set_idt_entry(0xff,handle_interrupt_request_ff, 0);
 
     __asm__ __volatile__ ("lidt %0" : : "m" (idt));
+}
+
+void idt_post_tss_init() {
+    set_idt_entry(EXCEPTION_DIVIDE_ERROR, handle_interrupt_request_00, 1);
+    set_idt_entry(EXCEPTION_DEBUG, handle_interrupt_request_01, 1);
+    set_idt_entry(EXCEPTION_NMI, handle_interrupt_request_02, 2);
+    set_idt_entry(EXCEPTION_BREAKPOINT, handle_interrupt_request_03, 1);
+    set_idt_entry(EXCEPTION_OVERFLOW, handle_interrupt_request_04, 1);
+    set_idt_entry(EXCEPTION_BOUND, handle_interrupt_request_05, 1);
+    set_idt_entry(EXCEPTION_INVALID_OPCODE, handle_interrupt_request_06, 1);
+    // Device Not Available
+    set_idt_entry(EXCEPTION_DOUBLE_FAULT, handle_interrupt_request_08, 3);
+    // co-processor segment overrun
+    set_idt_entry(EXCEPTION_INVALID_TSS, handle_interrupt_request_0a, 1);
+    set_idt_entry(EXCEPTION_SEG_NOT_PRESENT, handle_interrupt_request_0b, 1);
+    set_idt_entry(EXCEPTION_STACK_FAULT, handle_interrupt_request_0c, 3);
+    set_idt_entry(EXCEPTION_GP_FAULT, handle_interrupt_request_0d, 3);
+    set_idt_entry(EXCEPTION_PAGE_FAULT, handle_interrupt_request_0e, 3);
+    // Reserved
+    set_idt_entry(EXCEPTION_FP_ERROR, handle_interrupt_request_10, 1);
+    set_idt_entry(EXCEPTION_ALIGNMENT_CHECK, handle_interrupt_request_11, 1);
+    set_idt_entry(EXCEPTION_MACHINE_CHECK, handle_interrupt_request_12, 1);
+    set_idt_entry(EXCEPTION_SIMD, handle_interrupt_request_13, 1);
 }

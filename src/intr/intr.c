@@ -69,9 +69,7 @@ static char* USER_NAME[] = {
         "User",
 };
 
-static void default_interrupt_handler(interrupt_context_t *regs) {
-    // term_disable();
-
+static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) {
     // print error name
     const char* name = 0;
     if(regs->int_num <= sizeof(ISR_NAMES) / sizeof(char*)) {
@@ -163,33 +161,33 @@ static void default_interrupt_handler(interrupt_context_t *regs) {
     trace("[-] FS =     %016lx DPL= \n", __readmsr(MSR_CODE_IA32_FS_BASE));
     trace("[-] CR0=%08lx CR2=%016lx CR3=%016lx CR4=%08lx\n", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
 
-    uintptr_t* base_ptr = (uintptr_t*)regs->rbp;
-    trace("[-] Stack trace:\n");
-    for (;;) {
-        // check if the page is mapped
-        if (!vmm_is_mapped(current_vmm_handle, (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
-            break;
-        }
-
-        // if it is then we can trace it
-        uintptr_t old_bp = base_ptr[0];
-        uintptr_t ret_addr = base_ptr[1];
-
-        if (ret_addr == 0) {
-            break;
-        }
-
-        name = symlist_name_from_address(&off, ret_addr);
-        if (name != NULL) {
-            trace("[-] \t[0x%016lx] <%s+%lx>\n", ret_addr, name, off);
-        }
-
-        if (old_bp == 0) {
-            break;
-        }
-
-        base_ptr = (void*)old_bp;
-    }
+//    uintptr_t* base_ptr = (uintptr_t*)regs->rbp;
+//    trace("[-] Stack trace:\n");
+//    for (;;) {
+//        // check if the page is mapped
+//        if (!vmm_is_mapped(current_vmm_handle, (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
+//            break;
+//        }
+//
+//        // if it is then we can trace it
+//        uintptr_t old_bp = base_ptr[0];
+//        uintptr_t ret_addr = base_ptr[1];
+//
+//        if (ret_addr == 0) {
+//            break;
+//        }
+//
+//        name = symlist_name_from_address(&off, ret_addr);
+//        if (name != NULL) {
+//            trace("[-] \t[0x%016lx] <%s+%lx>\n", ret_addr, name, off);
+//        }
+//
+//        if (old_bp == 0) {
+//            break;
+//        }
+//
+//        base_ptr = (void*)old_bp;
+//    }
 
     trace("[-] \n");
     trace("[-] :(\n");
@@ -216,26 +214,34 @@ void interrupts_init() {
 void common_interrupt_handler(interrupt_context_t ctx) {
     err_t err = NO_ERROR;
 
+    // interrupt handlers always run at a high level
+    tpl_t oldtpl = raise_tpl(TPL_HIGH_LEVEL);
+    thread_t* thread = current_thread;
+
     if(is_list_empty(&interrupt_handlers[ctx.int_num])) {
 
         // just call the default handler if none is found
-        default_interrupt_handler(&ctx);
+        default_interrupt_handler(&ctx, oldtpl);
 
     }else {
-
         // iterate and call all the handlers
         list_entry_t* handlers = &interrupt_handlers[ctx.int_num];
         for(list_entry_t* link = handlers->next; link != handlers; link = link->next) {
             interrupt_handler_t* handler = CR(link, interrupt_handler_t, link);
             CHECK_AND_RETHROW(handler->callback(handler->user_param, &ctx));
         }
+
     }
 
-    // raise and lower tpl so we can call all callbacks
-    restore_tpl(raise_tpl(TPL_HIGH_LEVEL));
+    // If we had a reschedule then we need to restore
+    // the tpl correctly, we do this by raising back
+    // to TPL_HIGH_LEVEL and then restore again
+    if (current_thread != thread) {
+        oldtpl = raise_tpl(TPL_HIGH_LEVEL);
+    }
 
-    // the tpl can not be high level when exiting the interrupt handler!
-    ASSERT(get_tpl() != TPL_HIGH_LEVEL);
+    // restore back to low level
+    restore_tpl(oldtpl);
 
 cleanup:
     WARN(!IS_ERROR(err), "Got an error inside interrupt handler/callback");

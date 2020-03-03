@@ -1,4 +1,6 @@
 #include <smp/pcpu.h>
+#include <arch/intrin.h>
+#include <util/trace.h>
 #include "gdt.h"
 #include "stack_allocator.h"
 
@@ -72,7 +74,7 @@ void init_tss_for_cpu() {
     // setup the stacks for different interrupts
     tss.ist1 = allocate_stack(); // exceptions
     tss.ist2 = allocate_stack(); // nmi
-    tss.ist3 = allocate_stack(); // page faults
+    tss.ist3 = allocate_stack(); // page fault, gp fault, double fault
 
     // setup the tss entry in the gdt
     uintptr_t tss_base = get_pcpu_base() + (uintptr_t)&tss;
@@ -84,5 +86,5 @@ void init_tss_for_cpu() {
     gdt.entries->tss.flags1 = 0b10001001;
     gdt.entries->tss.flags2 = 0b00000000;
 
-
+    __ltr(GDT_TSS);
 }

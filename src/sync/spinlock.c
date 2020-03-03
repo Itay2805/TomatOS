@@ -3,19 +3,21 @@
 #include "spinlock.h"
 
 void spinlock_acquire_high_tpl(spinlock_t* lock) {
-    lock->owner_tpl = raise_tpl(TPL_HIGH_LEVEL);
+    tpl_t old_tpl = raise_tpl(TPL_HIGH_LEVEL);
     while(!atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire)) {
         // restore it if failed and raise it again, this makes so
         // if we hit highest priority level it will enable back
         // interrupts and then lower them again
-        restore_tpl(lock->owner_tpl);
-        raise_tpl(TPL_HIGH_LEVEL);
+        restore_tpl(old_tpl);
+        old_tpl = raise_tpl(TPL_HIGH_LEVEL);
     }
+    lock->owner_tpl = old_tpl;
 }
 
 void spinlock_acquire(spinlock_t* lock) {
-    lock->owner_tpl = get_tpl();
+    tpl_t old_tpl = get_tpl();
     while(!atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire));
+    lock->owner_tpl = old_tpl;
 }
 
 void spinlock_release(spinlock_t* lock) {

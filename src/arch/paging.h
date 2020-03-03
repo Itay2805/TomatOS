@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include <assert.h>
 
-#define PAGE_SIZE 4096u
-#define PAGE_MASK 0xFFFu
-#define PAGE_SHIFT 12u
+#define PAGE_SIZE 4096lu
+#define PAGE_MASK 0xFFFlu
+#define PAGE_SHIFT 12lu
 
 #define SIZE_TO_PAGES(a) (((a) >> PAGE_SHIFT) + (((a) & PAGE_MASK) ? 1u : 0u))
 #define PAGES_TO_SIZE(a) ((a) << PAGE_SHIFT)

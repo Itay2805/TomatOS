@@ -78,13 +78,13 @@ static bool dispatch_event_notifies(tpl_t tpl) {
         remove_entry_list(&data->notify_link);
         data->notify_link.next = NULL;
 
+        // clear the signal bool
+        data->signaled = false;
+
         // notify it outside of the event lock
         release_event_lock();
         WARN(!IS_ERROR(data->notify_function(data->notify_ctx, data)), "Notify function returned an error");
         aquire_event_lock();
-
-        // clear the signal bool
-        data->signaled = false;
     }
 
     notify_queues_pending &= ~(1u << tpl);
@@ -131,6 +131,7 @@ void restore_tpl(tpl_t new_tpl) {
         if (pending_tpl <= new_tpl) {
             break;
         }
+
 
         // dispatch it
         set_tpl(pending_tpl);

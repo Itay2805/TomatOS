@@ -37,6 +37,7 @@ static err_t preemption_callback(void* ctx, event_t event) {
 
 static err_t yield_interrupt(void* user_param, interrupt_context_t* ctx) {
     err_t err = NO_ERROR;
+
     CHECK_AND_RETHROW(sched_tick(ctx));
 
 cleanup:
@@ -50,6 +51,9 @@ static interrupt_handler_t handler = {
 };
 
 void yield() {
+    // can only yield under preemption tpl
+    ASSERT(get_tpl() <= TPL_PREEMPTION);
+
     // pretty much a hack tbh
     static_assert(IPI_YIELD == 0x20);
     asm volatile("int $0x20" ::: "memory");
@@ -92,7 +96,7 @@ err_t init_sched() {
     // setup the timer
     event_t event;
     CHECK_AND_RETHROW(create_event(TPL_PREEMPTION, preemption_callback, NULL, &event));
-    CHECK_AND_RETHROW(set_timer(event, TIMER_PERIODIC, MS_TO_100NS(5)));
+    CHECK_AND_RETHROW(set_timer(event, TIMER_PERIODIC, MS_TO_100NS(15)));
 
 cleanup:
     return err;

@@ -34,4 +34,10 @@ extern idt_t idt;
  */
 void idt_init();
 
+/**
+ * Will modify the idt to have different stacks
+ * so we won't triple fault
+ */
+void idt_post_tss_init();
+
 #endif //__INTR_IDT_H__

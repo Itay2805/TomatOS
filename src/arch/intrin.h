@@ -94,6 +94,8 @@ void __invlpg(uintptr_t a);
 void __halt(void);
 void __nop(void);
 
+void __ltr(uint16_t seg);
+
 ///
 /// Byte packed structure for EFLAGS/RFLAGS.
 /// 32-bits on IA-32.

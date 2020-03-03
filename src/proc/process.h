@@ -4,6 +4,8 @@
 #include <sync/spinlock.h>
 #include <mm/vmm.h>
 #include <util/list.h>
+#include <compo/component.h>
+#include <compo/fs/filesystem.h>
 
 struct thread;
 
@@ -43,5 +45,19 @@ extern process_t kernel_process;
  * Initialize the kernel process
  */
 void init_kernel_process();
+
+/**
+ * Create a new empty process
+ *
+ * @remark
+ * The only thing that will happen is that an address space will be created for the process,
+ * nothing else is gonna be initialized
+ */
+err_t create_process(process_t** process);
+
+/**
+ * Spawn a new process from the given file at the given filesystem
+ */
+err_t spawn_process(file_t file, process_t** proc);
 
 #endif //__PROC_PROCESS_H__

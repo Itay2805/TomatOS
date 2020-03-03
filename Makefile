@@ -23,6 +23,7 @@ SRCS += $(shell find src -type f \( -name '*.c' ! -name 'symlist.c' \))
 SRCS += $(shell find src -type f -name '*.asm')
 SRCS += $(shell find lib/libc -type f -name '*.c')
 SRCS += $(shell find lib/stb -type f -name '*.c')
+SRCS += $(shell find lib/tlsf -type f -name '*.c')
 
 # All the object files and build dirs
 OBJS := $(SRCS:%=build/%.o)
@@ -46,9 +47,11 @@ COMMON_CFLAGS += \
 	-mcmodel=kernel \
 	-Wno-unused-label \
 	-static \
-	-O3 \
-	-flto \
 	-g
+
+
+#	-O3 \
+#	-flto \
 
 # Set the linking flags
 LDFLAGS += \

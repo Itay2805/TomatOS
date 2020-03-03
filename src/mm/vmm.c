@@ -239,12 +239,26 @@ static void set_pte(
     PTE* pte = &pt[va.four_kb.pte];
 
     // if mapped then remap (requests invalidation)
-    if(pte->present) {
-        *invlpg = true;
-    }
+    if (phys != -1) {
+        if (pte->present) {
+            *invlpg = true;
+        }
 
-    pte->present = true;
-    pte->addr = phys >> PAGE_SHIFT;
+        // only if the address is valid
+        pte->present = true;
+        pte->addr = phys >> PAGE_SHIFT;
+    } else {
+        ASSERT(pte->present);
+
+        // if going from user to supervisor
+        if (!user && pte->us) *invlpg = true;
+
+        // if going from rw to ro
+        if (!write && pte->rw) *invlpg = true;
+
+        // if going from exec to no exec
+        if (no_exec && !pte->nx) *invlpg = true;
+    }
 
     pte->us = (uint64_t) user;
     pte->rw = (uint64_t) write;
@@ -512,9 +526,124 @@ void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, 
     spinlock_release(&handle->lock);
 }
 
+void vmm_set_perms(vmm_handle_t* handle, uintptr_t virt, size_t size, page_perms_t perms) {
+    ASSERT(handle != NULL);
+
+    ASSERT(virt % PAGE_SIZE == 0);
+
+    spinlock_acquire(&handle->lock);
+
+    uintptr_t current_va = virt;
+    uintptr_t range_end_va = virt + size;
+
+    // get the permission bits
+    bool user = (perms & PAGE_SUPERVISOR) == 0;
+    bool write = (perms & PAGE_WRITE) != 0;
+    bool no_exec = ((perms & PAGE_EXECUTE) == 0);
+
+    while(current_va < range_end_va) {
+        bool invlpg = false;
+        set_pte(handle, current_va, -1, user, write, no_exec, false, false, false, &invlpg);
+
+        if (invlpg) {
+            __invlpg(current_va);
+        }
+
+        current_va += PAGE_SIZE;
+    }
+
+    spinlock_release(&handle->lock);
+}
+
+vmm_handle_t* vmm_get_handle() {
+    return current_vmm_handle;
+}
+
 void vmm_set_handle(vmm_handle_t* handle) {
     if (current_vmm_handle != handle) {
         current_vmm_handle = handle;
         __writecr3(handle->pml4_physical);
     }
+}
+
+void vmm_create_address_space(vmm_handle_t* handle) {
+    ASSERT(handle != NULL);
+
+    // initialize the handle
+    handle->lock = SPINLOCK_INIT;
+    pmm_allocate_pages(ALLOCATE_ANY, 1, &handle->pml4_physical);
+
+    // lock while doing the copy
+    spinlock_acquire(&kernel_process.vmm_handle.lock);
+
+    PML4E* new_pml4 = (PML4E*)PHYSICAL_TO_DIRECT(handle->pml4_physical);
+    PML4E* kernel_pml4e = (PML4E*)PHYSICAL_TO_DIRECT(kernel_process.vmm_handle.pml4_physical);
+
+    // copy the kernel mappings from the direct map base to the end
+    const VA_ADDRESS va = { .raw = DIRECT_MAPPING_BASE };
+    for (int i = va.four_kb.pml4e; i < 512; i++) {
+        new_pml4[i] = kernel_pml4e[i];
+    }
+
+    spinlock_release(&kernel_process.vmm_handle.lock);
+
+    // initialize the user space memory allocator
+    vmm_create_user_mem(handle);
+}
+
+void vmm_destroy_page_table(vmm_handle_t* handle) {
+    const VA_ADDRESS va = { .raw = DIRECT_MAPPING_BASE };
+
+    // free the user memory allocator stuff
+    vmm_destroy_user_mem(handle);
+
+    // go over level 4
+    PML4E* pml4 = (PML4E*)PHYSICAL_TO_DIRECT(handle->pml4_physical);
+    for (int pml4i = 0; pml4i < va.four_kb.pml4e; pml4i++) {
+        if (!pml4[pml4i].present) {
+            continue;
+        }
+
+        // go over level 3
+        PDPTE* pdpt = (PDPTE*)PHYSICAL_TO_DIRECT(pml4[pml4i].addr << PAGE_SHIFT);
+        for (int pdpti = 0; pdpti < 512; pdpti++) {
+            if (!pdpt[pdpti].present) {
+                continue;
+            }
+
+            ASSERT(!pdpt[pdpti].page_size);
+
+            // go over level 2
+            PDE* pd = (PDE*)PHYSICAL_TO_DIRECT(pdpt[pdpti].addr << PAGE_SHIFT);
+            for (int pdi = 0; pdi < 512; pdi++) {
+                if (!pd[pdi].present) {
+                    continue;
+                }
+
+                ASSERT(!pd[pdi].page_size);
+
+                PTE* pt = (PTE*)PHYSICAL_TO_DIRECT(pd[pdi].addr << PAGE_SHIFT);
+                for (int pti = 0; pti < 512; pti++) {
+                    if (!pt[pti].present) {
+                        continue;
+                    }
+
+                    // free the physical page
+                    pmm_free_pages(pt[pti].addr << PAGE_SHIFT, 1);
+                }
+
+                // free level 1
+                pmm_free_pages(pd[pdi].addr << PAGE_SHIFT, 1);
+            }
+
+            // free level 2
+            pmm_free_pages(pdpt[pdpti].addr << PAGE_SHIFT, 1);
+        }
+
+        // free level 3
+        pmm_free_pages(pml4[pml4i].addr << PAGE_SHIFT, 1);
+    }
+
+    // free level 4
+    pmm_free_pages(handle->pml4_physical, 1);
 }

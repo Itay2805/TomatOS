@@ -23,6 +23,7 @@
 
 #include <tboot.h>
 #include <compo/component.h>
+#include <compo/fs/filesystem.h>
 
 static tboot_info_t* g_info;
 
@@ -35,19 +36,17 @@ static void main_thread() {
     ASSERT(g_info->modules.count == 1);
     create_initrd_fs(&g_info->modules.entries[0]);
 
-    // get the component ()
-    component_t* comp;
-    CHECK_AND_RETHROW(get_primary(COMPONENT_FILESYSTEM, &comp));
-    filesystem_interface_t* fs = &comp->fs;
+    // get the component
+    filesystem_t fs;
+    CHECK_AND_RETHROW(get_primary(COMPONENT_FILESYSTEM, (void*)&fs));
 
-    // open file
+    // start some elf file
     file_t file = NULL;
-    char buffer[256];
-    size_t size = sizeof(buffer);
-    CHECK_AND_RETHROW(fs->open(comp, "test.txt", &file));
-    CHECK_AND_RETHROW(fs->read(comp, file, buffer, &size));
-    CHECK_AND_RETHROW(fs->close(comp, file));
-    TRACE("%s", buffer);
+    CHECK_AND_RETHROW(fs->open(fs, "test.elf", &file));
+
+    process_t* proc;
+    CHECK_AND_RETHROW(spawn_process(file, &proc));
+    TRACE("Spawned test");
 
 cleanup:
     while(1);
@@ -69,6 +68,7 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     pmm_post_vmm();
     mm_init();
     init_tss_for_cpu();
+    idt_post_tss_init();
     // TODO: idt init with the proper ists
 
     // convert the struct

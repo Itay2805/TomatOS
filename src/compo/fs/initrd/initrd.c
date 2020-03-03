@@ -40,7 +40,7 @@ static size_t tar_size(tar_header_t* header) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Interface implementation
+// File implementation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static struct initrd_file {
@@ -51,37 +51,17 @@ static struct initrd_file {
 static spinlock_t lock = SPINLOCK_INIT;
 
 typedef struct fd_entry {
+    // the file interface
+    struct file file;
+
+    // the data related to it
     char* data;
     size_t seek;
     size_t size;
     spinlock_t lock;
 } fd_entry_t;
 
-static err_t tar_open(component_t* ctx, const char* path, file_t* handle) {
-    err_t err = NO_ERROR;
-
-    spinlock_acquire(&lock);
-
-    CHECK_ERROR(path != NULL, ERROR_INVALID_PARAM);
-    CHECK_ERROR(handle != NULL, ERROR_INVALID_PARAM);
-
-    int i = shgeti(initrd_files, path);
-    CHECK_ERROR(i != -1, ERROR_NOT_FOUND);
-    tar_header_t* header = initrd_files[i].value;
-
-    fd_entry_t* entry = mm_allocate(sizeof(fd_entry_t));
-    entry->data = (void*)((uintptr_t)header + TAR_HEADER_SIZE);
-    entry->seek = 0;
-    entry->size = tar_size(header);
-
-    *handle = entry;
-
-cleanup:
-    spinlock_release(&lock);
-    return err;
-}
-
-static err_t tar_close(component_t* ctx, file_t file) {
+static err_t tar_close(file_t file) {
     err_t err = NO_ERROR;
 
     CHECK(file != NULL);
@@ -91,9 +71,9 @@ cleanup:
     return err;
 }
 
-static err_t tar_eof(struct component* comp, file_t handle, bool* iseof) {
+static err_t tar_eof(file_t handle, bool* iseof) {
     err_t err = NO_ERROR;
-    fd_entry_t* file = handle;
+    fd_entry_t* file = (fd_entry_t*)handle;
 
     CHECK(handle != NULL);
 
@@ -111,9 +91,9 @@ cleanup:
 }
 
 // TODO: overflow check on offset
-static err_t tar_seek(struct component* comp, file_t handle, size_t offset, seek_type_t type) {
+static err_t tar_seek(file_t handle, size_t offset, seek_type_t type) {
     err_t err = NO_ERROR;
-    fd_entry_t* file = handle;
+    fd_entry_t* file = (fd_entry_t*)handle;
 
     CHECK(handle != NULL);
 
@@ -147,9 +127,9 @@ cleanup:
     return err;
 }
 
-err_t tar_tell(struct component* comp, file_t handle, size_t* size) {
+err_t tar_tell(file_t handle, size_t* size) {
     err_t err = NO_ERROR;
-    fd_entry_t* file = handle;
+    fd_entry_t* file = (fd_entry_t*)handle;
 
     CHECK(handle != NULL);
 
@@ -166,9 +146,9 @@ cleanup:
     return err;
 }
 
-err_t tar_read(struct component* comp, file_t handle, void* buffer, size_t* count) {
+err_t tar_read(file_t handle, void* buffer, size_t* count) {
     err_t err = NO_ERROR;
-    fd_entry_t* file = handle;
+    fd_entry_t* file = (fd_entry_t*)handle;
 
     CHECK_ERROR(handle != NULL, ERROR_INVALID_PARAM);
     CHECK_ERROR(count != NULL, ERROR_INVALID_PARAM);
@@ -195,7 +175,42 @@ cleanup:
     return err;
 }
 
-static err_t tar_is_readonly(component_t* ctx, bool* is_ro) {
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Filesystem implementation
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static err_t tar_open(filesystem_t fs, const char* path, file_t* handle) {
+    err_t err = NO_ERROR;
+
+    spinlock_acquire(&lock);
+
+    CHECK_ERROR(path != NULL, ERROR_INVALID_PARAM);
+    CHECK_ERROR(handle != NULL, ERROR_INVALID_PARAM);
+
+    int i = shgeti(initrd_files, path);
+    CHECK_ERROR(i != -1, ERROR_NOT_FOUND);
+    tar_header_t* header = initrd_files[i].value;
+
+    fd_entry_t* entry = mm_allocate(sizeof(fd_entry_t));
+    entry->data = (void*)((uintptr_t)header + TAR_HEADER_SIZE);
+    entry->seek = 0;
+    entry->size = tar_size(header);
+
+    // set the interface functions
+    entry->file.read = tar_read;
+    entry->file.close = tar_close;
+    entry->file.eof = tar_eof;
+    entry->file.seek = tar_seek;
+    entry->file.tell = tar_tell;
+
+   *handle = (file_t)entry;
+
+cleanup:
+    spinlock_release(&lock);
+    return err;
+}
+
+static err_t tar_is_readonly(filesystem_t fs, bool* is_ro) {
     err_t err = NO_ERROR;
 
     CHECK_ERROR(is_ro, ERROR_INVALID_PARAM);
@@ -209,18 +224,17 @@ cleanup:
 // Component implementation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static component_t component = {
-    .type = COMPONENT_FILESYSTEM,
-    .fs = {
-        .open = tar_open,
-        .is_readonly = tar_is_readonly,
-
-        .eof = tar_eof,
-        .seek = tar_seek,
-        .tell = tar_tell,
-        .read = tar_read,
-        .close = tar_close,
-    }
+static struct filesystem component = {
+    .component = {
+        .type = COMPONENT_FILESYSTEM,
+        .address = {
+            // sha1 of "initrd"
+            .data1 = 0xA1B7B399, .data2 = 0xFD00, .data3 = 0x7CED,
+            .data4 = { 0x7E, 0xB1, 0xC5, 0x9F, 0x4D, 0x75, 0xD8, 0x41 }
+        },
+    },
+    .open = tar_open,
+    .is_readonly = tar_is_readonly,
 };
 
 void create_initrd_fs(tboot_module_t* module) {
@@ -250,10 +264,7 @@ void create_initrd_fs(tboot_module_t* module) {
         header = (tar_header_t*)((uintptr_t)header + TAR_HEADER_SIZE + size);
     }
 
-    // generate the address
-    generate_device_address("initrd", sizeof("initrd") - 1, &component.address);
-
     // register component and set as primary for now
-    register_component(&component);
-    set_primary(&component);
+    register_component(&component.component);
+    set_primary(&component.component);
 }

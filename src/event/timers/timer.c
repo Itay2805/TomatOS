@@ -72,7 +72,7 @@ static err_t check_timers(void* ctx, event_t event) {
             }
 
             // add it back
-//            insert_event_timer(te);
+            insert_event_timer(te);
         } else {
             // free it
             mm_free(te);
@@ -96,7 +96,7 @@ void init_timer() {
     init_pit8254();
 
     // setup the timers
-    TRACE("timer: Configuring timer to 10ms");
+    TRACE("timer: Configuring timer to 5ms");
     CHECK_AND_RETHROW(timer->set_timer_period(MS_TO_100NS(5)));
     CHECK_AND_RETHROW(create_event(TPL_TIMER, check_timers, NULL, &check_timers_event));
 

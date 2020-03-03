@@ -268,6 +268,7 @@ GLOBAL handle_interrupt_request_fe
 GLOBAL handle_interrupt_request_ff
 
 common_stub:
+    cld
     push rax
     push rbx
     push rcx
@@ -284,7 +285,7 @@ common_stub:
     push r14
     push r15
 
-    ; store ds
+    ; store ds and es
     mov rax, ds
     push rax
     mov ax, GDT_KERNEL_DATA
@@ -294,11 +295,10 @@ common_stub:
 
     call common_interrupt_handler
 
-    ; restore ds
+    ; restore ds and es
     pop rax
     mov ds, ax
     mov es, ax
-    mov ss, ax
 
     pop r15
     pop r14

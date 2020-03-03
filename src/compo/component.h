@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <util/except.h>
+
 #include <util/list.h>
-#include <compo/fs/filesystem.h>
+#include <util/except.h>
 
 typedef struct address {
     uint32_t data1;
@@ -32,12 +32,6 @@ typedef struct component {
 
     // the link of the specific component
     list_entry_t type_link;
-
-    // kernel interface for this component
-    // TODO: make this a pointer instead?
-    union {
-        filesystem_interface_t fs;
-    };
 } component_t;
 
 
