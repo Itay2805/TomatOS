@@ -5,7 +5,7 @@
 #include <mm/vmm.h>
 #include <util/list.h>
 #include <compo/component.h>
-#include <compo/fs/filesystem.h>
+#include <compo/fs/fs.h>
 
 struct thread;
 

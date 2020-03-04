@@ -35,7 +35,7 @@ err_t load_elf(file_t file, vmm_handle_t* handle, elf_info_t* info) {
                 if (phdr.p_memsz == 0) continue;
 
                 // allocate the address, map as read write for starters
-                uintptr_t base = phdr.p_paddr;
+                uintptr_t base = phdr.p_vaddr;
                 CHECK_AND_RETHROW(vmm_user_allocate(handle, ALLOCATE_ADDRESS, &base, SIZE_TO_PAGES(phdr.p_memsz), PAGE_SUPERVISOR_READWRITE));
                 CHECK_AND_RETHROW(file_seek(file, phdr.p_offset, SEEK_SET));
                 CHECK_AND_RETHROW(file_read(file, (void*)base, phdr.p_filesz));

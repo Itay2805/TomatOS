@@ -96,6 +96,8 @@ void __nop(void);
 
 void __ltr(uint16_t seg);
 
+void __swapgs(void);
+
 ///
 /// Byte packed structure for EFLAGS/RFLAGS.
 /// 32-bits on IA-32.

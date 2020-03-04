@@ -23,7 +23,7 @@
 
 #include <tboot.h>
 #include <compo/component.h>
-#include <compo/fs/filesystem.h>
+#include <compo/fs/fs.h>
 
 static tboot_info_t* g_info;
 

@@ -10,6 +10,7 @@
 #include <mm/vmm.h>
 #include <proc/sched.h>
 #include <util/def.h>
+#include <mm/gdt.h>
 
 #include "intr.h"
 
@@ -153,10 +154,15 @@ static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) 
     trace("[-] RSI=%016lx RDI=%016lx RBP=%016lx RSP=%016lx\n", regs->rsi, regs->rdi, regs->rbp, regs->rsp);
     trace("[-] R8 =%016lx R9 =%016lx R10=%016lx R11=%016lx\n", regs->r8, regs->r9, regs->r10, regs->r10);
     trace("[-] R12=%016lx R13=%016lx R14=%016lx R15=%016lx\n", regs->r12, regs->r13, regs->r14, regs->r15);
-    trace("[-] RIP=%016lx <%s+%lx> RFL=%08x [%c%c%c%c%c%c%c] CPL=%d\n", regs->rip, name, off, (uint32_t)regs->rflags.raw, _if, _tf, _sf, _zf, _af, _pf, _cf, cpl);
+    if(off == 0 || name == 0) {
+        trace("[-] RIP=%016lx RFL=%08x [%c%c%c%c%c%c%c] CPL=%d\n", regs->rip, (uint32_t)regs->rflags.raw, _if, _tf, _sf, _zf, _af, _pf, _cf, cpl);
+    } else {
+        trace("[-] RIP=%016lx <%s+%lx> RFL=%08x [%c%c%c%c%c%c%c] CPL=%d\n", regs->rip, name, off, (uint32_t)regs->rflags.raw, _if, _tf, _sf, _zf, _af, _pf, _cf, cpl);
+    }
     trace("[-] CS =%04lx                  DPL=%ld\n", regs->cs & 0xFFF8, regs->cs & 0b11);
     trace("[-] DS =%04lx                  DPL=%ld\n", regs->ds & 0xFFF8, regs->ds & 0b11);
     trace("[-] SS =%04lx                  DPL=%ld\n", regs->ss & 0xFFF8, regs->ss & 0b11);
+    // TODO: actually read the gs and fs registers
     trace("[-] GS =     %016lx DPL= \n", __readmsr(MSR_CODE_IA32_GS_BASE));
     trace("[-] FS =     %016lx DPL= \n", __readmsr(MSR_CODE_IA32_FS_BASE));
     trace("[-] CR0=%08lx CR2=%016lx CR3=%016lx CR4=%08lx\n", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
@@ -214,6 +220,11 @@ void interrupts_init() {
 void common_interrupt_handler(interrupt_context_t ctx) {
     err_t err = NO_ERROR;
 
+    // if we are coming from usermode swapgs
+    if (ctx.ds == GDT_USER_DATA) {
+        __swapgs();
+    }
+
     // interrupt handlers always run at a high level
     tpl_t oldtpl = raise_tpl(TPL_HIGH_LEVEL);
     thread_t* thread = current_thread;
@@ -233,6 +244,9 @@ void common_interrupt_handler(interrupt_context_t ctx) {
 
     }
 
+cleanup:
+    WARN(!IS_ERROR(err), "Got an error inside interrupt handler/callback");
+
     // If we had a reschedule then we need to restore
     // the tpl correctly, we do this by raising back
     // to TPL_HIGH_LEVEL and then restore again
@@ -243,8 +257,10 @@ void common_interrupt_handler(interrupt_context_t ctx) {
     // restore back to low level
     restore_tpl(oldtpl);
 
-cleanup:
-    WARN(!IS_ERROR(err), "Got an error inside interrupt handler/callback");
+    // if going to usermode swapgs
+    if (ctx.ds == GDT_USER_DATA) {
+        __swapgs();
+    }
 }
 
 //////////////////////////////////////////////////////////////////

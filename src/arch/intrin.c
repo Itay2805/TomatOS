@@ -181,6 +181,10 @@ void __ltr(uint16_t seg){
     asm volatile("ltr %%ax" : : "a"(seg));
 }
 
+void __swapgs(void) {
+    asm volatile("swapgs" ::: "memory");
+}
+
 #define __buildbitscan(x, y, z) unsigned char x(uint32_t* Index, y Mask) \
 { \
    y n; \

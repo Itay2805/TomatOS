@@ -5,7 +5,7 @@
 #include <util/def.h>
 #include <sync/spinlock.h>
 #include <compo/component.h>
-#include <compo/fs/filesystem.h>
+#include <compo/fs/fs.h>
 #include <mm/mm.h>
 #include <mm/vmm.h>
 
@@ -166,6 +166,7 @@ err_t tar_read(file_t handle, void* buffer, size_t* count) {
 
     // copy it
     memcpy(buffer, &file->data[file->seek], *count);
+    file->seek += *count;
 
 cleanup:
     if (file != NULL) {

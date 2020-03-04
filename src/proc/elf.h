@@ -1,7 +1,7 @@
 #ifndef __PROC_ELF_H__
 #define __PROC_ELF_H__
 
-#include <compo/fs/filesystem.h>
+#include <compo/fs/fs.h>
 #include <mm/vmm.h>
 
 typedef struct elf_info {

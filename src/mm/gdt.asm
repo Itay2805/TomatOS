@@ -11,12 +11,13 @@ fix_data_segment:
 	mov ax, GDT_KERNEL_DATA
 	mov ds, ax
 	mov es, ax
-	mov gs, ax
 
-	; fs is only used by usermode processes, so we are
-	; going to set it once
+	; we set gs and fs here to a user segment
+	; since we are gonna set the msrs for the
+	; base
 	mov ax, GDT_USER_DATA
 	mov fs, ax
+	mov gs, ax
 	ret
 
 
