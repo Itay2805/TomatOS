@@ -2,6 +2,9 @@
 .idea
 cmake-build-debug
 
+# Ignore auto generated files
+src/util/symlist.c
+
 # Ignore build output
 bin
 build
