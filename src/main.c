@@ -21,12 +21,17 @@
 #include <mm/gdt.h>
 #include <mm/mm.h>
 
-#include <tboot.h>
 #include <compo/component.h>
+#include <compo/fs/vfs.h>
 #include <compo/fs/fs.h>
+
+#include <tboot.h>
 
 static tboot_info_t* g_info;
 
+/**
+ * The main thread will initialize and prepare everything
+ */
 static void main_thread() {
     err_t err = NO_ERROR;
     TRACE("In main thread!");
@@ -36,15 +41,10 @@ static void main_thread() {
     ASSERT(g_info->modules.count == 1);
     create_initrd_fs(&g_info->modules.entries[0]);
 
-    // get the component
-    filesystem_t fs;
-    CHECK_AND_RETHROW(get_primary(COMPONENT_FILESYSTEM, (void*)&fs));
-
-    // start some elf file
+    // spawn a process from an elf file
     file_t file = NULL;
-    CHECK_AND_RETHROW(fs->open(fs, "test.elf", &file));
-
-    process_t* proc;
+    process_t* proc = NULL;
+    CHECK_AND_RETHROW(vfs_open("/test.elf", &file));
     CHECK_AND_RETHROW(spawn_process(file, &proc));
     TRACE("Spawned test");
 

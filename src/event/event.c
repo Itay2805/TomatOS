@@ -239,7 +239,7 @@ err_t wait_for_event(size_t number_of_events, event_t* events, size_t* index) {
     err_t err = NO_ERROR;
 
     // this is so we are always gonna yield in TPL_APPLICATION
-    CHECK_ERROR(get_tpl() == TPL_APPLICATION, ERROR_INVALID_TPL);
+    CHECK_ERROR_TRACE(get_tpl() == TPL_APPLICATION, ERROR_INVALID_TPL, "Current TPL %d", get_tpl());
 
     CHECK_ERROR(events != NULL, ERROR_INVALID_PARAM);
     CHECK_ERROR(number_of_events > 0, ERROR_INVALID_PARAM);

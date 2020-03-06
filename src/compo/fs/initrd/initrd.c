@@ -64,7 +64,6 @@ typedef struct fd_entry {
 static err_t tar_close(file_t file) {
     err_t err = NO_ERROR;
 
-    CHECK(file != NULL);
     mm_free(file);
 
 cleanup:
@@ -75,27 +74,20 @@ static err_t tar_eof(file_t handle, bool* iseof) {
     err_t err = NO_ERROR;
     fd_entry_t* file = (fd_entry_t*)handle;
 
-    CHECK(handle != NULL);
-
     spinlock_acquire(&file->lock);
 
     CHECK_ERROR(iseof != NULL, ERROR_INVALID_PARAM);
     *iseof = file->seek == file->size;
 
 cleanup:
-    if (file != NULL) {
-        spinlock_release(&file->lock);
-    }
+    spinlock_release(&file->lock);
 
     return err;
 }
 
-// TODO: overflow check on offset
 static err_t tar_seek(file_t handle, size_t offset, seek_type_t type) {
     err_t err = NO_ERROR;
     fd_entry_t* file = (fd_entry_t*)handle;
-
-    CHECK(handle != NULL);
 
     spinlock_acquire(&file->lock);
 
@@ -120,9 +112,7 @@ static err_t tar_seek(file_t handle, size_t offset, seek_type_t type) {
     }
 
 cleanup:
-    if (file != NULL) {
-        spinlock_release(&file->lock);
-    }
+    spinlock_release(&file->lock);
 
     return err;
 }
@@ -131,28 +121,20 @@ err_t tar_tell(file_t handle, size_t* size) {
     err_t err = NO_ERROR;
     fd_entry_t* file = (fd_entry_t*)handle;
 
-    CHECK(handle != NULL);
-
     spinlock_acquire(&file->lock);
 
     CHECK_ERROR(size != NULL, ERROR_NOT_FOUND);
     *size = file->seek;
 
 cleanup:
-    if (file != NULL) {
-        spinlock_release(&file->lock);
-    }
+    spinlock_release(&file->lock);
 
     return err;
 }
 
-err_t tar_read(file_t handle, void* buffer, size_t* count) {
+err_t tar_read(file_t handle, file_io_token_t* io_token) {
     err_t err = NO_ERROR;
     fd_entry_t* file = (fd_entry_t*)handle;
-
-    CHECK_ERROR(handle != NULL, ERROR_INVALID_PARAM);
-    CHECK_ERROR(count != NULL, ERROR_INVALID_PARAM);
-    CHECK_ERROR(buffer != NULL, ERROR_INVALID_PARAM);
 
     spinlock_acquire(&file->lock);
 
@@ -160,19 +142,20 @@ err_t tar_read(file_t handle, void* buffer, size_t* count) {
     CHECK_ERROR(file->seek < file->size, ERROR_EOF);
 
     // truncate if needed
-    if (*count > file->size - file->seek) {
-        *count = file->size - file->seek;
+    if (io_token->buffer_size > file->size - file->seek) {
+        io_token->buffer_size = file->size - file->seek;
     }
 
     // copy it
-    memcpy(buffer, &file->data[file->seek], *count);
-    file->seek += *count;
+    memcpy(io_token->buffer, &file->data[file->seek], io_token->buffer_size);
+    file->seek += io_token->buffer_size;
+
+    // signal that we are done
+    signal_event(io_token->event);
 
 cleanup:
-    if (file != NULL) {
-        spinlock_release(&file->lock);
-    }
-
+    spinlock_release(&file->lock);
+    io_token->error = err;
     return err;
 }
 
@@ -184,9 +167,6 @@ static err_t tar_open(filesystem_t fs, const char* path, file_t* handle) {
     err_t err = NO_ERROR;
 
     spinlock_acquire(&lock);
-
-    CHECK_ERROR(path != NULL, ERROR_INVALID_PARAM);
-    CHECK_ERROR(handle != NULL, ERROR_INVALID_PARAM);
 
     int i = shgeti(initrd_files, path);
     CHECK_ERROR(i != -1, ERROR_NOT_FOUND);
@@ -214,7 +194,6 @@ cleanup:
 static err_t tar_is_readonly(filesystem_t fs, bool* is_ro) {
     err_t err = NO_ERROR;
 
-    CHECK_ERROR(is_ro, ERROR_INVALID_PARAM);
     *is_ro = true;
 
 cleanup:
@@ -233,6 +212,7 @@ static struct filesystem component = {
             .data1 = 0xA1B7B399, .data2 = 0xFD00, .data3 = 0x7CED,
             .data4 = { 0x7E, 0xB1, 0xC5, 0x9F, 0x4D, 0x75, 0xD8, 0x41 }
         },
+        .ref_count = 1,
     },
     .open = tar_open,
     .is_readonly = tar_is_readonly,

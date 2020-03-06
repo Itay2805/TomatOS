@@ -65,7 +65,8 @@ err_t get_component(address_t address, component_t** comp) {
 
     FOR_EACH_IN_LIST(all_components, link) {
         component_t* component = CR(link, component_t, link);
-        if (memcmp(&address, &component->address, 16) == 0) {
+        if (component->ref_count != 0 && memcmp(&address, &component->address, 16) == 0) {
+            component->ref_count++;
             *comp = component;
             goto cleanup;
         }
@@ -78,8 +79,31 @@ cleanup:
     return err;
 }
 
+err_t release_component(void* comp) {
+    err_t err = NO_ERROR;
+    component_t* c = comp;
+
+    CHECK_ERROR(c != NULL, ERROR_INVALID_PARAM);
+
+    // decrefement the ref count and if zero free it
+    if (c->ref_count-- == 0) {
+
+        // remove the link
+        remove_entry_list(&c->type_link);
+        remove_entry_list(&c->link);
+
+        // if has a deleted delete it
+        if (c->delete != NULL) {
+            CHECK_AND_RETHROW(c->delete(c));
+        }
+    }
+
+cleanup:
+    return err;
+}
+
 err_t get_next_component(component_type_t type, component_t** comp) {
-    return ERROR_NOT_READY;
+    ASSERT(false);
 }
 
 err_t get_primary(component_type_t type, component_t** comp) {
@@ -89,7 +113,11 @@ err_t get_primary(component_type_t type, component_t** comp) {
 
     CHECK_ERROR(comp != NULL, ERROR_INVALID_PARAM);
     CHECK_ERROR(primary_components[type] != NULL, ERROR_NOT_FOUND);
+
+    // increment the ref count and set it
+    primary_components[type]->ref_count++;
     *comp = primary_components[type];
+
 
 cleanup:
     spinlock_release(&components_lock);

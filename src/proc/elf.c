@@ -12,7 +12,7 @@ err_t load_elf(file_t file, vmm_handle_t* handle, elf_info_t* info) {
 
 
     Elf64_Ehdr ehdr;
-    CHECK_AND_RETHROW(file_read(file, &ehdr, sizeof(ehdr)));
+    CHECK_AND_RETHROW(file_read(file, &ehdr, sizeof(ehdr), NULL));
 
     // verify this is an elf file
     CHECK(IS_ELF(ehdr));
@@ -26,7 +26,7 @@ err_t load_elf(file_t file, vmm_handle_t* handle, elf_info_t* info) {
     Elf64_Phdr phdr;
     for (int i = 0; i < ehdr.e_phnum; i++) {
         CHECK_AND_RETHROW(file_seek(file, ehdr.e_phoff + ehdr.e_phentsize * i, SEEK_SET));
-        CHECK_AND_RETHROW(file_read(file, &phdr, sizeof(Elf64_Phdr)));
+        CHECK_AND_RETHROW(file_read(file, &phdr, sizeof(Elf64_Phdr), NULL));
 
         switch (phdr.p_type) {
             // normal section
@@ -38,7 +38,7 @@ err_t load_elf(file_t file, vmm_handle_t* handle, elf_info_t* info) {
                 uintptr_t base = phdr.p_vaddr;
                 CHECK_AND_RETHROW(vmm_user_allocate(handle, ALLOCATE_ADDRESS, &base, SIZE_TO_PAGES(phdr.p_memsz), PAGE_SUPERVISOR_READWRITE));
                 CHECK_AND_RETHROW(file_seek(file, phdr.p_offset, SEEK_SET));
-                CHECK_AND_RETHROW(file_read(file, (void*)base, phdr.p_filesz));
+                CHECK_AND_RETHROW(file_read(file, (void*)base, phdr.p_filesz, NULL));
                 memset((void*)(base + phdr.p_filesz), 0, phdr.p_memsz - phdr.p_filesz);
 
                 // set the correct permissions

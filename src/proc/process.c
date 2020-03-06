@@ -50,7 +50,6 @@ err_t spawn_process(file_t file, process_t** proc) {
     err_t err = NO_ERROR;
     vmm_handle_t* cur = NULL;
     process_t* new_proc = NULL;
-    tpl_t tpl = -1;
     uintptr_t stack = -1;
 
     CHECK_ERROR(file != NULL, ERROR_INVALID_PARAM);
@@ -59,12 +58,6 @@ err_t spawn_process(file_t file, process_t** proc) {
 
     // create the process
     CHECK_AND_RETHROW(create_process(&new_proc));
-
-    // we are doing something kinda sensitive which
-    // is to mess with the page tables, so don't
-    // do anything weird please
-    tpl = raise_tpl(TPL_HIGH_LEVEL);
-
     // switch to the new address space
     cur = vmm_get_handle();
     vmm_set_handle(&new_proc->vmm_handle);
@@ -85,10 +78,6 @@ cleanup:
     // restore the state of the current process
     if (cur != NULL) {
         vmm_set_handle(cur);
-    }
-
-    if (tpl != -1) {
-        restore_tpl(tpl);
     }
 
     // delete the process if we failed to create it
