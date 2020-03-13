@@ -39,10 +39,10 @@ typedef union {
         uint32_t  Model:4;             ///< [Bits   7:4] Model
         uint32_t  FamilyId:4;          ///< [Bits  11:8] Family
         uint32_t  ProcessorType:2;     ///< [Bits 13:12] Processor Type
-        uint32_t  Reserved1:2;         ///< [Bits 15:14] Reserved
+        uint32_t  _reserved1:2;         ///< [Bits 15:14] _reserved
         uint32_t  ExtendedModelId:4;   ///< [Bits 19:16] Extended Model ID
         uint32_t  ExtendedFamilyId:8;  ///< [Bits 27:20] Extended Family ID
-        uint32_t  Reserved2:4;         ///< Reserved
+        uint32_t  _reserved2:4;         ///< _reserved
     };
     ///
     /// All bit fields as a 32-bit value
@@ -198,7 +198,7 @@ typedef union {
         /// IA32_PERF_CAPABILITIES.
         ///
         uint32_t  PDCM:1;
-        uint32_t  Reserved:1;
+        uint32_t  _reserved:1;
         ///
         /// [Bit 17] Process-context identifiers.  A value of 1 indicates that the
         /// processor supports PCIDs and that software may set CR4.PCIDE to 1.
@@ -353,7 +353,7 @@ typedef union {
         /// processors permit the APIC to be relocated).
         ///
         uint32_t  APIC:1;
-        uint32_t  Reserved1:1;
+        uint32_t  _reserved1:1;
         ///
         /// [Bit 11] SYSENTER and SYSEXIT Instructions.  The SYSENTER and SYSEXIT
         /// and associated MSRs are supported.
@@ -410,7 +410,7 @@ typedef union {
         /// [Bit 19] CLFLUSH Instruction.  CLFLUSH Instruction is supported.
         ///
         uint32_t  CLFSH:1;
-        uint32_t  Reserved2:1;
+        uint32_t  _reserved2:1;
         ///
         /// [Bit 21] Debug Store.  The processor supports the ability to write debug
         /// information into a memory resident buffer.  This feature is used by the
@@ -466,7 +466,7 @@ typedef union {
         /// automatic thermal control circuitry (TCC).
         ///
         uint32_t  TM:1;
-        uint32_t  Reserved3:1;
+        uint32_t  _reserved3:1;
         ///
         /// [Bit 31] Pending Break Enable.  The processor supports the use of the
         /// FERR#/PBE# pin when the processor is in the stop-clock state (STPCLK# is
@@ -486,14 +486,14 @@ typedef union {
   CPUID Extended Processor Signature and Feature Bits
   @param   EAX  CPUID_EXTENDED_CPU_SIG (0x80000001)
   @retval  EAX  CPUID_EXTENDED_CPU_SIG.
-  @retval  EBX  Reserved.
+  @retval  EBX  _reserved.
   @retval  ECX  Extended Processor Signature and Feature Bits information
                 described by the type CPUID_EXTENDED_CPU_SIG_ECX.
   @retval  EDX  Extended Processor Signature and Feature Bits information
                 described by the type CPUID_EXTENDED_CPU_SIG_EDX.
   <b>Example usage</b>
   @code
-  UINT32                      Eax;
+  uint32_t                      Eax;
   CPUID_EXTENDED_CPU_SIG_ECX  Ecx;
   CPUID_EXTENDED_CPU_SIG_EDX  Edx;
   AsmCpuid (CPUID_EXTENDED_CPU_SIG, &Eax, NULL, &Ecx.Uint32, &Edx.Uint32);
@@ -514,17 +514,17 @@ typedef union {
         /// [Bit 0] LAHF/SAHF available in 64-bit mode.
         ///
         uint32_t  LAHF_SAHF:1;
-        uint32_t  _Reserved1:4;
+        uint32_t  __reserved1:4;
         ///
         /// [Bit 5] LZCNT.
         ///
         uint32_t  LZCNT:1;
-        uint32_t  _Reserved2:2;
+        uint32_t  __reserved2:2;
         ///
         /// [Bit 8] PREFETCHW.
         ///
         uint32_t  PREFETCHW:1;
-        uint32_t  _Reserved3:23;
+        uint32_t  __reserved3:23;
     };
     ///
     /// All bit fields as a 32-bit value
@@ -537,17 +537,17 @@ typedef union {
     /// Individual bit fields
     ///
     struct {
-        uint32_t _Reserved1:11;
+        uint32_t __reserved1:11;
         ///
         /// [Bit 11] SYSCALL/SYSRET available in 64-bit mode.
         ///
         uint32_t  SYSCALL_SYSRET:1;
-        uint32_t  _Reserved2:8;
+        uint32_t  __reserved2:8;
         ///
         /// [Bit 20] Execute Disable Bit available.
         ///
         uint32_t  NX:1;
-        uint32_t  _Reserved3:5;
+        uint32_t  __reserved3:5;
         ///
         /// [Bit 26] 1-GByte pages are available if 1.
         ///
@@ -556,12 +556,12 @@ typedef union {
         /// [Bit 27] RDTSCP and IA32_TSC_AUX are available if 1.
         ///
         uint32_t  RDTSCP:1;
-        uint32_t  _Reserved4:1;
+        uint32_t  __reserved4:1;
         ///
         /// [Bit 29] Intel(R) 64 Architecture available if 1.
         ///
         uint32_t  LM:1;
-        uint32_t  _Reserved5:2;
+        uint32_t  __reserved5:2;
     };
     ///
     /// All bit fields as a 32-bit value
@@ -569,6 +569,299 @@ typedef union {
     uint32_t raw;
 } CPUID_EXTENDED_CPU_SIG_EDX;
 
+#define CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS                0x07
+
+///
+/// CPUID Structured Extended Feature Flags Enumeration sub-leaf
+///
+#define CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO  0x00
+
+/**
+  CPUID Structured Extended Feature Flags Enumeration in EBX for CPUID leaf
+  #CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS sub leaf
+  #CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] Supports RDFSBASE/RDGSBASE/WRFSBASE/WRGSBASE if 1.
+        ///
+        uint32_t  FSGSBASE:1;
+        ///
+        /// [Bit 1] IA32_TSC_ADJUST MSR is supported if 1.
+        ///
+        uint32_t  IA32_TSC_ADJUST:1;
+        ///
+        /// [Bit 2] Intel SGX is supported if 1. See section 37.7 "DISCOVERING SUPPORT
+        /// FOR INTEL(R) SGX AND ENABLING ENCLAVE INSTRUCTIONS".
+        ///
+        uint32_t  SGX:1;
+        ///
+        /// [Bit 3] If 1 indicates the processor supports the first group of advanced
+        /// bit manipulation extensions (ANDN, BEXTR, BLSI, BLSMSK, BLSR, TZCNT)
+        ///
+        uint32_t  BMI1:1;
+        ///
+        /// [Bit 4] Hardware Lock Elision
+        ///
+        uint32_t  HLE:1;
+        ///
+        /// [Bit 5] If 1 indicates the processor supports AVX2 instruction extensions.
+        ///
+        uint32_t  AVX2:1;
+        ///
+        /// [Bit 6] x87 FPU Data Pointer updated only on x87 exceptions if 1.
+        ///
+        uint32_t  FDP_EXCPTN_ONLY:1;
+        ///
+        /// [Bit 7] Supports Supervisor-Mode Execution Prevention if 1.
+        ///
+        uint32_t  SMEP:1;
+        ///
+        /// [Bit 8] If 1 indicates the processor supports the second group of
+        /// advanced bit manipulation extensions (BZHI, MULX, PDEP, PEXT, RORX,
+        /// SARX, SHLX, SHRX)
+        ///
+        uint32_t  BMI2:1;
+        ///
+        /// [Bit 9] Supports Enhanced REP MOVSB/STOSB if 1.
+        ///
+        uint32_t  EnhancedRepMovsbStosb:1;
+        ///
+        /// [Bit 10] If 1, supports INVPCID instruction for system software that
+        /// manages process-context identifiers.
+        ///
+        uint32_t  INVPCID:1;
+        ///
+        /// [Bit 11] Restricted Transactional Memory
+        ///
+        uint32_t  RTM:1;
+        ///
+        /// [Bit 12] Supports Intel(R) Resource Director Technology (Intel(R) RDT)
+        /// Monitoring capability if 1.
+        ///
+        uint32_t  RDT_M:1;
+        ///
+        /// [Bit 13] Deprecates FPU CS and FPU DS values if 1.
+        ///
+        uint32_t  DeprecateFpuCsDs:1;
+        ///
+        /// [Bit 14] Supports Intel(R) Memory Protection Extensions if 1.
+        ///
+        uint32_t  MPX:1;
+        ///
+        /// [Bit 15] Supports Intel(R) Resource Director Technology (Intel(R) RDT)
+        /// Allocation capability if 1.
+        ///
+        uint32_t  RDT_A:1;
+        ///
+        /// [Bit 16] AVX512F.
+        ///
+        uint32_t  AVX512F:1;
+        ///
+        /// [Bit 17] AVX512DQ.
+        ///
+        uint32_t  AVX512DQ:1;
+        ///
+        /// [Bit 18] If 1 indicates the processor supports the RDSEED instruction.
+        ///
+        uint32_t  RDSEED:1;
+        ///
+        /// [Bit 19] If 1 indicates the processor supports the ADCX and ADOX
+        /// instructions.
+        ///
+        uint32_t  ADX:1;
+        ///
+        /// [Bit 20] Supports Supervisor-Mode Access Prevention (and the CLAC/STAC
+        /// instructions) if 1.
+        ///
+        uint32_t  SMAP:1;
+        ///
+        /// [Bit 21] AVX512_IFMA.
+        ///
+        uint32_t  AVX512_IFMA:1;
+        uint32_t  _reserved6:1;
+        ///
+        /// [Bit 23] If 1 indicates the processor supports the CLFLUSHOPT instruction.
+        ///
+        uint32_t  CLFLUSHOPT:1;
+        ///
+        /// [Bit 24] If 1 indicates the processor supports the CLWB instruction.
+        ///
+        uint32_t  CLWB:1;
+        ///
+        /// [Bit 25] If 1 indicates the processor supports the Intel Processor Trace
+        /// extensions.
+        ///
+        uint32_t  IntelProcessorTrace:1;
+        ///
+        /// [Bit 26] AVX512PF. (Intel Xeon Phi only.).
+        ///
+        uint32_t  AVX512PF:1;
+        ///
+        /// [Bit 27] AVX512ER. (Intel Xeon Phi only.).
+        ///
+        uint32_t  AVX512ER:1;
+        ///
+        /// [Bit 28] AVX512CD.
+        ///
+        uint32_t  AVX512CD:1;
+        ///
+        /// [Bit 29] Supports Intel(R) Secure Hash Algorithm Extensions (Intel(R)
+        /// SHA Extensions) if 1.
+        ///
+        uint32_t  SHA:1;
+        ///
+        /// [Bit 30] AVX512BW.
+        ///
+        uint32_t  AVX512BW:1;
+        ///
+        /// [Bit 31] AVX512VL.
+        ///
+        uint32_t  AVX512VL:1;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_EBX;
+
+/**
+  CPUID Structured Extended Feature Flags Enumeration in ECX for CPUID leaf
+  #CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS sub leaf
+  #CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] If 1 indicates the processor supports the PREFETCHWT1 instruction.
+        /// (Intel Xeon Phi only.)
+        ///
+        uint32_t  PREFETCHWT1:1;
+        ///
+        /// [Bit 1] AVX512_VBMI.
+        ///
+        uint32_t  AVX512_VBMI:1;
+        ///
+        /// [Bit 2] Supports user-mode instruction prevention if 1.
+        ///
+        uint32_t  UMIP:1;
+        ///
+        /// [Bit 3] Supports protection keys for user-mode pages if 1.
+        ///
+        uint32_t  PKU:1;
+        ///
+        /// [Bit 4] If 1, OS has set CR4.PKE to enable protection keys (and the
+        /// RDPKRU/WRPKRU instructions).
+        ///
+        uint32_t  OSPKE:1;
+        uint32_t  _reserved5:9;
+        ///
+        /// [Bits 14] AVX512_VPOPCNTDQ. (Intel Xeon Phi only.).
+        ///
+        uint32_t  AVX512_VPOPCNTDQ:1;
+        uint32_t  _reserved7:1;
+        ///
+        /// [Bits 16] Supports 5-level paging if 1.
+        ///
+        uint32_t  FiveLevelPage:1;
+        ///
+        /// [Bits 21:17] The value of MAWAU used by the BNDLDX and BNDSTX instructions
+        /// in 64-bit mode.
+        ///
+        uint32_t  MAWAU:5;
+        ///
+        /// [Bit 22] RDPID and IA32_TSC_AUX are available if 1.
+        ///
+        uint32_t  RDPID:1;
+        uint32_t  _reserved3:7;
+        ///
+        /// [Bit 30] Supports SGX Launch Configuration if 1.
+        ///
+        uint32_t  SGX_LC:1;
+        uint32_t  _reserved4:1;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_ECX;
+
+/**
+  CPUID Structured Extended Feature Flags Enumeration in EDX for CPUID leaf
+  #CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS sub leaf
+  #CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 1:0] _reserved.
+        ///
+        uint32_t  _reserved1:2;
+        ///
+        /// [Bit 2] AVX512_4VNNIW. (Intel Xeon Phi only.)
+        ///
+        uint32_t  AVX512_4VNNIW:1;
+        ///
+        /// [Bit 3] AVX512_4FMAPS. (Intel Xeon Phi only.)
+        ///
+        uint32_t  AVX512_4FMAPS:1;
+        ///
+        /// [Bit 25:4] _reserved.
+        ///
+        uint32_t  _reserved2:22;
+        ///
+        /// [Bit 26] Enumerates support for indirect branch restricted speculation
+        /// (IBRS) and the indirect branch pre-dictor barrier (IBPB). Processors
+        /// that set this bit support the IA32_SPEC_CTRL MSR and the IA32_PRED_CMD
+        /// MSR. They allow software to set IA32_SPEC_CTRL[0] (IBRS) and
+        /// IA32_PRED_CMD[0] (IBPB).
+        ///
+        uint32_t  EnumeratesSupportForIBRSAndIBPB:1;
+        ///
+        /// [Bit 27] Enumerates support for single thread indirect branch
+        /// predictors (STIBP). Processors that set this bit support the
+        /// IA32_SPEC_CTRL MSR. They allow software to set IA32_SPEC_CTRL[1]
+        /// (STIBP).
+        ///
+        uint32_t  EnumeratesSupportForSTIBP:1;
+        ///
+        /// [Bit 28] Enumerates support for L1D_FLUSH. Processors that set this bit
+        /// support the IA32_FLUSH_CMD MSR. They allow software to set
+        /// IA32_FLUSH_CMD[0] (L1D_FLUSH).
+        ///
+        uint32_t  EnumeratesSupportForL1D_FLUSH:1;
+        ///
+        /// [Bit 29] Enumerates support for the IA32_ARCH_CAPABILITIES MSR.
+        ///
+        uint32_t  EnumeratesSupportForCapability:1;
+        ///
+        /// [Bit 30] _reserved.
+        ///
+        uint32_t  _reserved3:1;
+        ///
+        /// [Bit 31] Enumerates support for Speculative Store Bypass Disable (SSBD).
+        /// Processors that set this bit sup-port the IA32_SPEC_CTRL MSR. They allow
+        /// software to set IA32_SPEC_CTRL[2] (SSBD).
+        ///
+        uint32_t  EnumeratesSupportForSSBD:1;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_EDX;
+
 void cpuid(uint32_t val, uint32_t* rax, uint32_t* rbx, uint32_t* rcx, uint32_t* rdx);
+void cpuidex(uint32_t val, uint64_t leaf, uint32_t* rax, uint32_t* rbx, uint32_t* rcx, uint32_t* rdx);
 
 #endif //__ARCH_CPUID_H__

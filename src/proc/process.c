@@ -31,7 +31,7 @@ err_t create_process(process_t** process) {
     process_t* proc = mm_allocate(sizeof(process_t));
     vmm_create_address_space(&proc->vmm_handle);
     proc->pid = g_pid_gen++;
-    proc->tid_gen = 0;
+    proc->tid_gen = 1;
     proc->threads_list = INIT_LIST_ENTRY(proc->threads_list);
     proc->threads_lock = SPINLOCK_INIT;
 

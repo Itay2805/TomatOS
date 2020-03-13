@@ -1,14 +1,14 @@
 #include "msr.h"
 #include "intrin.h"
 
-MSR_IA32_EFER __readmsr_efer(void) {
-    return (MSR_IA32_EFER) { .raw = __readmsr(MSR_CORE_IA32_EFER) };
+IA32_EFER __read_efer(void) {
+    return (IA32_EFER) { .raw = __readmsr(MSR_IA32_EFER) };
 }
 
-void __writemsr_efer(MSR_IA32_EFER efer) {
-    __writemsr(MSR_CORE_IA32_EFER, efer.raw);
+void __write_efer(IA32_EFER efer) {
+    __writemsr(MSR_IA32_EFER, efer.raw);
 }
 
-MSR_IA32_APIC_BASE __readmsr_apic_base() {
-    return (MSR_IA32_APIC_BASE) { .raw = __readmsr(MSR_CODE_IA32_APIC_BASE) };
+IA32_APIC_BASE __read_apic_base() {
+    return (IA32_APIC_BASE) { .raw = __readmsr(MSR_CODE_IA32_APIC_BASE) };
 }

@@ -1,7 +1,10 @@
 #include <mm/stack_allocator.h>
+#include <intr/apic/lapic.h>
 #include "sched.h"
 
-thread_t* CPU_LOCAL current_thread;
+thread_t* CPU_LOCAL g_current_thread;
+uintptr_t CPU_LOCAL g_kernel_stack;
+uintptr_t CPU_LOCAL g_saved_stack;
 
 static list_entry_t threads_queue = INIT_LIST_ENTRY(threads_queue);
 
@@ -74,7 +77,7 @@ static void idle_thread_func() {
          * make sure we don't ever schedule the idle thread
          */
         asm volatile("hlt" ::: "memory");
-        current_thread->state = STATE_WAITING;
+        g_current_thread->state = STATE_WAITING;
         yield();
     }
 }
@@ -135,21 +138,23 @@ err_t sched_tick(interrupt_context_t* ctx) {
     // check if has something to run
     if (is_list_empty(&threads_queue)) {
         // make sure something runs
-        ASSERT(current_thread != NULL);
+        ASSERT(g_current_thread != NULL);
 
         // if not running then it needs to be unscheduled
         // run the idle task instead
-        if (current_thread->state != STATE_RUNNING) {
+        if (g_current_thread->state != STATE_RUNNING) {
             // save the current context
-            current_thread->cpu_context = *ctx;
+            g_current_thread->cpu_context = *ctx;
 
             // schedule the idle thread
-            current_thread = idle_thread;
+            g_current_thread = idle_thread;
             *ctx = idle_thread->cpu_context;
             vmm_set_handle(&kernel_process.vmm_handle);
+
+            // no need for the temp stack or kernel stack
         }
     } else {
-        thread_t* running = current_thread;
+        thread_t* running = g_current_thread;
 
         // pop from the queue
         thread_t* to_run = CR(threads_queue.next, thread_t, scheduler_link);
@@ -158,6 +163,8 @@ err_t sched_tick(interrupt_context_t* ctx) {
 
         // if we have something running save it's context
         if (running != NULL) {
+            running->apic_id = 0;
+            running->saved_stack = g_saved_stack;
             running->cpu_context = *ctx;
             // TODO: fpu context
 
@@ -171,13 +178,15 @@ err_t sched_tick(interrupt_context_t* ctx) {
 
         // load the new context
         *ctx = to_run->cpu_context;
+        g_saved_stack = to_run->saved_stack;
 
         // if not the same parent then assume different address space and switch handle
         vmm_set_handle(&to_run->parent->vmm_handle);
 
         // set as the running thread
         to_run->state = STATE_RUNNING;
-        current_thread = to_run;
+        to_run->apic_id = get_apic_id();
+        g_current_thread = to_run;
     }
 
 cleanup:

@@ -118,12 +118,13 @@ static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) 
     }
 
     // thread info
-    if (current_thread != NULL) {
-        trace("[-] Process: pid=%d tid=%d\n", current_thread->parent->pid, current_thread->tid);
+    if (g_current_thread != NULL) {
+        trace("[-] Process: pid=%d tid=%d\n", g_current_thread->parent->pid, g_current_thread->tid);
     }
 
     // print the tpl
     switch (get_tpl()) {
+        // for defined values
         case TPL_HIGH_LEVEL: trace("[-] Current TPL: TPL_HIGH_LEVEL\n"); break;
         case TPL_APPLICATION: trace("[-] Current TPL: TPL_APPLICATION\n"); break;
         case TPL_PREEMPTION: trace("[-] Current TPL: TPL_PREEMPTION\n"); break;
@@ -163,37 +164,37 @@ static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) 
     trace("[-] DS =%04lx                  DPL=%ld\n", regs->ds & 0xFFF8, regs->ds & 0b11);
     trace("[-] SS =%04lx                  DPL=%ld\n", regs->ss & 0xFFF8, regs->ss & 0b11);
     // TODO: actually read the gs and fs registers
-    trace("[-] GS =     %016lx DPL= \n", __readmsr(MSR_CODE_IA32_GS_BASE));
-    trace("[-] FS =     %016lx DPL= \n", __readmsr(MSR_CODE_IA32_FS_BASE));
+    trace("[-] GS =%04lx %016lx DPL=%ld \n", GDT_USER_DATA & 0xFFF8, __readmsr(MSR_IA32_GS_BASE), GDT_USER_DATA & 0b11);
+    trace("[-] FS =%04lx %016lx DPL=%ld \n", GDT_USER_DATA & 0xFFF8, __readmsr(MSR_IA32_FS_BASE), GDT_USER_DATA & 0b11);
     trace("[-] CR0=%08lx CR2=%016lx CR3=%016lx CR4=%08lx\n", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
 
-//    uintptr_t* base_ptr = (uintptr_t*)regs->rbp;
-//    trace("[-] Stack trace:\n");
-//    for (;;) {
-//        // check if the page is mapped
-//        if (!vmm_is_mapped(current_vmm_handle, (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
-//            break;
-//        }
-//
-//        // if it is then we can trace it
-//        uintptr_t old_bp = base_ptr[0];
-//        uintptr_t ret_addr = base_ptr[1];
-//
-//        if (ret_addr == 0) {
-//            break;
-//        }
-//
-//        name = symlist_name_from_address(&off, ret_addr);
-//        if (name != NULL) {
-//            trace("[-] \t[0x%016lx] <%s+%lx>\n", ret_addr, name, off);
-//        }
-//
-//        if (old_bp == 0) {
-//            break;
-//        }
-//
-//        base_ptr = (void*)old_bp;
-//    }
+    uintptr_t* base_ptr = (uintptr_t*)regs->rbp;
+    trace("[-] Stack trace:\n");
+    for (;;) {
+        // check if the page is mapped
+        if (!vmm_is_mapped(current_vmm_handle, (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
+            break;
+        }
+
+        // if it is then we can trace it
+        uintptr_t old_bp = base_ptr[0];
+        uintptr_t ret_addr = base_ptr[1];
+
+        if (ret_addr == 0) {
+            break;
+        }
+
+        name = symlist_name_from_address(&off, ret_addr);
+        if (name != NULL) {
+            trace("[-] \t[0x%016lx] <%s+%lx>\n", ret_addr, name, off);
+        }
+
+        if (old_bp == 0) {
+            break;
+        }
+
+        base_ptr = (void*)old_bp;
+    }
 
     trace("[-] \n");
     trace("[-] :(\n");
@@ -220,14 +221,9 @@ void interrupts_init() {
 void common_interrupt_handler(interrupt_context_t ctx) {
     err_t err = NO_ERROR;
 
-    // if we are coming from usermode swapgs
-    if (ctx.ds == GDT_USER_DATA) {
-        __swapgs();
-    }
-
     // interrupt handlers always run at a high level
     tpl_t oldtpl = raise_tpl(TPL_HIGH_LEVEL);
-    thread_t* thread = current_thread;
+    thread_t* thread = g_current_thread;
 
     if(is_list_empty(&interrupt_handlers[ctx.int_num])) {
 
@@ -250,17 +246,12 @@ cleanup:
     // If we had a reschedule then we need to restore
     // the tpl correctly, we do this by raising back
     // to TPL_HIGH_LEVEL and then restore again
-    if (current_thread != thread) {
+    if (g_current_thread != thread) {
         oldtpl = raise_tpl(TPL_HIGH_LEVEL);
     }
 
     // restore back to low level
     restore_tpl(oldtpl);
-
-    // if going to usermode swapgs
-    if (ctx.ds == GDT_USER_DATA) {
-        __swapgs();
-    }
 }
 
 //////////////////////////////////////////////////////////////////

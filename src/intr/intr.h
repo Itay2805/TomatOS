@@ -42,7 +42,7 @@ typedef struct interrupt_context {
     uint64_t cs;
 
     // the rflags
-    IA32_EFLAGS32 rflags;
+    IA32_RFLAGS rflags;
 
     // the stack pointer and segment
     uint64_t rsp;

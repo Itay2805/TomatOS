@@ -8,15 +8,19 @@ extern void* kernel_pcpu_data_size;
 
 extern uintptr_t bsp_pcpu_data[];
 
-void pcpu_init_for_cpu() {
+CPU_LOCAL uint64_t current_cpu_index;
+
+void pcpu_init_for_cpu(uint64_t num) {
     void* data = mm_allocate(KERNEL_PCPU_DATA_SIZE);
-    __writemsr(MSR_CODE_IA32_GS_BASE, (uintptr_t)data);
+    __writemsr(MSR_IA32_GS_BASE, (uintptr_t)data);
+    current_cpu_index = num;
 }
 
 void pcpu_init_for_bsp() {
-    __writemsr(MSR_CODE_IA32_GS_BASE, (uintptr_t)bsp_pcpu_data);
+    __writemsr(MSR_IA32_GS_BASE, (uintptr_t)bsp_pcpu_data);
+    current_cpu_index = 0;
 }
 
 uintptr_t get_pcpu_base() {
-    return __readmsr(MSR_CODE_IA32_GS_BASE);
+    return __readmsr(MSR_IA32_GS_BASE);
 }

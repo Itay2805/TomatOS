@@ -62,36 +62,33 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     interrupts_init();
     pcpu_init_for_bsp();
 
-    // memory initialization
+    // memory init
     pmm_init(info);
     vmm_init(info);
     pmm_post_vmm();
     mm_init();
     init_tss_for_cpu();
     idt_post_tss_init();
-    // TODO: idt init with the proper ists
 
     // convert the struct
     info = PHYSICAL_TO_DIRECT(info);
     info->modules.entries = PHYSICAL_TO_DIRECT(info->modules.entries);
     g_info = info;
 
-    // BSP init
+    // do BSP init
     lapic_init();
+    init_syscalls_for_cpu();
 
     // early kernel init
     init_kernel_process();
     acpi_tables_init(info);
     events_init();
     init_timer();
-    init_sched();
+    CHECK_AND_RETHROW(init_sched());
 
     // TODO: smp
 
     // setup main thread
-    // will start at high level, should make everything play nicely when doing
-    // the yield to start with the tasking. also make sure interrupts are off
-    // by default, they will be enabled by the thread when going back to low tpl
     CHECK_AND_RETHROW(spawn_thread(&kernel_process, (uintptr_t)main_thread, allocate_stack(), NULL));
 
     // kickstart everything by restoring the tpl

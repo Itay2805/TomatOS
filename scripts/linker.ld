@@ -7,11 +7,6 @@ SECTIONS
     /* ========== Per Cpu variables ========== */
     . = 0x0;
     .pcpu_data (NOLOAD) : {
-        current_cpu_index = .;
-        QUAD(0)
-        kernel_stack = .;
-        QUAD(0)
-
         *(.pcpu_data*)
     }
     kernel_pcpu_data_size = .;

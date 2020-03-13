@@ -36,7 +36,7 @@ static bool support_global = false;
  * @retval false - the page is not mapped
  */
 static bool get_entry_at_virtual_address(vmm_handle_t* handle, uintptr_t virtual_address, void** entry, page_type_t* page_type) {
-    VA_ADDRESS va = { virtual_address };
+    VA_ADDRESS va = { .raw = virtual_address };
     PML4E* pml4 = (PML4E*)(memory_base + handle->pml4_physical);
 
     PML4E pml4e = pml4[va.one_gb.pml4e];
@@ -167,7 +167,7 @@ static void set_pte(
         bool pwt, bool pcd, bool pat,
         bool* invlpg) {
 
-    VA_ADDRESS va = { virt };
+    VA_ADDRESS va = { .raw = virt };
 
     PML4E* pml4 = (PML4E*)(memory_base + handle->pml4_physical);
     PML4E* pml4e = &pml4[va.one_gb.pml4e];
@@ -335,6 +335,12 @@ void vmm_enable_cpu_features() {
     CPUID_VERSION_INFO_EDX versioninfo_edx;
     cpuid(CPUID_VERSION_INFO, NULL, NULL, NULL, &versioninfo_edx.raw);
 
+    CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_EBX structefeatures_ebx;
+    CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_ECX structefeatures_ecx;
+    cpuidex(CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS,
+            CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO,
+            NULL, &structefeatures_ebx.raw, &structefeatures_ecx.raw, NULL);
+
     /**************************************************
      * Various features in cr0
      **************************************************/
@@ -348,16 +354,16 @@ void vmm_enable_cpu_features() {
      * No execute - must be supported
      **************************************************/
     ASSERT(excpusig_edx.NX);
-    MSR_IA32_EFER efer = __readmsr_efer();
+    IA32_EFER efer = __read_efer();
     efer.NXE = 1;
-    __writemsr_efer(efer);
+    __write_efer(efer);
 
     TRACE("CPU Features:");
 
     /***************************************************
      * 1GB pages
      **************************************************/
-    if(excpusig_edx.Page1GB) {
+    if (excpusig_edx.Page1GB) {
         TRACE("\t* 1GB Pages");
         support_1gb = true;
     }
@@ -365,32 +371,65 @@ void vmm_enable_cpu_features() {
     /***************************************************
      * Global pages - optional
      **************************************************/
-     if(versioninfo_edx.PGE) {
+     if (versioninfo_edx.PGE) {
          TRACE("\t* Global pages");
          support_global = true;
+
          IA32_CR4 cr4 = __readcr4();
          cr4.PGE = 1;
          __writecr4(cr4);
      }
+
+    /***************************************************
+     * SMAP - optional
+     **************************************************/
+     if (structefeatures_ebx.SMAP) {
+         TRACE("\t* SMAP");
+
+         IA32_CR4 cr4 = __readcr4();
+         cr4.SMAP = 1;
+         __writecr4(cr4);
+     }
+
+    /***************************************************
+    * SMAP - optional
+    **************************************************/
+    if (structefeatures_ebx.SMEP) {
+        TRACE("\t* SMEP");
+
+        IA32_CR4 cr4 = __readcr4();
+        cr4.SMEP = 1;
+        __writecr4(cr4);
+    }
+
+    /***************************************************
+    * UMIP - optional
+    **************************************************/
+    if (structefeatures_ecx.UMIP) {
+        TRACE("\t* UMIP");
+
+        IA32_CR4 cr4 = __readcr4();
+        cr4.UMIP = 1;
+        __writecr4(cr4);
+    }
 }
 
 bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t* physical, page_type_t* type) {
     ASSERT(handle != NULL);
-    ASSERT(virtual != 0);
 
     spinlock_acquire(&handle->lock);
 
-    VA_ADDRESS va = { virtual };
+    VA_ADDRESS va = { .raw = virtual };
     void* entry;
     page_type_t page_type;
 
-    if(!get_entry_at_virtual_address(handle, virtual, &entry, &page_type)) {
+    if (!get_entry_at_virtual_address(handle, virtual, &entry, &page_type)) {
         spinlock_release(&handle->lock);
         return false;
     }
 
     uintptr_t phys;
-    switch(page_type) {
+    switch (page_type) {
         case PAGE_TYPE_4KB: {
             PTE* pte = entry;
             phys = (pte->addr << PAGE_SHIFT) | va.four_kb.offset;
@@ -402,11 +441,11 @@ bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t*
             ASSERT(false);
     }
 
-    if(physical != NULL) {
+    if (physical != NULL) {
         *physical = phys;
     }
 
-    if(type != NULL) {
+    if (type != NULL) {
         *type = page_type;
     }
 
@@ -416,7 +455,6 @@ bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t*
 
 bool vmm_is_mapped(vmm_handle_t* handle, uintptr_t addr, size_t size) {
     ASSERT(handle != NULL);
-    ASSERT(addr != 0);
     ASSERT(size > 0);
 
     size_t current_size = 0;
@@ -437,7 +475,6 @@ bool vmm_is_mapped(vmm_handle_t* handle, uintptr_t addr, size_t size) {
 
 void vmm_unmap(vmm_handle_t* handle, uintptr_t addr, size_t size) {
     ASSERT(handle != NULL);
-    ASSERT(addr != 0);
     ASSERT(size > 0);
 
     spinlock_acquire(&handle->lock);

@@ -6,6 +6,7 @@
 #include <util/list.h>
 #include <compo/component.h>
 #include <compo/fs/fs.h>
+#include "syscall.h"
 
 struct thread;
 

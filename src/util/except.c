@@ -10,6 +10,7 @@ static const char* errors[] = {
     [ERROR_NOT_FOUND] = "Not found",
     [ERROR_INVALID_TPL] = "Invalid Task Priority Level",
     [ERROR_EOF] = "End of file",
+    [ERROR_INVALID_POINTER] = "Invalid pointer"
 };
 
 const char* strerror(err_t err) {

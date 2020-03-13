@@ -89,8 +89,8 @@ void vmm_enable_cpu_features();
  * @param virtual   [IN]    The virtual address
  * @param physical  [OUT]   The output physical address
  *
- * @retval true - the page was not found
- * @retval false - the page was found
+ * @retval true - the page was found
+ * @retval false - the page was not found
  */
 bool vmm_virtual_to_physical(vmm_handle_t* handle, uintptr_t virtual, uintptr_t* physical, page_type_t* type);
 
@@ -130,8 +130,8 @@ void vmm_destroy_page_table(vmm_handle_t* handle);
  * @param addr      [IN] The starting address to check
  * @param size      [IN] The range to check
  *
- * @retval true - the page was not found
- * @retval false - the page was found
+ * @retval true - the page is mapped
+ * @retval false - the page is not mapped
  */
 bool vmm_is_mapped(vmm_handle_t* handle, uintptr_t addr, size_t size);
 

@@ -16,6 +16,7 @@ typedef enum err {
     ERROR_NOT_FOUND,
     ERROR_INVALID_TPL,
     ERROR_EOF,
+    ERROR_INVALID_POINTER,
 } err_t;
 
 #define IS_ERROR(err) (err != NO_ERROR)

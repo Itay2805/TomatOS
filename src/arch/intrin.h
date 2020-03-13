@@ -83,8 +83,8 @@ static_assert(sizeof(IA32_CR0) == sizeof(uint64_t));
 IA32_CR0 __readcr0(void);
 void __writecr0(IA32_CR0 Data);
 
-uint64_t __readmsr(unsigned long msr);
-void __writemsr(unsigned long msr, uint64_t Value);
+uint64_t __readmsr(uint32_t msr);
+void __writemsr(uint32_t msr, uint64_t Value);
 
 void __cpuid(int __info[4], int __level);
 void __cpuidex(int __info[4], int __level, int __ecx);
@@ -129,8 +129,8 @@ typedef union {
         uint32_t  _reserved_4:10;  ///< Reserved.
     };
     uint64_t raw;
-} IA32_EFLAGS32;
-static_assert(sizeof(IA32_EFLAGS32) == sizeof(uint64_t));
+} IA32_RFLAGS;
+static_assert(sizeof(IA32_RFLAGS) == sizeof(uint64_t));
 
 unsigned char _BitScanReverse(uint32_t* Index, uint32_t Mask);
 unsigned char _BitScanReverse64(uint32_t* Index, uint64_t Mask);

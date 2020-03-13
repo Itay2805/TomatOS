@@ -150,19 +150,19 @@ void restore_tpl(tpl_t new_tpl) {
 
 tpl_t get_tpl() {
     // before threading use a static variable
-    if (UNLIKELY(current_thread == NULL)) {
+    if (UNLIKELY(g_current_thread == NULL)) {
         return early_current_tpl;
     } else {
-        return current_thread->thread_tpl;
+        return g_current_thread->thread_tpl;
     }
 }
 
 void set_tpl(tpl_t tpl) {
     // before threading use a static variable
-    if (UNLIKELY(current_thread == NULL)) {
+    if (UNLIKELY(g_current_thread == NULL)) {
         early_current_tpl = tpl;
     } else {
-        current_thread->thread_tpl = tpl;
+        g_current_thread->thread_tpl = tpl;
     }
 }
 
@@ -260,12 +260,12 @@ err_t wait_for_event(size_t number_of_events, event_t* events, size_t* index) {
             event_data_t* data = events[i];
             CHECK_ERROR(data->notify_function == NULL, ERROR_INVALID_PARAM);  // can not wait for event with
                                                                                     // callback function
-            CHECK_ERROR(data->thread == NULL || data->thread == current_thread, ERROR_NOT_READY);
-            data->thread = current_thread;
+            CHECK_ERROR(data->thread == NULL || data->thread == g_current_thread, ERROR_NOT_READY);
+            data->thread = g_current_thread;
         }
 
         // set the thread as waiting and yield
-        current_thread->state = STATE_WAITING;
+        g_current_thread->state = STATE_WAITING;
         yield();
     }
 

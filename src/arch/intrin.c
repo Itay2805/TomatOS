@@ -122,7 +122,7 @@ void __writecr0(IA32_CR0 Data) {
     : "memory");
 }
 
-uint64_t __readmsr(unsigned long msr) {
+uint64_t __readmsr(uint32_t msr) {
     uint32_t val1, val2;
     __asm__ __volatile__(
     "rdmsr"
@@ -131,7 +131,7 @@ uint64_t __readmsr(unsigned long msr) {
     return ((uint64_t) val1) | (((uint64_t)val2) << 32u);
 }
 
-void __writemsr (unsigned long msr, uint64_t Value) {
+void __writemsr (uint32_t msr, uint64_t Value) {
     uint32_t val1 = Value, val2 = Value >> 32;
     __asm__ __volatile__ (
     "wrmsr"
@@ -151,6 +151,23 @@ void __cpuidex(int __info[4], int __level, int __ecx) {
 void cpuid(uint32_t val, uint32_t* rax, uint32_t* rbx, uint32_t* rcx, uint32_t* rdx) {
     int arr[4] = {0};
     __cpuid(arr, val);
+    if (rax) {
+        *rax = arr[0];
+    }
+    if (rbx) {
+        *rbx = arr[1];
+    }
+    if (rcx) {
+        *rcx = arr[2];
+    }
+    if (rdx) {
+        *rdx = arr[3];
+    }
+}
+
+void cpuidex(uint32_t val, uint64_t leaf, uint32_t* rax, uint32_t* rbx, uint32_t* rcx, uint32_t* rdx) {
+    int arr[4] = {0};
+    __cpuidex(arr, val, leaf);
     if (rax) {
         *rax = arr[0];
     }

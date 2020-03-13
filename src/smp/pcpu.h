@@ -7,12 +7,11 @@
 
 // these are defined in the linker script
 extern CPU_LOCAL uint64_t current_cpu_index;
-extern CPU_LOCAL uint64_t kernel_stack;
 
 /**
  * Initialize the per cpu storage on this cpu
  */
-void pcpu_init_for_cpu();
+void pcpu_init_for_cpu(uint64_t num);
 
 /**
  * Initialize the pcpu data for the BSP
