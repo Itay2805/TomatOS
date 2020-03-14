@@ -383,16 +383,16 @@ void vmm_enable_cpu_features() {
     /***************************************************
      * SMAP - optional
      **************************************************/
-     if (structefeatures_ebx.SMAP) {
-         TRACE("\t* SMAP");
-
-         IA32_CR4 cr4 = __readcr4();
-         cr4.SMAP = 1;
-         __writecr4(cr4);
-     }
+//     if (structefeatures_ebx.SMAP) {
+//         TRACE("\t* SMAP");
+//
+//         IA32_CR4 cr4 = __readcr4();
+//         cr4.SMAP = 1;
+//         __writecr4(cr4);
+//     }
 
     /***************************************************
-    * SMAP - optional
+    * SMEP - optional
     **************************************************/
     if (structefeatures_ebx.SMEP) {
         TRACE("\t* SMEP");

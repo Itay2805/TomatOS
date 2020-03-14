@@ -8,11 +8,11 @@ default: bin/tomatos.img
 # initrd
 #########################
 
-INITRD_FILES := $(shell ls initrd)
-INITRD_FILES_PATH := $(SRCS:%=initrd/%.o)
+INITRD_FILES := $(shell ls root)
+INITRD_FILES_PATH := $(SRCS:%=root/%.o)
 
 bin/image/initrd.tar: $(INITRD_FILES_PATH) | bin/image
-	cd initrd && tar -cf ../$@ $(INITRD_FILES)
+	cd root && tar -cf ../$@ $(INITRD_FILES)
 
 #########################
 # Sources and flag setup
@@ -47,11 +47,9 @@ COMMON_CFLAGS += \
 	-mcmodel=kernel \
 	-Wno-unused-label \
 	-static \
+	-O3 \
+	-flto \
 	-g
-
-
-#	-O3 \
-#	-flto \
 
 # Set the linking flags
 LDFLAGS += \
@@ -118,7 +116,13 @@ bin/image:
 	mkdir -p $@
 
 #########################
-# For testing
+# Compile userspace apps
+#########################
+
+
+
+#########################
+# Build final image
 #########################
 
 bin/image/EFI/BOOT/BOOTX64.EFI:

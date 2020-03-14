@@ -179,6 +179,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
         // load the new context
         *ctx = to_run->cpu_context;
         g_saved_stack = to_run->saved_stack;
+        g_kernel_stack = to_run->kernel_stack;
 
         // if not the same parent then assume different address space and switch handle
         vmm_set_handle(&to_run->parent->vmm_handle);

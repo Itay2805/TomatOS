@@ -21,7 +21,6 @@ syscall_entry:
     ; push the return error code
     push rbx
 
-
     ; push arg0-arg6
     push rdi
     push rsi
@@ -37,9 +36,7 @@ syscall_entry:
     push r15
     push rbp
 
-    stac
     call syscall_common_handler
-    clac
 
     ; pop saved registers
     pop rbp
@@ -68,4 +65,4 @@ syscall_entry:
     mov rsp, [gs:g_saved_stack]
 
     ; return from syscall
-    sysret
+    o64 sysret

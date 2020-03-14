@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Kretlim-Kernel)
+project(TomatOS)
 
 # Setup C
 set(CMAKE_C_COMPILER /usr/bin/clang-9)
@@ -21,4 +21,4 @@ include_directories(lib/stb)
 include_directories(lib/)
 include_directories(src/)
 
-add_executable(Kretlim-Kernel ${SOURCE_FILES})
+add_executable(TomatOS ${SOURCE_FILES})

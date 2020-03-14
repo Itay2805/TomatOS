@@ -10,8 +10,23 @@
 #include "process.h"
 #include "thread.h"
 #include "syscall.h"
+#include "sched.h"
+
+static err_t sys_log(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+
+    const char* str = (char*)ctx->arg1;
+    CHECK_AND_RETHROW(verify_string(str));
+
+    TRACE("syslog: pid=%d, tid=%d: %s", g_current_thread->parent->pid, g_current_thread->tid, str);
+
+cleanup:
+    return err;
+}
 
 static syscall_handler_t handlers[SYS_MAX] = {
+    [SYS_LOG] = sys_log,
+
     // process related syscalls
     [SYS_PROC_SPAWN] = NULL,
     [SYS_PROC_KILL] = NULL,
@@ -81,6 +96,7 @@ err_t verify_string(const char* str) {
             page_num = ALIGN_DOWN(str, PAGE_SIZE);
             CHECK_ERROR(vmm_is_mapped(current_vmm_handle, (uintptr_t)str, 1), ERROR_INVALID_POINTER);
         }
+        str++;
     } while(*str != 0);
 
 cleanup:
