@@ -69,7 +69,7 @@ err_t spawn_thread(process_t* parent, uintptr_t rip, uintptr_t stack, thread_t**
 // start a thread in a STATE_WAITING state
 #define THRD_SPAWN_WAIT (1 << 0)
 
-err_t sys_thrd_spawn(syscall_context_t* ctx);
+err_t sys_spawn_thread(syscall_context_t* ctx);
 
 // set the thread state
 #define THRD_OPT_STATE  (0)

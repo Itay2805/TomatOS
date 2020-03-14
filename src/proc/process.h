@@ -1,12 +1,14 @@
 #ifndef __PROC_PROCESS_H__
 #define __PROC_PROCESS_H__
 
-#include <sync/spinlock.h>
-#include <mm/vmm.h>
-#include <util/list.h>
 #include <compo/component.h>
 #include <compo/fs/fs.h>
+#include <sync/spinlock.h>
+#include <util/list.h>
+#include <mm/vmm.h>
+
 #include "syscall.h"
+#include "handle.h"
 
 struct thread;
 
@@ -29,6 +31,14 @@ typedef struct process {
     // the threads of the process, lock whenever changing stuff with it
     spinlock_t threads_lock;
     list_entry_t threads_list;
+
+    // all the handles, only relevant to user processes
+    spinlock_t handles_lock;
+    int next_handle;
+    struct {
+        int key;
+        handle_t value;
+    }* handles;
 } process_t;
 
 /**
@@ -60,5 +70,38 @@ err_t create_process(process_t** process);
  * Spawn a new process from the given file at the given filesystem
  */
 err_t spawn_process(file_t file, process_t** proc);
+
+/**
+ * Will add an handle to the process
+ *
+ * @remark
+ * This will increase the reference count
+ *
+ * @param process       [IN]    The process to add the handle to
+ * @param handle        [IN]    The handle to add
+ * @param out_handle    [OUT]   The user handle value
+ */
+err_t add_handle(process_t* process, handle_t handle, int* out_handle);
+
+/**
+ * Remove a handle from the process
+ *
+ * @param process   [IN] The process to remove the handle from
+ * @param handle    [IN] The handle to remove
+ */
+err_t remove_handle(process_t* process, int handle);
+
+/**
+ * Get a handle from value
+ *
+ * @remark
+ * You must call `close_handle` after using this handle since this will
+ * increase the reference count of the handle
+ *
+ * @param process       [IN] The process the handle belond to
+ * @param handle        [IN] The handle to get
+ * @param out_handle    [IN] The kernel handle
+ */
+err_t get_handle(process_t* process, int handle, handle_t* out_handle);
 
 #endif //__PROC_PROCESS_H__

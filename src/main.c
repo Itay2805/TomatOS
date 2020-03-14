@@ -36,11 +36,12 @@ static void main_thread() {
     err_t err = NO_ERROR;
     TRACE("In main thread!");
 
-    // start initializations
-    TRACE("Mounting initrd");
-    ASSERT(g_info->modules.count == 1);
-    create_initrd_fs(&g_info->modules.entries[0]);
-
+    // only mount initrd if has any
+    if (g_info->modules.count == 1) {
+        TRACE("Mounting initrd");
+        create_initrd_fs(&g_info->modules.entries[0]);
+    }
+    
     // spawn a process from an elf file
     file_t file = NULL;
     process_t* proc = NULL;

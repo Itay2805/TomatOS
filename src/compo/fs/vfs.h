@@ -2,6 +2,7 @@
 #define __COMPO_FS_VFS_H__
 
 #include <util/except.h>
+#include <proc/syscall.h>
 #include "fs.h"
 
 /**
@@ -31,5 +32,12 @@ err_t vfs_resolve(const char* path, filesystem_t* fs, const char** out_path);
  * @param fs        [IN] The filesystem to mount
  */
 err_t vfs_mount(const char* path, filesystem_t fs);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Syscall wrappers
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+err_t sys_vfs_resolve(syscall_context_t* ctx);
+err_t sys_vfs_mount(syscall_context_t* ctx);
 
 #endif //__COMPO_FS_VFS_H__

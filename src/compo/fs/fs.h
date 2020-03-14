@@ -6,6 +6,7 @@
 #include <compo/component.h>
 #include <stdatomic.h>
 #include <event/event.h>
+#include <proc/syscall.h>
 
 /**
  * These are used for the seek function
@@ -126,5 +127,11 @@ err_t file_tell(file_t file, size_t* offset);
  * @param file  [IN] The file to close
  */
 err_t file_close(file_t file);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Syscall wrappers
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+err_t sys_fs_open(syscall_context_t* ctx);
 
 #endif //__COMPO_FS_FILESYSTEM_H__

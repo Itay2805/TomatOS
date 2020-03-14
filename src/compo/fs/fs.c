@@ -1,3 +1,6 @@
+#include <proc/process.h>
+#include <proc/sched.h>
+#include <proc/handle.h>
 #include "fs.h"
 
 err_t fs_open(filesystem_t fs, const char* path, file_t* handle) {
@@ -6,6 +9,8 @@ err_t fs_open(filesystem_t fs, const char* path, file_t* handle) {
     CHECK_ERROR(fs != NULL, ERROR_INVALID_PARAM);
     CHECK_ERROR(path != NULL, ERROR_INVALID_PARAM);
     CHECK_ERROR(handle != NULL, ERROR_INVALID_PARAM);
+    CHECK_ERROR(fs->component.type == COMPONENT_FILESYSTEM, ERROR_INVALID_HANDLE);
+
     CHECK_AND_RETHROW(fs->open(fs, path, handle));
 
 cleanup:
@@ -17,6 +22,7 @@ err_t fs_is_readonly(filesystem_t fs, bool* ro) {
 
     CHECK_ERROR(fs != NULL, ERROR_INVALID_PARAM);
     CHECK_ERROR(ro != NULL, ERROR_INVALID_PARAM);
+    CHECK_ERROR(fs->component.type == COMPONENT_FILESYSTEM, ERROR_INVALID_HANDLE);
     CHECK_AND_RETHROW(fs->is_readonly(fs, ro));
 
 cleanup:
@@ -94,5 +100,59 @@ err_t file_close(file_t file) {
     CHECK_AND_RETHROW(file->close(file));
 
 cleanup:
+    return err;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Syscall wrappers
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+err_t sys_fs_open(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+    int out_handle = -1;
+    file_t f = NULL;
+    handle_t fs_handle = NULL;
+    handle_t new_handle = NULL;
+
+    //get parameters
+    int fs = ctx->arg1;
+    const char* path = (void*)ctx->arg2;
+    CHECK_AND_RETHROW(verify_string(path));
+
+    // get the handle
+    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, fs, &fs_handle));
+    CHECK_AND_RETHROW(fs_handle->type == HANDLE_COMPONENT);
+
+    // do it
+    CHECK_AND_RETHROW(fs_open((filesystem_t)fs_handle->component.val, path, &f));
+
+    // add the handle
+    CHECK_AND_RETHROW(create_handle(&new_handle));
+    new_handle->type = HANDLE_FILE;
+    new_handle->file.val = f;
+    f = NULL;
+    CHECK_AND_RETHROW(add_handle(g_current_thread->parent, new_handle, &out_handle));
+
+    // the return value
+    ctx->ret_value = out_handle;
+
+cleanup:
+    if (fs_handle != NULL) {
+        WARN(!IS_ERROR(close_handle(fs_handle)), "Failed to close fs handle");
+    }
+
+    if (new_handle != NULL) {
+        WARN(!IS_ERROR(close_handle(new_handle)), "Failed to close file handle");
+    }
+
+    if (IS_ERROR(err)) {
+        if (out_handle > 0) {
+            WARN(!IS_ERROR(remove_handle(g_current_thread->parent, out_handle)), "Failed to remove handle");
+        }
+
+        if (f != NULL) {
+            WARN(!IS_ERROR(file_close(f)), "Failed to close file");
+        }
+    }
     return err;
 }

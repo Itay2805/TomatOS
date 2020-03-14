@@ -1,18 +1,53 @@
-#include <util/def.h>
 #include <arch/paging.h>
 #include <arch/msr.h>
 #include <arch/cpuid.h>
+
+#include <compo/fs/vfs.h>
+
+#include <util/def.h>
 #include <mm/gdt.h>
 
-#include "syscall.h"
 #include "process.h"
 #include "thread.h"
+#include "syscall.h"
 
 static syscall_handler_t handlers[SYS_MAX] = {
-    [SYS_THRD_SPAWN] = sys_thrd_spawn,
+    // process related syscalls
+    [SYS_PROC_SPAWN] = NULL,
+    [SYS_PROC_KILL] = NULL,
+    [SYS_PROC_SET_OPT] = NULL,
+
+    // thread related syscalls
+    [SYS_SPAWN_THREAD] = sys_spawn_thread,
+    [SYS_THRD_KILL] = NULL,
     [SYS_THRD_SET_OPT] = sys_thrd_set_opt,
-    [SYS_THRD_RAISE_TPL] = sys_thrd_raise_tpl,
-    [SYS_THRD_RESTORE_TPL] = sys_thrd_restore_tpl,
+
+    // handle related stuff
+    [SYS_HNDL_CLOSE] = NULL,
+
+    // component related opts
+    [SYS_RAISE_TPL] = sys_raise_tpl,
+    [SYS_RESTORE_TPL] = sys_restore_tpl,
+    [SYS_CREATE_EVENT] = sys_create_event,
+    [SYS_SET_TIMER] = NULL,
+    [SYS_WAIT_FOR_EVENT] = sys_wait_for_event,
+    [SYS_CHECK_EVENT] = sys_check_event,
+    [SYS_SIGNAL_EVENT] = sys_signal_event,
+
+    // fs mounts
+    [SYS_VFS_RESOLVE] = sys_vfs_resolve,
+    [SYS_VFS_MOUNT] = sys_vfs_mount,
+    [SYS_VFS_UNMOUNT] = NULL,
+    [SYS_VFS_MOUNTS] = NULL,
+
+    // fs related calls
+    [SYS_FS_OPEN] = sys_fs_open,
+    [SYS_FS_IS_READONLY] = NULL,
+
+    // file related calls
+    [SYS_FILE_READ] = NULL,
+    [SYS_FILE_SEEK] = NULL,
+    [SYS_FILE_TELL] = NULL,
 };
 
 void syscall_common_handler(syscall_context_t ctx) {

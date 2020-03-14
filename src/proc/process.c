@@ -1,7 +1,10 @@
 #include <mm/mm.h>
+#include <stb_ds.h>
+#include <util/def.h>
 #include "process.h"
 #include "elf.h"
 #include "thread.h"
+#include "sched.h"
 
 static pid_t g_pid_gen = 1;
 
@@ -34,6 +37,9 @@ err_t create_process(process_t** process) {
     proc->tid_gen = 1;
     proc->threads_list = INIT_LIST_ENTRY(proc->threads_list);
     proc->threads_lock = SPINLOCK_INIT;
+    proc->next_handle = 1;
+    proc->handles = NULL;
+    proc->handles_lock = SPINLOCK_INIT;
 
     // insert the process to the process list
     spinlock_acquire(&process_lock);
@@ -91,6 +97,80 @@ cleanup:
 
             mm_free(new_proc);
         }
+    }
+
+    return err;
+}
+
+err_t add_handle(process_t* process, handle_t handle, int* out_handle) {
+    err_t err = NO_ERROR;
+
+    CHECK_ERROR(out_handle != NULL, ERROR_INVALID_PARAM);
+    CHECK_ERROR(process != NULL, ERROR_INVALID_PARAM);
+    spinlock_acquire(&process->handles_lock);
+
+    // add it
+    *out_handle = process->next_handle++;
+    hmput(process->handles, *out_handle, handle);
+
+cleanup:
+    if (process != NULL) {
+        spinlock_release(&process->handles_lock);
+    }
+
+    return err;
+}
+
+err_t remove_handle(process_t* process, int handle) {
+    err_t err = NO_ERROR;
+    int i = 0;
+
+    CHECK_ERROR(process != NULL, ERROR_INVALID_PARAM);
+    spinlock_acquire(&process->handles_lock);
+
+    // get the entry
+    i = hmgeti(process->handles, handle);
+    CHECK_ERROR(i != -1, ERROR_INVALID_HANDLE);
+
+    // close the handle
+    CHECK_AND_RETHROW(close_handle(process->handles[i].value));
+
+cleanup:
+    if (process != NULL) {
+        // remove from the map
+        if (i != -1) {
+            hmdel(process->handles, handle);
+        }
+
+        spinlock_release(&process->handles_lock);
+    }
+    return err;
+}
+
+err_t get_handle(process_t* process, int handle, handle_t* out_handle) {
+    err_t err = NO_ERROR;
+    int i = -1;
+
+    CHECK_ERROR(out_handle != NULL, ERROR_INVALID_HANDLE);
+    CHECK_ERROR(process != NULL, ERROR_INVALID_PARAM);
+
+    spinlock_acquire(&process->handles_lock);
+
+    i = hmgeti(process->handles, handle);
+    CHECK_ERROR(i != -1, ERROR_INVALID_HANDLE);
+
+    // lock and increase count
+    spinlock_acquire(&process->handles[i].value->lock);
+    process->handles[i].value->refcount++;
+    *out_handle = process->handles[i].value;
+
+cleanup:
+    if (i != 0) {
+        spinlock_release(&process->handles[i].value->lock);
+    }
+
+    if (process != NULL) {
+        spinlock_release(&process->handles_lock);
     }
 
     return err;

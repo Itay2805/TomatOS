@@ -29,24 +29,6 @@ static void release_event_lock() {
 // Event data
 //----------------------------------------------------------------------------------------------------------------------
 
-typedef struct event_data {
-    // notify function info
-    tpl_t notify_tpl;
-    notify_function_t notify_function;
-    void* notify_ctx;
-
-    // thread waiting for the event
-    thread_t* thread;
-
-    // the signal
-    atomic_bool signaled;
-
-    // this is for the notify list
-    list_entry_t notify_link;
-} event_data_t;
-
-// TODO: non-busy waiting for events
-
 /**
  * This is for events with a notification function that need to be dispatched
  */
@@ -299,4 +281,56 @@ err_t close_event(event_t event) {
 
 cleanup:
     return err;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Syscalls
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+err_t sys_raise_tpl(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+    tpl_t new_tpl = ctx->arg1;
+    tpl_t old_tpl = get_tpl();
+
+    // check that the tpl is valid
+    CHECK_ERROR(new_tpl <= TPL_USER_HIGH, ERROR_INVALID_TPL);
+    CHECK_ERROR(new_tpl >= old_tpl, ERROR_INVALID_TPL);
+
+    // return the current tpl
+    ctx->ret_value = raise_tpl(new_tpl);
+
+cleanup:
+    return err;
+}
+
+err_t sys_restore_tpl(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+    tpl_t new_tpl = ctx->arg1;
+    tpl_t old_tpl = get_tpl();
+
+    // check that the tpl is valid
+    CHECK_ERROR(new_tpl <= TPL_USER_HIGH, ERROR_INVALID_TPL);
+    CHECK_ERROR(new_tpl <= old_tpl, ERROR_INVALID_TPL);
+
+    // restore the tpl
+    restore_tpl(new_tpl);
+
+cleanup:
+    return err;
+}
+
+err_t sys_create_event(syscall_context_t* context) {
+    return ERROR_NOT_READY;
+}
+
+err_t sys_signal_event(syscall_context_t* context) {
+    return ERROR_NOT_READY;
+}
+
+err_t sys_check_event(syscall_context_t* context) {
+    return ERROR_NOT_READY;
+}
+
+err_t sys_wait_for_event(syscall_context_t* context) {
+    return ERROR_NOT_READY;
 }

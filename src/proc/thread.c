@@ -69,7 +69,7 @@ cleanup:
 // syscall stuff
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-err_t sys_thrd_spawn(syscall_context_t* ctx) {
+err_t sys_spawn_thread(syscall_context_t* ctx) {
     err_t err = NO_ERROR;
     thread_t* new_thread = NULL;
 
@@ -142,38 +142,6 @@ err_t sys_thrd_set_opt(syscall_context_t* ctx) {
             // invalid option
             CHECK_FAIL_ERROR(ERROR_INVALID_PARAM);
     }
-
-cleanup:
-    return err;
-}
-
-err_t sys_thrd_raise_tpl(syscall_context_t* ctx) {
-    err_t err = NO_ERROR;
-    tpl_t new_tpl = ctx->arg1;
-    tpl_t old_tpl = get_tpl();
-
-    // check that the tpl is valid
-    CHECK_ERROR(new_tpl <= TPL_USER_HIGH, ERROR_INVALID_TPL);
-    CHECK_ERROR(new_tpl >= old_tpl, ERROR_INVALID_TPL);
-
-    // return the current tpl
-    ctx->ret_value = raise_tpl(new_tpl);
-
-cleanup:
-    return err;
-}
-
-err_t sys_thrd_restore_tpl(syscall_context_t* ctx) {
-    err_t err = NO_ERROR;
-    tpl_t new_tpl = ctx->arg1;
-    tpl_t old_tpl = get_tpl();
-
-    // check that the tpl is valid
-    CHECK_ERROR(new_tpl <= TPL_USER_HIGH, ERROR_INVALID_TPL);
-    CHECK_ERROR(new_tpl <= old_tpl, ERROR_INVALID_TPL);
-
-    // restore the tpl
-    restore_tpl(new_tpl);
 
 cleanup:
     return err;

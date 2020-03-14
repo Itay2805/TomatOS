@@ -5,10 +5,12 @@
  * Heavily inspired from the uefi event system
  */
 
+#include <proc/syscall.h>
 #include <util/except.h>
-#include <stdint.h>
+#include <util/list.h>
 
-typedef void* event_t;
+#include <stdatomic.h>
+#include <stdint.h>
 
 typedef enum tpl {
     // normal runtime tpl
@@ -32,6 +34,32 @@ typedef enum tpl {
     // highest the kernel should use, no interrupts
     TPL_HIGH_LEVEL = 31
 } tpl_t;
+
+// forward declare for the notify function
+struct event_data;
+
+// the notify function
+typedef err_t (*notify_function_t)(void* ctx, struct event_data* event);
+
+// the underlying event data
+typedef struct event_data {
+    // notify function info
+    tpl_t notify_tpl;
+    notify_function_t notify_function;
+    void* notify_ctx;
+
+    // thread waiting for the event
+    struct thread* thread;
+
+    // the signal
+    atomic_bool signaled;
+
+    // this is for the notify list
+    list_entry_t notify_link;
+} event_data_t;
+
+// a simpler form to use for events
+typedef event_data_t* event_t;
 
 void events_init();
 
@@ -70,8 +98,6 @@ void set_tpl(tpl_t tpl);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Event related stuff
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-typedef err_t (*notify_function_t)(void* ctx, event_t event);
 
 /**
  * Creates an event.
@@ -151,5 +177,16 @@ typedef enum timer_type {
  * @param trigger_time  [IN] The number of 100ns until timer expires
  */
 err_t set_timer(event_t event, timer_type_t type, uint64_t trigger_time);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Syscalls
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+err_t sys_raise_tpl(syscall_context_t* context);
+err_t sys_restore_tpl(syscall_context_t* context);
+err_t sys_create_event(syscall_context_t* context);
+err_t sys_signal_event(syscall_context_t* context);
+err_t sys_check_event(syscall_context_t* context);
+err_t sys_wait_for_event(syscall_context_t* context);
 
 #endif //__EVENT_EVENT_H__
