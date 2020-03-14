@@ -172,7 +172,7 @@ static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) 
     trace("[-] Stack trace:\n");
     for (;;) {
         // check if the page is mapped
-        if (!vmm_is_mapped(current_vmm_handle, (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
+        if (!vmm_is_mapped(g_current_vmm_handle, (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
             break;
         }
 

@@ -2,7 +2,6 @@
 #define __PROC_PROCESS_H__
 
 #include <compo/component.h>
-#include <compo/fs/fs.h>
 #include <sync/spinlock.h>
 #include <util/list.h>
 #include <mm/vmm.h>
@@ -58,6 +57,16 @@ extern process_t kernel_process;
 void init_kernel_process();
 
 /**
+ * Will return a process by it's pid
+ *
+ * TODO: we probably want some reference counting on that
+ *
+ * @param pid       [IN]    The pid of the process
+ * @param process   [OUT]   The process
+ */
+err_t get_process_by_pid(int pid, process_t** process);
+
+/**
  * Create a new empty process
  *
  * @remark
@@ -67,7 +76,10 @@ void init_kernel_process();
 err_t create_process(process_t** process);
 
 /**
- * Spawn a new process from the given file at the given filesystem
+ * Will spawn a new process from the given file handle
+ *
+ * @param file  [IN]    The file to start the process from
+ * @param proc  [OUT]   The new process
  */
 err_t spawn_process(file_t file, process_t** proc);
 

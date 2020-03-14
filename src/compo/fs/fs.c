@@ -156,3 +156,64 @@ cleanup:
     }
     return err;
 }
+
+typedef struct sys_file_io_token {
+    int event;
+    err_t error;
+    size_t buffer_size;
+    void* buffer;
+} __attribute__((packed)) sys_file_io_token_t;
+
+err_t sys_file_read(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+    handle_t handle = NULL;
+
+    int user_handle = ctx->arg1;
+    sys_file_io_token_t* token = (void*)ctx->arg2;
+    CHECK_AND_RETHROW(verify_buffer(token, sizeof(*token), true));
+
+    // get the handle
+    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
+    spinlock_acquire(&handle->lock);
+    CHECK_ERROR(handle->type == HANDLE_FILE, ERROR_INVALID_HANDLE);
+    file_t file = handle->file.val;
+
+
+
+cleanup:
+    if (handle != NULL) {
+        spinlock_release(&handle->lock);
+        WARN(!IS_ERROR(close_handle(handle)), "Failed to close handle");
+    }
+
+    return err;
+}
+
+err_t sys_file_seek(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+
+
+
+cleanup:
+    return err;
+}
+
+err_t sys_file_tell(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+    size_t offset = 0;
+    handle_t handle = NULL;
+
+    int user_handle = ctx->arg1;
+
+    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
+    CHECK_ERROR(handle->type == HANDLE_FILE, ERROR_INVALID_HANDLE);
+    CHECK_AND_RETHROW(file_tell(handle->file.val, &offset));
+
+    ctx->ret_value = offset;
+
+cleanup:
+    if (handle != NULL) {
+        WARN(!IS_ERROR(close_handle(handle)), "Failed to close handle");
+    }
+    return err;
+}

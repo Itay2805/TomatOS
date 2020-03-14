@@ -1,12 +1,14 @@
 #ifndef __COMPO_FS_FILESYSTEM_H__
 #define __COMPO_FS_FILESYSTEM_H__
 
-#include <util/except.h>
-#include <stdbool.h>
 #include <compo/component.h>
-#include <stdatomic.h>
-#include <event/event.h>
 #include <proc/syscall.h>
+#include <util/except.h>
+#include <event/event.h>
+#include <mm/vmm.h>
+
+#include <stdatomic.h>
+#include <stdbool.h>
 
 /**
  * These are used for the seek function
@@ -133,5 +135,8 @@ err_t file_close(file_t file);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 err_t sys_fs_open(syscall_context_t* ctx);
+err_t sys_file_read(syscall_context_t* ctx);
+err_t sys_file_seek(syscall_context_t* ctx);
+err_t sys_file_tell(syscall_context_t* ctx);
 
 #endif //__COMPO_FS_FILESYSTEM_H__

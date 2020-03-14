@@ -1,10 +1,11 @@
 #ifndef __PROC_HANDLE_H__
 #define __PROC_HANDLE_H__
 
-#include <sync/spinlock.h>
-#include <stdbool.h>
 #include <compo/component.h>
+#include <sync/spinlock.h>
 #include <compo/fs/fs.h>
+
+#include <stdbool.h>
 
 /******************************************************************************
  * Handles are used for managing userspace references of kernel objects
@@ -66,5 +67,7 @@ err_t create_handle(handle_t* handle);
  * @param handle    [IN] The handle to close
  */
 err_t close_handle(handle_t handle);
+
+err_t sys_close_handle(syscall_context_t* ctx);
 
 #endif //__PROC_HANDLE_H__

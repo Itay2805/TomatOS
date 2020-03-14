@@ -8,6 +8,7 @@
 
 static pid_t g_pid_gen = 1;
 
+// TODO: Maybe switch to a hashmap
 spinlock_t process_lock = SPINLOCK_INIT;
 list_entry_t process_list = INIT_LIST_ENTRY(process_list);
 
@@ -23,6 +24,25 @@ process_t kernel_process = {
 
 void init_kernel_process() {
     insert_tail_list(&process_list, &kernel_process.link);
+}
+
+err_t get_process_by_pid(int pid, process_t** process) {
+    err_t err = NO_ERROR;
+
+    CHECK_AND_RETHROW(process != NULL);
+
+    FOR_EACH_IN_LIST(process_list, link) {
+        process_t* proc = CR(link, process_t, link);
+        if (proc->pid == pid) {
+            *process = proc;
+            goto cleanup;
+        }
+    }
+
+    CHECK_FAIL_ERROR(ERROR_NOT_FOUND);
+
+cleanup:
+    return err;
 }
 
 err_t create_process(process_t** process) {

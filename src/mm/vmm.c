@@ -279,7 +279,7 @@ extern void* kernel_physical_start;
 #define KERNEL_PHYSICAL_END ((uint64_t)&kernel_physical_end)
 #define KERNEL_VIRTUAL_START (0xFFFFFFFFC0100000)
 
-_Atomic(vmm_handle_t*) CPU_LOCAL current_vmm_handle;
+_Atomic(vmm_handle_t*) CPU_LOCAL g_current_vmm_handle;
 
 void vmm_init(tboot_info_t* info) {
     TRACE("Preparing vmm");
@@ -593,12 +593,12 @@ void vmm_set_perms(vmm_handle_t* handle, uintptr_t virt, size_t size, page_perms
 }
 
 vmm_handle_t* vmm_get_handle() {
-    return current_vmm_handle;
+    return g_current_vmm_handle;
 }
 
 void vmm_set_handle(vmm_handle_t* handle) {
-    if (current_vmm_handle != handle) {
-        current_vmm_handle = handle;
+    if (g_current_vmm_handle != handle) {
+        g_current_vmm_handle = handle;
         __writecr3(handle->pml4_physical);
     }
 }

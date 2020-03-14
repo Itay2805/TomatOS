@@ -147,7 +147,7 @@ err_t tar_read(file_t handle, file_io_token_t* io_token) {
     }
 
     // copy it
-    memcpy(io_token->buffer, &file->data[file->seek], io_token->buffer_size);
+    safe_memcpy(io_token->pid, io_token->buffer, &file->data[file->seek], io_token->buffer_size);
     file->seek += io_token->buffer_size;
 
     // signal that we are done

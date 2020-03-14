@@ -20,7 +20,7 @@ typedef enum syscall {
     SYS_THRD_SET_OPT,
 
     // handle related stuff
-    SYS_HNDL_CLOSE = 0x30,
+    SYS_CLOSE_HANDLE = 0x30,
 
     // event and tpl related syscalls
     SYS_RAISE_TPL = 0x40,

@@ -1,5 +1,6 @@
 #include <mm/mm.h>
 #include "handle.h"
+#include "sched.h"
 
 static err_t wrapped_event_notify_function(handle_t handle, event_t event) {
     err_t err = NO_ERROR;
@@ -95,5 +96,15 @@ cleanup:
         spinlock_release(&handle->lock);
     }
 
+    return err;
+}
+
+err_t sys_close_handle(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+
+    int handle = ctx->arg1;
+    CHECK_AND_RETHROW(remove_handle(g_current_thread->parent, handle));
+
+cleanup:
     return err;
 }

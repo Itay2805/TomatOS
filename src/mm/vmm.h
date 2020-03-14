@@ -62,11 +62,6 @@ typedef struct vmm_handle {
 } vmm_handle_t;
 
 /**
- * The vmm handle of the current cpu
- */
-extern _Atomic(vmm_handle_t*) CPU_LOCAL current_vmm_handle;
-
-/**
  * Will initialize the kernel memory mapping
  *
  * - maps the kernel
