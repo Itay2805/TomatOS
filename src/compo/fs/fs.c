@@ -93,6 +93,17 @@ cleanup:
     return err;
 }
 
+err_t file_tell(file_t file, size_t* offset) {
+    err_t err = NO_ERROR;
+
+    CHECK_ERROR(file != NULL, ERROR_INVALID_PARAM);
+    CHECK_ERROR(offset != NULL, ERROR_INVALID_PARAM);
+    CHECK_AND_RETHROW(file->tell(file, offset));
+
+cleanup:
+    return err;
+}
+
 err_t file_close(file_t file) {
     err_t err = NO_ERROR;
 

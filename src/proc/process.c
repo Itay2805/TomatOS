@@ -202,7 +202,7 @@ err_t get_handle(process_t* process, int handle, handle_t* out_handle) {
     *out_handle = process->handles[i].value;
 
 cleanup:
-    if (i != 0) {
+    if (i > 0) {
         spinlock_release(&process->handles[i].value->lock);
     }
 

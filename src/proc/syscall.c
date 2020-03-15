@@ -16,7 +16,7 @@
 static err_t sys_log(syscall_context_t *ctx) {
     err_t err = NO_ERROR;
 
-    const char *str = (char *) ctx->arg1;
+    const char* str = (char *) ctx->arg1;
     CHECK_AND_RETHROW(verify_string(str));
 
     TRACE("syslog: pid=%d, tid=%d: %s", g_current_thread->parent->pid, g_current_thread->tid, str);
@@ -61,9 +61,9 @@ static syscall_handler_t handlers[SYS_MAX] = {
         [SYS_FS_IS_READONLY] = NULL,
 
         // file related calls
-        [SYS_FILE_READ] = NULL,
-        [SYS_FILE_SEEK] = NULL,
-        [SYS_FILE_TELL] = NULL,
+        [SYS_FILE_READ] = sys_file_read,
+        [SYS_FILE_SEEK] = sys_file_seek,
+        [SYS_FILE_TELL] = sys_file_tell,
 };
 
 void syscall_common_handler(syscall_context_t ctx) {
@@ -123,8 +123,8 @@ void init_syscalls_for_cpu() {
 
     // set the flags to keep
     IA32_RFLAGS rflags = {
-            .always_one = 1,
-            .IF = 1,
+        .always_one = 1,
+        .IF = 1,
     };
 
     __writemsr(MSR_IA32_STAR, (usercode << 48u) | (GDT_KERNEL_CODE << 32u));

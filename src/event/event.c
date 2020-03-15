@@ -6,6 +6,7 @@
 #include <arch/intrin.h>
 #include <proc/thread.h>
 #include <proc/sched.h>
+#include <proc/handle.h>
 
 #include "event.h"
 
@@ -319,16 +320,84 @@ cleanup:
     return err;
 }
 
-err_t sys_create_event(syscall_context_t* context) {
-    return ERROR_NOT_READY;
+err_t sys_create_event(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+    event_t event = NULL;
+    handle_t handle = NULL;
+    int user_handle = -1;
+
+    // create the event
+    CHECK_AND_RETHROW(create_event(TPL_APPLICATION, NULL, NULL, &event));
+
+    // create the event handle
+    CHECK_AND_RETHROW(create_handle(&handle));
+    handle->type = HANDLE_EVENT;
+    handle->event.val = event;
+    CHECK_AND_RETHROW(add_handle(g_current_thread->parent, handle, &user_handle));
+
+    ctx->ret_value = user_handle;
+
+cleanup:
+    if (handle != NULL) {
+        WARN(!IS_ERROR(close_handle(handle)), "Failed to close handle");
+    }
+
+    if (IS_ERROR(err)) {
+        if (event != NULL) {
+            WARN(!IS_ERROR(close_event(event)), "Failed to close event");
+        }
+    }
+
+    return err;
 }
 
 err_t sys_signal_event(syscall_context_t* context) {
-    return ERROR_NOT_READY;
+    err_t err = NO_ERROR;
+    handle_t handle = NULL;
+    event_t event = NULL;
+
+    int user_handle = context->arg1;
+
+    // get the event
+    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
+    CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
+    event = handle->event.val;
+
+    // signal it
+    CHECK_AND_RETHROW(signal_event(event));
+
+cleanup:
+    if (handle != NULL) {
+        WARN(!IS_ERROR(close_handle(handle)), "");
+    }
+
+    return err;
 }
 
 err_t sys_check_event(syscall_context_t* context) {
-    return ERROR_NOT_READY;
+    err_t err = NO_ERROR;
+    handle_t handle = NULL;
+    event_t event = NULL;
+
+    int user_handle = context->arg1;
+
+    // get the event
+    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
+    CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
+    event = handle->event.val;
+
+    // check it
+    err = check_event(event);
+    if (err != ERROR_NOT_READY) {
+        CHECK_AND_RETHROW(err);
+    }
+
+cleanup:
+    if (handle != NULL) {
+        WARN(!IS_ERROR(close_handle(handle)), "");
+    }
+
+    return err;
 }
 
 err_t sys_wait_for_event(syscall_context_t* context) {

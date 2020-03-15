@@ -206,46 +206,48 @@ static err_t default_interrupt_handler(interrupt_context_t* ctx, tpl_t tpl) {
     err_t err = NO_ERROR;
 
     // if this is a kernel process just go to kernel exception
-    if (g_current_thread->parent != &kernel_process) {
-        switch (ctx->int_num) {
-            //
-            // TODO: Handle these properly once we have stuff like debugger
-            //
-            case EXCEPTION_DEBUG:
-            case EXCEPTION_BREAKPOINT:
-                on_user_exception(ctx);
-
-            //
-            // for general protection only user fault on user exception
-            //
-            case EXCEPTION_PAGE_FAULT: {
-                if (!IS_KERNEL_PTR(__readcr2())) {
-                    on_user_exception(ctx);
-                }
-            } break;
-
-
-            //
-            // these exceptions can be raised by userspace normally
-            //
-            case EXCEPTION_DIVIDE_ERROR:
-            case EXCEPTION_OVERFLOW:
-            case EXCEPTION_BOUND:
-            case EXCEPTION_INVALID_OPCODE:
-            case EXCEPTION_STACK_FAULT:
-            case EXCEPTION_GP_FAULT:
-            case EXCEPTION_FP_ERROR:
-            case EXCEPTION_ALIGNMENT_CHECK:
-            case EXCEPTION_SIMD:
-                on_user_exception(ctx);
-        }
-    }
-
-cleanup:
+//    if (g_current_thread->parent != &kernel_process) {
+//        switch (ctx->int_num) {
+//            //
+//            // TODO: Handle these properly once we have stuff like debugger
+//            //
+//            case EXCEPTION_DEBUG:
+//            case EXCEPTION_BREAKPOINT:
+//                on_user_exception(ctx);
+//                goto cleanup;
+//
+//            //
+//            // for general protection only user fault on user exception
+//            //
+//            case EXCEPTION_PAGE_FAULT: {
+//                if (!IS_KERNEL_PTR(__readcr2())) {
+//                    on_user_exception(ctx);
+//                    goto cleanup;
+//                }
+//            } break;
+//
+//
+//            //
+//            // these exceptions can be raised by userspace normally
+//            //
+//            case EXCEPTION_DIVIDE_ERROR:
+//            case EXCEPTION_OVERFLOW:
+//            case EXCEPTION_BOUND:
+//            case EXCEPTION_INVALID_OPCODE:
+//            case EXCEPTION_STACK_FAULT:
+//            case EXCEPTION_GP_FAULT:
+//            case EXCEPTION_FP_ERROR:
+//            case EXCEPTION_ALIGNMENT_CHECK:
+//            case EXCEPTION_SIMD:
+//                on_user_exception(ctx);
+//                goto cleanup;
+//        }
+//    }
 
     // if we reached here then do a kernel exception
     on_kernel_exception(ctx, tpl);
 
+cleanup:
     return err;
 }
 
@@ -285,7 +287,6 @@ void common_interrupt_handler(interrupt_context_t ctx) {
             interrupt_handler_t* handler = CR(link, interrupt_handler_t, link);
             CHECK_AND_RETHROW(handler->callback(handler->user_param, &ctx));
         }
-
     }
 
 cleanup:
@@ -300,6 +301,14 @@ cleanup:
 
     // restore back to low level
     restore_tpl(oldtpl);
+
+    // if the thread is dead then just yield
+    // make sure there is actually a thread
+    // running (when we startup threading we
+    // won't have this initialized)
+    if (LIKELY(g_current_thread != NULL) && g_current_thread->state == STATE_DEAD) {
+        yield();
+    }
 }
 
 //////////////////////////////////////////////////////////////////

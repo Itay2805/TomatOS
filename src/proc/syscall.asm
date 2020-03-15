@@ -15,6 +15,7 @@ syscall_entry:
 
     ; push rflags
     push r11
+
     ; push rip
     push rcx
 
@@ -40,7 +41,6 @@ syscall_entry:
 
     ; pop saved registers
     pop rbp
-    pop rbx
     pop r15
     pop r14
     pop r13
@@ -54,8 +54,13 @@ syscall_entry:
     pop rsi
     pop rdi
 
-    ; pop rip and rflags
+    ; pop the error code
+    pop rbx
+
+    ; pop rip
     pop rcx
+
+    ; pop rflags
     pop r11
 
     ; pop return value

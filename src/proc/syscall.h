@@ -7,44 +7,44 @@
 
 typedef enum syscall {
     // misc stuff
-    SYS_LOG = 0x00,
+    SYS_LOG             = 0x00,
 
     // process related syscalls
-    SYS_PROC_SPAWN = 0x10,
-    SYS_PROC_KILL,
-    SYS_PROC_SET_OPT,
+    SYS_PROC_SPAWN      = 0x10,
+    SYS_PROC_KILL       = 0x11,
+    SYS_PROC_SET_OPT    = 0x12,
 
     // thread related syscalls
-    SYS_SPAWN_THREAD = 0x20,
-    SYS_THRD_KILL,
-    SYS_THRD_SET_OPT,
+    SYS_SPAWN_THREAD    = 0x20,
+    SYS_THRD_KILL       = 0x21,
+    SYS_THRD_SET_OPT    = 0x22,
 
     // handle related stuff
-    SYS_CLOSE_HANDLE = 0x30,
+    SYS_CLOSE_HANDLE    = 0x30,
 
     // event and tpl related syscalls
-    SYS_RAISE_TPL = 0x40,
-    SYS_RESTORE_TPL,
-    SYS_CREATE_EVENT,
-    SYS_SET_TIMER,
-    SYS_WAIT_FOR_EVENT,
-    SYS_CHECK_EVENT,
-    SYS_SIGNAL_EVENT,
+    SYS_RAISE_TPL       = 0x40,
+    SYS_RESTORE_TPL     = 0x41,
+    SYS_CREATE_EVENT    = 0x42,
+    SYS_SET_TIMER       = 0x43,
+    SYS_WAIT_FOR_EVENT  = 0x44,
+    SYS_CHECK_EVENT     = 0x45,
+    SYS_SIGNAL_EVENT    = 0x46,
 
     // fs mounts
-    SYS_VFS_RESOLVE = 0x50,
-    SYS_VFS_MOUNT,
-    SYS_VFS_UNMOUNT,
-    SYS_VFS_MOUNTS,
+    SYS_VFS_RESOLVE     = 0x50,
+    SYS_VFS_MOUNT       = 0x51,
+    SYS_VFS_UNMOUNT     = 0x52,
+    SYS_VFS_MOUNTS      = 0x53,
 
     // fs related calls
-    SYS_FS_OPEN = 0x60,
-    SYS_FS_IS_READONLY,
+    SYS_FS_OPEN         = 0x60,
+    SYS_FS_IS_READONLY  = 0x61,
 
     // file related calls
-    SYS_FILE_READ = 0x70,
-    SYS_FILE_SEEK,
-    SYS_FILE_TELL,
+    SYS_FILE_READ       = 0x70,
+    SYS_FILE_SEEK       = 0x71,
+    SYS_FILE_TELL       = 0x72,
 
     SYS_MAX
 } syscall_t;

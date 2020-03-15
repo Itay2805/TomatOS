@@ -2,9 +2,9 @@
 #include <intr/apic/lapic.h>
 #include "sched.h"
 
-thread_t* CPU_LOCAL g_current_thread;
-uintptr_t CPU_LOCAL g_kernel_stack;
-uintptr_t CPU_LOCAL g_saved_stack;
+_Atomic(thread_t*) CPU_LOCAL g_current_thread;
+_Atomic(uintptr_t) CPU_LOCAL g_kernel_stack;
+_Atomic(uintptr_t) CPU_LOCAL g_saved_stack;
 
 static list_entry_t threads_queue = INIT_LIST_ENTRY(threads_queue);
 
@@ -160,6 +160,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
         thread_t* to_run = CR(threads_queue.next, thread_t, scheduler_link);
         remove_entry_list(&to_run->scheduler_link);
         to_run->scheduler_link.next = NULL;
+        ASSERT(to_run->state == STATE_NORMAL);
 
         // if we have something running save it's context
         if (running != NULL) {
@@ -171,6 +172,8 @@ err_t sched_tick(interrupt_context_t* ctx) {
             if (running->state == STATE_RUNNING) {
                 running->state = STATE_NORMAL;
                 insert_tail_list(&threads_queue, &running->scheduler_link);
+            } else if(running->state == STATE_DEAD) {
+                TRACE("Thread %d has died, TODO kill it", running->tid);
             } else {
                 // TODO: delete the thread if needed
             }

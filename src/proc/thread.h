@@ -83,8 +83,4 @@ err_t sys_spawn_thread(syscall_context_t* ctx);
 
 err_t sys_thrd_set_opt(syscall_context_t* ctx);
 
-err_t sys_thrd_raise_tpl(syscall_context_t* ctx);
-
-err_t sys_thrd_restore_tpl(syscall_context_t* ctx);
-
 #endif //__PROC_THREAD_H__

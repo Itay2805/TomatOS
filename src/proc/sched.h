@@ -7,11 +7,11 @@
 /**
  * The currently running thread on this cpu
  */
-extern thread_t* CPU_LOCAL g_current_thread;
+extern _Atomic(thread_t*) CPU_LOCAL g_current_thread;
 
 // used for syscalls
-extern uintptr_t CPU_LOCAL g_kernel_stack;
-extern uintptr_t CPU_LOCAL g_saved_stack;
+extern _Atomic(uintptr_t) CPU_LOCAL g_kernel_stack;
+extern _Atomic(uintptr_t) CPU_LOCAL g_saved_stack;
 
 /**
  * Initialize the scheduler
