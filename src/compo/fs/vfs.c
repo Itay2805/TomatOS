@@ -67,7 +67,7 @@ err_t sys_vfs_resolve(syscall_context_t* ctx) {
 
     // verify arguments
     CHECK_AND_RETHROW(verify_string(path));
-    CHECK_AND_RETHROW(verify_buffer(out_path, sizeof(*out_path), true));
+    CHECK_AND_RETHROW(verify_buffer(out_path, sizeof(*out_path)));
 
     // will resolve the path
     CHECK_AND_RETHROW(vfs_resolve(path, &fs, out_path));

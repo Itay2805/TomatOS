@@ -34,6 +34,7 @@ err_t get_process_by_pid(int pid, process_t** process) {
     FOR_EACH_IN_LIST(process_list, link) {
         process_t* proc = CR(link, process_t, link);
         if (proc->pid == pid) {
+            proc->refcount++;
             *process = proc;
             goto cleanup;
         }
@@ -55,6 +56,7 @@ err_t create_process(process_t** process) {
     vmm_create_address_space(&proc->vmm_handle);
     proc->pid = g_pid_gen++;
     proc->tid_gen = 1;
+    proc->refcount = 1;
     proc->threads_list = INIT_LIST_ENTRY(proc->threads_list);
     proc->threads_lock = SPINLOCK_INIT;
     proc->next_handle = 1;
@@ -119,6 +121,21 @@ cleanup:
         }
     }
 
+    return err;
+}
+
+err_t release_process(process_t* process) {
+    err_t err = NO_ERROR;
+
+    CHECK_ERROR(process != NULL, ERROR_INVALID_PARAM);
+
+    process->refcount--;
+
+    if (process->refcount == 0) {
+        ASSERT(!"Kill the process");
+    }
+
+cleanup:
     return err;
 }
 

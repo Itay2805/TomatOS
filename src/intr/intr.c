@@ -70,13 +70,14 @@ static char* USER_NAME[] = {
         "User",
 };
 
-static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) {
+static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
     // print error name
     const char* name = 0;
-    if(regs->int_num <= sizeof(ISR_NAMES) / sizeof(char*)) {
+    if (regs->int_num <= sizeof(ISR_NAMES) / sizeof(char*)) {
         name = ISR_NAMES[regs->int_num];
     }
-    if(name == 0) {
+
+    if (name == 0) {
         trace("[-] Unhandled interrupt: %lx\n", regs->int_num);
     }else {
         if (regs->int_num == EXCEPTION_BREAKPOINT && __readcr2() == PANIC_CR2_MAGIC) {
@@ -87,7 +88,7 @@ static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) 
     }
 
     // print error if any
-    switch(regs->int_num) {
+    switch (regs->int_num) {
         case 10: // Invalid TSS
         case 11: // Segment Not Presented
         case 12: // Stack segment fault
@@ -155,7 +156,7 @@ static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) 
     trace("[-] RSI=%016lx RDI=%016lx RBP=%016lx RSP=%016lx\n", regs->rsi, regs->rdi, regs->rbp, regs->rsp);
     trace("[-] R8 =%016lx R9 =%016lx R10=%016lx R11=%016lx\n", regs->r8, regs->r9, regs->r10, regs->r10);
     trace("[-] R12=%016lx R13=%016lx R14=%016lx R15=%016lx\n", regs->r12, regs->r13, regs->r14, regs->r15);
-    if(off == 0 || name == 0) {
+    if (off == 0 || name == 0) {
         trace("[-] RIP=%016lx RFL=%08x [%c%c%c%c%c%c%c] CPL=%d\n", regs->rip, (uint32_t)regs->rflags.raw, _if, _tf, _sf, _zf, _af, _pf, _cf, cpl);
     } else {
         trace("[-] RIP=%016lx <%s+%lx> RFL=%08x [%c%c%c%c%c%c%c] CPL=%d\n", regs->rip, name, off, (uint32_t)regs->rflags.raw, _if, _tf, _sf, _zf, _af, _pf, _cf, cpl);
@@ -172,7 +173,7 @@ static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) 
     trace("[-] Stack trace:\n");
     for (;;) {
         // check if the page is mapped
-        if (!vmm_is_mapped(g_current_vmm_handle, (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
+        if (!vmm_is_mapped(vmm_get_handle(), (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
             break;
         }
 
@@ -199,6 +200,53 @@ static void default_interrupt_handler(interrupt_context_t *regs, tpl_t was_tpl) 
     trace("[-] \n");
     trace("[-] :(\n");
     while(1) asm("hlt");
+}
+
+static err_t default_interrupt_handler(interrupt_context_t* ctx, tpl_t tpl) {
+    err_t err = NO_ERROR;
+
+    // if this is a kernel process just go to kernel exception
+    if (g_current_thread->parent != &kernel_process) {
+        switch (ctx->int_num) {
+            //
+            // TODO: Handle these properly once we have stuff like debugger
+            //
+            case EXCEPTION_DEBUG:
+            case EXCEPTION_BREAKPOINT:
+                on_user_exception(ctx);
+
+            //
+            // for general protection only user fault on user exception
+            //
+            case EXCEPTION_PAGE_FAULT: {
+                if (!IS_KERNEL_PTR(__readcr2())) {
+                    on_user_exception(ctx);
+                }
+            } break;
+
+
+            //
+            // these exceptions can be raised by userspace normally
+            //
+            case EXCEPTION_DIVIDE_ERROR:
+            case EXCEPTION_OVERFLOW:
+            case EXCEPTION_BOUND:
+            case EXCEPTION_INVALID_OPCODE:
+            case EXCEPTION_STACK_FAULT:
+            case EXCEPTION_GP_FAULT:
+            case EXCEPTION_FP_ERROR:
+            case EXCEPTION_ALIGNMENT_CHECK:
+            case EXCEPTION_SIMD:
+                on_user_exception(ctx);
+        }
+    }
+
+cleanup:
+
+    // if we reached here then do a kernel exception
+    on_kernel_exception(ctx, tpl);
+
+    return err;
 }
 
 //////////////////////////////////////////////////////////////////

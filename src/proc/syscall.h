@@ -85,7 +85,7 @@ err_t verify_string(const char* str);
  * @param len       [IN] The length of the buffer
  * @param writable  [IN] Do we want it to be writeable
  */
-err_t verify_buffer(void* buf, size_t len, bool writable);
+err_t verify_buffer(void* buf, size_t len);
 
 /**
  * Initialize everything related to syscalls on this cpu

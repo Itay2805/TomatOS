@@ -1,0 +1,1 @@
+qemu-system-x86_64 -bios tools/OVMF.fd --enable-kvm -hda bin/tomatos.img -monitor telnet:localhost:4321,server,nowait -debugcon stdio -no-reboot -no-shutdown

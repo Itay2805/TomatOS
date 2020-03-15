@@ -18,6 +18,10 @@ typedef struct process {
     // the process id
     pid_t pid;
 
+    // reference count for the process
+    atomic_int refcount;
+    // TODO: Do I also want a process lock?
+
     // tid generation, starts from 0 including
     tid_t tid_gen;
 
@@ -84,6 +88,15 @@ err_t create_process(process_t** process);
 err_t spawn_process(file_t file, process_t** proc);
 
 /**
+ * Release the handle to the process
+ *
+ * if the ref count reaches zero it will kill the process
+ *
+ * @param process   [IN] The process to release the handle of
+ */
+err_t release_process(process_t* process);
+
+/**
  * Will add an handle to the process
  *
  * @remark
@@ -115,5 +128,18 @@ err_t remove_handle(process_t* process, int handle);
  * @param out_handle    [IN] The kernel handle
  */
 err_t get_handle(process_t* process, int handle, handle_t* out_handle);
+
+/**
+ * Copy memory to another process
+ *
+ * @remark
+ * Given pointer must point to a kernel address!
+ *
+ * @param process   [IN]    The process to copy to
+ * @param to        [IN]    The address to copy to
+ * @param from      [IN]    The kernel address
+ * @param size      [IN]    The size to copy
+ */
+err_t copy_to_process(process_t* process, void* to, void* from, size_t size);
 
 #endif //__PROC_PROCESS_H__

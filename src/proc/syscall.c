@@ -84,27 +84,14 @@ err_t verify_string(const char *str) {
     err_t err = NO_ERROR;
 
     // verify the base pointer is good
+    // worst case we fall in the non-canonical area
     CHECK_ERROR((uintptr_t) str < USERSPACE_END, ERROR_INVALID_POINTER);
-
-    // TODO: instead of doing this kind of check it would be nicer to simply
-    //       return an error on an invalid userspace access or something
-
-    // will check that all the string is mapped and is null terminated
-    int page_num = -1;
-    do {
-        // check if mapped if this is a new page
-        if (ALIGN_DOWN(str, PAGE_SIZE) != page_num) {
-            page_num = ALIGN_DOWN(str, PAGE_SIZE);
-            CHECK_ERROR(vmm_is_mapped(vmm_get_handle(), (uintptr_t) str, 1), ERROR_INVALID_POINTER);
-        }
-        str++;
-    } while (*str != 0);
 
 cleanup:
     return err;
 }
 
-err_t verify_buffer(void *buf, size_t len, bool writable) {
+err_t verify_buffer(void *buf, size_t len) {
     err_t err = NO_ERROR;
 
     // verify these are good
@@ -112,43 +99,6 @@ err_t verify_buffer(void *buf, size_t len, bool writable) {
     CHECK_ERROR((uintptr_t) buf + len < USERSPACE_END, ERROR_INVALID_POINTER);
 
 cleanup:
-    return err;
-}
-
-err_t safe_memcpy(int pid, void *user_buffer, void *kernel_buffer, size_t len) {
-    err_t err = NO_ERROR;
-    tpl_t oldtpl = -1;
-    vmm_handle_t *prev = NULL;
-
-    if (pid != 0) {
-        // we are doing a very sensitive check here so raise to high level
-        // idk if this is really needed
-        oldtpl = raise_tpl(TPL_HIGH_LEVEL);
-
-        // get the process
-        process_t *process = NULL;
-        CHECK_AND_RETHROW(get_process_by_pid(pid, &process));
-
-        // switch address space for the verification and copy
-        prev = vmm_get_handle();
-        vmm_set_handle(&process->vmm_handle);
-
-        // verify the buffer
-        CHECK_AND_RETHROW(verify_buffer(user_buffer, len));
-    }
-
-    // do the memory copy
-    memcpy(user_buffer, kernel_buffer, len);
-
-cleanup:
-    if (prev != NULL) {
-        vmm_set_handle(prev);
-    }
-
-    if (oldtpl != -1) {
-        restore_tpl(oldtpl);
-    }
-
     return err;
 }
 

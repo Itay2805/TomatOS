@@ -157,20 +157,15 @@ cleanup:
     return err;
 }
 
-typedef struct sys_file_io_token {
-    int event;
-    err_t error;
-    size_t buffer_size;
-    void* buffer;
-} __attribute__((packed)) sys_file_io_token_t;
-
 err_t sys_file_read(syscall_context_t* ctx) {
     err_t err = NO_ERROR;
     handle_t handle = NULL;
 
+    // TODO: convert this to an io
     int user_handle = ctx->arg1;
-    sys_file_io_token_t* token = (void*)ctx->arg2;
-    CHECK_AND_RETHROW(verify_buffer(token, sizeof(*token), true));
+    void* buffer = (void*)ctx->arg2;
+    size_t size = ctx->arg3;
+    CHECK_AND_RETHROW(verify_buffer(buffer, size));
 
     // get the handle
     CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
@@ -178,7 +173,10 @@ err_t sys_file_read(syscall_context_t* ctx) {
     CHECK_ERROR(handle->type == HANDLE_FILE, ERROR_INVALID_HANDLE);
     file_t file = handle->file.val;
 
+    size_t ret = 0;
+    CHECK_AND_RETHROW(file_read(file, buffer, size, &ret));
 
+    ctx->ret_value = ret;
 
 cleanup:
     if (handle != NULL) {

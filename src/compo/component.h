@@ -1,12 +1,12 @@
 #ifndef __COMPO_COMPONENT_H__
 #define __COMPO_COMPONENT_H__
 
+#include <util/except.h>
+#include <util/list.h>
+
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stddef.h>
-
-#include <util/list.h>
-#include <util/except.h>
 
 typedef struct address {
     uint32_t data1;
