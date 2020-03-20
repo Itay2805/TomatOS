@@ -71,7 +71,7 @@ err_t sys_vfs_open(syscall_context_t* ctx) {
     // create the handke
     CHECK_AND_RETHROW(create_handle(&handle));
     handle->type = HANDLE_FILE;
-    handle->file.val = file;
+    handle->val = file;
     CHECK_AND_RETHROW(add_handle(get_current_process(), handle, &out_handle));
 
     // set the return value
@@ -112,7 +112,7 @@ err_t sys_vfs_resolve(syscall_context_t* ctx) {
     // create the handle and add to the process
     CHECK_AND_RETHROW(create_handle(&handle));
     handle->type = HANDLE_COMPONENT;
-    handle->component.val = (void*)fs;
+    handle->val = (void*)fs;
     CHECK_AND_RETHROW(add_handle(get_current_process(), handle, &out_handle));
 
     // will return the handle

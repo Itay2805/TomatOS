@@ -332,7 +332,7 @@ err_t sys_create_event(syscall_context_t* ctx) {
     // create the event handle
     CHECK_AND_RETHROW(create_handle(&handle));
     handle->type = HANDLE_EVENT;
-    handle->event.val = event;
+    handle->val = event;
     CHECK_AND_RETHROW(add_handle(get_current_process(), handle, &user_handle));
 
     ctx->ret_value = user_handle;
@@ -361,7 +361,7 @@ err_t sys_signal_event(syscall_context_t* context) {
     // get the event
     CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
     CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
-    event = handle->event.val;
+    event = handle->val;
 
     // signal it
     CHECK_AND_RETHROW(signal_event(event));
@@ -384,7 +384,7 @@ err_t sys_check_event(syscall_context_t* context) {
     // get the event
     CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
     CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
-    event = handle->event.val;
+    event = handle->val;
 
     // check it
     err = check_event(event);

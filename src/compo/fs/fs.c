@@ -135,12 +135,12 @@ err_t sys_fs_open(syscall_context_t* ctx) {
     CHECK_AND_RETHROW(fs_handle->type == HANDLE_COMPONENT);
 
     // do it
-    CHECK_AND_RETHROW(fs_open((filesystem_t)fs_handle->component.val, path, &f));
+    CHECK_AND_RETHROW(fs_open((filesystem_t)fs_handle->val, path, &f));
 
     // add the handle
     CHECK_AND_RETHROW(create_handle(&new_handle));
     new_handle->type = HANDLE_FILE;
-    new_handle->file.val = f;
+    new_handle->val = f;
     f = NULL;
     CHECK_AND_RETHROW(add_handle(get_current_process(), new_handle, &out_handle));
 
@@ -182,7 +182,7 @@ err_t sys_file_read(syscall_context_t* ctx) {
     CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
     spinlock_acquire(&handle->lock);
     CHECK_ERROR(handle->type == HANDLE_FILE, ERROR_INVALID_HANDLE);
-    file_t file = handle->file.val;
+    file_t file = handle->val;
 
     size_t ret = 0;
     CHECK_AND_RETHROW(file_read(file, buffer, size, &ret));
@@ -216,7 +216,7 @@ err_t sys_file_tell(syscall_context_t* ctx) {
 
     CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
     CHECK_ERROR(handle->type == HANDLE_FILE, ERROR_INVALID_HANDLE);
-    CHECK_AND_RETHROW(file_tell(handle->file.val, &offset));
+    CHECK_AND_RETHROW(file_tell(handle->val, &offset));
 
     ctx->ret_value = offset;
 

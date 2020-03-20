@@ -27,6 +27,8 @@
 
 #include <tboot.h>
 #include <arch/simd.h>
+#include <compo/screen/screen.h>
+#include <compo/screen/framebuffer/framebuffer.h>
 
 static tboot_info_t* g_info;
 
@@ -42,13 +44,11 @@ static void main_thread() {
         TRACE("Mounting initrd");
         create_initrd_fs(&g_info->modules.entries[0]);
     }
-    
-    // spawn a process from an elf file
-    file_t file = NULL;
-    process_t* proc = NULL;
-    CHECK_AND_RETHROW(vfs_open("/test.elf", &file));
-    CHECK_AND_RETHROW(spawn_process(file, &proc));
-    TRACE("Spawned test");
+
+    // setup the screen device
+    init_framebuffer_screen(g_info);
+
+    CHECK_FAIL();
 
 cleanup:
     while(1);

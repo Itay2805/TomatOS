@@ -9,6 +9,7 @@ static const char* errors[] = {
     [ERROR_INVALID_POINTER] = "Invalid pointer",
     [ERROR_INVALID_HANDLE] = "Invalid handle",
     [ERROR_INVALID_TPL] = "Invalid Task Priority Level",
+    [ERROR_ALREADY_STARTED] = "Already started",
     [ERROR_NOT_READY] = "Not ready",
     [ERROR_NOT_FOUND] = "Not found",
     [ERROR_EOF] = "End of file",

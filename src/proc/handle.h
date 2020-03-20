@@ -3,7 +3,6 @@
 
 #include <compo/component.h>
 #include <sync/spinlock.h>
-#include <compo/fs/fs.h>
 
 #include <stdbool.h>
 
@@ -13,31 +12,28 @@
 
 typedef enum handle_type {
     HANDLE_COMPONENT,
-
     HANDLE_FILE,
-
     HANDLE_EVENT,
+    HANDLE_WORKSPACE,
+    HANDLE_WINDOW,
 } handle_type_t;
 
 typedef struct handle_data {
+    // handle lock
     spinlock_t lock;
 
+    // the type of the handle
     handle_type_t type;
 
+    // the ref count of the handle
     int refcount;
+
+    // the value related to the handle
+    void* val;
 
     // data for specific handles
     union {
         struct {
-            component_t* val;
-        } component;
-
-        struct {
-            file_t val;
-        } file;
-
-        struct {
-            event_t val;
             bool periodic_timer;
         } event;
     };
@@ -67,6 +63,10 @@ err_t create_handle(handle_t* handle);
  * @param handle    [IN] The handle to close
  */
 err_t close_handle(handle_t handle);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Syscalls
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 err_t sys_close_handle(syscall_context_t* ctx);
 

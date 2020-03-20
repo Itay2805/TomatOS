@@ -1,4 +1,7 @@
 #include <mm/mm.h>
+#include <compo/fs/fs.h>
+#include <compo/wm/workspace.h>
+
 #include "handle.h"
 #include "sched.h"
 
@@ -6,7 +9,7 @@ static err_t wrapped_event_notify_function(handle_t handle, event_t event) {
     err_t err = NO_ERROR;
 
     // signal the user event and close the handle
-    CHECK_AND_RETHROW(signal_event(handle->event.val));
+    CHECK_AND_RETHROW(signal_event(handle->val));
     CHECK_AND_RETHROW(close_handle(handle));
 
 cleanup:
@@ -23,7 +26,7 @@ err_t wrap_event(handle_t handle, event_t* out) {
 
     // make sure this is an event handle
     CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
-    event_t event = handle->event.val;
+    event_t event = handle->val;
 
     // increase the ref count and create the event
     handle->refcount++;
@@ -68,23 +71,31 @@ err_t close_handle(handle_t handle) {
         switch (handle->type) {
             case HANDLE_COMPONENT: {
                 // release the component handle
-                CHECK_AND_RETHROW(release_component(handle->component.val));
+                CHECK_AND_RETHROW(release_component(handle->val));
             } break;
 
             case HANDLE_FILE: {
                 // close the file
-                TRACE("CLOSING FILE");
-                CHECK_AND_RETHROW(file_close(handle->file.val));
+                CHECK_AND_RETHROW(file_close(handle->val));
             } break;
 
             case HANDLE_EVENT: {
                 // if this is a periodic timer cancel it
                 if (handle->event.periodic_timer) {
-                    CHECK_AND_RETHROW(set_timer(handle->event.val, TIMER_CANCEL, 0));
+                    CHECK_AND_RETHROW(set_timer(handle->val, TIMER_CANCEL, 0));
                 }
 
                 // close the event
-                CHECK_AND_RETHROW(close_event(handle->event.val));
+                CHECK_AND_RETHROW(close_event(handle->val));
+            } break;
+
+            case HANDLE_WORKSPACE: {
+                // close the workspace
+                CHECK_AND_RETHROW(close_workspace(handle->val));
+            } break;
+
+            case HANDLE_WINDOW: {
+                ASSERT(false);
             } break;
         }
 

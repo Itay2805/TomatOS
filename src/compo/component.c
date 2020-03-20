@@ -4,7 +4,11 @@
 #include "component.h"
 
 // list with specific components
+// TODO: eh
 static list_entry_t fs_components = INIT_LIST_ENTRY(fs_components);
+static list_entry_t screen_components = INIT_LIST_ENTRY(screen_components);
+static list_entry_t keyboard_components = INIT_LIST_ENTRY(keyboard_components);
+static list_entry_t mouse_components = INIT_LIST_ENTRY(mouse_components);
 
 // list with all components
 static spinlock_t components_lock = SPINLOCK_INIT;
@@ -15,7 +19,10 @@ static component_t* primary_components[COMPONENT_MAX_TYPE] = {0};
 
 // component type to name map
 static const char* type_to_name[] = {
-    [COMPONENT_FILESYSTEM] = "Filesystem"
+    [COMPONENT_FILESYSTEM] = "Filesystem",
+    [COMPONENT_SCREEN] = "Screen",
+    [COMPONENT_MOUSE] = "Mouse",
+    [COMPONENT_KEYBOARD] = "Keyboard"
 };
 
 void generate_device_address(void* address, size_t len, address_t* addr) {
@@ -37,6 +44,18 @@ void register_component(component_t* component) {
     switch (component->type) {
         case COMPONENT_FILESYSTEM:
             list = &fs_components;
+            break;
+
+        case COMPONENT_SCREEN:
+            list = &screen_components;
+            break;
+
+        case COMPONENT_MOUSE:
+            list = &mouse_components;
+            break;
+
+        case COMPONENT_KEYBOARD:
+            list = &keyboard_components;
             break;
 
         default: ASSERT(!"Invalid component type");

@@ -3,6 +3,7 @@
 
 #include <compo/component.h>
 #include <sync/spinlock.h>
+#include <compo/fs/fs.h>
 #include <util/list.h>
 #include <mm/vmm.h>
 
