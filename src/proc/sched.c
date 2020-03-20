@@ -154,11 +154,15 @@ err_t sched_tick(interrupt_context_t* ctx) {
         // run the idle task instead
         if (m_current_thread->state != STATE_RUNNING) {
             // save the current context
+            m_current_thread->apic_id = 0;
+            m_current_thread->saved_stack = g_saved_stack;
             m_current_thread->cpu_context = *ctx;
+            save_simd_state(m_current_thread->simd_state);
 
             // schedule the idle thread
             m_current_thread = idle_thread;
             *ctx = idle_thread->cpu_context;
+            // don't bother with sse
             vmm_set_handle(&kernel_process.vmm_handle);
 
             // no need for the temp stack or kernel stack
