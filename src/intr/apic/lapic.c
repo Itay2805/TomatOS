@@ -43,7 +43,7 @@ static interrupt_handler_t sv_handler = {
 
 static bool initialized_once = false;
 
-void lapic_init() {
+void init_lapic_for_cpu() {
     LOCAL_APIC_LVT_LINT lint = {0};
 
     // only initialize once

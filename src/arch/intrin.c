@@ -215,3 +215,31 @@ void __swapgs(void) {
 
 __buildbitscan(_BitScanReverse, uint32_t , "bsr{l %[Mask],%[Index] | %[Index],%[Mask]}");
 __buildbitscan(_BitScanReverse64, uint64_t, "bsr{q %[Mask],%[Index] | %[Index],%[Mask]}");
+
+uint64_t __xgetbv(uint32_t index) {
+    uint32_t eax, edx;
+    asm volatile("xgetbv" : "=a" (eax), "=d" (edx) : "c" (index));
+    return eax + ((uint64_t)edx << 32);
+}
+
+void __xsetbv(uint32_t index, uint64_t value) {
+    uint32_t eax = value;
+    uint32_t edx = value >> 32;
+    asm volatile("xsetbv" : : "a" (eax), "d" (edx), "c" (index));
+}
+
+void __fxsave(void* state) {
+    asm volatile ("fxsave %0" : : "m"(*(uint8_t*)state) : "memory");
+}
+
+void __fxrstor(void* state) {
+    asm volatile ("fxrstor %0" : : "m"(*(uint8_t*)state) : "memory");
+}
+
+void __xsave(void* state) {
+    asm volatile ("xsave %0" : : "m"(*(uint8_t*)state), "a" (0xFFFFFFFF), "d" (0xFFFFFFFF) : "memory");
+}
+
+void __xrstor(void* state) {
+    asm volatile ("xrstor %0" : : "m"(*(uint8_t*)state), "a" (0xFFFFFFFF), "d" (0xFFFFFFFF) : "memory");
+}

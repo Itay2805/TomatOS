@@ -358,7 +358,7 @@ void vmm_enable_cpu_features() {
     efer.NXE = 1;
     __write_efer(efer);
 
-    TRACE("CPU Features:");
+    TRACE("Memory CPU Features:");
 
     /***************************************************
      * 1GB pages

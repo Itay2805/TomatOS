@@ -1,5 +1,6 @@
 #include <mm/stack_allocator.h>
 #include <intr/apic/lapic.h>
+#include <arch/simd.h>
 #include "sched.h"
 
 _Atomic(thread_t*) CPU_LOCAL m_current_thread;
@@ -176,7 +177,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
             running->apic_id = 0;
             running->saved_stack = g_saved_stack;
             running->cpu_context = *ctx;
-            // TODO: fpu context
+            save_simd_state(running->simd_state);
 
             if (running->state == STATE_RUNNING) {
                 running->state = STATE_NORMAL;
@@ -192,6 +193,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
         *ctx = to_run->cpu_context;
         g_saved_stack = to_run->saved_stack;
         g_kernel_stack = to_run->kernel_stack;
+        restore_simd_state(to_run->simd_state);
 
         // if not the same parent then assume different address space and switch handle
         vmm_set_handle(&to_run->parent->vmm_handle);

@@ -1,12 +1,65 @@
-#ifndef __ARCH_CPUID_H__
-#define __ARCH_CPUID_H__
+/** @file
+  Intel CPUID leaf definitions.
+
+  Provides defines for CPUID leaf indexes.  Data structures are provided for
+  registers returned by a CPUID leaf that contain one or more bit fields.
+  If a register returned is a single 32-bit value, then a data structure is
+  not provided for that register.
+
+  Copyright (c) 2015 - 2019, Intel Corporation. All rights reserved.<BR>
+  SPDX-License-Identifier: BSD-2-Clause-Patent
+
+  @par Specification Reference:
+  Intel(R) 64 and IA-32 Architectures Software Developer's Manual, Volume 2A,
+  November 2018, CPUID instruction.
+
+**/
+
+#ifndef __INTEL_CPUID_H__
+#define __INTEL_CPUID_H__
 
 #include <stdint.h>
+
+/**
+  CPUID Signature Information
+
+  @param   EAX  CPUID_SIGNATURE (0x00)
+
+  @retval  EAX  Returns the highest value the CPUID instruction recognizes for
+                returning basic processor information. The value is returned is
+                processor specific.
+  @retval  EBX  First 4 characters of a vendor identification string.
+  @retval  ECX  Last 4 characters of a vendor identification string.
+  @retval  EDX  Middle 4 characters of a vendor identification string.
+
+  <b>Example usage</b>
+  @code
+  uint32_t Eax;
+  uint32_t Ebx;
+  uint32_t Ecx;
+  uint32_t Edx;
+
+  AsmCpuid (CPUID_SIGNATURE, &Eax, &Ebx, &Ecx, &Edx);
+  @endcode
+**/
+#define CPUID_SIGNATURE                         0x00
+
+///
+/// @{ CPUID signature values returned by Intel processors
+///
+#define CPUID_SIGNATURE_GENUINE_INTEL_EBX  SIGNATURE_32 ('G', 'e', 'n', 'u')
+#define CPUID_SIGNATURE_GENUINE_INTEL_EDX  SIGNATURE_32 ('i', 'n', 'e', 'I')
+#define CPUID_SIGNATURE_GENUINE_INTEL_ECX  SIGNATURE_32 ('n', 't', 'e', 'l')
+///
+/// @}
+///
 
 
 /**
   CPUID Version Information
+
   @param   EAX  CPUID_VERSION_INFO (0x01)
+
   @retval  EAX  Returns Model, Family, Stepping Information described by the
                 type CPUID_VERSION_INFO_EAX.
   @retval  EBX  Returns Brand, Cache Line Size, and Initial APIC ID described by
@@ -15,13 +68,15 @@
                 CPUID_VERSION_INFO_ECX.
   @retval  EDX  CPU Feature Information described by the type
                 CPUID_VERSION_INFO_EDX.
+
   <b>Example usage</b>
   @code
   CPUID_VERSION_INFO_EAX  Eax;
   CPUID_VERSION_INFO_EBX  Ebx;
   CPUID_VERSION_INFO_ECX  Ecx;
   CPUID_VERSION_INFO_EDX  Edx;
-  AsmCpuid (CPUID_VERSION_INFO, &Eax.Uint32, &Ebx.Uint32, &Ecx.Uint32, &Edx.Uint32);
+
+  AsmCpuid (CPUID_VERSION_INFO, &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw);
   @endcode
 **/
 #define CPUID_VERSION_INFO                      0x01
@@ -47,7 +102,7 @@ typedef union {
     ///
     /// All bit fields as a 32-bit value
     ///
-    uint32_t raw;
+    uint32_t    raw;
 } CPUID_VERSION_INFO_EAX;
 
 ///
@@ -101,7 +156,7 @@ typedef union {
     ///
     /// All bit fields as a 32-bit value
     ///
-    uint32_t raw;
+    uint32_t    raw;
 } CPUID_VERSION_INFO_EBX;
 
 /**
@@ -276,7 +331,7 @@ typedef union {
     ///
     /// All bit fields as a 32-bit value
     ///
-    uint32_t raw;
+    uint32_t    raw;
 } CPUID_VERSION_INFO_ECX;
 
 /**
@@ -479,31 +534,280 @@ typedef union {
     ///
     /// All bit fields as a 32-bit value
     ///
-    uint32_t  raw;
+    uint32_t    raw;
 } CPUID_VERSION_INFO_EDX;
 
+
 /**
-  CPUID Extended Processor Signature and Feature Bits
-  @param   EAX  CPUID_EXTENDED_CPU_SIG (0x80000001)
-  @retval  EAX  CPUID_EXTENDED_CPU_SIG.
-  @retval  EBX  _reserved.
-  @retval  ECX  Extended Processor Signature and Feature Bits information
-                described by the type CPUID_EXTENDED_CPU_SIG_ECX.
-  @retval  EDX  Extended Processor Signature and Feature Bits information
-                described by the type CPUID_EXTENDED_CPU_SIG_EDX.
+  CPUID Cache and TLB Information
+
+  @param   EAX  CPUID_CACHE_INFO (0x02)
+
+  @retval  EAX  Cache and TLB Information described by the type
+                CPUID_CACHE_INFO_CACHE_TLB.
+                CPUID_CACHE_INFO_CACHE_TLB.CacheDescriptor[0] always returns
+                0x01 and must be ignored.  Only valid if
+                CPUID_CACHE_INFO_CACHE_TLB.Bits.NotValid is clear.
+  @retval  EBX  Cache and TLB Information described by the type
+                CPUID_CACHE_INFO_CACHE_TLB.  Only valid if
+                CPUID_CACHE_INFO_CACHE_TLB.Bits.NotValid is clear.
+  @retval  ECX  Cache and TLB Information described by the type
+                CPUID_CACHE_INFO_CACHE_TLB.  Only valid if
+                CPUID_CACHE_INFO_CACHE_TLB.Bits.NotValid is clear.
+  @retval  EDX  Cache and TLB Information described by the type
+                CPUID_CACHE_INFO_CACHE_TLB.  Only valid if
+                CPUID_CACHE_INFO_CACHE_TLB.Bits.NotValid is clear.
+
   <b>Example usage</b>
   @code
-  uint32_t                      Eax;
-  CPUID_EXTENDED_CPU_SIG_ECX  Ecx;
-  CPUID_EXTENDED_CPU_SIG_EDX  Edx;
-  AsmCpuid (CPUID_EXTENDED_CPU_SIG, &Eax, NULL, &Ecx.Uint32, &Edx.Uint32);
+  CPUID_CACHE_INFO_CACHE_TLB  Eax;
+  CPUID_CACHE_INFO_CACHE_TLB  Ebx;
+  CPUID_CACHE_INFO_CACHE_TLB  Ecx;
+  CPUID_CACHE_INFO_CACHE_TLB  Edx;
+
+  AsmCpuid (CPUID_CACHE_INFO, &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw);
   @endcode
+
+  <b>Cache Descriptor values</b>
+  <table>
+  <tr><th>Value </th><th> Type    </th><th> Description </th></tr>
+  <tr><td> 0x00 </td><td> General </td><td> Null descriptor, this byte contains no information</td></tr>
+  <tr><td> 0x01 </td><td> TLB     </td><td> Instruction TLB: 4 KByte pages, 4-way set associative, 32 entries</td></tr>
+  <tr><td> 0x02 </td><td> TLB     </td><td> Instruction TLB: 4 MByte pages, fully associative, 2 entries</td></tr>
+  <tr><td> 0x03 </td><td> TLB     </td><td> Data TLB: 4 KByte pages, 4-way set associative, 64 entries</td></tr>
+  <tr><td> 0x04 </td><td> TLB     </td><td> Data TLB: 4 MByte pages, 4-way set associative, 8 entries</td></tr>
+  <tr><td> 0x05 </td><td> TLB     </td><td> Data TLB1: 4 MByte pages, 4-way set associative, 32 entries</td></tr>
+  <tr><td> 0x06 </td><td> Cache   </td><td> 1st-level instruction cache: 8 KBytes, 4-way set associative,
+                                            32 byte line size</td></tr>
+  <tr><td> 0x08 </td><td> Cache   </td><td> 1st-level instruction cache: 16 KBytes, 4-way set associative,
+                                            32 byte line size</td></tr>
+  <tr><td> 0x09 </td><td> Cache   </td><td> 1st-level instruction cache: 32KBytes, 4-way set associative,
+                                            64 byte line size</td></tr>
+  <tr><td> 0x0A </td><td> Cache   </td><td> 1st-level data cache: 8 KBytes, 2-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x0B </td><td> TLB     </td><td> Instruction TLB: 4 MByte pages, 4-way set associative, 4 entries</td></tr>
+  <tr><td> 0x0C </td><td> Cache   </td><td> 1st-level data cache: 16 KBytes, 4-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x0D </td><td> Cache   </td><td> 1st-level data cache: 16 KBytes, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x0E </td><td> Cache   </td><td> 1st-level data cache: 24 KBytes, 6-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x1D </td><td> Cache   </td><td> 2nd-level cache: 128 KBytes, 2-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x21 </td><td> Cache   </td><td> 2nd-level cache: 256 KBytes, 8-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x22 </td><td> Cache   </td><td> 3rd-level cache: 512 KBytes, 4-way set associative, 64 byte line size,
+                                            2 lines per sector</td></tr>
+  <tr><td> 0x23 </td><td> Cache   </td><td> 3rd-level cache: 1 MBytes, 8-way set associative, 64 byte line size,
+                                            2 lines per sector</td></tr>
+  <tr><td> 0x24 </td><td> Cache   </td><td> 2nd-level cache: 1 MBytes, 16-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x25 </td><td> Cache   </td><td> 3rd-level cache: 2 MBytes, 8-way set associative, 64 byte line size,
+                                            2 lines per sector</td></tr>
+  <tr><td> 0x29 </td><td> Cache   </td><td> 3rd-level cache: 4 MBytes, 8-way set associative, 64 byte line size,
+                                            2 lines per sector</td></tr>
+  <tr><td> 0x2C </td><td> Cache   </td><td> 1st-level data cache: 32 KBytes, 8-way set associative,
+                                            64 byte line size</td></tr>
+  <tr><td> 0x30 </td><td> Cache   </td><td> 1st-level instruction cache: 32 KBytes, 8-way set associative,
+                                            64 byte line size</td></tr>
+  <tr><td> 0x40 </td><td> Cache   </td><td> No 2nd-level cache or, if processor contains a valid 2nd-level cache,
+                                            no 3rd-level cache</td></tr>
+  <tr><td> 0x41 </td><td> Cache   </td><td> 2nd-level cache: 128 KBytes, 4-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x42 </td><td> Cache   </td><td> 2nd-level cache: 256 KBytes, 4-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x43 </td><td> Cache   </td><td> 2nd-level cache: 512 KBytes, 4-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x44 </td><td> Cache   </td><td> 2nd-level cache: 1 MByte, 4-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x45 </td><td> Cache   </td><td> 2nd-level cache: 2 MByte, 4-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x46 </td><td> Cache   </td><td> 3rd-level cache: 4 MByte, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x47 </td><td> Cache   </td><td> 3rd-level cache: 8 MByte, 8-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x48 </td><td> Cache   </td><td> 2nd-level cache: 3MByte, 12-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x49 </td><td> Cache   </td><td> 3rd-level cache: 4MB, 16-way set associative, 64-byte line size
+                                            (Intel Xeon processor MP, Family 0FH, Model 06H)<BR>
+                                            2nd-level cache: 4 MByte, 16-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x4A </td><td> Cache   </td><td> 3rd-level cache: 6MByte, 12-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x4B </td><td> Cache   </td><td> 3rd-level cache: 8MByte, 16-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x4C </td><td> Cache   </td><td> 3rd-level cache: 12MByte, 12-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x4D </td><td> Cache   </td><td> 3rd-level cache: 16MByte, 16-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x4E </td><td> Cache   </td><td> 2nd-level cache: 6MByte, 24-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x4F </td><td> TLB     </td><td> Instruction TLB: 4 KByte pages, 32 entries</td></tr>
+  <tr><td> 0x50 </td><td> TLB     </td><td> Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 64 entries</td></tr>
+  <tr><td> 0x51 </td><td> TLB     </td><td> Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 128 entries</td></tr>
+  <tr><td> 0x52 </td><td> TLB     </td><td> Instruction TLB: 4 KByte and 2-MByte or 4-MByte pages, 256 entries</td></tr>
+  <tr><td> 0x55 </td><td> TLB     </td><td> Instruction TLB: 2-MByte or 4-MByte pages, fully associative, 7 entries</td></tr>
+  <tr><td> 0x56 </td><td> TLB     </td><td> Data TLB0: 4 MByte pages, 4-way set associative, 16 entries</td></tr>
+  <tr><td> 0x57 </td><td> TLB     </td><td> Data TLB0: 4 KByte pages, 4-way associative, 16 entries</td></tr>
+  <tr><td> 0x59 </td><td> TLB     </td><td> Data TLB0: 4 KByte pages, fully associative, 16 entries</td></tr>
+  <tr><td> 0x5A </td><td> TLB     </td><td> Data TLB0: 2 MByte or 4 MByte pages, 4-way set associative, 32 entries</td></tr>
+  <tr><td> 0x5B </td><td> TLB     </td><td> Data TLB: 4 KByte and 4 MByte pages, 64 entries</td></tr>
+  <tr><td> 0x5C </td><td> TLB     </td><td> Data TLB: 4 KByte and 4 MByte pages,128 entries</td></tr>
+  <tr><td> 0x5D </td><td> TLB     </td><td> Data TLB: 4 KByte and 4 MByte pages,256 entries</td></tr>
+  <tr><td> 0x60 </td><td> Cache   </td><td> 1st-level data cache: 16 KByte, 8-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x61 </td><td> TLB     </td><td> Instruction TLB: 4 KByte pages, fully associative, 48 entries</td></tr>
+  <tr><td> 0x63 </td><td> TLB     </td><td> Data TLB: 2 MByte or 4 MByte pages, 4-way set associative,
+                                            32 entries and a separate array with 1 GByte pages, 4-way set associative,
+                                            4 entries</td></tr>
+  <tr><td> 0x64 </td><td> TLB     </td><td> Data TLB: 4 KByte pages, 4-way set associative, 512 entries</td></tr>
+  <tr><td> 0x66 </td><td> Cache   </td><td> 1st-level data cache: 8 KByte, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x67 </td><td> Cache   </td><td> 1st-level data cache: 16 KByte, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x68 </td><td> Cache   </td><td> 1st-level data cache: 32 KByte, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x6A </td><td> Cache   </td><td> uTLB: 4 KByte pages, 8-way set associative, 64 entries</td></tr>
+  <tr><td> 0x6B </td><td> Cache   </td><td> DTLB: 4 KByte pages, 8-way set associative, 256 entries</td></tr>
+  <tr><td> 0x6C </td><td> Cache   </td><td> DTLB: 2M/4M pages, 8-way set associative, 128 entries</td></tr>
+  <tr><td> 0x6D </td><td> Cache   </td><td> DTLB: 1 GByte pages, fully associative, 16 entries</td></tr>
+  <tr><td> 0x70 </td><td> Cache   </td><td> Trace cache: 12 K-uop, 8-way set associative</td></tr>
+  <tr><td> 0x71 </td><td> Cache   </td><td> Trace cache: 16 K-uop, 8-way set associative</td></tr>
+  <tr><td> 0x72 </td><td> Cache   </td><td> Trace cache: 32 K-uop, 8-way set associative</td></tr>
+  <tr><td> 0x76 </td><td> TLB     </td><td> Instruction TLB: 2M/4M pages, fully associative, 8 entries</td></tr>
+  <tr><td> 0x78 </td><td> Cache   </td><td> 2nd-level cache: 1 MByte, 4-way set associative, 64byte line size</td></tr>
+  <tr><td> 0x79 </td><td> Cache   </td><td> 2nd-level cache: 128 KByte, 8-way set associative, 64 byte line size,
+                                            2 lines per sector</td></tr>
+  <tr><td> 0x7A </td><td> Cache   </td><td> 2nd-level cache: 256 KByte, 8-way set associative, 64 byte line size,
+                                            2 lines per sector</td></tr>
+  <tr><td> 0x7B </td><td> Cache   </td><td> 2nd-level cache: 512 KByte, 8-way set associative, 64 byte line size,
+                                            2 lines per sector</td></tr>
+  <tr><td> 0x7C </td><td> Cache   </td><td> 2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size,
+                                            2 lines per sector</td></tr>
+  <tr><td> 0x7D </td><td> Cache   </td><td> 2nd-level cache: 2 MByte, 8-way set associative, 64byte line size</td></tr>
+  <tr><td> 0x7F </td><td> Cache   </td><td> 2nd-level cache: 512 KByte, 2-way set associative, 64-byte line size</td></tr>
+  <tr><td> 0x80 </td><td> Cache   </td><td> 2nd-level cache: 512 KByte, 8-way set associative, 64-byte line size</td></tr>
+  <tr><td> 0x82 </td><td> Cache   </td><td> 2nd-level cache: 256 KByte, 8-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x83 </td><td> Cache   </td><td> 2nd-level cache: 512 KByte, 8-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x84 </td><td> Cache   </td><td> 2nd-level cache: 1 MByte, 8-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x85 </td><td> Cache   </td><td> 2nd-level cache: 2 MByte, 8-way set associative, 32 byte line size</td></tr>
+  <tr><td> 0x86 </td><td> Cache   </td><td> 2nd-level cache: 512 KByte, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0x87 </td><td> Cache   </td><td> 2nd-level cache: 1 MByte, 8-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xA0 </td><td> DTLB    </td><td> DTLB: 4k pages, fully associative, 32 entries</td></tr>
+  <tr><td> 0xB0 </td><td> TLB     </td><td> Instruction TLB: 4 KByte pages, 4-way set associative, 128 entries</td></tr>
+  <tr><td> 0xB1 </td><td> TLB     </td><td> Instruction TLB: 2M pages, 4-way, 8 entries or 4M pages, 4-way, 4 entries</td></tr>
+  <tr><td> 0xB2 </td><td> TLB     </td><td> Instruction TLB: 4KByte pages, 4-way set associative, 64 entries</td></tr>
+  <tr><td> 0xB3 </td><td> TLB     </td><td> Data TLB: 4 KByte pages, 4-way set associative, 128 entries</td></tr>
+  <tr><td> 0xB4 </td><td> TLB     </td><td> Data TLB1: 4 KByte pages, 4-way associative, 256 entries</td></tr>
+  <tr><td> 0xB5 </td><td> TLB     </td><td> Instruction TLB: 4KByte pages, 8-way set associative, 64 entries</td></tr>
+  <tr><td> 0xB6 </td><td> TLB     </td><td> Instruction TLB: 4KByte pages, 8-way set associative,
+                                            128 entries</td></tr>
+  <tr><td> 0xBA </td><td> TLB     </td><td> Data TLB1: 4 KByte pages, 4-way associative, 64 entries</td></tr>
+  <tr><td> 0xC0 </td><td> TLB     </td><td> Data TLB: 4 KByte and 4 MByte pages, 4-way associative, 8 entries</td></tr>
+  <tr><td> 0xC1 </td><td> STLB    </td><td> Shared 2nd-Level TLB: 4 KByte/2MByte pages, 8-way associative,
+                                            1024 entries</td></tr>
+  <tr><td> 0xC2 </td><td> DTLB    </td><td> DTLB: 4 KByte/2 MByte pages, 4-way associative, 16 entries</td></tr>
+  <tr><td> 0xC3 </td><td> STLB    </td><td> Shared 2nd-Level TLB: 4 KByte /2 MByte pages, 6-way associative,
+                                            1536 entries. Also 1GBbyte pages, 4-way, 16 entries.</td></tr>
+  <tr><td> 0xC4 </td><td> DTLB    </td><td> DTLB: 2M/4M Byte pages, 4-way associative, 32 entries</td></tr>
+  <tr><td> 0xCA </td><td> STLB    </td><td> Shared 2nd-Level TLB: 4 KByte pages, 4-way associative, 512 entries</td></tr>
+  <tr><td> 0xD0 </td><td> Cache   </td><td> 3rd-level cache: 512 KByte, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xD1 </td><td> Cache   </td><td> 3rd-level cache: 1 MByte, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xD2 </td><td> Cache   </td><td> 3rd-level cache: 2 MByte, 4-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xD6 </td><td> Cache   </td><td> 3rd-level cache: 1 MByte, 8-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xD7 </td><td> Cache   </td><td> 3rd-level cache: 2 MByte, 8-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xD8 </td><td> Cache   </td><td> 3rd-level cache: 4 MByte, 8-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xDC </td><td> Cache   </td><td> 3rd-level cache: 1.5 MByte, 12-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xDD </td><td> Cache   </td><td> 3rd-level cache: 3 MByte, 12-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xDE </td><td> Cache   </td><td> 3rd-level cache: 6 MByte, 12-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xE2 </td><td> Cache   </td><td> 3rd-level cache: 2 MByte, 16-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xE3 </td><td> Cache   </td><td> 3rd-level cache: 4 MByte, 16-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xE4 </td><td> Cache   </td><td> 3rd-level cache: 8 MByte, 16-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xEA </td><td> Cache   </td><td> 3rd-level cache: 12MByte, 24-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xEB </td><td> Cache   </td><td> 3rd-level cache: 18MByte, 24-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xEC </td><td> Cache   </td><td> 3rd-level cache: 24MByte, 24-way set associative, 64 byte line size</td></tr>
+  <tr><td> 0xF0 </td><td> Prefetch</td><td> 64-Byte prefetching</td></tr>
+  <tr><td> 0xF1 </td><td> Prefetch</td><td> 128-Byte prefetching</td></tr>
+  <tr><td> 0xFE </td><td> General </td><td> CPUID leaf 2 does not report TLB descriptor information; use CPUID
+                                            leaf 18H to query TLB and other address translation parameters.</td></tr>
+  <tr><td> 0xFF </td><td> General </td><td> CPUID leaf 2 does not report cache descriptor information,
+                                            use CPUID leaf 4 to query cache parameters</td></tr>
+  </table>
 **/
-#define CPUID_EXTENDED_CPU_SIG                  0x80000001
+#define CPUID_CACHE_INFO                        0x02
 
 /**
-  CPUID Extended Processor Signature and Feature Bits ECX for CPUID leaf
-  #CPUID_EXTENDED_CPU_SIG.
+  CPUID Cache and TLB Information returned in EAX, EBX, ECX, and EDX for CPUID
+  leaf #CPUID_CACHE_INFO.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        uint32_t  _reserved:31;
+        ///
+        /// [Bit 31] If 0, then the cache descriptor bytes in the register are valid.
+        /// if 1, then none of the cache descriptor bytes in the register are valid.
+        ///
+        uint32_t  NotValid:1;
+    };
+    ///
+    /// Array of Cache and TLB descriptor bytes
+    ///
+    uint8_t   CacheDescriptor[4];
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_CACHE_INFO_CACHE_TLB;
+
+
+/**
+  CPUID Processor Serial Number
+
+  Processor serial number (PSN) is not supported in the Pentium 4 processor
+  or later.  On all models, use the PSN flag (returned using CPUID) to check
+  for PSN support before accessing the feature.
+
+  @param   EAX  CPUID_SERIAL_NUMBER (0x03)
+
+  @retval  EAX  _reserved.
+  @retval  EBX  _reserved.
+  @retval  ECX  31:0 of 96 bit processor serial number. (Available in
+                Pentium III processor only; otherwise, the value in this
+                register is reserved.)
+  @retval  EDX  63:32 of 96 bit processor serial number. (Available in
+                Pentium III processor only; otherwise, the value in this
+                register is reserved.)
+
+  <b>Example usage</b>
+  @code
+  uint32_t  Ecx;
+  uint32_t  Edx;
+
+  AsmCpuid (CPUID_SERIAL_NUMBER, NULL, NULL, &Ecx, &Edx);
+  @endcode
+**/
+#define CPUID_SERIAL_NUMBER                     0x03
+
+
+/**
+  CPUID Cache Parameters
+
+  @param   EAX  CPUID_CACHE_PARAMS (0x04)
+  @param   ECX  Cache Level.  Valid values start at 0.  Software can enumerate
+                the deterministic cache parameters for each level of the cache
+                hierarchy starting with an index value of 0, until the
+                parameters report the value associated with the CacheType
+                field in CPUID_CACHE_PARAMS_EAX is 0.
+
+  @retval  EAX  Returns cache type information described by the type
+                CPUID_CACHE_PARAMS_EAX.
+  @retval  EBX  Returns cache line and associativity information described by
+                the type CPUID_CACHE_PARAMS_EBX.
+  @retval  ECX  Returns the number of sets in the cache.
+  @retval  EDX  Returns cache WINVD/INVD behavior described by the type
+                CPUID_CACHE_PARAMS_EDX.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                  CacheLevel;
+  CPUID_CACHE_PARAMS_EAX  Eax;
+  CPUID_CACHE_PARAMS_EBX  Ebx;
+  uint32_t                  Ecx;
+  CPUID_CACHE_PARAMS_EDX  Edx;
+
+  CacheLevel = 0;
+  do {
+    AsmCpuidEx (
+      CPUID_CACHE_PARAMS, CacheLevel,
+      &Eax.raw, &Ebx.raw, &Ecx, &Edx.raw
+      );
+    CacheLevel++;
+  } while (Eax.Bits.CacheType != CPUID_CACHE_PARAMS_CACHE_TYPE_NULL);
+  @endcode
+**/
+#define CPUID_CACHE_PARAMS                      0x04
+
+/**
+  CPUID Cache Parameters Information returned in EAX for CPUID leaf
+  #CPUID_CACHE_PARAMS.
 **/
 typedef union {
     ///
@@ -511,64 +815,496 @@ typedef union {
     ///
     struct {
         ///
-        /// [Bit 0] LAHF/SAHF available in 64-bit mode.
+        /// [Bits 4:0] Cache type field.  If #CPUID_CACHE_PARAMS_CACHE_TYPE_NULL,
+        /// then there is no information for the requested cache level.
         ///
-        uint32_t  LAHF_SAHF:1;
-        uint32_t  __reserved1:4;
+        uint32_t  CacheType:5;
         ///
-        /// [Bit 5] LZCNT.
+        /// [Bits 7:5] Cache level (Starts at 1).
         ///
-        uint32_t  LZCNT:1;
-        uint32_t  __reserved2:2;
+        uint32_t  CacheLevel:3;
         ///
-        /// [Bit 8] PREFETCHW.
+        /// [Bit 8] Self Initializing cache level (does not need SW initialization).
         ///
-        uint32_t  PREFETCHW:1;
-        uint32_t  __reserved3:23;
+        uint32_t  SelfInitializingCache:1;
+        ///
+        /// [Bit 9] Fully Associative cache.
+        ///
+        uint32_t  FullyAssociativeCache:1;
+        ///
+        /// [Bits 13:10] _reserved.
+        ///
+        uint32_t  _reserved:4;
+        ///
+        /// [Bits 25:14] Maximum number of addressable IDs for logical processors
+        /// sharing this cache.
+        ///
+        /// Add one to the return value to get the result.
+        /// The nearest power-of-2 integer that is not smaller than (1 + EAX[25:14])
+        /// is the number of unique initial APIC IDs reserved for addressing
+        /// different logical processors sharing this cache.
+        ///
+        uint32_t  MaximumAddressableIdsForLogicalProcessors:12;
+        ///
+        /// [Bits 31:26] Maximum number of addressable IDs for processor cores in
+        /// the physical package.
+        ///
+        /// The nearest power-of-2 integer that is not smaller than (1 + EAX[31:26])
+        /// is the number of unique Core_IDs reserved for addressing different
+        /// processor cores in a physical package. Core ID is a subset of bits of
+        /// the initial APIC ID.
+        /// The returned value is constant for valid initial values in ECX. Valid
+        /// ECX values start from 0.
+        ///
+        uint32_t  MaximumAddressableIdsForProcessorCores:6;
     };
     ///
     /// All bit fields as a 32-bit value
     ///
-    uint32_t Uint32;
-} CPUID_EXTENDED_CPU_SIG_ECX;
+    uint32_t  raw;
+} CPUID_CACHE_PARAMS_EAX;
 
+///
+/// @{ Define value for bit field CPUID_CACHE_PARAMS_EAX.CacheType
+///
+#define CPUID_CACHE_PARAMS_CACHE_TYPE_NULL         0x00
+#define CPUID_CACHE_PARAMS_CACHE_TYPE_DATA         0x01
+#define CPUID_CACHE_PARAMS_CACHE_TYPE_INSTRUCTION  0x02
+#define CPUID_CACHE_PARAMS_CACHE_TYPE_UNIFIED      0x03
+///
+/// @}
+///
+
+/**
+  CPUID Cache Parameters Information returned in EBX for CPUID leaf
+  #CPUID_CACHE_PARAMS.
+**/
 typedef union {
     ///
     /// Individual bit fields
     ///
     struct {
-        uint32_t __reserved1:11;
         ///
-        /// [Bit 11] SYSCALL/SYSRET available in 64-bit mode.
+        /// [Bits 11:0] System Coherency Line Size.  Add one to the return value to
+        /// get the result.
         ///
-        uint32_t  SYSCALL_SYSRET:1;
-        uint32_t  __reserved2:8;
+        uint32_t  LineSize:12;
         ///
-        /// [Bit 20] Execute Disable Bit available.
+        /// [Bits 21:12] Physical Line Partitions.  Add one to the return value to
+        /// get the result.
         ///
-        uint32_t  NX:1;
-        uint32_t  __reserved3:5;
+        uint32_t  LinePartitions:10;
         ///
-        /// [Bit 26] 1-GByte pages are available if 1.
+        /// [Bits 31:22] Ways of associativity.  Add one to the return value to get
+        /// the result.
         ///
-        uint32_t  Page1GB:1;
-        ///
-        /// [Bit 27] RDTSCP and IA32_TSC_AUX are available if 1.
-        ///
-        uint32_t  RDTSCP:1;
-        uint32_t  __reserved4:1;
-        ///
-        /// [Bit 29] Intel(R) 64 Architecture available if 1.
-        ///
-        uint32_t  LM:1;
-        uint32_t  __reserved5:2;
+        uint32_t  Ways:10;
     };
     ///
     /// All bit fields as a 32-bit value
     ///
-    uint32_t raw;
-} CPUID_EXTENDED_CPU_SIG_EDX;
+    uint32_t  raw;
+} CPUID_CACHE_PARAMS_EBX;
 
+/**
+  CPUID Cache Parameters Information returned in EDX for CPUID leaf
+  #CPUID_CACHE_PARAMS.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] Write-Back Invalidate/Invalidate.
+        /// 0 = WBINVD/INVD from threads sharing this cache acts upon lower level
+        /// caches for threads sharing this cache.
+        /// 1 = WBINVD/INVD is not guaranteed to act upon lower level caches of
+        /// non-originating threads sharing this cache.
+        ///
+        uint32_t  Invalidate:1;
+        ///
+        /// [Bit 1] Cache Inclusiveness.
+        /// 0 = Cache is not inclusive of lower cache levels.
+        /// 1 = Cache is inclusive of lower cache levels.
+        ///
+        uint32_t  CacheInclusiveness:1;
+        ///
+        /// [Bit 2] Complex Cache Indexing.
+        /// 0 = Direct mapped cache.
+        /// 1 = A complex function is used to index the cache, potentially using all
+        /// address bits.
+        ///
+        uint32_t  ComplexCacheIndexing:1;
+        uint32_t  _reserved:29;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_CACHE_PARAMS_EDX;
+
+
+/**
+  CPUID MONITOR/MWAIT Information
+
+  @param   EAX  CPUID_MONITOR_MWAIT (0x05)
+
+  @retval  EAX  Smallest monitor-line size in bytes described by the type
+                CPUID_MONITOR_MWAIT_EAX.
+  @retval  EBX  Largest monitor-line size in bytes described by the type
+                CPUID_MONITOR_MWAIT_EBX.
+  @retval  ECX  Enumeration of Monitor-Mwait extensions support described by
+                the type CPUID_MONITOR_MWAIT_ECX.
+  @retval  EDX  Sub C-states supported described by the type
+                CPUID_MONITOR_MWAIT_EDX.
+
+  <b>Example usage</b>
+  @code
+  CPUID_MONITOR_MWAIT_EAX  Eax;
+  CPUID_MONITOR_MWAIT_EBX  Ebx;
+  CPUID_MONITOR_MWAIT_ECX  Ecx;
+  CPUID_MONITOR_MWAIT_EDX  Edx;
+
+  AsmCpuid (CPUID_MONITOR_MWAIT, &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw);
+  @endcode
+**/
+#define CPUID_MONITOR_MWAIT                     0x05
+
+/**
+  CPUID MONITOR/MWAIT Information returned in EAX for CPUID leaf
+  #CPUID_MONITOR_MWAIT.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Smallest monitor-line size in bytes (default is processor's
+        /// monitor granularity).
+        ///
+        uint32_t  SmallestMonitorLineSize:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_MONITOR_MWAIT_EAX;
+
+/**
+  CPUID MONITOR/MWAIT Information returned in EBX for CPUID leaf
+  #CPUID_MONITOR_MWAIT.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Largest monitor-line size in bytes (default is processor's
+        /// monitor granularity).
+        ///
+        uint32_t  LargestMonitorLineSize:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_MONITOR_MWAIT_EBX;
+
+/**
+  CPUID MONITOR/MWAIT Information returned in ECX for CPUID leaf
+  #CPUID_MONITOR_MWAIT.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] If 0, then only EAX and EBX are valid.  If 1, then EAX, EBX, ECX,
+        /// and EDX are valid.
+        ///
+        uint32_t  ExtensionsSupported:1;
+        ///
+        /// [Bit 1] Supports treating interrupts as break-event for MWAIT, even when
+        /// interrupts disabled.
+        ///
+        uint32_t  InterruptAsBreak:1;
+        uint32_t  _reserved:30;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_MONITOR_MWAIT_ECX;
+
+/**
+  CPUID MONITOR/MWAIT Information returned in EDX for CPUID leaf
+  #CPUID_MONITOR_MWAIT.
+
+  @note
+  The definition of C0 through C7 states for MWAIT extension are
+  processor-specific C-states, not ACPI C-states.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 3:0] Number of C0 sub C-states supported using MWAIT.
+        ///
+        uint32_t  C0States:4;
+        ///
+        /// [Bits 7:4] Number of C1 sub C-states supported using MWAIT.
+        ///
+        uint32_t  C1States:4;
+        ///
+        /// [Bits 11:8] Number of C2 sub C-states supported using MWAIT.
+        ///
+        uint32_t  C2States:4;
+        ///
+        /// [Bits 15:12] Number of C3 sub C-states supported using MWAIT.
+        ///
+        uint32_t  C3States:4;
+        ///
+        /// [Bits 19:16] Number of C4 sub C-states supported using MWAIT.
+        ///
+        uint32_t  C4States:4;
+        ///
+        /// [Bits 23:20] Number of C5 sub C-states supported using MWAIT.
+        ///
+        uint32_t  C5States:4;
+        ///
+        /// [Bits 27:24] Number of C6 sub C-states supported using MWAIT.
+        ///
+        uint32_t  C6States:4;
+        ///
+        /// [Bits 31:28] Number of C7 sub C-states supported using MWAIT.
+        ///
+        uint32_t  C7States:4;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_MONITOR_MWAIT_EDX;
+
+
+/**
+  CPUID Thermal and Power Management
+
+  @param   EAX  CPUID_THERMAL_POWER_MANAGEMENT (0x06)
+
+  @retval  EAX  Thermal and power management features described by the type
+                CPUID_THERMAL_POWER_MANAGEMENT_EAX.
+  @retval  EBX  Number of Interrupt Thresholds in Digital Thermal Sensor
+                described by the type CPUID_THERMAL_POWER_MANAGEMENT_EBX.
+  @retval  ECX  Performance features described by the type
+                CPUID_THERMAL_POWER_MANAGEMENT_ECX.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  CPUID_THERMAL_POWER_MANAGEMENT_EAX  Eax;
+  CPUID_THERMAL_POWER_MANAGEMENT_EBX  Ebx;
+  CPUID_THERMAL_POWER_MANAGEMENT_ECX  Ecx;
+
+  AsmCpuid (CPUID_THERMAL_POWER_MANAGEMENT, &Eax.raw, &Ebx.raw, &Ecx.raw, NULL);
+  @endcode
+**/
+#define CPUID_THERMAL_POWER_MANAGEMENT          0x06
+
+/**
+  CPUID Thermal and Power Management Information returned in EAX for CPUID leaf
+  #CPUID_THERMAL_POWER_MANAGEMENT.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] Digital temperature sensor is supported if set.
+        ///
+        uint32_t  DigitalTemperatureSensor:1;
+        ///
+        /// [Bit 1] Intel Turbo Boost Technology Available (see IA32_MISC_ENABLE[38]).
+        ///
+        uint32_t  TurboBoostTechnology:1;
+        ///
+        /// [Bit 2] APIC-Timer-always-running feature is supported if set.
+        ///
+        uint32_t  ARAT:1;
+        uint32_t  _reserved1:1;
+        ///
+        /// [Bit 4] Power limit notification controls are supported if set.
+        ///
+        uint32_t  PLN:1;
+        ///
+        /// [Bit 5] Clock modulation duty cycle extension is supported if set.
+        ///
+        uint32_t  ECMD:1;
+        ///
+        /// [Bit 6] Package thermal management is supported if set.
+        ///
+        uint32_t  PTM:1;
+        ///
+        /// [Bit 7] HWP base registers (IA32_PM_ENABLE[Bit 0], IA32_HWP_CAPABILITIES,
+        /// IA32_HWP_REQUEST, IA32_HWP_STATUS) are supported if set.
+        ///
+        uint32_t  HWP:1;
+        ///
+        /// [Bit 8] IA32_HWP_INTERRUPT MSR is supported if set.
+        ///
+        uint32_t  HWP_Notification:1;
+        ///
+        /// [Bit 9] IA32_HWP_REQUEST[Bits 41:32] is supported if set.
+        ///
+        uint32_t  HWP_Activity_Window:1;
+        ///
+        /// [Bit 10] IA32_HWP_REQUEST[Bits 31:24] is supported if set.
+        ///
+        uint32_t  HWP_Energy_Performance_Preference:1;
+        ///
+        /// [Bit 11] IA32_HWP_REQUEST_PKG MSR is supported if set.
+        ///
+        uint32_t  HWP_Package_Level_Request:1;
+        uint32_t  _reserved2:1;
+        ///
+        /// [Bit 13] HDC base registers IA32_PKG_HDC_CTL, IA32_PM_CTL1,
+        /// IA32_THREAD_STALL MSRs are supported if set.
+        ///
+        uint32_t  HDC:1;
+        ///
+        /// [Bit 14] Intel Turbo Boost Max Technology 3.0 available.
+        ///
+        uint32_t  TurboBoostMaxTechnology30:1;
+        ///
+        /// [Bit 15] HWP Capabilities.
+        /// Highest Performance change is supported if set.
+        ///
+        uint32_t  HWPCapabilities:1;
+        ///
+        /// [Bit 16] HWP PECI override is supported if set.
+        ///
+        uint32_t  HWPPECIOverride:1;
+        ///
+        /// [Bit 17] Flexible HWP is supported if set.
+        ///
+        uint32_t  FlexibleHWP:1;
+        ///
+        /// [Bit 18] Fast access mode for the IA32_HWP_REQUEST MSR is supported if set.
+        ///
+        uint32_t  FastAccessMode:1;
+        uint32_t  _reserved4:1;
+        ///
+        /// [Bit 20] Ignoring Idle Logical Processor HWP request is supported if set.
+        ///
+        uint32_t  IgnoringIdleLogicalProcessorHWPRequest:1;
+        uint32_t  _reserved5:11;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_THERMAL_POWER_MANAGEMENT_EAX;
+
+/**
+  CPUID Thermal and Power Management Information returned in EBX for CPUID leaf
+  #CPUID_THERMAL_POWER_MANAGEMENT.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// {Bits 3:0] Number of Interrupt Thresholds in Digital Thermal Sensor.
+        ///
+        uint32_t  InterruptThresholds:4;
+        uint32_t  _reserved:28;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_THERMAL_POWER_MANAGEMENT_EBX;
+
+/**
+  CPUID Thermal and Power Management Information returned in ECX for CPUID leaf
+  #CPUID_THERMAL_POWER_MANAGEMENT.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] Hardware Coordination Feedback Capability (Presence of IA32_MPERF
+        /// and IA32_APERF). The capability to provide a measure of delivered
+        /// processor performance (since last reset of the counters), as a percentage
+        /// of the expected processor performance when running at the TSC frequency.
+        ///
+        uint32_t  HardwareCoordinationFeedback:1;
+        uint32_t  _reserved1:2;
+        ///
+        /// [Bit 3] If this bit is set, then the processor supports performance-energy
+        /// bias preference and the architectural MSR called IA32_ENERGY_PERF_BIAS
+        /// (1B0H).
+        ///
+        uint32_t  PerformanceEnergyBias:1;
+        uint32_t  _reserved2:28;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_THERMAL_POWER_MANAGEMENT_ECX;
+
+
+/**
+  CPUID Structured Extended Feature Flags Enumeration
+
+  @param   EAX  CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS (0x07)
+  @param   ECX  CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO (0x00).
+
+  @note
+  If ECX contains an invalid sub-leaf index, EAX/EBX/ECX/EDX return 0.  Sub-leaf
+  index n is invalid if n exceeds the value that sub-leaf 0 returns in EAX.
+
+  @retval  EAX  The maximum input value for ECX to retrieve sub-leaf information.
+  @retval  EBX  Structured Extended Feature Flags described by the type
+                CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_EBX.
+  @retval  EBX  Structured Extended Feature Flags described by the type
+                CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_ECX.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                                       Eax;
+  CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_EBX  Ebx;
+  CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_ECX  Ecx;
+  uint32_t                                       SubLeaf;
+
+  AsmCpuidEx (
+    CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS,
+    CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO,
+    &Eax, NULL, NULL, NULL
+    );
+  for (SubLeaf = 0; SubLeaf <= Eax; SubLeaf++) {
+    AsmCpuidEx (
+      CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS,
+      SubLeaf,
+      NULL, &Ebx.raw, &Ecx.raw, NULL
+      );
+  }
+  @endcode
+**/
 #define CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS                0x07
 
 ///
@@ -861,7 +1597,2406 @@ typedef union {
     uint32_t  raw;
 } CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_EDX;
 
+/**
+  CPUID Direct Cache Access Information
+
+  @param   EAX  CPUID_DIRECT_CACHE_ACCESS_INFO (0x09)
+
+  @retval  EAX  Value of bits [31:0] of IA32_PLATFORM_DCA_CAP MSR (address 1F8H).
+  @retval  EBX  _reserved.
+  @retval  ECX  _reserved.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  uint32_t  Eax;
+
+  AsmCpuid (CPUID_DIRECT_CACHE_ACCESS_INFO, &Eax, NULL, NULL, NULL);
+  @endcode
+**/
+#define CPUID_DIRECT_CACHE_ACCESS_INFO              0x09
+
+
+/**
+  CPUID Architectural Performance Monitoring
+
+  @param   EAX  CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING (0x0A)
+
+  @retval  EAX  Architectural Performance Monitoring information described by
+                the type CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EAX.
+  @retval  EBX  Architectural Performance Monitoring information described by
+                the type CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EBX.
+  @retval  ECX  _reserved.
+  @retval  EDX  Architectural Performance Monitoring information described by
+                the type CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EDX.
+
+  <b>Example usage</b>
+  @code
+  CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EAX  Eax;
+  CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EBX  Ebx;
+  CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EDX  Edx;
+
+  AsmCpuid (CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING, &Eax.raw, &Ebx.raw, NULL, &Edx.raw);
+  @endcode
+**/
+#define CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING  0x0A
+
+/**
+  CPUID Architectural Performance Monitoring EAX for CPUID leaf
+  #CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 7:0] Version ID of architectural performance monitoring.
+        ///
+        uint32_t  ArchPerfMonVerID:8;
+        ///
+        /// [Bits 15:8] Number of general-purpose performance monitoring counter
+        /// per logical processor.
+        ///
+        /// IA32_PERFEVTSELx MSRs start at address 186H and occupy a contiguous
+        /// block of MSR address space. Each performance event select register is
+        /// paired with a corresponding performance counter in the 0C1H address
+        /// block.
+        ///
+        uint32_t  PerformanceMonitorCounters:8;
+        ///
+        /// [Bits 23:16] Bit width of general-purpose, performance monitoring counter.
+        ///
+        /// The bit width of an IA32_PMCx MSR. This the number of valid bits for
+        /// read operation. On write operations, the lower-order 32 bits of the MSR
+        /// may be written with any value, and the high-order bits are sign-extended
+        /// from the value of bit 31.
+        ///
+        uint32_t  PerformanceMonitorCounterWidth:8;
+        ///
+        /// [Bits 31:24] Length of EBX bit vector to enumerate architectural
+        /// performance monitoring events.
+        ///
+        uint32_t  EbxBitVectorLength:8;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EAX;
+
+/**
+  CPUID Architectural Performance Monitoring EBX for CPUID leaf
+  #CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] Core cycle event not available if 1.
+        ///
+        uint32_t  UnhaltedCoreCycles:1;
+        ///
+        /// [Bit 1] Instruction retired event not available if 1.
+        ///
+        uint32_t  InstructionsRetired:1;
+        ///
+        /// [Bit 2] Reference cycles event not available if 1.
+        ///
+        uint32_t  UnhaltedReferenceCycles:1;
+        ///
+        /// [Bit 3] Last-level cache reference event not available if 1.
+        ///
+        uint32_t  LastLevelCacheReferences:1;
+        ///
+        /// [Bit 4] Last-level cache misses event not available if 1.
+        ///
+        uint32_t  LastLevelCacheMisses:1;
+        ///
+        /// [Bit 5] Branch instruction retired event not available if 1.
+        ///
+        uint32_t  BranchInstructionsRetired:1;
+        ///
+        /// [Bit 6] Branch mispredict retired event not available if 1.
+        ///
+        uint32_t  AllBranchMispredictRetired:1;
+        uint32_t  _reserved:25;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EBX;
+
+/**
+  CPUID Architectural Performance Monitoring EDX for CPUID leaf
+  #CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 4:0] Number of fixed-function performance counters
+        /// (if Version ID > 1).
+        ///
+        uint32_t  FixedFunctionPerformanceCounters:5;
+        ///
+        /// [Bits 12:5] Bit width of fixed-function performance counters
+        /// (if Version ID > 1).
+        ///
+        uint32_t  FixedFunctionPerformanceCounterWidth:8;
+        uint32_t  _reserved1:2;
+        ///
+        /// [Bits 15] AnyThread deprecation.
+        ///
+        uint32_t  AnyThreadDeprecation:1;
+        uint32_t  _reserved2:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_ARCHITECTURAL_PERFORMANCE_MONITORING_EDX;
+
+
+/**
+  CPUID Extended Topology Information
+
+  @note
+  CPUID leaf 1FH is a preferred superset to leaf 0BH. Intel recommends first
+  checking for the existence of Leaf 1FH before using leaf 0BH.
+  Most of Leaf 0BH output depends on the initial value in ECX.  The EDX output
+  of leaf 0BH is always valid and does not vary with input value in ECX.  Output
+  value in ECX[7:0] always equals input value in ECX[7:0].
+  Sub-leaf index 0 enumerates SMT level. Each subsequent higher sub-leaf index
+  enumerates a higher-level topological entity in hierarchical order.
+  For sub-leaves that return an invalid level-type of 0 in ECX[15:8]; EAX and
+  EBX will return 0.
+  If an input value n in ECX returns the invalid level-type of 0 in ECX[15:8],
+  other input values with ECX > n also return 0 in ECX[15:8].
+
+  @param   EAX  CPUID_EXTENDED_TOPOLOGY (0x0B)
+  @param   ECX  Level number
+
+  @retval  EAX  Extended topology information described by the type
+                CPUID_EXTENDED_TOPOLOGY_EAX.
+  @retval  EBX  Extended topology information described by the type
+                CPUID_EXTENDED_TOPOLOGY_EBX.
+  @retval  ECX  Extended topology information described by the type
+                CPUID_EXTENDED_TOPOLOGY_ECX.
+  @retval  EDX  x2APIC ID the current logical processor.
+
+  <b>Example usage</b>
+  @code
+  CPUID_EXTENDED_TOPOLOGY_EAX  Eax;
+  CPUID_EXTENDED_TOPOLOGY_EBX  Ebx;
+  CPUID_EXTENDED_TOPOLOGY_ECX  Ecx;
+  uint32_t                       Edx;
+  uint32_t                       LevelNumber;
+
+  LevelNumber = 0;
+  do {
+    AsmCpuidEx (
+      CPUID_EXTENDED_TOPOLOGY, LevelNumber,
+      &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx
+      );
+    LevelNumber++;
+  } while (Eax.Bits.ApicIdShift != 0);
+  @endcode
+**/
+#define CPUID_EXTENDED_TOPOLOGY                             0x0B
+
+/**
+  CPUID Extended Topology Information EAX for CPUID leaf #CPUID_EXTENDED_TOPOLOGY.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 4:0] Number of bits to shift right on x2APIC ID to get a unique
+        /// topology ID of the next level type.  All logical processors with the
+        /// same next level ID share current level.
+        ///
+        /// @note
+        /// Software should use this field (EAX[4:0]) to enumerate processor
+        /// topology of the system.
+        ///
+        uint32_t  ApicIdShift:5;
+        uint32_t  _reserved:27;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_TOPOLOGY_EAX;
+
+/**
+  CPUID Extended Topology Information EBX for CPUID leaf #CPUID_EXTENDED_TOPOLOGY.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Number of logical processors at this level type. The number
+        /// reflects configuration as shipped by Intel.
+        ///
+        /// @note
+        /// Software must not use EBX[15:0] to enumerate processor topology of the
+        /// system. This value in this field (EBX[15:0]) is only intended for
+        /// display/diagnostic purposes. The actual number of logical processors
+        /// available to BIOS/OS/Applications may be different from the value of
+        /// EBX[15:0], depending on software and platform hardware configurations.
+        ///
+        uint32_t  LogicalProcessors:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_TOPOLOGY_EBX;
+
+/**
+  CPUID Extended Topology Information ECX for CPUID leaf #CPUID_EXTENDED_TOPOLOGY.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 7:0] Level number. Same value in ECX input.
+        ///
+        uint32_t  LevelNumber:8;
+        ///
+        /// [Bits 15:8] Level type.
+        ///
+        /// @note
+        /// The value of the "level type" field is not related to level numbers in
+        /// any way, higher "level type" values do not mean higher levels.
+        ///
+        uint32_t  LevelType:8;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_TOPOLOGY_ECX;
+
+///
+/// @{ Define value for CPUID_EXTENDED_TOPOLOGY_ECX.LevelType
+///
+#define   CPUID_EXTENDED_TOPOLOGY_LEVEL_TYPE_INVALID        0x00
+#define   CPUID_EXTENDED_TOPOLOGY_LEVEL_TYPE_SMT            0x01
+#define   CPUID_EXTENDED_TOPOLOGY_LEVEL_TYPE_CORE           0x02
+///
+/// @}
+///
+
+
+/**
+  CPUID Extended State Information
+
+  @param   EAX  CPUID_EXTENDED_STATE (0x0D)
+  @param   ECX  CPUID_EXTENDED_STATE_MAIN_LEAF (0x00).
+                CPUID_EXTENDED_STATE_SUB_LEAF (0x01).
+                CPUID_EXTENDED_STATE_SIZE_OFFSET (0x02).
+                Sub leafs 2..n based on supported bits in XCR0 or IA32_XSS_MSR.
+**/
+#define CPUID_EXTENDED_STATE                                0x0D
+
+/**
+  CPUID Extended State Information Main Leaf
+
+  @param   EAX  CPUID_EXTENDED_STATE (0x0D)
+  @param   ECX  CPUID_EXTENDED_STATE_MAIN_LEAF (0x00)
+
+  @retval  EAX  Reports the supported bits of the lower 32 bits of XCR0. XCR0[n]
+                can be set to 1 only if EAX[n] is 1.  The format of the extended
+                state main leaf is described by the type
+                CPUID_EXTENDED_STATE_MAIN_LEAF_EAX.
+  @retval  EBX  Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save
+                area) required by enabled features in XCR0. May be different than
+                ECX if some features at the end of the XSAVE save area are not
+                enabled.
+  @retval  ECX  Maximum size (bytes, from the beginning of the XSAVE/XRSTOR save
+                area) of the XSAVE/XRSTOR save area required by all supported
+                features in the processor, i.e., all the valid bit fields in XCR0.
+  @retval  EDX  Reports the supported bits of the upper 32 bits of XCR0.
+                XCR0[n+32] can be set to 1 only if EDX[n] is 1.
+
+  <b>Example usage</b>
+  @code
+  CPUID_EXTENDED_STATE_MAIN_LEAF_EAX  Eax;
+  uint32_t                              Ebx;
+  uint32_t                              Ecx;
+  uint32_t                              Edx;
+
+  AsmCpuidEx (
+    CPUID_EXTENDED_STATE, CPUID_EXTENDED_STATE_MAIN_LEAF,
+    &Eax.raw, &Ebx, &Ecx, &Edx
+    );
+  @endcode
+**/
+#define CPUID_EXTENDED_STATE_MAIN_LEAF                      0x00
+
+/**
+  CPUID Extended State Information EAX for CPUID leaf #CPUID_EXTENDED_STATE,
+  sub-leaf #CPUID_EXTENDED_STATE_MAIN_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] x87 state.
+        ///
+        uint32_t  x87:1;
+        ///
+        /// [Bit 1] SSE state.
+        ///
+        uint32_t  SSE:1;
+        ///
+        /// [Bit 2] AVX state.
+        ///
+        uint32_t  AVX:1;
+        ///
+        /// [Bits 4:3] MPX state.
+        ///
+        uint32_t  MPX:2;
+        ///
+        /// [Bits 7:5] AVX-512 state.
+        ///
+        uint32_t  AVX_512:3;
+        ///
+        /// [Bit 8] Used for IA32_XSS.
+        ///
+        uint32_t  IA32_XSS:1;
+        ///
+        /// [Bit 9] PKRU state.
+        ///
+        uint32_t  PKRU:1;
+        uint32_t  _reserved1:3;
+        ///
+        /// [Bit 13] Used for IA32_XSS, part 2.
+        ///
+        uint32_t  IA32_XSS_2:1;
+        uint32_t  _reserved2:18;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_STATE_MAIN_LEAF_EAX;
+
+/**
+  CPUID Extended State Information Sub Leaf
+
+  @param   EAX  CPUID_EXTENDED_STATE (0x0D)
+  @param   ECX  CPUID_EXTENDED_STATE_SUB_LEAF (0x01)
+
+  @retval  EAX  The format of the extended state sub-leaf is described by the
+                type CPUID_EXTENDED_STATE_SUB_LEAF_EAX.
+  @retval  EBX  The size in bytes of the XSAVE area containing all states
+                enabled by XCRO | IA32_XSS.
+  @retval  ECX  The format of the extended state sub-leaf is described by the
+                type CPUID_EXTENDED_STATE_SUB_LEAF_ECX.
+  @retval  EDX  Reports the supported bits of the upper 32 bits of the
+                IA32_XSS MSR. IA32_XSS[n+32] can be set to 1 only if EDX[n] is 1.
+
+  <b>Example usage</b>
+  @code
+  CPUID_EXTENDED_STATE_SUB_LEAF_EAX  Eax;
+  uint32_t                             Ebx;
+  CPUID_EXTENDED_STATE_SUB_LEAF_ECX  Ecx;
+  uint32_t                             Edx;
+
+  AsmCpuidEx (
+    CPUID_EXTENDED_STATE, CPUID_EXTENDED_STATE_SUB_LEAF,
+    &Eax.raw, &Ebx, &Ecx.raw, &Edx
+    );
+  @endcode
+**/
+#define CPUID_EXTENDED_STATE_SUB_LEAF                       0x01
+
+/**
+  CPUID Extended State Information EAX for CPUID leaf #CPUID_EXTENDED_STATE,
+  sub-leaf #CPUID_EXTENDED_STATE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] XSAVEOPT is available.
+        ///
+        uint32_t  XSAVEOPT:1;
+        ///
+        /// [Bit 1] Supports XSAVEC and the compacted form of XRSTOR if set.
+        ///
+        uint32_t  XSAVEC:1;
+        ///
+        /// [Bit 2] Supports XGETBV with ECX = 1 if set.
+        ///
+        uint32_t  XGETBV:1;
+        ///
+        /// [Bit 3] Supports XSAVES/XRSTORS and IA32_XSS if set.
+        ///
+        uint32_t  XSAVES:1;
+        uint32_t  _reserved:28;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_STATE_SUB_LEAF_EAX;
+
+/**
+  CPUID Extended State Information ECX for CPUID leaf #CPUID_EXTENDED_STATE,
+  sub-leaf #CPUID_EXTENDED_STATE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 7:0] Used for XCR0.
+        ///
+        uint32_t  XCR0:1;
+        ///
+        /// [Bit 8] PT STate.
+        ///
+        uint32_t  PT:1;
+        ///
+        /// [Bit 9] Used for XCR0.
+        ///
+        uint32_t  XCR0_1:1;
+        uint32_t  _reserved1:3;
+        ///
+        /// [Bit 13] HWP state.
+        ///
+        uint32_t  HWPState:1;
+        uint32_t  _reserved8:18;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_STATE_SUB_LEAF_ECX;
+
+/**
+  CPUID Extended State Information Size and Offset Sub Leaf
+
+  @note
+  Leaf 0DH output depends on the initial value in ECX.
+  Each sub-leaf index (starting at position 2) is supported if it corresponds to
+  a supported bit in either the XCR0 register or the IA32_XSS MSR.
+  If ECX contains an invalid sub-leaf index, EAX/EBX/ECX/EDX return 0. Sub-leaf
+  n (0 <= n <= 31) is invalid if sub-leaf 0 returns 0 in EAX[n] and sub-leaf 1
+  returns 0 in ECX[n]. Sub-leaf n (32 <= n <= 63) is invalid if sub-leaf 0
+  returns 0 in EDX[n-32] and sub-leaf 1 returns 0 in EDX[n-32].
+
+  @param   EAX  CPUID_EXTENDED_STATE (0x0D)
+  @param   ECX  CPUID_EXTENDED_STATE_SIZE_OFFSET (0x02).  Sub leafs 2..n based
+                on supported bits in XCR0 or IA32_XSS_MSR.
+
+  @retval  EAX  The size in bytes (from the offset specified in EBX) of the save
+                area for an extended state feature associated with a valid
+                sub-leaf index, n.
+  @retval  EBX  The offset in bytes of this extended state component's save area
+                from the beginning of the XSAVE/XRSTOR area.  This field reports
+                0 if the sub-leaf index, n, does not map to a valid bit in the
+                XCR0 register.
+  @retval  ECX  The format of the extended state components's save area as
+                described by the type CPUID_EXTENDED_STATE_SIZE_OFFSET_ECX.
+                This field reports 0 if the sub-leaf index, n, is invalid.
+  @retval  EDX  This field reports 0 if the sub-leaf index, n, is invalid;
+                otherwise it is reserved.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                                Eax;
+  uint32_t                                Ebx;
+  CPUID_EXTENDED_STATE_SIZE_OFFSET_ECX  Ecx;
+  uint32_t                                Edx;
+  UINTN                                 SubLeaf;
+
+  for (SubLeaf = CPUID_EXTENDED_STATE_SIZE_OFFSET; SubLeaf < 32; SubLeaf++) {
+    AsmCpuidEx (
+      CPUID_EXTENDED_STATE, SubLeaf,
+      &Eax, &Ebx, &Ecx.raw, &Edx
+      );
+  }
+  @endcode
+**/
+#define CPUID_EXTENDED_STATE_SIZE_OFFSET                    0x02
+
+/**
+  CPUID Extended State Information ECX for CPUID leaf #CPUID_EXTENDED_STATE,
+  sub-leaf #CPUID_EXTENDED_STATE_SIZE_OFFSET.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] Is set if the bit n (corresponding to the sub-leaf index) is
+        /// supported in the IA32_XSS MSR; it is clear if bit n is instead supported
+        /// in XCR0.
+        ///
+        uint32_t  XSS:1;
+        ///
+        /// [Bit 1] is set if, when the compacted format of an XSAVE area is used,
+        /// this extended state component located on the next 64-byte boundary
+        /// following the preceding state component (otherwise, it is located
+        /// immediately following the preceding state component).
+        ///
+        uint32_t  Compacted:1;
+        uint32_t  _reserved:30;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_STATE_SIZE_OFFSET_ECX;
+
+
+/**
+  CPUID Intel Resource Director Technology (Intel RDT) Monitoring Information
+
+  @param   EAX  CPUID_INTEL_RDT_MONITORING (0x0F)
+  @param   ECX  CPUID_INTEL_RDT_MONITORING_ENUMERATION_SUB_LEAF (0x00).
+                CPUID_INTEL_RDT_MONITORING_L3_CACHE_SUB_LEAF (0x01).
+
+**/
+#define CPUID_INTEL_RDT_MONITORING                          0x0F
+
+/**
+  CPUID Intel Resource Director Technology (Intel RDT) Monitoring Information
+  Enumeration Sub-leaf
+
+  @param   EAX  CPUID_INTEL_RDT_MONITORING (0x0F)
+  @param   ECX  CPUID_INTEL_RDT_MONITORING_ENUMERATION_SUB_LEAF (0x00)
+
+  @retval  EAX  _reserved.
+  @retval  EBX  Maximum range (zero-based) of RMID within this physical
+                processor of all types.
+  @retval  ECX  _reserved.
+  @retval  EDX  L3 Cache Intel RDT Monitoring Information Enumeration described by
+                the type CPUID_INTEL_RDT_MONITORING_ENUMERATION_SUB_LEAF_EDX.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                                                  Ebx;
+  CPUID_INTEL_RDT_MONITORING_ENUMERATION_SUB_LEAF_EDX     Edx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_RDT_MONITORING, CPUID_INTEL_RDT_MONITORING_ENUMERATION_SUB_LEAF,
+    NULL, &Ebx, NULL, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_INTEL_RDT_MONITORING_ENUMERATION_SUB_LEAF     0x00
+
+/**
+  CPUID Intel RDT Monitoring Information EDX for CPUID leaf
+  #CPUID_INTEL_RDT_MONITORING, sub-leaf
+  #CPUID_INTEL_RDT_MONITORING_ENUMERATION_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        uint32_t  _reserved1:1;
+        ///
+        /// [Bit 1] Supports L3 Cache Intel RDT Monitoring if 1.
+        ///
+        uint32_t  L3CacheRDT_M:1;
+        uint32_t  _reserved2:30;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_MONITORING_ENUMERATION_SUB_LEAF_EDX;
+
+/**
+  CPUID L3 Cache Intel RDT Monitoring Capability Enumeration Sub-leaf
+
+  @param   EAX  CPUID_INTEL_RDT_MONITORING (0x0F)
+  @param   ECX  CPUID_INTEL_RDT_MONITORING_L3_CACHE_SUB_LEAF (0x01)
+
+  @retval  EAX  _reserved.
+  @retval  EBX  Conversion factor from reported IA32_QM_CTR value to occupancy metric (bytes).
+  @retval  ECX  Maximum range (zero-based) of RMID of this resource type.
+  @retval  EDX  L3 Cache Intel RDT Monitoring Capability information described by the
+                type CPUID_INTEL_RDT_MONITORING_L3_CACHE_SUB_LEAF_EDX.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                                            Ebx;
+  uint32_t                                            Ecx;
+  CPUID_INTEL_RDT_MONITORING_L3_CACHE_SUB_LEAF_EDX  Edx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_RDT_MONITORING, CPUID_INTEL_RDT_MONITORING_L3_CACHE_SUB_LEAF,
+    NULL, &Ebx, &Ecx, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_INTEL_RDT_MONITORING_L3_CACHE_SUB_LEAF        0x01
+
+/**
+  CPUID L3 Cache Intel RDT Monitoring Capability Information EDX for CPUID leaf
+  #CPUID_INTEL_RDT_MONITORING, sub-leaf
+  #CPUID_INTEL_RDT_MONITORING_L3_CACHE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] Supports L3 occupancy monitoring if 1.
+        ///
+        uint32_t  L3CacheOccupancyMonitoring:1;
+        ///
+        /// [Bit 1] Supports L3 Total Bandwidth monitoring if 1.
+        ///
+        uint32_t  L3CacheTotalBandwidthMonitoring:1;
+        ///
+        /// [Bit 2] Supports L3 Local Bandwidth monitoring if 1.
+        ///
+        uint32_t  L3CacheLocalBandwidthMonitoring:1;
+        uint32_t  _reserved:29;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_MONITORING_L3_CACHE_SUB_LEAF_EDX;
+
+
+/**
+  CPUID Intel Resource Director Technology (Intel RDT) Allocation Information
+
+  @param   EAX  CPUID_INTEL_RDT_ALLOCATION (0x10).
+  @param   ECX  CPUID_INTEL_RDT_ALLOCATION_ENUMERATION_SUB_LEAF (0x00).
+                CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF (0x01).
+                CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF (0x02).
+**/
+#define CPUID_INTEL_RDT_ALLOCATION                          0x10
+
+/**
+  Intel Resource Director Technology (Intel RDT) Allocation Enumeration Sub-leaf
+
+  @param   EAX  CPUID_INTEL_RDT_ALLOCATION (0x10)
+  @param   ECX  CPUID_INTEL_RDT_ALLOCATION_ENUMERATION_SUB_LEAF (0x00).
+
+  @retval  EAX  _reserved.
+  @retval  EBX  L3 and L2 Cache Allocation Technology information described by
+                the type CPUID_INTEL_RDT_ALLOCATION_ENUMERATION_SUB_LEAF_EBX.
+  @retval  ECX  _reserved.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  CPUID_INTEL_RDT_ALLOCATION_ENUMERATION_SUB_LEAF_EBX  Ebx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_RDT_ALLOCATION, CPUID_INTEL_RDT_ALLOCATION_ENUMERATION_SUB_LEAF,
+    NULL, &Ebx.raw, NULL, NULL
+    );
+  @endcode
+**/
+#define CPUID_INTEL_RDT_ALLOCATION_ENUMERATION_SUB_LEAF     0x00
+
+/**
+  CPUID L3 and L2 Cache Allocation Support Information EBX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_ENUMERATION_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        uint32_t  _reserved1:1;
+        ///
+        /// [Bit 1] Supports L3 Cache Allocation Technology if 1.
+        ///
+        uint32_t  L3CacheAllocation:1;
+        ///
+        /// [Bit 2] Supports L2 Cache Allocation Technology if 1.
+        ///
+        uint32_t  L2CacheAllocation:1;
+        ///
+        /// [Bit 3] Supports Memory Bandwidth Allocation if 1.
+        ///
+        uint32_t  MemoryBandwidth:1;
+        uint32_t  _reserved3:28;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_ENUMERATION_SUB_LEAF_EBX;
+
+
+/**
+  L3 Cache Allocation Technology Enumeration Sub-leaf
+
+  @param   EAX  CPUID_INTEL_RDT_ALLOCATION (0x10)
+  @param   ECX  CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF (0x01)
+
+  @retval  EAX  RESID L3 Cache Allocation Technology information described by
+                the type CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_EAX.
+  @retval  EBX  Bit-granular map of isolation/contention of allocation units.
+  @retval  ECX  RESID L3 Cache Allocation Technology information described by
+                the type CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_ECX.
+  @retval  EDX  RESID L3 Cache Allocation Technology information described by
+                the type CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_EDX.
+
+  <b>Example usage</b>
+  @code
+  CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_EAX  Eax;
+  uint32_t                                            Ebx;
+  CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_ECX  Ecx;
+  CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_EDX  Edx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_RDT_ALLOCATION, CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF,
+    &Eax.raw, &Ebx, &Ecx.raw, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF        0x01
+
+/**
+  CPUID L3 Cache Allocation Technology Information EAX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 4:0] Length of the capacity bit mask for the corresponding ResID
+        /// using minus-one notation.
+        ///
+        uint32_t  CapacityLength:5;
+        uint32_t  _reserved:27;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_EAX;
+
+/**
+  CPUID L3 Cache Allocation Technology Information ECX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        uint32_t  _reserved3:2;
+        ///
+        /// [Bit 2] Code and Data Prioritization Technology supported if 1.
+        ///
+        uint32_t  CodeDataPrioritization:1;
+        uint32_t  _reserved2:29;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_ECX;
+
+/**
+  CPUID L3 Cache Allocation Technology Information EDX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Highest COS number supported for this ResID.
+        ///
+        uint32_t  HighestCosNumber:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_L3_CACHE_SUB_LEAF_EDX;
+
+/**
+  L2 Cache Allocation Technology Enumeration Sub-leaf
+
+  @param   EAX  CPUID_INTEL_RDT_ALLOCATION (0x10)
+  @param   ECX  CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF (0x02)
+
+  @retval  EAX  RESID L2 Cache Allocation Technology information described by
+                the type CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF_EAX.
+  @retval  EBX  Bit-granular map of isolation/contention of allocation units.
+  @retval  ECX  _reserved.
+  @retval  EDX  RESID L2 Cache Allocation Technology information described by
+                the type CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF_EDX.
+
+  <b>Example usage</b>
+  @code
+  CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF_EAX  Eax;
+  uint32_t                                            Ebx;
+  CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF_EDX  Edx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_RDT_ALLOCATION, CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF,
+    &Eax.raw, &Ebx, NULL, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF        0x02
+
+/**
+  CPUID L2 Cache Allocation Technology Information EAX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 4:0] Length of the capacity bit mask for the corresponding ResID
+        /// using minus-one notation.
+        ///
+        uint32_t  CapacityLength:5;
+        uint32_t  _reserved:27;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF_EAX;
+
+/**
+  CPUID L2 Cache Allocation Technology Information EDX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Highest COS number supported for this ResID.
+        ///
+        uint32_t  HighestCosNumber:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_L2_CACHE_SUB_LEAF_EDX;
+
+/**
+  Memory Bandwidth Allocation Enumeration Sub-leaf
+
+  @param   EAX  CPUID_INTEL_RDT_ALLOCATION (0x10)
+  @param   ECX  CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF (0x03)
+
+  @retval  EAX  RESID memory bandwidth Allocation Technology information
+                described by the type
+                CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_EAX.
+  @retval  EBX  _reserved.
+  @retval  ECX  RESID memory bandwidth Allocation Technology information
+                described by the type
+                CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_ECX.
+  @retval  EDX  RESID memory bandwidth Allocation Technology information
+                described by the type
+                CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_EDX.
+
+  <b>Example usage</b>
+  @code
+  CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_EAX  Eax;
+  uint32_t                                                    Ebx;
+  CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_ECX  Ecx;
+  CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_EDX  Edx;
+
+
+  AsmCpuidEx (
+    CPUID_INTEL_RDT_ALLOCATION, CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF,
+    &Eax.raw, &Ebx, NULL, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF        0x03
+
+/**
+  CPUID memory bandwidth Allocation Technology Information EAX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 11:0] Reports the maximum MBA throttling value supported for
+        /// the corresponding ResID using minus-one notation.
+        ///
+        uint32_t  MaximumMBAThrottling:12;
+        uint32_t  _reserved:20;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_EAX;
+
+/**
+  CPUID memory bandwidth Allocation Technology Information ECX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 1:0] _reserved.
+        ///
+        uint32_t  _reserved1:2;
+        ///
+        /// [Bits 3] Reports whether the response of the delay values is linear.
+        ///
+        uint32_t  Liner:1;
+        uint32_t  _reserved2:29;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_ECX;
+
+/**
+  CPUID memory bandwidth Allocation Technology Information EDX for CPUID leaf
+  #CPUID_INTEL_RDT_ALLOCATION, sub-leaf
+  #CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Highest COS number supported for this ResID.
+        ///
+        uint32_t  HighestCosNumber:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_RDT_ALLOCATION_MEMORY_BANDWIDTH_SUB_LEAF_EDX;
+
+/**
+  Intel SGX resource capability and configuration.
+  See Section 37.7.2 "Intel(R) SGX Resource Enumeration Leaves".
+
+  If CPUID.(EAX=07H, ECX=0H):EBX.SGX = 1, the processor also supports querying
+  CPUID with EAX=12H on Intel SGX resource capability and configuration.
+
+  @param   EAX  CPUID_INTEL_SGX (0x12)
+  @param   ECX  CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF (0x00).
+                CPUID_INTEL_SGX_CAPABILITIES_1_SUB_LEAF (0x01).
+                CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF (0x02).
+                Sub leafs 2..n based on the sub-leaf-type encoding (returned in EAX[3:0])
+                until the sub-leaf type is invalid.
+
+**/
+#define CPUID_INTEL_SGX                                  0x12
+
+/**
+  Sub-Leaf 0 Enumeration of Intel SGX Capabilities.
+  Enumerates Intel SGX capability, including enclave instruction opcode support.
+
+  @param   EAX  CPUID_INTEL_SGX (0x12)
+  @param   ECX  CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF (0x00)
+
+  @retval  EAX  The format of Sub-Leaf 0 Enumeration of Intel SGX Capabilities is
+                described by the type CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF_EAX.
+  @retval  EBX  MISCSELECT: Reports the bit vector of supported extended features
+                that can be written to the MISC region of the SSA.
+  @retval  ECX  _reserved.
+  @retval  EDX  The format of Sub-Leaf 0 Enumeration of Intel SGX Capabilities is
+                described by the type CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF_EDX.
+
+  <b>Example usage</b>
+  @code
+  CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF_EAX  Eax;
+  uint32_t                                       Ebx;
+  CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF_EDX  Edx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_SGX, CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF,
+    &Eax.raw, &Ebx, NULL, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF          0x00
+
+/**
+  Sub-Leaf 0 Enumeration of Intel SGX Capabilities EAX for CPUID leaf #CPUID_INTEL_SGX,
+  sub-leaf #CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] If 1, indicates leaf functions of SGX1 instruction are supported.
+        ///
+        uint32_t  SGX1:1;
+        ///
+        /// [Bit 1] If 1, indicates leaf functions of SGX2 instruction are supported.
+        ///
+        uint32_t  SGX2:1;
+        uint32_t  _reserved1:3;
+        ///
+        /// [Bit 5] If 1, indicates Intel SGX supports ENCLV instruction leaves
+        /// EINCVIRTCHILD, EDECVIRTCHILD, and ESETCONTEXT.
+        ///
+        uint32_t  ENCLV:1;
+        ///
+        /// [Bit 6] If 1, indicates Intel SGX supports ENCLS instruction leaves ETRACKC,
+        /// ERDINFO, ELDBC, and ELDUC.
+        ///
+        uint32_t  ENCLS:1;
+        uint32_t  _reserved2:25;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF_EAX;
+
+/**
+  Sub-Leaf 0 Enumeration of Intel SGX Capabilities EDX for CPUID leaf #CPUID_INTEL_SGX,
+  sub-leaf #CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 7:0] The maximum supported enclave size is 2^(EDX[7:0]) bytes
+        /// when not in 64-bit mode.
+        ///
+        uint32_t  MaxEnclaveSize_Not64:8;
+        ///
+        /// [Bit 15:8] The maximum supported enclave size is 2^(EDX[15:8]) bytes
+        /// when operating in 64-bit mode.
+        ///
+        uint32_t  MaxEnclaveSize_64:8;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_SGX_CAPABILITIES_0_SUB_LEAF_EDX;
+
+
+/**
+  Sub-Leaf 1 Enumeration of Intel SGX Capabilities.
+  Enumerates Intel SGX capability of processor state configuration and enclave
+  configuration in the SECS structure.
+
+  @param   EAX  CPUID_INTEL_SGX (0x12)
+  @param   ECX  CPUID_INTEL_SGX_CAPABILITIES_1_SUB_LEAF (0x01)
+
+  @retval  EAX  Report the valid bits of SECS.ATTRIBUTES[31:0] that software can
+                set with ECREATE. SECS.ATTRIBUTES[n] can be set to 1 using ECREATE
+                only if EAX[n] is 1, where n < 32.
+  @retval  EBX  Report the valid bits of SECS.ATTRIBUTES[63:32] that software can
+                set with ECREATE. SECS.ATTRIBUTES[n+32] can be set to 1 using ECREATE
+                only if EBX[n] is 1, where n < 32.
+  @retval  ECX  Report the valid bits of SECS.ATTRIBUTES[95:64] that software can
+                set with ECREATE. SECS.ATTRIBUTES[n+64] can be set to 1 using ECREATE
+                only if ECX[n] is 1, where n < 32.
+  @retval  EDX  Report the valid bits of SECS.ATTRIBUTES[127:96] that software can
+                set with ECREATE. SECS.ATTRIBUTES[n+96] can be set to 1 using ECREATE
+                only if EDX[n] is 1, where n < 32.
+
+  <b>Example usage</b>
+  @code
+  uint32_t  Eax;
+  uint32_t  Ebx;
+  uint32_t  Ecx;
+  uint32_t  Edx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_SGX, CPUID_INTEL_SGX_CAPABILITIES_1_SUB_LEAF,
+    &Eax, &Ebx, &Ecx, &Edx
+    );
+  @endcode
+**/
+#define CPUID_INTEL_SGX_CAPABILITIES_1_SUB_LEAF          0x01
+
+
+/**
+  Sub-Leaf Index 2 or Higher Enumeration of Intel SGX Resources.
+  Enumerates available EPC resources.
+
+  @param   EAX  CPUID_INTEL_SGX (0x12)
+  @param   ECX  CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF (0x02)
+
+  @retval  EAX  The format of Sub-Leaf Index 2 or Higher Enumeration of Intel SGX
+                Resources is described by the type
+                CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EAX.
+  @retval  EBX  The format of Sub-Leaf Index 2 or Higher Enumeration of Intel SGX
+                Resources is described by the type
+                CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EBX.
+  @retval  EDX  The format of Sub-Leaf Index 2 or Higher Enumeration of Intel SGX
+                Resources is described by the type
+                CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_ECX.
+  @retval  EDX  The format of Sub-Leaf Index 2 or Higher Enumeration of Intel SGX
+                Resources is described by the type
+                CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EDX.
+
+  <b>Example usage</b>
+  @code
+  CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EAX  Eax;
+  CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EBX  Ebx;
+  CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_ECX  Ecx;
+  CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EDX  Edx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_SGX, CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF,
+    &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF  0x02
+
+/**
+  Sub-Leaf Index 2 or Higher Enumeration of Intel SGX Resources EAX for CPUID
+  leaf #CPUID_INTEL_SGX, sub-leaf #CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 3:0] Sub-leaf-type encoding.
+        /// 0000b: This sub-leaf is invalid, EBX:EAX and EDX:ECX report 0.
+        /// 0001b: This sub-leaf provides information on the Enclave Page Cache (EPC)
+        ///        in EBX:EAX and EDX:ECX.
+        /// All other encoding are reserved.
+        ///
+        uint32_t  SubLeafType:4;
+        uint32_t  _reserved:8;
+        ///
+        /// [Bit 31:12] If EAX[3:0] = 0001b, these are bits 31:12 of the physical address of
+        /// the base of the EPC section.
+        ///
+        uint32_t  LowAddressOfEpcSection:20;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EAX;
+
+/**
+  Sub-Leaf Index 2 or Higher Enumeration of Intel SGX Resources EBX for CPUID
+  leaf #CPUID_INTEL_SGX, sub-leaf #CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 19:0] If EAX[3:0] = 0001b, these are bits 51:32 of the physical address of
+        /// the base of the EPC section.
+        ///
+        uint32_t  HighAddressOfEpcSection:20;
+        uint32_t  _reserved:12;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EBX;
+
+/**
+  Sub-Leaf Index 2 or Higher Enumeration of Intel SGX Resources ECX for CPUID
+  leaf #CPUID_INTEL_SGX, sub-leaf #CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 3:0] The EPC section encoding.
+        /// 0000b: Not valid.
+        /// 0001b: The EPC section is confidentiality, integrity and replay protected.
+        /// All other encoding are reserved.
+        ///
+        uint32_t  EpcSection:4;
+        uint32_t  _reserved:8;
+        ///
+        /// [Bit 31:12] If EAX[3:0] = 0001b, these are bits 31:12 of the size of the
+        /// corresponding EPC section within the Processor _reserved Memory.
+        ///
+        uint32_t  LowSizeOfEpcSection:20;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_ECX;
+
+/**
+  Sub-Leaf Index 2 or Higher Enumeration of Intel SGX Resources EDX for CPUID
+  leaf #CPUID_INTEL_SGX, sub-leaf #CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 19:0] If EAX[3:0] = 0001b, these are bits 51:32 of the size of the
+        /// corresponding EPC section within the Processor _reserved Memory.
+        ///
+        uint32_t  HighSizeOfEpcSection:20;
+        uint32_t  _reserved:12;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_SGX_CAPABILITIES_RESOURCES_SUB_LEAF_EDX;
+
+
+/**
+  CPUID Intel Processor Trace Information
+
+  @param   EAX  CPUID_INTEL_PROCESSOR_TRACE (0x14)
+  @param   ECX  CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF (0x00).
+                CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF (0x01).
+
+**/
+#define CPUID_INTEL_PROCESSOR_TRACE                         0x14
+
+/**
+  CPUID Intel Processor Trace Information Main Leaf
+
+  @param   EAX  CPUID_INTEL_PROCEDSSOR_TRACE (0x14)
+  @param   ECX  CPUID_INTEL_PROCEDSSOR_TRACE_MAIN_LEAF (0x00)
+
+  @retval  EAX  Reports the maximum sub-leaf supported in leaf 14H.
+  @retval  EBX  Returns Intel processor trace information described by the
+                type CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF_EBX.
+  @retval  ECX  Returns Intel processor trace information described by the
+                type CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF_ECX.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                                     Eax;
+  CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF_EBX  Ebx;
+  CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF_ECX  Ecx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_PROCESSOR_TRACE, CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF,
+    &Eax, &Ebx.raw, &Ecx.raw, NULL
+    );
+  @endcode
+**/
+#define CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF               0x00
+
+/**
+  CPUID Intel Processor Trace EBX for CPUID leaf #CPUID_INTEL_PROCESSOR_TRACE,
+  sub-leaf #CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] If 1, indicates that IA32_RTIT_CTL.CR3Filter can be set to 1,
+        /// and that IA32_RTIT_CR3_MATCH MSR can be accessed.
+        ///
+        uint32_t  Cr3Filter:1;
+        ///
+        /// [Bit 1] If 1, indicates support of Configurable PSB and Cycle-Accurate
+        /// Mode.
+        ///
+        uint32_t  ConfigurablePsb:1;
+        ///
+        /// [Bit 2] If 1, indicates support of IP Filtering, TraceStop filtering,
+        /// and preservation of Intel PT MSRs across warm reset.
+        ///
+        uint32_t  IpTraceStopFiltering:1;
+        ///
+        /// [Bit 3] If 1, indicates support of MTC timing packet and suppression of
+        /// COFI-based packets.
+        ///
+        uint32_t  Mtc:1;
+        ///
+        /// [Bit 4] If 1, indicates support of PTWRITE. Writes can set
+        /// IA32_RTIT_CTL[12] (PTWEn) and IA32_RTIT_CTL[5] (FUPonPTW), and PTWRITE
+        /// can generate packets.
+        ///
+        uint32_t  PTWrite:1;
+        ///
+        /// [Bit 5] If 1, indicates support of Power Event Trace. Writes can set
+        /// IA32_RTIT_CTL[4] (PwrEvtEn), enabling Power Event Trace packet
+        /// generation.
+        ///
+        uint32_t  PowerEventTrace:1;
+        uint32_t  _reserved:26;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF_EBX;
+
+/**
+  CPUID Intel Processor Trace ECX for CPUID leaf #CPUID_INTEL_PROCESSOR_TRACE,
+  sub-leaf #CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] If 1, Tracing can be enabled with IA32_RTIT_CTL.ToPA = 1, hence
+        /// utilizing the ToPA output scheme; IA32_RTIT_OUTPUT_BASE and
+        /// IA32_RTIT_OUTPUT_MASK_PTRS MSRs can be accessed.
+        ///
+        uint32_t  RTIT:1;
+        ///
+        /// [Bit 1] If 1, ToPA tables can hold any number of output entries, up to
+        /// the maximum allowed by the MaskOrTableOffset field of
+        /// IA32_RTIT_OUTPUT_MASK_PTRS.
+        ///
+        uint32_t  ToPA:1;
+        ///
+        /// [Bit 2] If 1, indicates support of Single-Range Output scheme.
+        ///
+        uint32_t  SingleRangeOutput:1;
+        ///
+        /// [Bit 3] If 1, indicates support of output to Trace Transport subsystem.
+        ///
+        uint32_t  TraceTransportSubsystem:1;
+        uint32_t  _reserved:27;
+        ///
+        /// [Bit 31] If 1, generated packets which contain IP payloads have LIP
+        /// values, which include the CS base component.
+        ///
+        uint32_t  LIP:1;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF_ECX;
+
+
+/**
+  CPUID Intel Processor Trace Information Sub-leaf
+
+  @param   EAX  CPUID_INTEL_PROCEDSSOR_TRACE (0x14)
+  @param   ECX  CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF (0x01)
+
+  @retval  EAX  Returns Intel processor trace information described by the
+                type CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF_EAX.
+  @retval  EBX  Returns Intel processor trace information described by the
+                type CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF_EBX.
+  @retval  ECX  _reserved.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                                    MaximumSubLeaf;
+  uint32_t                                    SubLeaf;
+  CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF_EAX  Eax;
+  CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF_EBX  Ebx;
+
+  AsmCpuidEx (
+    CPUID_INTEL_PROCESSOR_TRACE, CPUID_INTEL_PROCESSOR_TRACE_MAIN_LEAF,
+    &MaximumSubLeaf, NULL, NULL, NULL
+    );
+
+  for (SubLeaf = CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF; SubLeaf <= MaximumSubLeaf; SubLeaf++) {
+    AsmCpuidEx (
+      CPUID_INTEL_PROCESSOR_TRACE, SubLeaf,
+      &Eax.raw, &Ebx.raw, NULL, NULL
+      );
+  }
+  @endcode
+**/
+#define CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF                0x01
+
+/**
+  CPUID Intel Processor Trace EAX for CPUID leaf #CPUID_INTEL_PROCESSOR_TRACE,
+  sub-leaf #CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 2:0] Number of configurable Address Ranges for filtering.
+        ///
+        uint32_t  ConfigurableAddressRanges:3;
+        uint32_t  _reserved:13;
+        ///
+        /// [Bits 31:16] Bitmap of supported MTC period encodings
+        ///
+        uint32_t  MtcPeriodEncodings:16;
+
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF_EAX;
+
+/**
+  CPUID Intel Processor Trace EBX for CPUID leaf #CPUID_INTEL_PROCESSOR_TRACE,
+  sub-leaf #CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Bitmap of supported Cycle Threshold value encodings.
+        ///
+        uint32_t  CycleThresholdEncodings:16;
+        ///
+        /// [Bits 31:16] Bitmap of supported Configurable PSB frequency encodings.
+        ///
+        uint32_t  PsbFrequencyEncodings:16;
+
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_INTEL_PROCESSOR_TRACE_SUB_LEAF_EBX;
+
+
+/**
+  CPUID Time Stamp Counter and Nominal Core Crystal Clock Information
+
+  @note
+  If EBX[31:0] is 0, the TSC/"core crystal clock" ratio is not enumerated.
+  EBX[31:0]/EAX[31:0] indicates the ratio of the TSC frequency and the core
+  crystal clock frequency.
+  If ECX is 0, the nominal core crystal clock frequency is not enumerated.
+  "TSC frequency" = "core crystal clock frequency" * EBX/EAX.
+  The core crystal clock may differ from the reference clock, bus clock, or core
+  clock frequencies.
+
+  @param   EAX  CPUID_TIME_STAMP_COUNTER (0x15)
+
+  @retval  EAX  An unsigned integer which is the denominator of the
+                TSC/"core crystal clock" ratio
+  @retval  EBX  An unsigned integer which is the numerator of the
+                TSC/"core crystal clock" ratio.
+  @retval  ECX  An unsigned integer which is the nominal frequency
+                of the core crystal clock in Hz.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  uint32_t  Eax;
+  uint32_t  Ebx;
+  uint32_t  Ecx;
+
+  AsmCpuid (CPUID_TIME_STAMP_COUNTER, &Eax, &Ebx, &Ecx, NULL);
+  @endcode
+**/
+#define CPUID_TIME_STAMP_COUNTER                            0x15
+
+
+/**
+  CPUID Processor Frequency Information
+
+  @note
+  Data is returned from this interface in accordance with the processor's
+  specification and does not reflect actual values. Suitable use of this data
+  includes the display of processor information in like manner to the processor
+  brand string and for determining the appropriate range to use when displaying
+  processor information e.g. frequency history graphs. The returned information
+  should not be used for any other purpose as the returned information does not
+  accurately correlate to information / counters returned by other processor
+  interfaces.  While a processor may support the Processor Frequency Information
+  leaf, fields that return a value of zero are not supported.
+
+  @param   EAX  CPUID_TIME_STAMP_COUNTER (0x16)
+
+  @retval  EAX  Returns processor base frequency information described by the
+                type CPUID_PROCESSOR_FREQUENCY_EAX.
+  @retval  EBX  Returns maximum frequency information described by the type
+                CPUID_PROCESSOR_FREQUENCY_EBX.
+  @retval  ECX  Returns bus frequency information described by the type
+                CPUID_PROCESSOR_FREQUENCY_ECX.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  CPUID_PROCESSOR_FREQUENCY_EAX  Eax;
+  CPUID_PROCESSOR_FREQUENCY_EBX  Ebx;
+  CPUID_PROCESSOR_FREQUENCY_ECX  Ecx;
+
+  AsmCpuid (CPUID_PROCESSOR_FREQUENCY, &Eax.raw, &Ebx.raw, &Ecx.raw, NULL);
+  @endcode
+**/
+#define CPUID_PROCESSOR_FREQUENCY                           0x16
+
+/**
+  CPUID Processor Frequency Information EAX for CPUID leaf
+  #CPUID_PROCESSOR_FREQUENCY.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Processor Base Frequency (in MHz).
+        ///
+        uint32_t  ProcessorBaseFrequency:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_PROCESSOR_FREQUENCY_EAX;
+
+/**
+  CPUID Processor Frequency Information EBX for CPUID leaf
+  #CPUID_PROCESSOR_FREQUENCY.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Maximum Frequency (in MHz).
+        ///
+        uint32_t  MaximumFrequency:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_PROCESSOR_FREQUENCY_EBX;
+
+/**
+  CPUID Processor Frequency Information ECX for CPUID leaf
+  #CPUID_PROCESSOR_FREQUENCY.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] Bus (Reference) Frequency (in MHz).
+        ///
+        uint32_t  BusFrequency:16;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_PROCESSOR_FREQUENCY_ECX;
+
+
+/**
+  CPUID SoC Vendor Information
+
+  @param   EAX  CPUID_SOC_VENDOR (0x17)
+  @param   ECX  CPUID_SOC_VENDOR_MAIN_LEAF (0x00)
+                CPUID_SOC_VENDOR_BRAND_STRING1 (0x01)
+                CPUID_SOC_VENDOR_BRAND_STRING1 (0x02)
+                CPUID_SOC_VENDOR_BRAND_STRING1 (0x03)
+
+  @note
+  Leaf 17H output depends on the initial value in ECX.  SOC Vendor Brand String
+  is a UTF-8 encoded string padded with trailing bytes of 00H.  The complete SOC
+  Vendor Brand String is constructed by concatenating in ascending order of
+  EAX:EBX:ECX:EDX and from the sub-leaf 1 fragment towards sub-leaf 3.
+
+**/
+#define CPUID_SOC_VENDOR                                    0x17
+
+/**
+  CPUID SoC Vendor Information
+
+  @param   EAX  CPUID_SOC_VENDOR (0x17)
+  @param   ECX  CPUID_SOC_VENDOR_MAIN_LEAF (0x00)
+
+  @retval  EAX  MaxSOCID_Index. Reports the maximum input value of supported
+                sub-leaf in leaf 17H.
+  @retval  EBX  Returns SoC Vendor information described by the type
+                CPUID_SOC_VENDOR_MAIN_LEAF_EBX.
+  @retval  ECX  Project ID. A unique number an SOC vendor assigns to its SOC
+                projects.
+  @retval  EDX  Stepping ID. A unique number within an SOC project that an SOC
+                vendor assigns.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                          Eax;
+  CPUID_SOC_VENDOR_MAIN_LEAF_EBX  Ebx;
+  uint32_t                          Ecx;
+  uint32_t                          Edx;
+
+  AsmCpuidEx (
+    CPUID_SOC_VENDOR, CPUID_SOC_VENDOR_MAIN_LEAF,
+    &Eax, &Ebx.raw, &Ecx, &Edx
+    );
+  @endcode
+**/
+#define CPUID_SOC_VENDOR_MAIN_LEAF                          0x00
+
+/**
+  CPUID SoC Vendor Information EBX for CPUID leaf #CPUID_SOC_VENDOR sub-leaf
+  #CPUID_SOC_VENDOR_MAIN_LEAF.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 15:0] SOC Vendor ID.
+        ///
+        uint32_t  SocVendorId:16;
+        ///
+        /// [Bit 16] If 1, the SOC Vendor ID field is assigned via an industry
+        /// standard enumeration scheme. Otherwise, the SOC Vendor ID field is
+        /// assigned by Intel.
+        ///
+        uint32_t  IsVendorScheme:1;
+        uint32_t  _reserved:15;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_SOC_VENDOR_MAIN_LEAF_EBX;
+
+/**
+  CPUID SoC Vendor Information
+
+  @param   EAX  CPUID_SOC_VENDOR (0x17)
+  @param   ECX  CPUID_SOC_VENDOR_BRAND_STRING1 (0x01)
+
+  @retval  EAX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  EBX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  ECX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  EDX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+
+  <b>Example usage</b>
+  @code
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Eax;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Ebx;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Ecx;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Edx;
+
+  AsmCpuidEx (
+    CPUID_SOC_VENDOR, CPUID_SOC_VENDOR_BRAND_STRING1,
+    &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_SOC_VENDOR_BRAND_STRING1                      0x01
+
+/**
+  CPUID SoC Vendor Brand String for CPUID leafs #CPUID_SOC_VENDOR_BRAND_STRING1,
+  #CPUID_SOC_VENDOR_BRAND_STRING2, and #CPUID_SOC_VENDOR_BRAND_STRING3.
+**/
+typedef union {
+    ///
+    /// 4 UTF-8 characters of Soc Vendor Brand String
+    ///
+    char   BrandString[4];
+    ///
+    /// All fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_SOC_VENDOR_BRAND_STRING_DATA;
+
+/**
+  CPUID SoC Vendor Information
+
+  @param   EAX  CPUID_SOC_VENDOR (0x17)
+  @param   ECX  CPUID_SOC_VENDOR_BRAND_STRING2 (0x02)
+
+  @retval  EAX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  EBX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  ECX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  EDX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+
+  <b>Example usage</b>
+  @code
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Eax;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Ebx;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Ecx;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Edx;
+
+  AsmCpuidEx (
+    CPUID_SOC_VENDOR, CPUID_SOC_VENDOR_BRAND_STRING2,
+    &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_SOC_VENDOR_BRAND_STRING2                      0x02
+
+/**
+  CPUID SoC Vendor Information
+
+  @param   EAX  CPUID_SOC_VENDOR (0x17)
+  @param   ECX  CPUID_SOC_VENDOR_BRAND_STRING3 (0x03)
+
+  @retval  EAX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  EBX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  ECX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+  @retval  EDX  SOC Vendor Brand String. UTF-8 encoded string of type
+                CPUID_SOC_VENDOR_BRAND_STRING_DATA.
+
+  <b>Example usage</b>
+  @code
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Eax;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Ebx;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Ecx;
+  CPUID_SOC_VENDOR_BRAND_STRING_DATA  Edx;
+
+  AsmCpuidEx (
+    CPUID_SOC_VENDOR, CPUID_SOC_VENDOR_BRAND_STRING3,
+    &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_SOC_VENDOR_BRAND_STRING3                      0x03
+
+/**
+  CPUID Deterministic Address Translation Parameters
+
+  @note
+  Each sub-leaf enumerates a different address translation structure.
+  If ECX contains an invalid sub-leaf index, EAX/EBX/ECX/EDX return 0. Sub-leaf
+  index n is invalid if n exceeds the value that sub-leaf 0 returns in EAX. A
+  sub-leaf index is also invalid if EDX[4:0] returns 0.
+  Valid sub-leaves do not need to be contiguous or in any particular order. A
+  valid sub-leaf may be in a higher input ECX value than an invalid sub-leaf or
+  than a valid sub-leaf of a higher or lower-level structure.
+  * Some unified TLBs will allow a single TLB entry to satisfy data read/write
+  and instruction fetches. Others will require separate entries (e.g., one
+  loaded on data read/write and another loaded on an instruction fetch).
+  Please see the Intel 64 and IA-32 Architectures Optimization Reference Manual
+  for details of a particular product.
+  ** Add one to the return value to get the result.
+
+  @param   EAX  CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS (0x18)
+  @param   ECX  CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_MAIN_LEAF (0x00)
+                CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_SUB_LEAF  (0x*)
+
+**/
+#define CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS             0x18
+
+/**
+  CPUID Deterministic Address Translation Parameters
+
+  @param   EAX  CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS (0x18)
+  @param   ECX  CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_MAIN_LEAF (0x00)
+
+  @retval  EAX  Reports the maximum input value of supported sub-leaf in leaf 18H.
+  @retval  EBX  Returns Deterministic Address Translation Parameters described by
+                the type CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_EBX.
+  @retval  ECX  Number of Sets.
+  @retval  EDX  Returns Deterministic Address Translation Parameters described by
+                the type CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_EDX.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                                                  Eax;
+  CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_EBX  Ebx;
+  uint32_t                                                  Ecx;
+  CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_EDX  Edx;
+
+  AsmCpuidEx (
+    CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS,
+    CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_MAIN_LEAF,
+    &Eax, &Ebx.raw, &Ecx, &Edx.raw
+    );
+  @endcode
+**/
+#define CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_MAIN_LEAF   0x00
+
+/**
+  CPUID Deterministic Address Translation Parameters EBX for CPUID leafs.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 0] 4K page size entries supported by this structure.
+        ///
+        uint32_t  Page4K:1;
+        ///
+        /// [Bits 1] 2MB page size entries supported by this structure.
+        ///
+        uint32_t  Page2M:1;
+        ///
+        /// [Bits 2] 4MB page size entries supported by this structure.
+        ///
+        uint32_t  Page4M:1;
+        ///
+        /// [Bits 3] 1 GB page size entries supported by this structure.
+        ///
+        uint32_t  Page1G:1;
+        ///
+        /// [Bits 7:4] _reserved.
+        ///
+        uint32_t  _reserved1:4;
+        ///
+        /// [Bits 10:8] Partitioning (0: Soft partitioning between the logical
+        /// processors sharing this structure)
+        ///
+        uint32_t  Partitioning:3;
+        ///
+        /// [Bits 15:11] _reserved.
+        ///
+        uint32_t  _reserved2:5;
+        ///
+        /// [Bits 31:16] W = Ways of associativity.
+        ///
+        uint32_t  Way:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_EBX;
+
+/**
+  CPUID Deterministic Address Translation Parameters EDX for CPUID leafs.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 4:0] Translation cache type field.
+        ///
+        uint32_t  TranslationCacheType:5;
+        ///
+        /// [Bits 7:5] Translation cache level (starts at 1).
+        ///
+        uint32_t  TranslationCacheLevel:3;
+        ///
+        /// [Bits 8] Fully associative structure.
+        ///
+        uint32_t  FullyAssociative:1;
+        ///
+        /// [Bits 13:9] _reserved.
+        ///
+        uint32_t  _reserved1:5;
+        ///
+        /// [Bits 25:14] Maximum number of addressable IDs for logical
+        /// processors sharing this translation cache.
+        ///
+        uint32_t  MaximumNum:12;
+        ///
+        /// [Bits 31:26] _reserved.
+        ///
+        uint32_t  _reserved2:6;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_EDX;
+
+///
+/// @{ Define value for CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_EDX.TranslationCacheType
+///
+#define   CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_TRANSLATION_CACHE_TYPE_INVALID          0x00
+#define   CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_TRANSLATION_CACHE_TYPE_DATA_TLB         0x01
+#define   CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_TRANSLATION_CACHE_TYPE_INSTRUCTION_TLB  0x02
+#define   CPUID_DETERMINISTIC_ADDRESS_TRANSLATION_PARAMETERS_TRANSLATION_CACHE_TYPE_UNIFIED_TLB      0x03
+///
+/// @}
+///
+
+
+/**
+  CPUID V2 Extended Topology Enumeration Leaf
+
+  @note
+  CPUID leaf 1FH is a preferred superset to leaf 0BH. Intel recommends first checking
+  for the existence of Leaf 1FH and using this if available.
+  Most of Leaf 1FH output depends on the initial value in ECX. The EDX output of leaf
+  1FH is always valid and does not vary with input value in ECX. Output value in ECX[7:0]
+  always equals input value in ECX[7:0]. Sub-leaf index 0 enumerates SMT level. Each
+  subsequent higher sub-leaf index enumerates a higher-level topological entity in
+  hierarchical order. For sub-leaves that return an invalid level-type of 0 in ECX[15:8];
+  EAX and EBX will return 0. If an input value n in ECX returns the invalid level-type of
+  0 in ECX[15:8], other input values with ECX > n also return 0 in ECX[15:8].
+
+  Software should use this field (EAX[4:0]) to enumerate processor topology of the system.
+  Software must not use EBX[15:0] to enumerate processor topology of the system. This value
+  in this field (EBX[15:0]) is only intended for display/diagnostic purposes. The actual
+  number of logical processors available to BIOS/OS/Applications may be different from the
+  value of EBX[15:0], depending on software and platform hardware configurations.
+
+  @param   EAX  CPUID_V2_EXTENDED_TOPOLOGY                        (0x1F)
+  @param   ECX  Level number
+
+**/
+#define CPUID_V2_EXTENDED_TOPOLOGY                                     0x1F
+
+///
+/// @{ Define value for CPUID_EXTENDED_TOPOLOGY_ECX.LevelType
+/// The value of the "level type" field is not related to level numbers in
+/// any way, higher "level type" values do not mean higher levels.
+///
+#define   CPUID_V2_EXTENDED_TOPOLOGY_LEVEL_TYPE_MODULE                  0x03
+#define   CPUID_V2_EXTENDED_TOPOLOGY_LEVEL_TYPE_TILE                    0x04
+#define   CPUID_V2_EXTENDED_TOPOLOGY_LEVEL_TYPE_DIE                     0x05
+///
+/// @}
+///
+
+/**
+  CPUID Extended Function
+
+  @param   EAX  CPUID_EXTENDED_FUNCTION (0x80000000)
+
+  @retval  EAX  Maximum Input Value for Extended Function CPUID Information.
+  @retval  EBX  _reserved.
+  @retval  ECX  _reserved.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  uint32_t  Eax;
+
+  AsmCpuid (CPUID_EXTENDED_FUNCTION, &Eax, NULL, NULL, NULL);
+  @endcode
+**/
+#define CPUID_EXTENDED_FUNCTION                 0x80000000
+
+
+/**
+  CPUID Extended Processor Signature and Feature
+
+  @param   EAX  CPUID_EXTENDED_CPU_SIG (0x80000001)
+
+  @retval  EAX  CPUID_EXTENDED_CPU_SIG.
+  @retval  EBX  _reserved.
+  @retval  ECX  Extended Processor Signature and Feature information
+                described by the type CPUID_EXTENDED_CPU_SIG_ECX.
+  @retval  EDX  Extended Processor Signature and Feature information
+                described by the type CPUID_EXTENDED_CPU_SIG_EDX.
+
+  <b>Example usage</b>
+  @code
+  uint32_t                      Eax;
+  CPUID_EXTENDED_CPU_SIG_ECX  Ecx;
+  CPUID_EXTENDED_CPU_SIG_EDX  Edx;
+
+  AsmCpuid (CPUID_EXTENDED_CPU_SIG, &Eax, NULL, &Ecx.raw, &Edx.raw);
+  @endcode
+**/
+#define CPUID_EXTENDED_CPU_SIG                  0x80000001
+
+/**
+  CPUID Extended Processor Signature and Feature ECX for CPUID leaf
+  #CPUID_EXTENDED_CPU_SIG.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bit 0] LAHF/SAHF available in 64-bit mode.
+        ///
+        uint32_t  LAHF_SAHF:1;
+        uint32_t  _reserved1:4;
+        ///
+        /// [Bit 5] LZCNT.
+        ///
+        uint32_t  LZCNT:1;
+        uint32_t  _reserved2:2;
+        ///
+        /// [Bit 8] PREFETCHW.
+        ///
+        uint32_t  PREFETCHW:1;
+        uint32_t  _reserved3:23;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_CPU_SIG_ECX;
+
+/**
+  CPUID Extended Processor Signature and Feature EDX for CPUID leaf
+  #CPUID_EXTENDED_CPU_SIG.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        uint32_t  _reserved1:11;
+        ///
+        /// [Bit 11] SYSCALL/SYSRET available in 64-bit mode.
+        ///
+        uint32_t  SYSCALL_SYSRET:1;
+        uint32_t  _reserved2:8;
+        ///
+        /// [Bit 20] Execute Disable Bit available.
+        ///
+        uint32_t  NX:1;
+        uint32_t  _reserved3:5;
+        ///
+        /// [Bit 26] 1-GByte pages are available if 1.
+        ///
+        uint32_t  Page1GB:1;
+        ///
+        /// [Bit 27] RDTSCP and IA32_TSC_AUX are available if 1.
+        ///
+        uint32_t  RDTSCP:1;
+        uint32_t  _reserved4:1;
+        ///
+        /// [Bit 29] Intel(R) 64 Architecture available if 1.
+        ///
+        uint32_t  LM:1;
+        uint32_t  _reserved5:2;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_CPU_SIG_EDX;
+
+
+/**
+  CPUID Processor Brand String
+
+  @param   EAX  CPUID_BRAND_STRING1 (0x80000002)
+
+  @retval  EAX  Processor Brand String in type CPUID_BRAND_STRING_DATA.
+  @retval  EBX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+  @retval  ECX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+  @retval  EDX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+
+  <b>Example usage</b>
+  @code
+  CPUID_BRAND_STRING_DATA  Eax;
+  CPUID_BRAND_STRING_DATA  Ebx;
+  CPUID_BRAND_STRING_DATA  Ecx;
+  CPUID_BRAND_STRING_DATA  Edx;
+
+  AsmCpuid (CPUID_BRAND_STRING1, &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw);
+  @endcode
+**/
+#define CPUID_BRAND_STRING1                     0x80000002
+
+/**
+  CPUID Processor Brand String for CPUID leafs #CPUID_BRAND_STRING1,
+  #CPUID_BRAND_STRING2, and #CPUID_BRAND_STRING3.
+**/
+typedef union {
+    ///
+    /// 4 ASCII characters of Processor Brand String
+    ///
+    char   BrandString[4];
+    ///
+    /// All fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_BRAND_STRING_DATA;
+
+/**
+  CPUID Processor Brand String
+
+  @param   EAX  CPUID_BRAND_STRING2 (0x80000003)
+
+  @retval  EAX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+  @retval  EBX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+  @retval  ECX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+  @retval  EDX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+
+  <b>Example usage</b>
+  @code
+  CPUID_BRAND_STRING_DATA  Eax;
+  CPUID_BRAND_STRING_DATA  Ebx;
+  CPUID_BRAND_STRING_DATA  Ecx;
+  CPUID_BRAND_STRING_DATA  Edx;
+
+  AsmCpuid (CPUID_BRAND_STRING2, &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw);
+  @endcode
+**/
+#define CPUID_BRAND_STRING2                     0x80000003
+
+/**
+  CPUID Processor Brand String
+
+  @param   EAX  CPUID_BRAND_STRING3 (0x80000004)
+
+  @retval  EAX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+  @retval  EBX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+  @retval  ECX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+  @retval  EDX  Processor Brand String Continued in type CPUID_BRAND_STRING_DATA.
+
+  <b>Example usage</b>
+  @code
+  CPUID_BRAND_STRING_DATA  Eax;
+  CPUID_BRAND_STRING_DATA  Ebx;
+  CPUID_BRAND_STRING_DATA  Ecx;
+  CPUID_BRAND_STRING_DATA  Edx;
+
+  AsmCpuid (CPUID_BRAND_STRING3, &Eax.raw, &Ebx.raw, &Ecx.raw, &Edx.raw);
+  @endcode
+**/
+#define CPUID_BRAND_STRING3                     0x80000004
+
+
+/**
+  CPUID Extended Cache information
+
+  @param   EAX  CPUID_EXTENDED_CACHE_INFO (0x80000006)
+
+  @retval  EAX  _reserved.
+  @retval  EBX  _reserved.
+  @retval  ECX  Extended cache information described by the type
+                CPUID_EXTENDED_CACHE_INFO_ECX.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  CPUID_EXTENDED_CACHE_INFO_ECX  Ecx;
+
+  AsmCpuid (CPUID_EXTENDED_CACHE_INFO, NULL, NULL, &Ecx.raw, NULL);
+  @endcode
+**/
+#define CPUID_EXTENDED_CACHE_INFO               0x80000006
+
+/**
+  CPUID Extended Cache information ECX for CPUID leaf #CPUID_EXTENDED_CACHE_INFO.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 7:0] Cache line size in bytes.
+        ///
+        uint32_t  CacheLineSize:8;
+        uint32_t  _reserved:4;
+        ///
+        /// [Bits 15:12] L2 Associativity field.  Supported values are in the range
+        /// #CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_DISABLED to
+        /// #CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_FULL
+        ///
+        uint32_t  L2Associativity:4;
+        ///
+        /// [Bits 31:16] Cache size in 1K units.
+        ///
+        uint32_t  CacheSize:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_CACHE_INFO_ECX;
+
+///
+/// @{ Define value for bit field CPUID_EXTENDED_CACHE_INFO_ECX.L2Associativity
+///
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_DISABLED       0x00
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_DIRECT_MAPPED  0x01
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_2_WAY          0x02
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_4_WAY          0x04
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_8_WAY          0x06
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_16_WAY         0x08
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_32_WAY         0x0A
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_48_WAY         0x0B
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_64_WAY         0x0C
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_96_WAY         0x0D
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_128_WAY        0x0E
+#define CPUID_EXTENDED_CACHE_INFO_ECX_L2_ASSOCIATIVITY_FULL           0x0F
+///
+/// @}
+///
+
+/**
+  CPUID Extended Time Stamp Counter information
+
+  @param   EAX  CPUID_EXTENDED_TIME_STAMP_COUNTER (0x80000007)
+
+  @retval  EAX  _reserved.
+  @retval  EBX  _reserved.
+  @retval  ECX  _reserved.
+  @retval  EDX  Extended time stamp counter (TSC) information described by the
+                type CPUID_EXTENDED_TIME_STAMP_COUNTER_EDX.
+
+  <b>Example usage</b>
+  @code
+  CPUID_EXTENDED_TIME_STAMP_COUNTER_EDX  Edx;
+
+  AsmCpuid (CPUID_EXTENDED_TIME_STAMP_COUNTER, NULL, NULL, NULL, &Edx.raw);
+  @endcode
+**/
+#define CPUID_EXTENDED_TIME_STAMP_COUNTER       0x80000007
+
+/**
+  CPUID Extended Time Stamp Counter information EDX for CPUID leaf
+  #CPUID_EXTENDED_TIME_STAMP_COUNTER.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        uint32_t  _reserved1:8;
+        ///
+        /// [Bit 8] Invariant TSC available if 1.
+        ///
+        uint32_t  InvariantTsc:1;
+        uint32_t  _reserved2:23;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_EXTENDED_TIME_STAMP_COUNTER_EDX;
+
+
+/**
+  CPUID Linear Physical Address Size
+
+  @param   EAX  CPUID_VIR_PHY_ADDRESS_SIZE (0x80000008)
+
+  @retval  EAX  Linear/Physical Address Size described by the type
+                CPUID_VIR_PHY_ADDRESS_SIZE_EAX.
+  @retval  EBX  _reserved.
+  @retval  ECX  _reserved.
+  @retval  EDX  _reserved.
+
+  <b>Example usage</b>
+  @code
+  CPUID_VIR_PHY_ADDRESS_SIZE_EAX  Eax;
+
+  AsmCpuid (CPUID_VIR_PHY_ADDRESS_SIZE, &Eax.raw, NULL, NULL, NULL);
+  @endcode
+**/
+#define CPUID_VIR_PHY_ADDRESS_SIZE              0x80000008
+
+/**
+  CPUID Linear Physical Address Size EAX for CPUID leaf
+  #CPUID_VIR_PHY_ADDRESS_SIZE.
+**/
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        ///
+        /// [Bits 7:0] Number of physical address bits.
+        ///
+        /// @note
+        /// If CPUID.80000008H:EAX[7:0] is supported, the maximum physical address
+        /// number supported should come from this field.
+        ///
+        uint32_t  PhysicalAddressBits:8;
+        ///
+        /// [Bits 15:8] Number of linear address bits.
+        ///
+        uint32_t  LinearAddressBits:8;
+        uint32_t  _reserved:16;
+    };
+    ///
+    /// All bit fields as a 32-bit value
+    ///
+    uint32_t  raw;
+} CPUID_VIR_PHY_ADDRESS_SIZE_EAX;
+
 void cpuid(uint32_t val, uint32_t* rax, uint32_t* rbx, uint32_t* rcx, uint32_t* rdx);
 void cpuidex(uint32_t val, uint64_t leaf, uint32_t* rax, uint32_t* rbx, uint32_t* rcx, uint32_t* rdx);
 
-#endif //__ARCH_CPUID_H__
+#endif

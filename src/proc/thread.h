@@ -37,7 +37,7 @@ typedef struct thread {
 
     // the context of the thread
     interrupt_context_t cpu_context;
-    // TODO: gpu context
+    void* simd_state;
 
     // the link to the process thread list
     list_entry_t thread_link;

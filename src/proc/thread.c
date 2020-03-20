@@ -2,6 +2,7 @@
 #include <mm/stack_allocator.h>
 #include <mm/gdt.h>
 #include <intr/apic/lapic.h>
+#include <arch/simd.h>
 #include "thread.h"
 #include "sched.h"
 
@@ -38,6 +39,9 @@ err_t spawn_thread(process_t* parent, uintptr_t rip, uintptr_t stack, thread_t**
     thread->cpu_context.rflags.always_one = 1;
     thread->cpu_context.rflags.IF = 1;
     thread->cpu_context.rflags.ID = 1;
+
+    // create simd state
+    thread->simd_state = create_simd_state();
 
     // insert it
     insert_tail_list(&parent->threads_list, &thread->thread_link);

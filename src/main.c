@@ -26,6 +26,7 @@
 #include <compo/fs/fs.h>
 
 #include <tboot.h>
+#include <arch/simd.h>
 
 static tboot_info_t* g_info;
 
@@ -77,19 +78,20 @@ void kernel_main(uint32_t magic, tboot_info_t* info) {
     g_info = info;
 
     // do BSP init
-    lapic_init();
+    init_lapic_for_cpu();
     init_syscalls_for_cpu();
+    init_simd_for_bsp();
 
     // early kernel init
     init_kernel_process();
     acpi_tables_init(info);
     events_init();
     init_timer();
-    CHECK_AND_RETHROW(init_sched());
 
     // TODO: smp
 
-    // setup main thread
+    // initialize scheduler and start a main thread for the kernel
+    CHECK_AND_RETHROW(init_sched());
     CHECK_AND_RETHROW(spawn_thread(&kernel_process, (uintptr_t)main_thread, allocate_stack(), NULL));
 
     // kickstart everything by restoring the tpl

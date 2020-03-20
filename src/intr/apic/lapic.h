@@ -28,7 +28,7 @@ void send_fixed_ipi(uint32_t apic_id, uint8_t vector);
  * Initialize the state of the SoftwareEnable bit in the Local APIC
  * Spurious Interrupt Vector register.
  */
-void lapic_init();
+void init_lapic_for_cpu();
 
 /**
  * Send EOI to the local APIC.
