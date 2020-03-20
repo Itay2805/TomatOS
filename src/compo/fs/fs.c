@@ -131,7 +131,7 @@ err_t sys_fs_open(syscall_context_t* ctx) {
     CHECK_AND_RETHROW(verify_string(path));
 
     // get the handle
-    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, fs, &fs_handle));
+    CHECK_AND_RETHROW(get_handle(get_current_process(), fs, &fs_handle));
     CHECK_AND_RETHROW(fs_handle->type == HANDLE_COMPONENT);
 
     // do it
@@ -142,7 +142,7 @@ err_t sys_fs_open(syscall_context_t* ctx) {
     new_handle->type = HANDLE_FILE;
     new_handle->file.val = f;
     f = NULL;
-    CHECK_AND_RETHROW(add_handle(g_current_thread->parent, new_handle, &out_handle));
+    CHECK_AND_RETHROW(add_handle(get_current_process(), new_handle, &out_handle));
 
     // the return value
     ctx->ret_value = out_handle;
@@ -158,7 +158,7 @@ cleanup:
 
     if (IS_ERROR(err)) {
         if (out_handle > 0) {
-            WARN(!IS_ERROR(remove_handle(g_current_thread->parent, out_handle)), "Failed to remove handle");
+            WARN(!IS_ERROR(remove_handle(get_current_process(), out_handle)), "Failed to remove handle");
         }
 
         if (f != NULL) {
@@ -179,7 +179,7 @@ err_t sys_file_read(syscall_context_t* ctx) {
     CHECK_AND_RETHROW(verify_buffer(buffer, size));
 
     // get the handle
-    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
+    CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
     spinlock_acquire(&handle->lock);
     CHECK_ERROR(handle->type == HANDLE_FILE, ERROR_INVALID_HANDLE);
     file_t file = handle->file.val;
@@ -214,7 +214,7 @@ err_t sys_file_tell(syscall_context_t* ctx) {
 
     int user_handle = ctx->arg1;
 
-    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
+    CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
     CHECK_ERROR(handle->type == HANDLE_FILE, ERROR_INVALID_HANDLE);
     CHECK_AND_RETHROW(file_tell(handle->file.val, &offset));
 

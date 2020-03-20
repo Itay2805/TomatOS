@@ -67,7 +67,7 @@ cleanup:
 
 void on_user_exception(interrupt_context_t* ctx) {
     // just kill the thread or whatever
-    g_current_thread->state = STATE_DEAD;
+    get_current_thread()->state = STATE_DEAD;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,7 +79,7 @@ err_t sys_spawn_thread(syscall_context_t* ctx) {
     thread_t* new_thread = NULL;
 
     // get params
-    process_t* parent = g_current_thread->parent;
+    process_t* parent = get_current_process();
     uintptr_t rip = ctx->arg1;
     uintptr_t stack = ctx->arg2;
     uintptr_t flags = ctx->arg3;
@@ -114,7 +114,7 @@ err_t sys_thrd_set_opt(syscall_context_t* ctx) {
     // figure the thread
     thread_t* thread = NULL;
     if (tid == 0) {
-        thread = g_current_thread;
+        thread = get_current_thread();
     }
 
     // do whatever

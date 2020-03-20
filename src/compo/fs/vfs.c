@@ -55,6 +55,43 @@ err_t vfs_mount(const char* path, filesystem_t fs) {
 // Syscall wrappers
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+err_t sys_vfs_open(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+    file_t file = NULL;
+    handle_t handle = NULL;
+    int out_handle = -1;
+
+    // prepare params
+    const char* path = (void*)ctx->arg1;
+    CHECK_AND_RETHROW(verify_string(path));
+
+    // open the file
+    CHECK_AND_RETHROW(vfs_open(path, &file));
+
+    // create the handke
+    CHECK_AND_RETHROW(create_handle(&handle));
+    handle->type = HANDLE_FILE;
+    handle->file.val = file;
+    CHECK_AND_RETHROW(add_handle(get_current_process(), handle, &out_handle));
+
+    // set the return value
+    ctx->ret_value = out_handle;
+
+cleanup:
+    if (handle != NULL) {
+        WARN(!IS_ERROR(close_handle(handle)), "Failed to close handle");
+    }
+
+    if (IS_ERROR(err)) {
+        if (out_handle != -1) {
+            WARN(!IS_ERROR(remove_handle(get_current_process(), out_handle)), "Failed to remove handle from process");
+        } else {
+            WARN(!IS_ERROR(file_close(file)), "Failed to close file");
+        }
+    }
+    return err;
+}
+
 err_t sys_vfs_resolve(syscall_context_t* ctx) {
     err_t err = NO_ERROR;
     filesystem_t fs = NULL;
@@ -76,7 +113,7 @@ err_t sys_vfs_resolve(syscall_context_t* ctx) {
     CHECK_AND_RETHROW(create_handle(&handle));
     handle->type = HANDLE_COMPONENT;
     handle->component.val = (void*)fs;
-    CHECK_AND_RETHROW(add_handle(g_current_thread->parent, handle, &out_handle));
+    CHECK_AND_RETHROW(add_handle(get_current_process(), handle, &out_handle));
 
     // will return the handle
     ctx->ret_value = out_handle;
@@ -93,7 +130,7 @@ cleanup:
 
     if (IS_ERROR(err)) {
         if (out_handle > 0) {
-            WARN(!IS_ERROR(remove_handle(g_current_thread->parent, out_handle)), "Failed to remove handle from process");
+            WARN(!IS_ERROR(remove_handle(get_current_process(), out_handle)), "Failed to remove handle from process");
         }
     }
 

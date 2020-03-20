@@ -133,19 +133,19 @@ void restore_tpl(tpl_t new_tpl) {
 
 tpl_t get_tpl() {
     // before threading use a static variable
-    if (UNLIKELY(g_current_thread == NULL)) {
+    if (UNLIKELY(get_current_thread() == NULL)) {
         return early_current_tpl;
     } else {
-        return g_current_thread->thread_tpl;
+        return get_current_thread()->thread_tpl;
     }
 }
 
 void set_tpl(tpl_t tpl) {
     // before threading use a static variable
-    if (UNLIKELY(g_current_thread == NULL)) {
+    if (UNLIKELY(get_current_thread() == NULL)) {
         early_current_tpl = tpl;
     } else {
-        g_current_thread->thread_tpl = tpl;
+        get_current_thread()->thread_tpl = tpl;
     }
 }
 
@@ -243,12 +243,12 @@ err_t wait_for_event(size_t number_of_events, event_t* events, size_t* index) {
             event_data_t* data = events[i];
             CHECK_ERROR(data->notify_function == NULL, ERROR_INVALID_PARAM);  // can not wait for event with
                                                                                     // callback function
-            CHECK_ERROR(data->thread == NULL || data->thread == g_current_thread, ERROR_NOT_READY);
-            data->thread = g_current_thread;
+            CHECK_ERROR(data->thread == NULL || data->thread == get_current_thread(), ERROR_NOT_READY);
+            data->thread = get_current_thread();
         }
 
         // set the thread as waiting and yield
-        g_current_thread->state = STATE_WAITING;
+        get_current_thread()->state = STATE_WAITING;
         yield();
     }
 
@@ -333,7 +333,7 @@ err_t sys_create_event(syscall_context_t* ctx) {
     CHECK_AND_RETHROW(create_handle(&handle));
     handle->type = HANDLE_EVENT;
     handle->event.val = event;
-    CHECK_AND_RETHROW(add_handle(g_current_thread->parent, handle, &user_handle));
+    CHECK_AND_RETHROW(add_handle(get_current_process(), handle, &user_handle));
 
     ctx->ret_value = user_handle;
 
@@ -359,7 +359,7 @@ err_t sys_signal_event(syscall_context_t* context) {
     int user_handle = context->arg1;
 
     // get the event
-    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
+    CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
     CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
     event = handle->event.val;
 
@@ -382,7 +382,7 @@ err_t sys_check_event(syscall_context_t* context) {
     int user_handle = context->arg1;
 
     // get the event
-    CHECK_AND_RETHROW(get_handle(g_current_thread->parent, user_handle, &handle));
+    CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
     CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
     event = handle->event.val;
 
@@ -394,7 +394,7 @@ err_t sys_check_event(syscall_context_t* context) {
 
 cleanup:
     if (handle != NULL) {
-        WARN(!IS_ERROR(close_handle(handle)), "");
+        WARN(!IS_ERROR(close_handle(handle)), "Failed to close handle");
     }
 
     return err;

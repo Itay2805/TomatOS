@@ -32,10 +32,11 @@ typedef enum syscall {
     SYS_SIGNAL_EVENT    = 0x46,
 
     // fs mounts
-    SYS_VFS_RESOLVE     = 0x50,
-    SYS_VFS_MOUNT       = 0x51,
-    SYS_VFS_UNMOUNT     = 0x52,
-    SYS_VFS_MOUNTS      = 0x53,
+    SYS_VFS_OPEN        = 0x50,
+    SYS_VFS_RESOLVE     = 0x51,
+    SYS_VFS_MOUNT       = 0x52,
+    SYS_VFS_UNMOUNT     = 0x53,
+    SYS_VFS_MOUNTS      = 0x54,
 
     // fs related calls
     SYS_FS_OPEN         = 0x60,

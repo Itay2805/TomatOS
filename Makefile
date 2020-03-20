@@ -9,7 +9,7 @@ default: bin/tomatos.img
 #########################
 
 INITRD_FILES := $(shell ls root)
-INITRD_FILES_PATH := $(SRCS:%=root/%.o)
+INITRD_FILES_PATH := $(SRCS:%=root/%)
 
 bin/image/initrd.tar: $(INITRD_FILES_PATH) | bin/image
 	cd root && tar -cf ../$@ $(INITRD_FILES)
@@ -47,9 +47,11 @@ COMMON_CFLAGS += \
 	-mcmodel=kernel \
 	-Wno-unused-label \
 	-static \
-	-O3 \
-	-flto \
 	-g
+
+#	-O3 \
+#	-flto \
+
 
 # Set the linking flags
 LDFLAGS += \

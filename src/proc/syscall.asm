@@ -37,6 +37,9 @@ syscall_entry:
     push r15
     push rbp
 
+    ; set the pointer to the syscall context
+    ; and align the stack to 16 on the call
+    mov rdi, rsp
     call syscall_common_handler
 
     ; pop saved registers

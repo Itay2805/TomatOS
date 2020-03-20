@@ -73,6 +73,7 @@ err_t close_handle(handle_t handle) {
 
             case HANDLE_FILE: {
                 // close the file
+                TRACE("CLOSING FILE");
                 CHECK_AND_RETHROW(file_close(handle->file.val));
             } break;
 
@@ -103,7 +104,7 @@ err_t sys_close_handle(syscall_context_t* ctx) {
     err_t err = NO_ERROR;
 
     int handle = ctx->arg1;
-    CHECK_AND_RETHROW(remove_handle(g_current_thread->parent, handle));
+    CHECK_AND_RETHROW(remove_handle(get_current_process(), handle));
 
 cleanup:
     return err;

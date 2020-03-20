@@ -19,7 +19,7 @@ static err_t sys_log(syscall_context_t *ctx) {
     const char* str = (char *) ctx->arg1;
     CHECK_AND_RETHROW(verify_string(str));
 
-    TRACE("syslog: pid=%d, tid=%d: %s", g_current_thread->parent->pid, g_current_thread->tid, str);
+    TRACE("syslog: pid=%d, tid=%d: %s", get_current_process()->pid, get_current_thread()->tid, str);
 
 cleanup:
     return err;
@@ -51,6 +51,7 @@ static syscall_handler_t handlers[SYS_MAX] = {
         [SYS_SIGNAL_EVENT] = sys_signal_event,
 
         // fs mounts
+        [SYS_VFS_OPEN] = sys_vfs_open,
         [SYS_VFS_RESOLVE] = sys_vfs_resolve,
         [SYS_VFS_MOUNT] = sys_vfs_mount,
         [SYS_VFS_UNMOUNT] = NULL,
@@ -66,18 +67,18 @@ static syscall_handler_t handlers[SYS_MAX] = {
         [SYS_FILE_TELL] = sys_file_tell,
 };
 
-void syscall_common_handler(syscall_context_t ctx) {
+void syscall_common_handler(syscall_context_t* ctx) {
     err_t err = NO_ERROR;
 
     // check that the syscall number is valid
-    CHECK_ERROR(ctx.syscall < ARRAY_LEN(handlers), ERROR_NOT_FOUND);
+    CHECK_ERROR(ctx->syscall < ARRAY_LEN(handlers), ERROR_NOT_FOUND);
 
     // call the handler
-    CHECK_AND_RETHROW(handlers[ctx.syscall](&ctx));
+    CHECK_AND_RETHROW(handlers[ctx->syscall](ctx));
 
 cleanup:
     WARN(!IS_ERROR(err), "Got error in syscall, ignoring");
-    ctx.ret_error = err;
+    ctx->ret_error = err;
 }
 
 err_t verify_string(const char *str) {

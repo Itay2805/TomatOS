@@ -47,8 +47,8 @@ typedef struct process {
 /**
  * List of all the process in the system
  */
-extern spinlock_t process_lock;
-extern list_entry_t process_list;
+extern spinlock_t m_process_list_lock;
+extern list_entry_t m_process_list;
 
 /**
  * The kernel process

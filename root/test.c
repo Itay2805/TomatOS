@@ -45,12 +45,8 @@ static void sys_log(const char* str) {
     __syscall1(0x00, (uintptr_t) str);
 }
 
-static int vfs_resolve(const char* path, const char** out) {
-    return __syscall2(0x50, (uintptr_t)path, (uintptr_t)out);
-}
-
-static int fs_open(int fs, const char* path) {
-    return __syscall2(0x60, fs, (uintptr_t)path);
+static int vfs_open(const char* path) {
+    return __syscall1(0x50, (uintptr_t)path);
 }
 
 static int file_read(int file, void* buffer, size_t len) {
@@ -60,20 +56,17 @@ static int file_read(int file, void* buffer, size_t len) {
 void _start() {
 
     // resolve the path and open it
-    // TODO: library function to just open a file
-    const char* out_path = 0;
-    int fs = vfs_resolve("/hello.txt", &out_path);
-    if (fs < 0) goto cleanup;
-    int file = fs_open(fs, out_path);
+    int file = vfs_open("/hello.txt");
     if (file < 0) goto cleanup;
 
-    // read it
+    // read itf
     char buffer[255] = {0};
-    int res = file_read(file, buffer, sizeof(buffer));
-    if (res < 0) goto cleanup;
+    int ret = file_read(file, buffer, sizeof(buffer));
+    if (ret < 0) goto cleanup;
 
     // log it
     sys_log(buffer);
+    while(1);
 
 cleanup:
     sys_log("Got error in syscall");

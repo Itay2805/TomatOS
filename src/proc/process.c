@@ -6,11 +6,11 @@
 #include "thread.h"
 #include "sched.h"
 
-static pid_t g_pid_gen = 1;
+static pid_t m_pid_gen = 1;
 
 // TODO: Maybe switch to a hashmap
-spinlock_t process_lock = SPINLOCK_INIT;
-list_entry_t process_list = INIT_LIST_ENTRY(process_list);
+spinlock_t m_process_list_lock = SPINLOCK_INIT;
+list_entry_t m_process_list = INIT_LIST_ENTRY(m_process_list);
 
 /**
  * The kernel process is always pid 0
@@ -23,15 +23,16 @@ process_t kernel_process = {
 };
 
 void init_kernel_process() {
-    insert_tail_list(&process_list, &kernel_process.link);
+    insert_tail_list(&m_process_list, &kernel_process.link);
 }
 
 err_t get_process_by_pid(int pid, process_t** process) {
     err_t err = NO_ERROR;
 
+    spinlock_acquire(&m_process_list_lock);
     CHECK_AND_RETHROW(process != NULL);
 
-    FOR_EACH_IN_LIST(process_list, link) {
+    FOR_EACH_IN_LIST(m_process_list, link) {
         process_t* proc = CR(link, process_t, link);
         if (proc->pid == pid) {
             proc->refcount++;
@@ -43,6 +44,7 @@ err_t get_process_by_pid(int pid, process_t** process) {
     CHECK_FAIL_ERROR(ERROR_NOT_FOUND);
 
 cleanup:
+    spinlock_release(&m_process_list_lock);
     return err;
 }
 
@@ -54,7 +56,7 @@ err_t create_process(process_t** process) {
     // initialize a new process
     process_t* proc = mm_allocate(sizeof(process_t));
     vmm_create_address_space(&proc->vmm_handle);
-    proc->pid = g_pid_gen++;
+    proc->pid = m_pid_gen++;
     proc->tid_gen = 1;
     proc->refcount = 1;
     proc->threads_list = INIT_LIST_ENTRY(proc->threads_list);
@@ -64,9 +66,9 @@ err_t create_process(process_t** process) {
     proc->handles_lock = SPINLOCK_INIT;
 
     // insert the process to the process list
-    spinlock_acquire(&process_lock);
-    insert_tail_list(&process_list, &proc->link);
-    spinlock_release(&process_lock);
+    spinlock_acquire(&m_process_list_lock);
+    insert_tail_list(&m_process_list, &proc->link);
+    spinlock_release(&m_process_list_lock);
 
     *process = proc;
 
@@ -147,6 +149,7 @@ err_t add_handle(process_t* process, handle_t handle, int* out_handle) {
     spinlock_acquire(&process->handles_lock);
 
     // add it
+    handle->refcount++;
     *out_handle = process->next_handle++;
     hmput(process->handles, *out_handle, handle);
 

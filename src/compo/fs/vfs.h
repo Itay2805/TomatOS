@@ -37,6 +37,7 @@ err_t vfs_mount(const char* path, filesystem_t fs);
 // Syscall wrappers
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+err_t sys_vfs_open(syscall_context_t* ctx);
 err_t sys_vfs_resolve(syscall_context_t* ctx);
 err_t sys_vfs_mount(syscall_context_t* ctx);
 

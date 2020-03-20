@@ -2,21 +2,30 @@
 #include <intr/apic/lapic.h>
 #include "sched.h"
 
-_Atomic(thread_t*) CPU_LOCAL g_current_thread;
+_Atomic(thread_t*) CPU_LOCAL m_current_thread;
+
+thread_t* get_current_thread() {
+    return m_current_thread;
+}
+
+process_t* get_current_process() {
+    return m_current_thread->parent;
+}
+
 _Atomic(uintptr_t) CPU_LOCAL g_kernel_stack;
 _Atomic(uintptr_t) CPU_LOCAL g_saved_stack;
 
-static list_entry_t threads_queue = INIT_LIST_ENTRY(threads_queue);
+static list_entry_t m_threads_queue = INIT_LIST_ENTRY(m_threads_queue);
 
 // we need a custom lock that does not touch tpl
-static atomic_flag flag;
+static atomic_flag m_flag;
 
 static void sched_lock() {
-    while (!atomic_flag_test_and_set_explicit(&flag, memory_order_acquire));
+    while (!atomic_flag_test_and_set_explicit(&m_flag, memory_order_acquire));
 }
 
 static void sched_unlock() {
-    atomic_flag_clear_explicit(&flag, memory_order_release);
+    atomic_flag_clear_explicit(&m_flag, memory_order_release);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +86,7 @@ static void idle_thread_func() {
          * make sure we don't ever schedule the idle thread
          */
         asm volatile("hlt" ::: "memory");
-        g_current_thread->state = STATE_WAITING;
+        m_current_thread->state = STATE_WAITING;
         yield();
     }
 }
@@ -120,7 +129,7 @@ err_t queue_thread(thread_t* thread) {
     // TODO: use compare exchange
     if (thread->state == STATE_WAITING) {
         thread->state = STATE_NORMAL;
-        insert_tail_list(&threads_queue, &thread->scheduler_link);
+        insert_tail_list(&m_threads_queue, &thread->scheduler_link);
     }
 
 cleanup:
@@ -136,28 +145,28 @@ err_t sched_tick(interrupt_context_t* ctx) {
     CHECK(ctx != NULL);
 
     // check if has something to run
-    if (is_list_empty(&threads_queue)) {
+    if (is_list_empty(&m_threads_queue)) {
         // make sure something runs
-        ASSERT(g_current_thread != NULL);
+        ASSERT(m_current_thread != NULL);
 
         // if not running then it needs to be unscheduled
         // run the idle task instead
-        if (g_current_thread->state != STATE_RUNNING) {
+        if (m_current_thread->state != STATE_RUNNING) {
             // save the current context
-            g_current_thread->cpu_context = *ctx;
+            m_current_thread->cpu_context = *ctx;
 
             // schedule the idle thread
-            g_current_thread = idle_thread;
+            m_current_thread = idle_thread;
             *ctx = idle_thread->cpu_context;
             vmm_set_handle(&kernel_process.vmm_handle);
 
             // no need for the temp stack or kernel stack
         }
     } else {
-        thread_t* running = g_current_thread;
+        thread_t* running = m_current_thread;
 
         // pop from the queue
-        thread_t* to_run = CR(threads_queue.next, thread_t, scheduler_link);
+        thread_t* to_run = CR(m_threads_queue.next, thread_t, scheduler_link);
         remove_entry_list(&to_run->scheduler_link);
         to_run->scheduler_link.next = NULL;
         ASSERT(to_run->state == STATE_NORMAL);
@@ -171,7 +180,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
 
             if (running->state == STATE_RUNNING) {
                 running->state = STATE_NORMAL;
-                insert_tail_list(&threads_queue, &running->scheduler_link);
+                insert_tail_list(&m_threads_queue, &running->scheduler_link);
             } else if(running->state == STATE_DEAD) {
                 TRACE("Thread %d has died, TODO kill it", running->tid);
             } else {
@@ -190,7 +199,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
         // set as the running thread
         to_run->state = STATE_RUNNING;
         to_run->apic_id = get_apic_id();
-        g_current_thread = to_run;
+        m_current_thread = to_run;
     }
 
 cleanup:

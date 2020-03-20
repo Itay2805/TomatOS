@@ -4,14 +4,13 @@
 #include <smp/pcpu.h>
 #include "thread.h"
 
-/**
- * The currently running thread on this cpu
- */
-extern _Atomic(thread_t*) CPU_LOCAL g_current_thread;
-
 // used for syscalls
 extern _Atomic(uintptr_t) CPU_LOCAL g_kernel_stack;
 extern _Atomic(uintptr_t) CPU_LOCAL g_saved_stack;
+
+thread_t* get_current_thread();
+process_t* get_current_process();
+
 
 /**
  * Initialize the scheduler

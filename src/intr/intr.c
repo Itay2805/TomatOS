@@ -119,12 +119,12 @@ static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
     }
 
     // thread info
-    if (g_current_thread != NULL) {
-        trace("[-] Process: pid=%d tid=%d\n", g_current_thread->parent->pid, g_current_thread->tid);
+    if (get_current_thread() != NULL) {
+        trace("[-] Process: pid=%d tid=%d\n", get_current_process()->pid, get_current_thread()->tid);
     }
 
     // print the tpl
-    switch (get_tpl()) {
+    switch (was_tpl) {
         // for defined values
         case TPL_HIGH_LEVEL: trace("[-] Current TPL: TPL_HIGH_LEVEL\n"); break;
         case TPL_APPLICATION: trace("[-] Current TPL: TPL_APPLICATION\n"); break;
@@ -135,7 +135,7 @@ static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
         case TPL_USER_HIGH: trace("[-] Current TPL: TPL_USER_HIGH\n"); break;
 
         default:
-            trace("[-] Current TPL: %d\n", get_tpl());
+            trace("[-] Current TPL: %d\n", was_tpl);
     }
 
     // print registers
@@ -273,7 +273,7 @@ void common_interrupt_handler(interrupt_context_t ctx) {
 
     // interrupt handlers always run at a high level
     tpl_t oldtpl = raise_tpl(TPL_HIGH_LEVEL);
-    thread_t* thread = g_current_thread;
+    thread_t* thread = get_current_thread();
 
     if(is_list_empty(&interrupt_handlers[ctx.int_num])) {
 
@@ -295,7 +295,7 @@ cleanup:
     // If we had a reschedule then we need to restore
     // the tpl correctly, we do this by raising back
     // to TPL_HIGH_LEVEL and then restore again
-    if (g_current_thread != thread) {
+    if (get_current_thread() != thread) {
         oldtpl = raise_tpl(TPL_HIGH_LEVEL);
     }
 
@@ -306,7 +306,7 @@ cleanup:
     // make sure there is actually a thread
     // running (when we startup threading we
     // won't have this initialized)
-    if (LIKELY(g_current_thread != NULL) && g_current_thread->state == STATE_DEAD) {
+    if (LIKELY(get_current_thread() != NULL) && get_current_thread()->state == STATE_DEAD) {
         yield();
     }
 }
