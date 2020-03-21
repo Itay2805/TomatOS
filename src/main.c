@@ -29,6 +29,7 @@
 #include <arch/simd.h>
 #include <compo/screen/screen.h>
 #include <compo/screen/framebuffer/framebuffer.h>
+#include <sys/pci.h>
 
 static tboot_info_t* g_info;
 
@@ -38,6 +39,8 @@ static tboot_info_t* g_info;
 static void main_thread() {
     err_t err = NO_ERROR;
     TRACE("In main thread!");
+
+    WARN(!IS_ERROR(init_pci()), "Failed to initialize PCI, PCI based drivers won't be loaded");
 
     // only mount initrd if has any
     if (g_info->modules.count == 1) {

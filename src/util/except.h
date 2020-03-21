@@ -40,6 +40,7 @@ const char* strerror(err_t err);
 #define CHECK_ERROR_TRACE(expr, error, fmt, ...) CHECK_ERROR_LABEL_TRACE(expr, error, cleanup, fmt, ## __VA_ARGS__)
 #define CHECK_ERROR(expr, error) CHECK_ERROR_LABEL_TRACE(expr, error, cleanup, "")
 #define CHECK(expr) CHECK_ERROR(expr, ERROR_CHECK_FAILED)
+#define CHECK_FAIL_ERROR_TRACE(err, fmt, ...) CHECK_ERROR_TRACE(0, err, fmt, ## __VA_ARGS__)
 #define CHECK_FAIL_ERROR(err) CHECK_ERROR(0, err)
 #define CHECK_FAIL() CHECK(0)
 
