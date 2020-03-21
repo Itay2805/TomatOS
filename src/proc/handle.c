@@ -1,6 +1,5 @@
 #include <mm/mm.h>
 #include <compo/fs/fs.h>
-#include <compo/wm/workspace.h>
 
 #include "handle.h"
 #include "sched.h"
@@ -63,9 +62,6 @@ err_t close_handle(handle_t handle) {
 
     spinlock_acquire(&handle->lock);
 
-    // one less reference
-    handle->refcount--;
-
     // if reached to zero references then delete it
     if (handle->refcount == 0) {
         switch (handle->type) {
@@ -88,16 +84,11 @@ err_t close_handle(handle_t handle) {
                 // close the event
                 CHECK_AND_RETHROW(close_event(handle->val));
             } break;
-
-            case HANDLE_WORKSPACE: {
-                // close the workspace
-                CHECK_AND_RETHROW(close_workspace(handle->val));
-            } break;
-
-            case HANDLE_WINDOW: {
-                ASSERT(false);
-            } break;
         }
+
+
+        // one less reference
+        handle->refcount--;
 
         // free the handle
         mm_free(handle);

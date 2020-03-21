@@ -163,25 +163,22 @@ cleanup:
 
 err_t remove_handle(process_t* process, int handle) {
     err_t err = NO_ERROR;
-    int i = 0;
 
     CHECK_ERROR(process != NULL, ERROR_INVALID_PARAM);
     spinlock_acquire(&process->handles_lock);
 
     // get the entry
-    i = hmgeti(process->handles, handle);
+    int i = hmgeti(process->handles, handle);
     CHECK_ERROR(i != -1, ERROR_INVALID_HANDLE);
 
     // close the handle
     CHECK_AND_RETHROW(close_handle(process->handles[i].value));
 
+    // remove from the map only if could close the handle
+    hmdel(process->handles, handle);
+
 cleanup:
     if (process != NULL) {
-        // remove from the map
-        if (i != -1) {
-            hmdel(process->handles, handle);
-        }
-
         spinlock_release(&process->handles_lock);
     }
     return err;

@@ -7,8 +7,6 @@ typedef struct {
     struct screen screen;
 
     uint32_t* framebuffer;
-    uint64_t width;
-    uint64_t height;
     uint64_t pitch;
 } framebuffer_t;
 
@@ -20,12 +18,12 @@ err_t framebuffer_blit(framebuffer_t* screen, uint32_t* buffer, size_t x, size_t
     size_t pitch = width;
 
     // outside of sigh, no need to do anything
-    if (x >= screen->width) goto cleanup;
-    if (y >= screen->height) goto cleanup;
+    if (x >= screen->screen.width) goto cleanup;
+    if (y >= screen->screen.height) goto cleanup;
 
     // trim the width/height accordingly
-    if (x + width >= screen->width) width = screen->width - x - 1;
-    if (y + height >= screen->height) height = screen->height - y - 1;
+    if (x + width >= screen->screen.width) width = screen->screen.width - x - 1;
+    if (y + height >= screen->screen.height) height = screen->screen.height - y - 1;
 
     // do it
     for (int by = 0; by < height; by++) {
@@ -60,8 +58,8 @@ void init_framebuffer_screen(tboot_info_t* info) {
 
     // setup the device info
     m_fb_screen.framebuffer = (uint32_t*)PHYSICAL_TO_DIRECT(info->framebuffer.addr);
-    m_fb_screen.width = info->framebuffer.width;
-    m_fb_screen.height = info->framebuffer.height;
+    m_fb_screen.screen.width = info->framebuffer.width;
+    m_fb_screen.screen.height = info->framebuffer.height;
     m_fb_screen.pitch = info->framebuffer.pitch;
 
     // register device

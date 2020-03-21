@@ -14,8 +14,6 @@ typedef enum handle_type {
     HANDLE_COMPONENT,
     HANDLE_FILE,
     HANDLE_EVENT,
-    HANDLE_WORKSPACE,
-    HANDLE_WINDOW,
 } handle_type_t;
 
 typedef struct handle_data {

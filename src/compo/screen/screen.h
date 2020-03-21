@@ -6,6 +6,10 @@
 
 typedef struct screen {
     component_t component;
+
+    size_t width;
+    size_t height;
+
     err_t (*blit)(struct screen*, void* buffer, size_t x, size_t y, size_t width, size_t height);
 }* screen_t;
 
