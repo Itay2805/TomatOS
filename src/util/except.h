@@ -29,20 +29,36 @@ const char* strerror(err_t err);
     do { \
         if (!(expr)) { \
             err = error; \
-            trace("[-] Check failed with error `%s` in function %s (%s:%d)\n", strerror(err), __func__, __FILENAME__, __LINE__); \
-            if (fmt[0] != '\0') { \
-                trace("[-] " fmt "\n", ## __VA_ARGS__); \
-            } \
+            trace("[-] " fmt "\n", ## __VA_ARGS__); \
+            trace("[-] CHECK failed with error `%s` in function %s (%s:%d)\n", strerror(err), __func__, __FILENAME__, __LINE__); \
             goto label; \
         } \
     } while(0)
 
 #define CHECK_ERROR_TRACE(expr, error, fmt, ...) CHECK_ERROR_LABEL_TRACE(expr, error, cleanup, fmt, ## __VA_ARGS__)
-#define CHECK_ERROR(expr, error) CHECK_ERROR_LABEL_TRACE(expr, error, cleanup, "")
-#define CHECK(expr) CHECK_ERROR(expr, ERROR_CHECK_FAILED)
-#define CHECK_FAIL_ERROR_TRACE(err, fmt, ...) CHECK_ERROR_TRACE(0, err, fmt, ## __VA_ARGS__)
-#define CHECK_FAIL_ERROR(err) CHECK_ERROR(0, err)
-#define CHECK_FAIL() CHECK(0)
+#define CHECK_LABEL_TRACE(expr, label, fmt, ...) CHECK_ERROR_LABEL_TRACE(expr, ERROR_CHECK_FAILED, label, fmt, ## __VA_ARGS__)
+#define CHECK_TRACE(expr, fmt, ...) CHECK_ERROR_LABEL_TRACE(expr, ERROR_CHECK_FAILED, cleanup, fmt, ## __VA_ARGS__)
+
+#define CHECK_ERROR_LABEL(expr, error, label) \
+    do { \
+        if (!(expr)) { \
+            err = error; \
+            trace("[-] CHECK failed with error `%s` in function %s (%s:%d)\n", strerror(err), __func__, __FILENAME__, __LINE__); \
+            goto label; \
+        } \
+    } while(0)
+
+#define CHECK_ERROR(expr, error) CHECK_ERROR_LABEL(expr, error, cleanup)
+#define CHECK_LABEL(expr, label) CHECK_ERROR_LABEL(expr, ERROR_CHECK_FAILED, label)
+#define CHECK(expr) CHECK_ERROR_LABEL(expr, ERROR_CHECK_FAILED, cleanup)
+
+#define CHECK_FAIL_ERROR_TRACE(error, fmt, ...) CHECK_ERROR_LABEL_TRACE(0, error, cleanup, fmt, ## __VA_ARGS__)
+#define CHECK_FAIL_LABEL_TRACE(label, fmt, ...) CHECK_ERROR_LABEL_TRACE(0, ERROR_CHECK_FAILED, label, fmt, ## __VA_ARGS__)
+#define CHECK_FAIL_TRACE(fmt, ...) CHECK_ERROR_LABEL_TRACE(0, ERROR_CHECK_FAILED, cleanup, fmt, ## __VA_ARGS__)
+
+#define CHECK_FAIL_ERROR(error) CHECK_ERROR_LABEL(0, error, cleanup)
+#define CHECK_FAIL_LABEL(label) CHECK_ERROR_LABEL(0, ERROR_CHECK_FAILED, label)
+#define CHECK_FAIL() CHECK_ERROR_LABEL(0, ERROR_CHECK_FAILED, cleanup)
 
 #define CHECK_AND_RETHROW_LABEL(error, label) \
     do { \

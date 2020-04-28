@@ -46,21 +46,21 @@ static framebuffer_t m_fb_screen = {
     }
 };
 
-void init_framebuffer_screen(tboot_info_t* info) {
+void init_framebuffer_screen(stivale_struct_t* info) {
     // generate the device address
     generate_device_address("framebuffer", sizeof("framebuffer") - 1, &m_fb_screen.screen.component.address);
 
     // map the framebuffer
     vmm_map(&kernel_process.vmm_handle,
-            info->framebuffer.addr, PHYSICAL_TO_DIRECT(info->framebuffer.addr),
-            info->framebuffer.height * info->framebuffer.pitch * 4,
+            info->framebuffer_addr, PHYSICAL_TO_DIRECT(info->framebuffer_addr),
+            info->framebuffer_height * info->framebuffer_pitch,
             PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
 
     // setup the device info
-    m_fb_screen.framebuffer = (uint32_t*)PHYSICAL_TO_DIRECT(info->framebuffer.addr);
-    m_fb_screen.screen.width = info->framebuffer.width;
-    m_fb_screen.screen.height = info->framebuffer.height;
-    m_fb_screen.pitch = info->framebuffer.pitch;
+    m_fb_screen.framebuffer = (uint32_t*)PHYSICAL_TO_DIRECT(info->framebuffer_addr);
+    m_fb_screen.screen.width = info->framebuffer_width;
+    m_fb_screen.screen.height = info->framebuffer_height;
+    m_fb_screen.pitch = info->framebuffer_pitch;
 
     // register device
     register_component((component_t*)&m_fb_screen);

@@ -217,7 +217,7 @@ void* create_simd_state() {
     } else {
         // allocate it
         uintptr_t base;
-        pmm_allocate_pages(ALLOCATE_ANY, SIZE_TO_PAGES(m_state_size), &base);
+        ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, SIZE_TO_PAGES(m_state_size), &base)));
 
         // setup the correct context
         FX_SAVE_STATE* state = (void*)PHYSICAL_TO_DIRECT(base);
@@ -244,7 +244,7 @@ void* create_simd_state() {
 
 void free_simd_state(void* state) {
     if (m_state_size != 0) {
-        pmm_free_pages((uintptr_t)DIRECT_TO_PHYSICAL(state), SIZE_TO_PAGES(m_state_size));
+        ASSERT(!IS_ERROR(pmm_free_pages((uintptr_t)DIRECT_TO_PHYSICAL(state), SIZE_TO_PAGES(m_state_size))));
     } else {
         ASSERT(state == NULL);
     }

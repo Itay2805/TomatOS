@@ -49,7 +49,7 @@ uintptr_t allocate_stack() {
     for (int i = 0; i < SIZE_TO_PAGES(STACK_SIZE); i++) {
         // allocate and map the page
         uintptr_t base = 0;
-        pmm_allocate_pages(ALLOCATE_ANY, 1, &base);
+        ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, 1, &base)));
         vmm_map(&kernel_process.vmm_handle, base, stack_allocation, PAGE_SIZE, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
 
         stack_allocation += PAGE_SIZE;

@@ -85,7 +85,7 @@ KERNEL_CFLAGS += -Isrc/
 -include $(DEPS)
 
 # Link everything
-bin/image/tomatos.elf: $(BINS) $(OBJS)
+bin/image/tomatos.elf: $(BINS) $(OBJS) scripts/linker.ld
 	@echo Generating kernel symbol list
 	@python3 ./scripts/generate_symbols.py > src/util/symlist.c
 	@$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
@@ -148,3 +148,6 @@ bin/tomatos.img: bin/image/initrd.tar \
 
 clean:
 	rm -rf build bin
+
+clean-all: clean
+	$(MAKE) -C boot clean

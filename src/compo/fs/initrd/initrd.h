@@ -1,8 +1,8 @@
 #ifndef __COMPO_FS_INITRD_INITRD_H__
 #define __COMPO_FS_INITRD_INITRD_H__
 
-#include <tboot.h>
+#include <stivale.h>
 
-void create_initrd_fs(tboot_module_t* module);
+void create_initrd_fs(stivale_module_t* module);
 
 #endif //__COMPO_FS_INITRD_INITRD_H__

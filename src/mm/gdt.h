@@ -68,6 +68,15 @@ typedef struct tss64 {
  */
 extern gdt_t gdt;
 
+/**
+ * Load the gdt for the current cpu
+ * will also fix the segments
+ */
+void init_gdt_for_bsp();
+
+/**
+ * Load the TSS for the current cpu
+ */
 void init_tss_for_cpu();
 
 #endif //__MM_GDT_H__

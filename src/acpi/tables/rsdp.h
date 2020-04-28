@@ -2,7 +2,7 @@
 #define __ACPI_TABLES_RSDP_H__
 
 #include <stdint.h>
-#include <tboot.h>
+#include <stivale.h>
 
 typedef struct acpi_rsdp_t {
     char signature[8];
@@ -26,6 +26,6 @@ typedef struct acpi_xsdp_t {
 extern acpi_rsdp_t* acpi_rsdp;
 extern acpi_xsdp_t* acpi_xsdp;
 
-void rsdp_init(tboot_info_t* info);
+void rsdp_init(uintptr_t rsdp_ptr);
 
 #endif //__ACPI_TABLES_RSDP_H__

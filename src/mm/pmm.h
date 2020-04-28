@@ -3,7 +3,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <tboot.h>
+#include <stivale.h>
+#include <util/except.h>
 
 typedef enum allocate_type {
     ALLOCATE_ANY,
@@ -14,7 +15,7 @@ typedef enum allocate_type {
 /**
  * Initialize the pmm
  */
-void pmm_init(tboot_info_t* info);
+void pmm_init(stivale_struct_t* info);
 
 /**
  * Tell the pmm we are over the VMM initialization
@@ -41,7 +42,7 @@ void pmm_post_vmm();
  * @param page_count    [IN]    The amount of pages to allocate
  * @param base          [OUT]   The allocate page (physical memory)
  */
-void pmm_allocate_pages(allocate_type_t type, size_t page_count, uintptr_t* base);
+err_t pmm_allocate_pages(allocate_type_t type, size_t page_count, uintptr_t* base);
 
 /**
  * Will free the pages so they can be allocated again
@@ -49,6 +50,6 @@ void pmm_allocate_pages(allocate_type_t type, size_t page_count, uintptr_t* base
  * @param base          [IN] Base address
  * @param page_count    [IN] The page count
  */
-void pmm_free_pages(uintptr_t base, size_t page_count);
+err_t pmm_free_pages(uintptr_t base, size_t page_count);
 
 #endif //__MM_PMM_H__

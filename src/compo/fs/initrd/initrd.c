@@ -218,14 +218,13 @@ static struct filesystem component = {
     .is_readonly = tar_is_readonly,
 };
 
-void create_initrd_fs(tboot_module_t* module) {
-    uintptr_t base = PHYSICAL_TO_DIRECT(module->base);
-    tar_header_t* header = PHYSICAL_TO_DIRECT((tar_header_t*)module->base);
+void create_initrd_fs(stivale_module_t* module) {
+    tar_header_t* header = (tar_header_t*)module->begin;
 
     // parse the initrd
     while (true) {
         // got to end of file
-        if((ptrdiff_t)(((uintptr_t)header + TAR_HEADER_SIZE) - base) > (ptrdiff_t)module->len) {
+        if((ptrdiff_t)((uintptr_t)header + TAR_HEADER_SIZE) > (ptrdiff_t)module->end) {
             break;
         }
 
@@ -236,7 +235,7 @@ void create_initrd_fs(tboot_module_t* module) {
 
         // make sure the file size is all good
         size_t size = ALIGN_UP(tar_size(header), TAR_HEADER_SIZE);
-        ASSERT((ptrdiff_t)(((uintptr_t)header + TAR_HEADER_SIZE + size) - base) <= (ptrdiff_t)module->len);
+        ASSERT((ptrdiff_t)((uintptr_t)header + TAR_HEADER_SIZE + size) <= (ptrdiff_t)module->end);
 
         // add it
         shput(initrd_files, header->filename, header);

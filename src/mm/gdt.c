@@ -66,6 +66,13 @@ gdt_t gdt = {
         .entries = &gdt_entries
 };
 
+extern void gdt_fix_segments();
+
+void init_gdt_for_bsp() {
+    __lgdt(&gdt);
+    gdt_fix_segments();
+}
+
 void init_tss_for_cpu() {
     // setup the interrupt stack
     tss.rsp0 = allocate_stack();

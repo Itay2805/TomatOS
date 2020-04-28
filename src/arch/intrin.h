@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <assert.h>
+#include <mm/gdt.h>
 
 void __outbyte(uint16_t port, uint8_t data);
 void __outword(uint16_t port, uint16_t data);
@@ -95,6 +96,7 @@ void __halt(void);
 void __nop(void);
 
 void __ltr(uint16_t seg);
+void __lgdt(gdt_t* gdt);
 
 void __swapgs(void);
 

@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <tboot.h>
+#include <stivale.h>
 #include <smp/pcpu.h>
 #include <util/list.h>
 #include "pmm.h"
@@ -67,7 +67,7 @@ typedef struct vmm_handle {
  * - maps the kernel
  * - maps a direct mapping for all the good memory handles
  */
-void vmm_init(tboot_info_t* info);
+void vmm_init(stivale_struct_t* info);
 
 /**
  * This will enable special memory related features

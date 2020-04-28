@@ -15,13 +15,13 @@ static tlsf_t g_kernel_tlsf;
 
 void* kernel_tlsf_map(size_t* size, void* user) {
     uintptr_t base = 0;
-    pmm_allocate_pages(ALLOCATE_ANY, SIZE_TO_PAGES(*size), &base);
+    ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, SIZE_TO_PAGES(*size), &base)));
     *size = ALIGN_UP(*size, PAGE_SIZE);
     return (void*)PHYSICAL_TO_DIRECT(base);
 }
 
 void  kernel_tlsf_unmap(void* mem, size_t size, void* user) {
-    pmm_free_pages(DIRECT_TO_PHYSICAL((uintptr_t)mem), size);
+    ASSERT(!IS_ERROR(pmm_free_pages(DIRECT_TO_PHYSICAL((uintptr_t)mem), size)));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

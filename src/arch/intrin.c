@@ -1,3 +1,4 @@
+#include <mm/gdt.h>
 #include "intrin.h"
 
 void __outbyte(uint16_t port, uint8_t data) {
@@ -196,6 +197,10 @@ void __nop(void) {
 
 void __ltr(uint16_t seg){
     asm volatile("ltr %%ax" : : "a"(seg));
+}
+
+void __lgdt(gdt_t* gdt) {
+    asm volatile ( "lgdt %0" : : "m" (*gdt));
 }
 
 void __swapgs(void) {

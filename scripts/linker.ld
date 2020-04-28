@@ -1,4 +1,4 @@
-ENTRY(tboot_main)
+ENTRY(kernel_main)
 OUTPUT_FORMAT("elf64-x86-64")
 OUTPUT_ARCH(i386:x86-64)
 
@@ -11,28 +11,29 @@ SECTIONS
     }
     kernel_pcpu_data_size = .;
 
-    /* ========== TomatBoot stub ========== */
-	. = 0x0100000;
-	kernel_physical_start = .;
-
-    .tboot.text ALIGN(4K) :
-    {
-	    *(.tboot.text)
+    .stivalehdr (NOLOAD) : {
+        .stivalehdr
     }
 
     /* ========= Kernel code ========= */
-    . += 0xFFFFFFFFC0000000;
-	.text ALIGN(4K) : AT (ADDR (.text) - 0xFFFFFFFFC0000000)
+    . = 0xffffffff80100000;
+    kernel_start = .;
+
+	.text ALIGN(4K) :
 	{
 	    *(.text*)
 	}
 
-    .rodata ALIGN(4K) : AT (ADDR (.rodata) - 0xFFFFFFFFC0000000)
+	kernel_text_end = .;
+
+    .rodata ALIGN(4K) :
     {
         *(.rodata*)
     }
 
-	.data ALIGN(4K) : AT (ADDR (.data) - 0xFFFFFFFFC0000000)
+    kernel_rodata_end = .;
+
+	.data ALIGN(4K) :
 	{
 	    *(.data*)
 
@@ -41,12 +42,11 @@ SECTIONS
 	    . += ABSOLUTE(kernel_pcpu_data_size);
 	}
 
-	.bss ALIGN(4K) : AT (ADDR (.bss) - 0xFFFFFFFFC0000000)
+	.bss ALIGN(4K) :
 	{
 	    *(COMMON)
 	    *(.bss*)
 	}
 
-	kernel_physical_end = . - 0xFFFFFFFFC0000000;
-	kernel_virtual_end = .;
+	kernel_end = .;
 }

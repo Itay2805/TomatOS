@@ -1,7 +1,7 @@
 #ifndef __COMPO_SCREEN_SCREEN_H__
 #define __COMPO_SCREEN_SCREEN_H__
 
-#include <tboot.h>
+#include <stivale.h>
 #include <compo/component.h>
 
 typedef struct screen {
@@ -25,8 +25,6 @@ typedef struct screen {
  * @param y         [IN] The y position
  * @param width     [IN] The width of the blit buffer
  * @param height    [IN] The height of the blit buffer
- *
- * //TODO: Pitch?
  */
 err_t screen_blit(screen_t screen, void* buffer, size_t x, size_t y, size_t width, size_t height);
 

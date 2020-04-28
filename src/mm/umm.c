@@ -43,7 +43,7 @@ static vmm_umem_block_t* allocate_block() {
     // allocate some entries if we have none
     if (is_list_empty(&free_block_list)) {
         vmm_umem_block_t* base;
-        pmm_allocate_pages(ALLOCATE_ANY, 1, (uintptr_t*)&base);
+        ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, 1, (uintptr_t*)&base)));
         base = PHYSICAL_TO_DIRECT(base);
 
         for (int i = 0; i < PAGE_SIZE / sizeof(vmm_umem_block_t); i++, base++) {
@@ -273,7 +273,7 @@ err_t vmm_user_allocate(vmm_handle_t* handle, allocate_type_t type, uintptr_t* v
     uintptr_t current_va = start;
     while(current_va < start + PAGES_TO_SIZE(page_count)) {
         uintptr_t addr;
-        pmm_allocate_pages(ALLOCATE_ANY, 1, &addr);
+        ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, 1, &addr)));
         vmm_map(handle, addr, current_va, PAGE_SIZE, perms, DEFAULT_CACHE);
         current_va += PAGE_SIZE;
     }

@@ -9,6 +9,6 @@
  *
  * @param info  [IN] The bootloader information
  */
-void init_framebuffer_screen(tboot_info_t* info);
+void init_framebuffer_screen(stivale_struct_t* info);
 
 #endif //__COMPO_SCREEN_FRAMEBUFFER_H__

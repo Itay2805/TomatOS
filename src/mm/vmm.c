@@ -1,14 +1,15 @@
-
-#include <arch/paging.h>
-
 #include <stdbool.h>
-#include <util/except.h>
 #include <string.h>
-#include <arch/intrin.h>
-#include <arch/msr.h>
-#include <arch/cpuid.h>
+
 #include <sync/spinlock.h>
 #include <proc/process.h>
+#include <arch/paging.h>
+#include <arch/intrin.h>
+#include <arch/cpuid.h>
+#include <arch/msr.h>
+
+#include <util/except.h>
+#include <util/def.h>
 
 #include "vmm.h"
 #include "pmm.h"
@@ -173,7 +174,7 @@ static void set_pte(
     PML4E* pml4e = &pml4[va.one_gb.pml4e];
     if(!pml4e->present) {
         uintptr_t addr;
-        pmm_allocate_pages(ALLOCATE_ANY, 1, &addr);
+        ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, 1, &addr)));
         memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pml4e->present = true;
@@ -193,7 +194,7 @@ static void set_pte(
     PDPTE* pdpte = &pdpt[va.one_gb.pdpte];
     if(!pdpte->present) {
         uintptr_t addr;
-        pmm_allocate_pages(ALLOCATE_ANY, 1, &addr);
+        ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, 1, &addr)));
         memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pdpte->present = true;
@@ -216,7 +217,7 @@ static void set_pte(
     PDE* pde = &pd[va.two_mb.pde];
     if(!pde->present) {
         uintptr_t addr;
-        pmm_allocate_pages(ALLOCATE_ANY, 1, &addr);
+        ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, 1, &addr)));
         memset((void*)(addr + memory_base), 0, PAGE_SIZE);
 
         pde->present = true;
@@ -273,22 +274,26 @@ static void set_pte(
 // VMM functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-extern void* kernel_physical_end;
-extern void* kernel_physical_start;
-#define KERNEL_PHYSICAL_START ((uint64_t)&kernel_physical_start)
-#define KERNEL_PHYSICAL_END ((uint64_t)&kernel_physical_end)
-#define KERNEL_VIRTUAL_START (0xFFFFFFFFC0100000)
+extern void* kernel_start;
+extern void* kernel_text_end;
+extern void* kernel_rodata_end;
+extern void* kernel_end;
+#define KERNEL_PHYSICAL_BASE (0xffffffff80000000ull)
+#define KERNEL_START ((uint64_t)&kernel_start)
+#define KERNEL_TEXT_END ALIGN_UP((uint64_t)&kernel_text_end, PAGE_SIZE)
+#define KERNEL_RODATA_END ALIGN_UP((uint64_t)&kernel_rodata_end, PAGE_SIZE)
+#define KERNEL_END ALIGN_UP((uint64_t)&kernel_end, PAGE_SIZE)
 
 _Atomic(vmm_handle_t*) CPU_LOCAL g_current_vmm_handle;
 
-void vmm_init(tboot_info_t* info) {
+void vmm_init(stivale_struct_t* info) {
     TRACE("Preparing vmm");
 
     // allocate the pml4 of the kernel
     // it must be below the 4gb mark because otherwise the smp trampoline would
     // not be able to load it correctly
     kernel_process.vmm_handle.pml4_physical = UINT32_MAX;
-    pmm_allocate_pages(ALLOCATE_BELOW, 1, &kernel_process.vmm_handle.pml4_physical);
+    ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_BELOW, 1, &kernel_process.vmm_handle.pml4_physical)));
     memset((void*)kernel_process.vmm_handle.pml4_physical, 0, PAGE_SIZE);
 
     // enable features
@@ -296,13 +301,13 @@ void vmm_init(tboot_info_t* info) {
 
     // map the direct map
     TRACE("mapping direct map");
-    for(int i = 0; i < info->mmap.count; i++) {
-        tboot_mmap_entry_t* entry = &info->mmap.entries[i];
+    e820_entry_t* entry = (e820_entry_t*)info->memory_map_addr;
+    for(int i = 0; i < info->memory_map_entries; i++, entry++) {
 
         // map everything except for bad memory
-        if(entry->type != TBOOT_MEMORY_TYPE_BAD_MEMORY) {
-            uintptr_t addr = entry->addr;
-            size_t len = entry->len;
+        if(entry->type != E820_TYPE_BAD_MEMORY) {
+            uintptr_t addr = entry->base;
+            size_t len = entry->length;
 
             // do not map the first page in the direct map
             // that will avoid bugs
@@ -319,9 +324,13 @@ void vmm_init(tboot_info_t* info) {
         }
     }
 
-    // TODO: map with proper permissions
     TRACE("mapping kernel");
-    vmm_map(&kernel_process.vmm_handle, KERNEL_PHYSICAL_START, KERNEL_VIRTUAL_START, KERNEL_PHYSICAL_END - KERNEL_PHYSICAL_START, PAGE_SUPERVISOR_EXEC_READWRITE, DEFAULT_CACHE);
+    TRACE("\ttext = %lx - %lx", KERNEL_START, KERNEL_TEXT_END);
+    vmm_map(&kernel_process.vmm_handle, KERNEL_START - KERNEL_PHYSICAL_BASE, KERNEL_START, KERNEL_TEXT_END - KERNEL_START, PAGE_SUPERVISOR_EXEC_READ, DEFAULT_CACHE);
+    TRACE("\trodata = %lx - %lx", KERNEL_TEXT_END, KERNEL_RODATA_END);
+    vmm_map(&kernel_process.vmm_handle, KERNEL_TEXT_END - KERNEL_PHYSICAL_BASE, KERNEL_TEXT_END, KERNEL_RODATA_END - KERNEL_TEXT_END, PAGE_SUPERVISOR_READONLY, DEFAULT_CACHE);
+    TRACE("\tdata+bss = %lx - %lx", KERNEL_RODATA_END, KERNEL_END);
+    vmm_map(&kernel_process.vmm_handle, KERNEL_RODATA_END - KERNEL_PHYSICAL_BASE, KERNEL_RODATA_END, KERNEL_END - KERNEL_RODATA_END, PAGE_SUPERVISOR_READWRITE, DEFAULT_CACHE);
 
     TRACE("Switching to kernel page table");
     memory_base = DIRECT_MAPPING_BASE;
@@ -525,14 +534,11 @@ void vmm_map(vmm_handle_t* handle, uintptr_t phys, uintptr_t virt, size_t size, 
 //        ASSERT((perms & PAGE_MAP_ZERO) != 0);
 //    }
 
-    ASSERT(virt % PAGE_SIZE == 0);
-    ASSERT(phys % PAGE_SIZE == 0);
-
     spinlock_acquire(&handle->lock);
 
-    uintptr_t current_va = virt;
-    uintptr_t range_end_va = virt + size;
-    uintptr_t current_physical = phys;
+    uintptr_t current_va = ALIGN_DOWN(virt, PAGE_SIZE);
+    uintptr_t range_end_va = ALIGN_UP(virt + size, PAGE_SIZE);
+    uintptr_t current_physical = ALIGN_DOWN(phys, PAGE_SIZE);
 
 
     // get the cache flags
@@ -608,7 +614,7 @@ void vmm_create_address_space(vmm_handle_t* handle) {
 
     // initialize the handle
     handle->lock = SPINLOCK_INIT;
-    pmm_allocate_pages(ALLOCATE_ANY, 1, &handle->pml4_physical);
+    ASSERT(!IS_ERROR(pmm_allocate_pages(ALLOCATE_ANY, 1, &handle->pml4_physical)));
 
     // lock while doing the copy
     spinlock_acquire(&kernel_process.vmm_handle.lock);

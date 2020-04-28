@@ -4,7 +4,7 @@
 
 #include <string.h>
 #include <stdbool.h>
-#include <tboot.h>
+#include <stivale.h>
 #include <sync/spinlock.h>
 #include <util/def.h>
 
@@ -39,7 +39,7 @@ static spinlock_t lock = SPINLOCK_INIT;
 
 // forward declare these
 static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, size_t page_count);
-static void convert_page(uintptr_t start, size_t page_count, bool new_allocated);
+static err_t convert_page(uintptr_t start, size_t page_count, bool new_allocated);
 
 /**
  * Remove the entry from the map
@@ -110,15 +110,17 @@ static void add_range(bool allocated, uintptr_t start, uintptr_t end) {
  *
  * @return Direct physical address
  */
-static void* allocate_pool_pages(size_t page_count) {
-    uintptr_t start = find_free_pages(mem_memory_top, 0, page_count);
-    if(start == 0) {
-        ASSERT(!"failed to allocate pages");
-    }else {
-        convert_page(start, page_count, true);
-    }
+static err_t allocate_pool_pages(size_t page_count, void** address) {
+    err_t err = NO_ERROR;
 
-    return (void*)(start + memory_base);
+    uintptr_t start = find_free_pages(mem_memory_top, 0, page_count);
+    CHECK_ERROR(start != 0, ERROR_OUT_OF_RESOURCES);
+    CHECK_AND_RETHROW(convert_page(start, page_count, true));
+
+    *address = (void*)(start + memory_base);
+
+cleanup:
+    return err;
 }
 
 /**
@@ -129,39 +131,41 @@ static void* allocate_pool_pages(size_t page_count) {
  *
  * @return Map entry
  */
-static mem_entry_t* allocate_memory_map_entry() {
-    if(is_list_empty(&free_entries_list)) {
-        mem_entry_t* free_descriptor_entries = allocate_pool_pages(1);
+static err_t allocate_memory_map_entry(mem_entry_t** entry) {
+    err_t err = NO_ERROR;
 
-        if(free_descriptor_entries != NULL) {
-            for(int i = 0; i < PAGE_SIZE / sizeof(mem_entry_t); i++) {
-                insert_tail_list(&free_entries_list, &free_descriptor_entries[i].link);
-            }
-        }else {
-            return NULL;
+    if(is_list_empty(&free_entries_list)) {
+        mem_entry_t* free_descriptor_entries = NULL;
+        CHECK_AND_RETHROW(allocate_pool_pages(1, (void**)&free_descriptor_entries));
+
+        for(int i = 0; i < PAGE_SIZE / sizeof(mem_entry_t); i++) {
+            insert_tail_list(&free_entries_list, &free_descriptor_entries[i].link);
         }
     }
 
-    mem_entry_t* entry = CR(free_entries_list.next, mem_entry_t, link);
-    remove_entry_list(&entry->link);
+    *entry = CR(free_entries_list.next, mem_entry_t, link);
+    remove_entry_list(&(*entry)->link);
 
-    return entry;
+cleanup:
+    return err;
 }
 
 /**
  * This will move the temp entries from the temp storage
  * into the main memory
  */
-static void move_temp_entries() {
-    if(freeing) {
-        return;
-    }
+static err_t move_temp_entries() {
+    err_t err = NO_ERROR;
 
+    // no recursion please
+    if(freeing) {
+        goto cleanup;
+    }
     freeing = true;
 
     while(temp_entries_count != 0) {
-        mem_entry_t* entry = allocate_memory_map_entry();
-        ASSERT(entry);
+        mem_entry_t* entry = NULL;
+        CHECK_AND_RETHROW(allocate_memory_map_entry(&entry));
 
         temp_entries_count -= 1;
 
@@ -189,7 +193,9 @@ static void move_temp_entries() {
         }
     }
 
+cleanup:
     freeing = false;
+    return err;
 }
 
 /**
@@ -276,13 +282,14 @@ static uintptr_t find_free_pages(uintptr_t max_address, uintptr_t min_address, s
  *
  * @retval ERROR_NOT_FOUND - Could not find the range where this page is in
  */
-static void convert_page(uintptr_t start, size_t page_count, bool new_allocated) {
+static err_t convert_page(uintptr_t start, size_t page_count, bool new_allocated) {
+    err_t err = NO_ERROR;
     size_t length = PAGES_TO_SIZE(page_count);
     uintptr_t end = start + length - 1;
 
-    ASSERT(page_count != 0);
-    ASSERT((start & PAGE_MASK) == 0);
-    ASSERT(end > start);
+    CHECK_ERROR(page_count != 0, ERROR_INVALID_PARAM);
+    CHECK_ERROR((start & PAGE_MASK) == 0, ERROR_INVALID_PARAM);
+    CHECK_ERROR(end > start, ERROR_INVALID_PARAM);
 
     while(start < end) {
 
@@ -296,14 +303,10 @@ static void convert_page(uintptr_t start, size_t page_count, bool new_allocated)
             }
         }
 
-        if(link == &mem_map) {
-            ASSERT(!"failed to find range");
-        }
+        CHECK_TRACE(link != &mem_map, "failed to find range");
 
         if(new_allocated) {
-            if(entry->end < end) {
-                ASSERT(!"range covers multiple entries");
-            }
+            CHECK_TRACE(entry->end >= end, "range covers multiple entries");
         }
 
         uintptr_t range_end = end;
@@ -313,9 +316,9 @@ static void convert_page(uintptr_t start, size_t page_count, bool new_allocated)
 
         if((!new_allocated ? 0u : 1u) ^ (!entry->allocated ? 1u : 0u)) {
             if(!entry->allocated) {
-                ASSERT(!"incompatible memory types, already free");
+                CHECK_FAIL_TRACE("incompatible memory types, already free");
             }else {
-                ASSERT(!"incompatible memory types, already allocated");
+                CHECK_FAIL_TRACE("incompatible memory types, already allocated");
             }
         }
 
@@ -334,13 +337,13 @@ static void convert_page(uintptr_t start, size_t page_count, bool new_allocated)
             temp_entries[temp_entries_count].end = entry->end;
 
             entry->end = start - 1;
-            ASSERT(entry->start < entry->end);
+            CHECK(entry->start < entry->end);
 
             entry = &temp_entries[temp_entries_count];
             insert_tail_list(&mem_map, &entry->link);
 
             temp_entries_count++;
-            ASSERT(temp_entries_count < TEMP_ENTRIES_COUNT);
+            CHECK_ERROR(temp_entries_count < TEMP_ENTRIES_COUNT, ERROR_OUT_OF_RESOURCES);
         }
 
         // if empty remove from map
@@ -354,25 +357,28 @@ static void convert_page(uintptr_t start, size_t page_count, bool new_allocated)
             add_range(true, start, range_end);
         }
 
-        move_temp_entries();
+        CHECK_AND_RETHROW(move_temp_entries());
 
         start = range_end + 1;
     }
+
+cleanup:
+    return err;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // pmm function implementations
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static const char* tboot_mmap_names[] = {
-        [TBOOT_MEMORY_TYPE_RESERVED] = "Reserved",
-        [TBOOT_MEMORY_TYPE_BAD_MEMORY] = "Bad memory",
-        [TBOOT_MEMORY_TYPE_ACPI_RECLAIM] = "ACPI Reclaim",
-        [TBOOT_MEMORY_TYPE_USABLE] = "Useable",
-        [TBOOT_MEMORY_TYPE_ACPI_NVS] = "ACPI NVS",
+static const char* e820_mmap_names[] = {
+    [E820_TYPE_RESERVED] = "Reserved",
+    [E820_TYPE_BAD_MEMORY] = "Bad memory",
+    [E820_TYPE_ACPI_RECLAIM] = "ACPI Reclaim",
+    [E820_TYPE_USABLE] = "Useable",
+    [E820_TYPE_ACPI_NVS] = "ACPI NVS",
 };
 
-void pmm_init(tboot_info_t* info) {
+void pmm_init(stivale_struct_t* info) {
     /*
      * NOTE: we assume the bootloader set the range of the kernel
      *       stuff as reserved
@@ -381,28 +387,34 @@ void pmm_init(tboot_info_t* info) {
     TRACE("Preparing pmm");
 
     // go over the entries
-    for(int i = 0; i < info->mmap.count; i++) {
-        tboot_mmap_entry_t* entry = &info->mmap.entries[i];
+    e820_entry_t* entry = (e820_entry_t*)info->memory_map_addr;
+    for(int i = 0; i < info->memory_map_entries; i++, entry++) {
 
-        if (ARRAY_LEN(tboot_mmap_names) > entry->type) {
-            TRACE("\t%lx-%lx: (%lx) %s", entry->addr, entry->addr + entry->len, entry->len, tboot_mmap_names[entry->type]);
+        if (ARRAY_LEN(e820_mmap_names) > entry->type) {
+            TRACE("\t%lx-%lx: (%lx) %s", entry->base, entry->base + entry->length, entry->length, e820_mmap_names[entry->type]);
         } else {
-            TRACE("\t%lx-%lx: (%lx) %d", entry->addr, entry->addr + entry->len, entry->len, entry->type);
+            TRACE("\t%lx-%lx: (%lx) %d", entry->base, entry->base + entry->length, entry->length, entry->type);
         }
 
         // add useable entries
-        if(entry->type == TBOOT_MEMORY_TYPE_USABLE) {
+        if(entry->type == E820_TYPE_USABLE) {
             // set the memory top
-            if(mem_memory_top < entry->addr + entry->len) {
-                mem_memory_top = entry->addr + entry->len;
+            if(mem_memory_top < entry->base + entry->length) {
+                mem_memory_top = entry->base + entry->length;
+            }
+
+            // clear memory every 5 entries
+            if (i != 0 && i % (ARRAY_LEN(temp_entries) / 2) == 0) {
+                ASSERT(!IS_ERROR(move_temp_entries()));
             }
 
             // add the range of addresses
-            add_range(false, entry->addr, entry->addr + entry->len);
-            move_temp_entries();
+            add_range(false, entry->base, entry->base + entry->length);
         }
-
     }
+
+    // make sure to clean all temp entries
+    ASSERT(!IS_ERROR(move_temp_entries()));
 }
 
 void pmm_post_vmm() {
@@ -449,26 +461,28 @@ void pmm_post_vmm() {
     }
 }
 
-void pmm_allocate_pages(allocate_type_t type, size_t page_count, uintptr_t* base) {
-    ASSERT(type == ALLOCATE_ADDRESS || type == ALLOCATE_ANY || type == ALLOCATE_BELOW);
-    ASSERT(base != NULL);
-    ASSERT(page_count != 0);
+err_t pmm_allocate_pages(allocate_type_t type, size_t page_count, uintptr_t* base) {
+    err_t err = NO_ERROR;
 
     spinlock_acquire(&lock);
+
+    CHECK_ERROR(type == ALLOCATE_ADDRESS || type == ALLOCATE_ANY || type == ALLOCATE_BELOW, ERROR_INVALID_PARAM);
+    CHECK_ERROR(base != NULL, ERROR_INVALID_PARAM);
+    CHECK_ERROR(page_count != 0, ERROR_INVALID_PARAM);
 
     uintptr_t start = *base;
     uintptr_t end = 0;
     uintptr_t max_address = mem_memory_top;
 
     if(type == ALLOCATE_ADDRESS) {
-        ASSERT((page_count != 0) && (page_count < SIZE_TO_PAGES(max_address)));
+        CHECK_ERROR((page_count != 0) && (page_count < SIZE_TO_PAGES(max_address)), ERROR_INVALID_PARAM);
 
         uintptr_t length = page_count << PAGE_SHIFT;
         end = start + length - 1;
 
-        ASSERT(start < end);
-        ASSERT(start < max_address);
-        ASSERT(end < max_address);
+        CHECK_ERROR(start < end, ERROR_INVALID_PARAM);
+        CHECK_ERROR(start < max_address, ERROR_INVALID_PARAM);
+        CHECK_ERROR(end < max_address, ERROR_INVALID_PARAM);
     }
 
     if(type == ALLOCATE_BELOW) {
@@ -477,22 +491,25 @@ void pmm_allocate_pages(allocate_type_t type, size_t page_count, uintptr_t* base
 
     if(type != ALLOCATE_ADDRESS) {
         start = find_free_pages(max_address, 0, page_count);
-        ASSERT(start != 0);
+        CHECK_ERROR(start != 0, ERROR_OUT_OF_RESOURCES);
     }
 
-    convert_page(start, page_count, true);
+    CHECK_AND_RETHROW(convert_page(start, page_count, true));
 
     *base = start;
 
+cleanup:
     spinlock_release(&lock);
+    return err;
 }
 
-void pmm_free_pages(uintptr_t base, size_t page_count) {
+err_t pmm_free_pages(uintptr_t base, size_t page_count) {
+    err_t err = NO_ERROR;
     spinlock_acquire(&lock);
 
     // find the entry
-    mem_entry_t* entry;
-    list_entry_t* link;
+    mem_entry_t* entry = NULL;
+    list_entry_t* link = NULL;
     for(link = mem_map.next; link != &mem_map; link = link->next) {
         entry = CR(link, mem_entry_t, link);
 
@@ -501,9 +518,11 @@ void pmm_free_pages(uintptr_t base, size_t page_count) {
         }
     }
 
-    ASSERT(link != &mem_map);
+    CHECK_ERROR(link != &mem_map, ERROR_INVALID_POINTER);
 
-    convert_page(base, page_count, false);
+    CHECK_AND_RETHROW(convert_page(base, page_count, false));
 
+cleanup:
     spinlock_release(&lock);
+    return err;
 }
