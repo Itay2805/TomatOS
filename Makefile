@@ -86,30 +86,33 @@ KERNEL_CFLAGS += -Isrc/
 
 # Link everything
 bin/image/tomatos.elf: $(BINS) $(OBJS)
-	# generate fake symlist
-	python3 ./scripts/generate_symbols.py > src/util/symlist.c
-	$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
-	$(CLANG_LD) $(LDFLAGS) -o $@ $(OBJS) build/src/util/symlist.c.o
+	@echo Generating kernel symbol list
+	@python3 ./scripts/generate_symbols.py > src/util/symlist.c
+	@$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
+	@$(CLANG_LD) $(LDFLAGS) -o $@ $(OBJS) build/src/util/symlist.c.o
+	@python3 ./scripts/generate_symbols.py "$@" > src/util/symlist.c
 
-	# generate real symlist
-	python3 ./scripts/generate_symbols.py "$@" > src/util/symlist.c
-	$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
-	$(CLANG_LD) $(LDFLAGS) -o $@ $(OBJS) build/src/util/symlist.c.o
+	@echo LD $@
+	@$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c src/util/symlist.c -o build/src/util/symlist.c.o
+	@$(CLANG_LD) $(LDFLAGS) -o $@ $(OBJS) build/src/util/symlist.c.o
 
 # build real mode asm code
 build/%.bin: %.real
+	@echo NSAM $@
 	@mkdir -p $(@D)
-	nasm -f bin -o $@ $<
+	@nasm -f bin -o $@ $<
 
 # Compile kernel c files
 build/%.c.o: %.c
+	@echo CC $@
 	@mkdir -p $(@D)
-	$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c $< -o $@
+	@$(CLANG) $(KERNEL_CFLAGS) -MMD -D __FILENAME__="\"$<\"" -c $< -o $@
 
 # Compile kernel asm files
 build/%.asm.o: %.asm
+	@echo NSAM $@
 	@mkdir -p $(@D)
-	nasm $(NASMFLAGS) -o $@ $<
+	@nasm $(NASMFLAGS) -o $@ $<
 
 #
 # Create bin folder
