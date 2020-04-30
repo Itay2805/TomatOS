@@ -5,6 +5,7 @@ EXTERN g_saved_stack
 EXTERN syscall_common_handler
 
 GLOBAL syscall_entry
+GLOBAL syscall_fault_restore
 syscall_entry:
     ; set the rsp
     mov [gs:g_saved_stack], rsp
@@ -18,9 +19,6 @@ syscall_entry:
 
     ; push rip
     push rcx
-
-    ; push the return error code
-    push rbx
 
     ; push arg0-arg6
     push rdi
@@ -36,13 +34,14 @@ syscall_entry:
     push r14
     push r15
     push rbp
+    push rbx
 
     ; set the pointer to the syscall context
-    ; and align the stack to 16 on the call
     mov rdi, rsp
     call syscall_common_handler
 
     ; pop saved registers
+    pop rbx
     pop rbp
     pop r15
     pop r14
@@ -56,9 +55,6 @@ syscall_entry:
     pop rdx
     pop rsi
     pop rdi
-
-    ; pop the error code
-    pop rbx
 
     ; pop rip
     pop rcx

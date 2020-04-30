@@ -48,7 +48,7 @@ cleanup:
  * @param fs        [IN] The filesystem to mount
  */
 err_t vfs_mount(const char* path, filesystem_t fs) {
-    ASSERT(false);
+    ASSERT(!"Implement mounting properly");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -63,7 +63,6 @@ err_t sys_vfs_open(syscall_context_t* ctx) {
 
     // prepare params
     const char* path = (void*)ctx->arg1;
-    CHECK_AND_RETHROW(verify_string(path));
 
     // open the file
     CHECK_AND_RETHROW(vfs_open(path, &file));
@@ -101,10 +100,6 @@ err_t sys_vfs_resolve(syscall_context_t* ctx) {
     // get arguments
     const char* path = (void*)ctx->arg1;
     const char** out_path = (void*)ctx->arg2;
-
-    // verify arguments
-    CHECK_AND_RETHROW(verify_string(path));
-    CHECK_AND_RETHROW(verify_buffer(out_path, sizeof(*out_path)));
 
     // will resolve the path
     CHECK_AND_RETHROW(vfs_resolve(path, &fs, out_path));

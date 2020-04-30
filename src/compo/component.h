@@ -44,6 +44,12 @@ typedef struct component {
 } component_t;
 
 /**
+ * Will do the initializations required for the components
+ * system to work
+ */
+void init_components();
+
+/**
  * Will generate an address from the given buffer
  *
  * This will simply run sha1 on the buffer

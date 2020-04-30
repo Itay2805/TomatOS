@@ -7,6 +7,7 @@
 #include <util/def.h>
 #include <mm/gdt.h>
 #include <string.h>
+#include <util/symlist.h>
 
 #include "process.h"
 #include "thread.h"
@@ -17,7 +18,6 @@ static err_t sys_log(syscall_context_t *ctx) {
     err_t err = NO_ERROR;
 
     const char* str = (char *) ctx->arg1;
-    CHECK_AND_RETHROW(verify_string(str));
 
     TRACE("syslog: pid=%d, tid=%d: %s", get_current_process()->pid, get_current_thread()->tid, str);
 
@@ -67,8 +67,49 @@ static syscall_handler_t handlers[SYS_MAX] = {
         [SYS_FILE_TELL] = sys_file_tell,
 };
 
+void on_syscall_exception(interrupt_context_t* ctx) {
+    syscall_context_t* sysctx = get_current_thread()->syscall_ctx;
+
+    // print a nice log
+    size_t off = 0;
+    char* name = symlist_name_from_address(&off, ctx->rip);
+    if (name != NULL) {
+        TRACE("Got syscall page fault accessing 0x%lx, at 0x%lx <%s+%lx>", __readcr2(), ctx->rip, name, off);
+    } else {
+        TRACE("Got syscall page fault accessing 0x%lx, at 0x%lx", __readcr2(), ctx->rip);
+    }
+
+    // setup the return value and everything
+    ctx->rax = -ERROR_INVALID_POINTER;
+    ctx->rip = sysctx->rip;
+    ctx->rflags = sysctx->rflags;
+
+    // no need to restore arguments
+
+    // restore saved gprs
+    ctx->r12 = sysctx->_saved_r12;
+    ctx->r13 = sysctx->_saved_r13;
+    ctx->r14 = sysctx->_saved_r14;
+    ctx->r15 = sysctx->_saved_r15;
+    ctx->rbp = sysctx->_saved_rbp;
+    ctx->rbx = sysctx->_saved_rbx;
+
+    // restore the stack
+    ctx->rsp = g_saved_stack;
+
+    // restore the segment registers
+    ctx->ds = GDT_USER_DATA;
+    ctx->ss = GDT_USER_DATA;
+    ctx->cs = GDT_USER_CODE;
+
+    // make sure we are not gonna stay in an interrupt
+    get_current_thread()->syscall_ctx = NULL;
+}
+
 void syscall_common_handler(syscall_context_t* ctx) {
     err_t err = NO_ERROR;
+
+    get_current_thread()->syscall_ctx = ctx;
 
     // check that the syscall number is valid
     CHECK_ERROR(ctx->syscall < ARRAY_LEN(handlers), ERROR_NOT_FOUND);
@@ -77,30 +118,12 @@ void syscall_common_handler(syscall_context_t* ctx) {
     CHECK_AND_RETHROW(handlers[ctx->syscall](ctx));
 
 cleanup:
-    WARN(!IS_ERROR(err), "Got error in syscall, ignoring");
-    ctx->ret_error = err;
-}
+    if (IS_ERROR(err)) {
+        WARN(false, "Got error in syscall, ignoring");
+        ctx->ret_value = -err;
+    }
 
-err_t verify_string(const char *str) {
-    err_t err = NO_ERROR;
-
-    // verify the base pointer is good
-    // worst case we fall in the non-canonical area
-    CHECK_ERROR((uintptr_t) str < USERSPACE_END, ERROR_INVALID_POINTER);
-
-cleanup:
-    return err;
-}
-
-err_t verify_buffer(void *buf, size_t len) {
-    err_t err = NO_ERROR;
-
-    // verify these are good
-    CHECK_ERROR((uintptr_t) buf < USERSPACE_END, ERROR_INVALID_POINTER);
-    CHECK_ERROR((uintptr_t) buf + len < USERSPACE_END, ERROR_INVALID_POINTER);
-
-cleanup:
-    return err;
+    get_current_thread()->syscall_ctx = NULL;
 }
 
 extern void syscall_entry();

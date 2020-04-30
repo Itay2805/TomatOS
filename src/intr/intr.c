@@ -205,44 +205,58 @@ static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
 static err_t default_interrupt_handler(interrupt_context_t* ctx, tpl_t tpl) {
     err_t err = NO_ERROR;
 
+    bool from_usermode = ctx->cs == GDT_USER_CODE;
+    bool from_syscall = !from_usermode && get_current_thread()->syscall_ctx != NULL;
+
     // if this is a kernel process just go to kernel exception
-//    if (g_current_thread->parent != &kernel_process) {
-//        switch (ctx->int_num) {
-//            //
-//            // TODO: Handle these properly once we have stuff like debugger
-//            //
-//            case EXCEPTION_DEBUG:
-//            case EXCEPTION_BREAKPOINT:
-//                on_user_exception(ctx);
-//                goto cleanup;
-//
-//            //
-//            // for general protection only user fault on user exception
-//            //
-//            case EXCEPTION_PAGE_FAULT: {
-//                if (!IS_KERNEL_PTR(__readcr2())) {
-//                    on_user_exception(ctx);
-//                    goto cleanup;
-//                }
-//            } break;
-//
-//
-//            //
-//            // these exceptions can be raised by userspace normally
-//            //
-//            case EXCEPTION_DIVIDE_ERROR:
-//            case EXCEPTION_OVERFLOW:
-//            case EXCEPTION_BOUND:
-//            case EXCEPTION_INVALID_OPCODE:
-//            case EXCEPTION_STACK_FAULT:
-//            case EXCEPTION_GP_FAULT:
-//            case EXCEPTION_FP_ERROR:
-//            case EXCEPTION_ALIGNMENT_CHECK:
-//            case EXCEPTION_SIMD:
-//                on_user_exception(ctx);
-//                goto cleanup;
-//        }
-//    }
+    if (get_current_process() != &kernel_process) {
+        switch (ctx->int_num) {
+            //
+            // TODO: Handle these properly once we have stuff like debugger
+            //
+            case EXCEPTION_DEBUG:
+            case EXCEPTION_BREAKPOINT:
+                if (from_usermode) {
+                    on_user_exception(ctx);
+                    goto cleanup;
+                }
+                break;
+
+            //
+            // for page faults we can either have a usermode or a syscall fault
+            // TODO: maybe assume that a kernel pointer is a problem in kernel
+            //       and panic?
+            //
+            case EXCEPTION_PAGE_FAULT: {
+                if (from_usermode) {
+                    on_user_exception(ctx);
+                    goto cleanup;
+                }
+                if (from_syscall) {
+                    on_syscall_exception(ctx);
+                    goto cleanup;
+                }
+            } break;
+
+
+            //
+            // these exceptions can be raised by userspace normally
+            //
+            case EXCEPTION_DIVIDE_ERROR:
+            case EXCEPTION_OVERFLOW:
+            case EXCEPTION_BOUND:
+            case EXCEPTION_INVALID_OPCODE:
+            case EXCEPTION_STACK_FAULT:
+            case EXCEPTION_GP_FAULT:
+            case EXCEPTION_FP_ERROR:
+            case EXCEPTION_ALIGNMENT_CHECK:
+            case EXCEPTION_SIMD:
+                if (from_usermode) {
+                    on_user_exception(ctx);
+                    goto cleanup;
+                }
+        }
+    }
 
     // if we reached here then do a kernel exception
     on_kernel_exception(ctx, tpl);

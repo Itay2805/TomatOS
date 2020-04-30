@@ -21,10 +21,9 @@ typedef struct process {
 
     // reference count for the process
     atomic_int refcount;
-    // TODO: Do I also want a process lock?
 
     // tid generation, starts from 0 including
-    tid_t tid_gen;
+    atomic_int tid_gen;
 
     // the link to the process list
     list_entry_t link;
@@ -64,7 +63,9 @@ void init_kernel_process();
 /**
  * Will return a process by it's pid
  *
- * TODO: we probably want some reference counting on that
+ * @remark
+ * This will increase the reference count, so you want to
+ * release the process once you finish
  *
  * @param pid       [IN]    The pid of the process
  * @param process   [OUT]   The process
@@ -129,18 +130,5 @@ err_t remove_handle(process_t* process, int handle);
  * @param out_handle    [IN] The kernel handle
  */
 err_t get_handle(process_t* process, int handle, handle_t* out_handle);
-
-/**
- * Copy memory to another process
- *
- * @remark
- * Given pointer must point to a kernel address!
- *
- * @param process   [IN]    The process to copy to
- * @param to        [IN]    The address to copy to
- * @param from      [IN]    The kernel address
- * @param size      [IN]    The size to copy
- */
-err_t copy_to_process(process_t* process, void* to, void* from, size_t size);
 
 #endif //__PROC_PROCESS_H__

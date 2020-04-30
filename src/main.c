@@ -50,7 +50,8 @@ static void main_thread() {
     err_t err = NO_ERROR;
     TRACE("In main thread!");
 
-//    WARN(!IS_ERROR(init_pci()), "Failed to initialize PCI, PCI based drivers won't be loaded");
+    // initialize the components
+    init_components();
 
     // only mount initrd if has any
     if (g_stivale_struct->module_count == 1) {

@@ -3,6 +3,8 @@
 
 #include <util/except.h>
 #include <stdbool.h>
+#include <smp/pcpu.h>
+#include <intr/intr.h>
 
 
 typedef enum syscall {
@@ -51,19 +53,24 @@ typedef enum syscall {
 } syscall_t;
 
 typedef struct syscall_context {
-    uint64_t _saved_gprs[5];
+    uint64_t _saved_rbx;
+    uint64_t _saved_rbp;
+    uint64_t _saved_r15;
+    uint64_t _saved_r14;
+    uint64_t _saved_r13;
+    uint64_t _saved_r12;
 
-    uint64_t arg6;
-    uint64_t arg5;
-    uint64_t arg4;
-    uint64_t arg3;
-    uint64_t arg2;
-    uint64_t arg1;
+    uint64_t arg6; // r9
+    uint64_t arg5; // r8
+    uint64_t arg4; // r10
+    uint64_t arg3; // rdx
+    uint64_t arg2; // rsi
+    uint64_t arg1; // rdi
 
-    uintptr_t ret_error;
     uint64_t rip;
     IA32_RFLAGS rflags;
 
+    // rax
     union {
         syscall_t syscall;
         uint64_t ret_value;
@@ -73,20 +80,9 @@ typedef struct syscall_context {
 typedef err_t (*syscall_handler_t)(syscall_context_t* context);
 
 /**
- * Helper function to verify a string is a proper usermode string
- *
- * @param str   [IN] The string to check
+ * Handle an exception raised inside a syscall
  */
-err_t verify_string(const char* str);
-
-/**
- * Helper function to verify a buffer is a proper usermode buffer
- *
- * @param buf       [IN] The buffer
- * @param len       [IN] The length of the buffer
- * @param writable  [IN] Do we want it to be writeable
- */
-err_t verify_buffer(void* buf, size_t len);
+void on_syscall_exception(interrupt_context_t* ctx);
 
 /**
  * Initialize everything related to syscalls on this cpu

@@ -128,7 +128,6 @@ err_t sys_fs_open(syscall_context_t* ctx) {
     //get parameters
     int fs = ctx->arg1;
     const char* path = (void*)ctx->arg2;
-    CHECK_AND_RETHROW(verify_string(path));
 
     // get the handle
     CHECK_AND_RETHROW(get_handle(get_current_process(), fs, &fs_handle));
@@ -176,7 +175,6 @@ err_t sys_file_read(syscall_context_t* ctx) {
     int user_handle = ctx->arg1;
     void* buffer = (void*)ctx->arg2;
     size_t size = ctx->arg3;
-    CHECK_AND_RETHROW(verify_buffer(buffer, size));
 
     // get the handle
     CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));

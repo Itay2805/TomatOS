@@ -47,6 +47,9 @@ typedef struct thread {
 
     // the TPL of the thread
     _Atomic(tpl_t) thread_tpl;
+
+    // context if the current syscall (if any)
+    syscall_context_t* syscall_ctx;
 } thread_t;
 
 /**
