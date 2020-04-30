@@ -275,6 +275,11 @@ err_t close_event(event_t event) {
         remove_entry_list(&data->notify_link);
     }
 
+    // cancel the timer if any
+    if (event->is_timer) {
+        set_timer(event, TIMER_CANCEL, 0);
+    }
+
     release_event_lock();
 
     // free the event
@@ -351,6 +356,30 @@ cleanup:
     return err;
 }
 
+err_t sys_set_timer(syscall_context_t* context) {
+    err_t err = NO_ERROR;
+    handle_t handle = NULL;
+    event_t event = NULL;
+
+    int user_handle = context->arg1;
+    timer_type_t type = context->arg2;
+    uint64_t trigger_time = context->arg3;
+
+    // get the event
+    CHECK_AND_RETHROW(get_handle(get_current_process(), user_handle, &handle));
+    CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
+    event = handle->val;
+
+    CHECK_AND_RETHROW(set_timer(event, type, trigger_time));
+
+cleanup:
+    if (handle != NULL) {
+        WARN(!IS_ERROR(close_handle(handle)), "");
+    }
+
+    return err;
+}
+
 err_t sys_signal_event(syscall_context_t* context) {
     err_t err = NO_ERROR;
     handle_t handle = NULL;
@@ -400,6 +429,34 @@ cleanup:
     return err;
 }
 
-err_t sys_wait_for_event(syscall_context_t* context) {
-    return ERROR_NOT_READY;
+err_t sys_wait_for_event(syscall_context_t* ctx) {
+    err_t err = NO_ERROR;
+    handle_t handle = NULL;
+
+    size_t number_of_events = ctx->arg1;
+    int* raw_events = (int*)ctx->arg2;
+    size_t* index = (size_t*)ctx->arg3;
+
+    // get all the events correctly, will need to keep the reference to the handles
+    // since these are gonna hold the reference to the handle
+    event_t* events = mm_allocate(sizeof(event_t) * number_of_events);
+    for (int i = 0; i < number_of_events; i++) {
+        CHECK_AND_RETHROW(get_handle(get_current_process(), raw_events[i], &handle));
+        CHECK_ERROR(handle->type == HANDLE_EVENT, ERROR_INVALID_HANDLE);
+        events[i] = handle->val;
+        CHECK_AND_RETHROW(close_handle(handle));
+    }
+    handle = NULL;
+
+    // do the actual waiting
+    CHECK_AND_RETHROW(wait_for_event(number_of_events, events, index));
+
+cleanup:
+    if (handle != NULL) {
+        WARN(!IS_ERROR(close_handle(handle)), "Failed to close handle");
+    }
+    if (events != NULL) {
+        mm_free(events);
+    }
+    return err;
 }

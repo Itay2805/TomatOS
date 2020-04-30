@@ -57,6 +57,7 @@ static err_t check_timers(void* ctx, event_t event) {
         // remove it
         remove_entry_list(&te->link);
         te->link.next = NULL;
+        te->event->is_timer = false;
 
         // signal it
         WARN(!IS_ERROR(signal_event(te->event)), "Error signalling timer event");
@@ -72,6 +73,7 @@ static err_t check_timers(void* ctx, event_t event) {
             }
 
             // add it back
+            te->event->is_timer = true;
             insert_event_timer(te);
         } else {
             // free it
@@ -142,9 +144,11 @@ err_t set_timer(event_t event, timer_type_t type, uint64_t trigger_time) {
     // we wanna cancel it, free everything
     if (type == TIMER_CANCEL) {
         CHECK_ERROR(new_te != NULL, ERROR_NOT_FOUND);
+        new_te->event->is_timer = false;
         mm_free(new_te);
 
     } else {
+        event->is_timer = true;
 
         // if not found allocate one
         if (new_te == NULL) {

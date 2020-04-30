@@ -17,6 +17,7 @@ cleanup:
 
 err_t wrap_event(handle_t handle, event_t* out) {
     err_t err = NO_ERROR;
+    bool dec_refcount = false;
 
     CHECK_ERROR(handle != NULL, ERROR_INVALID_PARAM);
     CHECK_ERROR(out != NULL, ERROR_INVALID_PARAM);
@@ -29,10 +30,15 @@ err_t wrap_event(handle_t handle, event_t* out) {
 
     // increase the ref count and create the event
     handle->refcount++;
+    dec_refcount = true;
     CHECK_AND_RETHROW(create_event(event->notify_tpl, (void*)wrapped_event_notify_function, handle, out));
 
 cleanup:
     if (handle != NULL) {
+        if (IS_ERROR(err) && dec_refcount) {
+            handle->refcount--;
+        }
+
         spinlock_release(&handle->lock);
     }
 
@@ -62,33 +68,24 @@ err_t close_handle(handle_t handle) {
 
     spinlock_acquire(&handle->lock);
 
+    // one less reference
+    handle->refcount--;
+
     // if reached to zero references then delete it
     if (handle->refcount == 0) {
         switch (handle->type) {
             case HANDLE_COMPONENT: {
-                // release the component handle
                 CHECK_AND_RETHROW(release_component(handle->val));
             } break;
 
             case HANDLE_FILE: {
-                // close the file
                 CHECK_AND_RETHROW(file_close(handle->val));
             } break;
 
             case HANDLE_EVENT: {
-                // if this is a periodic timer cancel it
-                if (handle->event.periodic_timer) {
-                    CHECK_AND_RETHROW(set_timer(handle->val, TIMER_CANCEL, 0));
-                }
-
-                // close the event
                 CHECK_AND_RETHROW(close_event(handle->val));
             } break;
         }
-
-
-        // one less reference
-        handle->refcount--;
 
         // free the handle
         mm_free(handle);

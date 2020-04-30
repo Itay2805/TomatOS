@@ -45,7 +45,7 @@ static syscall_handler_t handlers[SYS_MAX] = {
         [SYS_RAISE_TPL] = sys_raise_tpl,
         [SYS_RESTORE_TPL] = sys_restore_tpl,
         [SYS_CREATE_EVENT] = sys_create_event,
-        [SYS_SET_TIMER] = NULL,
+        [SYS_SET_TIMER] = sys_set_timer,
         [SYS_WAIT_FOR_EVENT] = sys_wait_for_event,
         [SYS_CHECK_EVENT] = sys_check_event,
         [SYS_SIGNAL_EVENT] = sys_signal_event,
@@ -111,11 +111,15 @@ void syscall_common_handler(syscall_context_t* ctx) {
 
     get_current_thread()->syscall_ctx = ctx;
 
+    // save the syscall and reset the ret value
+    int syscall = ctx->syscall;
+    ctx->ret_value = 0;
+
     // check that the syscall number is valid
-    CHECK_ERROR(ctx->syscall < ARRAY_LEN(handlers), ERROR_NOT_FOUND);
+    CHECK_ERROR(syscall < ARRAY_LEN(handlers), ERROR_NOT_FOUND);
 
     // call the handler
-    CHECK_AND_RETHROW(handlers[ctx->syscall](ctx));
+    CHECK_AND_RETHROW(handlers[syscall](ctx));
 
 cleanup:
     if (IS_ERROR(err)) {

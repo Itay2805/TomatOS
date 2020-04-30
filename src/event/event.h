@@ -56,6 +56,10 @@ typedef struct event_data {
 
     // this is for the notify list
     list_entry_t notify_link;
+
+    // just to let the close_event to know it needs to
+    // also cancel the timer
+    bool is_timer;
 } event_data_t;
 
 // a simpler form to use for events
@@ -152,19 +156,19 @@ typedef enum timer_type {
      * An event's timer settings is to be cancelled
      * and not trigger time is to be set
      */
-    TIMER_CANCEL,
+    TIMER_CANCEL = 0,
 
     /**
      *  An event is to be signaled periodically at a
      *  specified interval from the current time.
      */
-    TIMER_PERIODIC,
+    TIMER_PERIODIC = 1,
 
     /**
      * An event is to be signaled once at a
      * specified interval from the current time.
      */
-    TIMER_RELATIVE
+    TIMER_RELATIVE = 2
 } timer_type_t;
 
 #define MS_TO_100NS(x) (x * 10000)
@@ -185,6 +189,7 @@ err_t set_timer(event_t event, timer_type_t type, uint64_t trigger_time);
 err_t sys_raise_tpl(syscall_context_t* context);
 err_t sys_restore_tpl(syscall_context_t* context);
 err_t sys_create_event(syscall_context_t* context);
+err_t sys_set_timer(syscall_context_t* context);
 err_t sys_signal_event(syscall_context_t* context);
 err_t sys_check_event(syscall_context_t* context);
 err_t sys_wait_for_event(syscall_context_t* context);

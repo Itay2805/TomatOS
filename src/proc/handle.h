@@ -28,13 +28,6 @@ typedef struct handle_data {
 
     // the value related to the handle
     void* val;
-
-    // data for specific handles
-    union {
-        struct {
-            bool periodic_timer;
-        } event;
-    };
 } handle_data_t;
 
 typedef handle_data_t* handle_t;
@@ -42,6 +35,11 @@ typedef handle_data_t* handle_t;
 /**
  * This will wrap a user event so it can be used for
  * an external function
+ *
+ * Basically this will create a new event with a callback function
+ * that will just signal the handle's event and close the reference
+ * to the event, that way the event can live beyond a process lifetime
+ * without causing weirdness
  *
  * @param in    [IN]    The handle of the event
  * @param out   [OUT]   The event to be used
