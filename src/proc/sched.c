@@ -19,15 +19,7 @@ _Atomic(uintptr_t) CPU_LOCAL g_saved_stack;
 static list_entry_t m_threads_queue = INIT_LIST_ENTRY(m_threads_queue);
 
 // we need a custom lock that does not touch tpl
-static atomic_flag m_flag;
-
-static void sched_lock() {
-    while (!atomic_flag_test_and_set_explicit(&m_flag, memory_order_acquire));
-}
-
-static void sched_unlock() {
-    atomic_flag_clear_explicit(&m_flag, memory_order_release);
-}
+static spinlock_t sched_lock;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Preemption
@@ -45,7 +37,7 @@ static err_t preemption_callback(void* ctx, event_t event) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Handle yielding
+// Handle yieldingget
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static err_t yield_interrupt(void* user_param, interrupt_context_t* ctx) {
@@ -122,7 +114,7 @@ cleanup:
 err_t queue_thread(thread_t* thread) {
     err_t err = NO_ERROR;
 
-    sched_lock();
+    spinlock_acquire_high_tpl(&sched_lock);
 
     CHECK(thread != NULL);
 
@@ -134,14 +126,19 @@ err_t queue_thread(thread_t* thread) {
     }
 
 cleanup:
-    sched_unlock();
+    spinlock_release(&sched_lock);
     return err;
 }
 
 err_t sched_tick(interrupt_context_t* ctx) {
     err_t err = NO_ERROR;
 
-    sched_lock();
+    /*
+     * we must use the raw spinlock primitives because we are gonna change
+     * the TPL reference when switching to a new thread, which can make stuff
+     * go weird in the release and acquire code
+     */
+    spinlock_acquire_raw(&sched_lock);
 
     CHECK(ctx != NULL);
 
@@ -155,9 +152,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
         if (m_current_thread->state != STATE_RUNNING) {
             // save the current context
             m_current_thread->apic_id = 0;
-            m_current_thread->saved_stack = g_saved_stack;
-            m_current_thread->cpu_context = *ctx;
-            save_simd_state(m_current_thread->simd_state);
+            save_thread_context(m_current_thread, ctx);
 
             // schedule the idle thread
             m_current_thread = idle_thread;
@@ -179,9 +174,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
         // if we have something running save it's context
         if (running != NULL) {
             running->apic_id = 0;
-            running->saved_stack = g_saved_stack;
-            running->cpu_context = *ctx;
-            save_simd_state(running->simd_state);
+            save_thread_context(running, ctx);
 
             if (running->state == STATE_RUNNING) {
                 running->state = STATE_NORMAL;
@@ -194,13 +187,7 @@ err_t sched_tick(interrupt_context_t* ctx) {
         }
 
         // load the new context
-        *ctx = to_run->cpu_context;
-        g_saved_stack = to_run->saved_stack;
-        g_kernel_stack = to_run->kernel_stack;
-        restore_simd_state(to_run->simd_state);
-
-        // if not the same parent then assume different address space and switch handle
-        vmm_set_handle(&to_run->parent->vmm_handle);
+        restore_thread_context(to_run, ctx);
 
         // set as the running thread
         to_run->state = STATE_RUNNING;
@@ -209,6 +196,6 @@ err_t sched_tick(interrupt_context_t* ctx) {
     }
 
 cleanup:
-    sched_unlock();
+    spinlock_release_raw(&sched_lock);
     return err;
 }

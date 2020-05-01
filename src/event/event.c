@@ -10,7 +10,7 @@
 
 #include "event.h"
 
-static tpl_t early_current_tpl = TPL_HIGH_LEVEL;
+static _Atomic(tpl_t) CPU_LOCAL g_current_tpl;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Event spinlock
@@ -132,21 +132,11 @@ void restore_tpl(tpl_t new_tpl) {
 }
 
 tpl_t get_tpl() {
-    // before threading use a static variable
-    if (UNLIKELY(get_current_thread() == NULL)) {
-        return early_current_tpl;
-    } else {
-        return get_current_thread()->thread_tpl;
-    }
+    return g_current_tpl;
 }
 
 void set_tpl(tpl_t tpl) {
-    // before threading use a static variable
-    if (UNLIKELY(get_current_thread() == NULL)) {
-        early_current_tpl = tpl;
-    } else {
-        get_current_thread()->thread_tpl = tpl;
-    }
+    g_current_tpl = tpl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

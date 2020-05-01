@@ -12,6 +12,16 @@ typedef struct {
 } spinlock_t;
 
 /**
+ * Will acquire the lock without touching TPL
+ */
+void spinlock_acquire_raw(spinlock_t* lock);
+
+/**
+ * Release the spinlock without touching TPL
+ */
+void spinlock_release_raw(spinlock_t* lock);
+
+/**
  * Will acquire the lock
  */
 void spinlock_acquire(spinlock_t* lock);

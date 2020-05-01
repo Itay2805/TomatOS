@@ -1,6 +1,7 @@
 # ignore clion stuff
 .idea
 cmake-build-debug
+*.o
 
 # Ignore auto generated files
 src/util/symlist.c

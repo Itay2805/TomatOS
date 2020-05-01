@@ -13,10 +13,12 @@ static list_entry_t g_per_type_components[COMPONENT_MAX_TYPE];
 
 // component type to name map
 static const char* type_to_name[] = {
-    [COMPONENT_FILESYSTEM] = "Filesystem",
-    [COMPONENT_SCREEN] = "Screen",
+    [COMPONENT_DISK] = "Disk",
+    [COMPONENT_BLOCK] = "Block",
+    [COMPONENT_FILESYSTEM] = "Filesyste,",
+    [COMPONENT_DISPLAY] = "Display",
     [COMPONENT_MOUSE] = "Mouse",
-    [COMPONENT_KEYBOARD] = "Keyboard"
+    [COMPONENT_KEYBOARD] = "Keyboard",
 };
 
 static void components_lock() {
@@ -123,7 +125,15 @@ cleanup:
 }
 
 err_t get_next_component(component_type_t type, component_t** comp) {
-    ASSERT(false);
+    err_t err = NO_ERROR;
+
+    components_lock();
+
+    CHECK_ERROR(comp != NULL, ERROR_INVALID_PARAM);
+
+cleanup:
+    components_unlock();
+    return err;
 }
 
 err_t get_primary(component_type_t type, component_t** comp) {

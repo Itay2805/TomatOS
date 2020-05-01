@@ -16,8 +16,10 @@ typedef struct address {
 } address_t;
 
 typedef enum component_type {
+    COMPONENT_DISK,
+    COMPONENT_BLOCK,
     COMPONENT_FILESYSTEM,
-    COMPONENT_SCREEN,
+    COMPONENT_DISPLAY,
     COMPONENT_MOUSE,
     COMPONENT_KEYBOARD,
     COMPONENT_MAX_TYPE

@@ -14,6 +14,8 @@
 
 #include "intr.h"
 
+static list_entry_t g_interrupt_handlers[256];
+
 //////////////////////////////////////////////////////////////////
 // Default Exception handling
 //////////////////////////////////////////////////////////////////
@@ -194,7 +196,32 @@ static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
             break;
         }
 
-        base_ptr = (void*)old_bp;
+        if (name != NULL && strcmp(name, "common_stub") == 0) {
+            interrupt_context_t* old_ctx = (interrupt_context_t*)((uintptr_t)&base_ptr[2]);
+
+            // trace the interrupt frame
+            if (old_ctx->int_num <= sizeof(ISR_NAMES) / sizeof(char*)) {
+                name = ISR_NAMES[old_ctx->int_num];
+            } else {
+                if (!is_list_empty(&g_interrupt_handlers[old_ctx->int_num])) {
+                    name = CR(g_interrupt_handlers[old_ctx->int_num].next, interrupt_handler_t, link)->name;
+                }
+            }
+            if (name != NULL) {
+                trace("[-] \t{%s}\n", name);
+            } else {
+                trace("[-] \t{Interrupt #%lx}\n", old_ctx->int_num);
+            }
+
+            // trace the address before
+            name = symlist_name_from_address(&off, old_ctx->rip);
+            trace("[-] \t[0x%016lx] <%s+%lx>\n", old_ctx->rip, name, off);
+
+            // continue with the correct base pointer
+            base_ptr = (uintptr_t*)old_ctx->rbp;
+        } else {
+            base_ptr = (void*)old_bp;
+        }
     }
 
     trace("[-] \n");
@@ -204,12 +231,14 @@ static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
 
 static err_t default_interrupt_handler(interrupt_context_t* ctx, tpl_t tpl) {
     err_t err = NO_ERROR;
+    thread_t* thread = get_current_thread();
 
-    bool from_usermode = ctx->cs == GDT_USER_CODE;
-    bool from_syscall = !from_usermode && get_current_thread()->syscall_ctx != NULL;
+    // if this is in a non-kernel thread check if it happened
+    // from userspace or from syscall
+    if (thread != NULL && thread->parent != &kernel_process) {
+        bool from_usermode = thread != NULL && ctx->cs == GDT_USER_CODE;
+        bool from_syscall = !from_usermode && thread != NULL && thread->syscall_ctx != NULL;
 
-    // if this is a kernel process just go to kernel exception
-    if (get_current_process() != &kernel_process) {
         switch (ctx->int_num) {
             //
             // TODO: Handle these properly once we have stuff like debugger
@@ -273,12 +302,10 @@ cleanup:
 static int interrupt_vector[INTERRUPT_VECTOR_SIZE];
 static int index = 0;
 
-static list_entry_t interrupt_handlers[256];
-
 void interrupts_init() {
     // just initialize all the list entries
     for(int i = 0; i < 256; i++) {
-        interrupt_handlers[i] = INIT_LIST_ENTRY(interrupt_handlers[i]);
+        g_interrupt_handlers[i] = INIT_LIST_ENTRY(g_interrupt_handlers[i]);
     }
 }
 
@@ -286,17 +313,23 @@ void common_interrupt_handler(interrupt_context_t ctx) {
     err_t err = NO_ERROR;
 
     // interrupt handlers always run at a high level
-    tpl_t oldtpl = raise_tpl(TPL_HIGH_LEVEL);
+    // raise the tpl and save the old one in the thread so
+    // we can restore it later
     thread_t* thread = get_current_thread();
+    tpl_t oldtpl = raise_tpl(TPL_HIGH_LEVEL);
 
-    if(is_list_empty(&interrupt_handlers[ctx.int_num])) {
+    if (LIKELY(thread != NULL)) {
+        thread->thread_tpl = oldtpl;
+    }
+
+    if(is_list_empty(&g_interrupt_handlers[ctx.int_num])) {
 
         // just call the default handler if none is found
         default_interrupt_handler(&ctx, oldtpl);
 
     }else {
         // iterate and call all the handlers
-        list_entry_t* handlers = &interrupt_handlers[ctx.int_num];
+        list_entry_t* handlers = &g_interrupt_handlers[ctx.int_num];
         for(list_entry_t* link = handlers->next; link != handlers; link = link->next) {
             interrupt_handler_t* handler = CR(link, interrupt_handler_t, link);
             CHECK_AND_RETHROW(handler->callback(handler->user_param, &ctx));
@@ -306,16 +339,6 @@ void common_interrupt_handler(interrupt_context_t ctx) {
 cleanup:
     WARN(!IS_ERROR(err), "Got an error inside interrupt handler/callback");
 
-    // If we had a reschedule then we need to restore
-    // the tpl correctly, we do this by raising back
-    // to TPL_HIGH_LEVEL and then restore again
-    if (get_current_thread() != thread) {
-        oldtpl = raise_tpl(TPL_HIGH_LEVEL);
-    }
-
-    // restore back to low level
-    restore_tpl(oldtpl);
-
     // if the thread is dead then just yield
     // make sure there is actually a thread
     // running (when we startup threading we
@@ -323,6 +346,16 @@ cleanup:
     if (LIKELY(get_current_thread() != NULL) && get_current_thread()->state == STATE_DEAD) {
         yield();
     }
+
+    // get the correct tpl to restore
+    thread = get_current_thread();
+    if (LIKELY(thread != NULL)) {
+        oldtpl = thread->thread_tpl;
+    }
+
+    // restore the tpl back to normal and return
+    restore_tpl(oldtpl);
+
 }
 
 //////////////////////////////////////////////////////////////////
@@ -377,7 +410,7 @@ void interrupt_register(interrupt_handler_t* inthandler) {
     ASSERT(0 <= inthandler->vector && inthandler->vector <= 255);
 
     // insert it
-    insert_tail_list(&interrupt_handlers[inthandler->vector], &inthandler->link);
+    insert_tail_list(&g_interrupt_handlers[inthandler->vector], &inthandler->link);
 
     if(inthandler->name == NULL) {
         inthandler->name = "Unknown";

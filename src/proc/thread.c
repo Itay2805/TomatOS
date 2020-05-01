@@ -69,8 +69,34 @@ cleanup:
     return err;
 }
 
+void restore_thread_context(thread_t* thread, interrupt_context_t* ctx) {
+    // restore cpu related context
+    *ctx = thread->cpu_context;
+    restore_simd_state(thread->simd_state);
+
+    // restore the stacks used in syscall
+    g_saved_stack = thread->saved_stack;
+    g_kernel_stack = thread->kernel_stack;
+
+    // only change address space if a different vmm handle
+    if (vmm_get_handle() != &thread->parent->vmm_handle) {
+        vmm_set_handle(&thread->parent->vmm_handle);
+    }
+}
+
+void save_thread_context(thread_t* thread, interrupt_context_t* ctx) {
+    // save the cpu related context
+    thread->cpu_context = *ctx;
+    save_simd_state(thread->simd_state);
+
+    // save the stack, no need to save the kernel stack
+    // since that doesn't change
+    thread->saved_stack = g_saved_stack;
+}
+
 void on_user_exception(interrupt_context_t* ctx) {
     // just kill the thread or whatever
+    ASSERT(!"KILL THREAD");
     get_current_thread()->state = STATE_DEAD;
 }
 

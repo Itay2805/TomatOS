@@ -62,14 +62,13 @@ static int wait_for_event(int number, int* events, int* index) {
 }
 
 void _start() {
-
     int timer = create_event();
     if (timer < 0) goto cleanup;
-    if (set_timer(timer, 1, 1000) != 0) goto cleanup;
+    if (set_timer(timer, 1, 10000 * 1000) != 0) goto cleanup;
 
     while (1) {
         if(wait_for_event(1, &timer, NULL) != 0) goto cleanup;
-        sys_log("Got timer event!");
+        sys_log("A second has passed!");
     }
 
 cleanup:

@@ -1,3 +1,3 @@
 
 all: test.c
-	gcc -ffreestanding -nostartfiles -static test.c -O3 -o test.elf
+	gcc -ffreestanding -nostartfiles -static test.c -o test.elf

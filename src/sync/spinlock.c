@@ -2,6 +2,16 @@
 #include <event/event.h>
 #include "spinlock.h"
 
+void spinlock_acquire_raw(spinlock_t* lock) {
+    while(!atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire)) {
+        asm volatile("pause" ::: "memory");
+    }
+}
+
+void spinlock_release_raw(spinlock_t* lock) {
+    atomic_flag_clear_explicit(&lock->flag, memory_order_release);
+}
+
 void spinlock_acquire_high_tpl(spinlock_t* lock) {
     tpl_t old_tpl = raise_tpl(TPL_HIGH_LEVEL);
     while(!atomic_flag_test_and_set_explicit(&lock->flag, memory_order_acquire)) {

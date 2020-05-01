@@ -82,6 +82,7 @@ void kernel_main(stivale_struct_t* info) {
     idt_init();
     interrupts_init();
     pcpu_init_for_bsp();
+    set_tpl(TPL_HIGH_LEVEL);
 
     // memory init
     pmm_init(info);

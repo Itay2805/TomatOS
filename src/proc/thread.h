@@ -66,6 +66,23 @@ typedef struct thread {
 err_t spawn_thread(process_t* parent, uintptr_t rip, uintptr_t stack, thread_t** new_thread);
 
 /**
+ * Restore the thread global context so it can
+ * continue run correctly
+ *
+ * @param thread    [IN] The thread to restore
+ * @param ctx       [IN] The context of the schedule interrupt
+ */
+void restore_thread_context(thread_t* thread, interrupt_context_t* ctx);
+
+/**
+ * Save the thread global state so it can continue run later
+ *
+ * @param thread    [IN] The thread to restore
+ * @param ctx       [IN] The context of the schedule interrupt
+ */
+void save_thread_context(thread_t* thread, interrupt_context_t* ctx);
+
+/**
  * Handle a user exception properly
  */
 void on_user_exception(interrupt_context_t* ctx);
