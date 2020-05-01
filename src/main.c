@@ -22,8 +22,8 @@
 #include <mm/mm.h>
 
 #include <compo/component.h>
-#include <compo/screen/framebuffer/framebuffer.h>
-#include <compo/screen/screen.h>
+#include <compo/display/framebuffer/framebuffer.h>
+#include <compo/display/display.h>
 #include <compo/fs/vfs.h>
 #include <compo/fs/fs.h>
 
