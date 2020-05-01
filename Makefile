@@ -47,11 +47,9 @@ COMMON_CFLAGS += \
 	-mcmodel=kernel \
 	-Wno-unused-label \
 	-static \
+	-O3 \
+	-flto \
 	-g
-
-#	-O3 \
-#	-flto \
-
 
 # Set the linking flags
 LDFLAGS += \

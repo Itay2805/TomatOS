@@ -34,9 +34,9 @@
 /**
  * A temporary stack used until the system can boot
  */
-static char temp_stack[1024] = {0};
+static char temp_stack[4096] = {0};
 
-__attribute__((section(".stivalehdr"))) stivale_header_t header = {
+__attribute__((section(".stivalehdr"), used)) stivale_header_t header = {
     .stack = (uintptr_t)&temp_stack + sizeof(temp_stack),
     .flags = 1,
 };

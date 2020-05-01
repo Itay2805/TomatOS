@@ -173,6 +173,7 @@ static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
 
     uintptr_t* base_ptr = (uintptr_t*)regs->rbp;
     trace("[-] Stack trace:\n");
+    int pfdepth = 0;
     for (;;) {
         // check if the page is mapped
         if (!vmm_is_mapped(vmm_get_handle(), (uintptr_t)ALIGN_DOWN(base_ptr, 4096), sizeof(uintptr_t) * 2)) {
@@ -213,6 +214,14 @@ static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
                 trace("[-] \t{Interrupt #%lx}\n", old_ctx->int_num);
             }
 
+            if (old_ctx->int_num == EXCEPTION_PAGE_FAULT) {
+                pfdepth++;
+                if (pfdepth >= 2) {
+                    trace("[-] \tRecursive page fault detected, stopping stack trace\n");
+                    break;
+                }
+            }
+
             // trace the address before
             name = symlist_name_from_address(&off, old_ctx->rip);
             trace("[-] \t[0x%016lx] <%s+%lx>\n", old_ctx->rip, name, off);
@@ -226,6 +235,9 @@ static void on_kernel_exception(interrupt_context_t *regs, tpl_t was_tpl) {
 
     trace("[-] \n");
     trace("[-] :(\n");
+
+    // TODO: serial debug console?
+
     while(1) asm("hlt");
 }
 
@@ -299,12 +311,12 @@ cleanup:
 //////////////////////////////////////////////////////////////////
 
 #define INTERRUPT_VECTOR_SIZE (0xff - INT_ALLOCATION_BASE - 1)
-static int interrupt_vector[INTERRUPT_VECTOR_SIZE];
-static int index = 0;
+static int g_interrupt_vectors[INTERRUPT_VECTOR_SIZE];
+static int g_last_vec_index = 0;
 
 void interrupts_init() {
     // just initialize all the list entries
-    for(int i = 0; i < 256; i++) {
+    for(int i = 0; i < ARRAY_LEN(g_interrupt_handlers); i++) {
         g_interrupt_handlers[i] = INIT_LIST_ENTRY(g_interrupt_handlers[i]);
     }
 }
@@ -363,25 +375,25 @@ cleanup:
 //////////////////////////////////////////////////////////////////
 
 static uint8_t interrupt_allocate() {
-    int vec = index;
-    for(int i = index; i < INTERRUPT_VECTOR_SIZE; i++) {
-        if(interrupt_vector[i] < interrupt_vector[vec]) {
+    int vec = g_last_vec_index;
+    for(int i = g_last_vec_index; i < INTERRUPT_VECTOR_SIZE; i++) {
+        if(g_interrupt_vectors[i] < g_interrupt_vectors[vec]) {
             vec = i;
 
             // if has zero uses we can just return it
-            if(interrupt_vector[vec] == 0) goto found;
+            if(g_interrupt_vectors[vec] == 0) goto found;
         }
     }
 
     // we could not find a completely free one
     // try to search from the start for one
-    if(index != 0) {
-        for(int i = 0; i < index; i++) {
-            if(interrupt_vector[i] < interrupt_vector[vec]) {
+    if(g_last_vec_index != 0) {
+        for(int i = 0; i < g_last_vec_index; i++) {
+            if(g_interrupt_vectors[i] < g_interrupt_vectors[vec]) {
                 vec = i;
 
                 // if has zero uses we can just return it
-                if(interrupt_vector[vec] == 0) goto found;
+                if(g_interrupt_vectors[vec] == 0) goto found;
             }
         }
     }
@@ -393,8 +405,8 @@ found:
     // increment the usage count, set the
     // new index to start from, and return
     // the correct number
-    interrupt_vector[vec]++;
-    index = (vec + 1) % INTERRUPT_VECTOR_SIZE;
+    g_interrupt_vectors[vec]++;
+    g_last_vec_index = (vec + 1) % INTERRUPT_VECTOR_SIZE;
     return (uint8_t) (vec + INT_ALLOCATION_BASE);
 }
 
@@ -426,7 +438,7 @@ void interrupt_free(interrupt_handler_t* inthandler) {
     // check if need to free it from the allocations
     if(inthandler->vector <= INT_ALLOCATION_BASE || inthandler->vector >= 0xf0) return;
     inthandler -= INT_ALLOCATION_BASE;
-    if(interrupt_vector[inthandler->vector] > 0) {
-        interrupt_vector[inthandler->vector]--;
+    if(g_interrupt_vectors[inthandler->vector] > 0) {
+        g_interrupt_vectors[inthandler->vector]--;
     }
 }
