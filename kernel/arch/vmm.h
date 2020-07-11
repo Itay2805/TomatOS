@@ -1,0 +1,4 @@
+#ifndef __TOMATOS_KERNEL_ARCH_VMM_H__
+#define __TOMATOS_KERNEL_ARCH_VMM_H__
+
+#endif //__TOMATOS_KERNEL_ARCH_VMM_H__
