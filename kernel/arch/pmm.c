@@ -1,5 +1,6 @@
-#include <sync/lock.h>
+#include <util/string.h>
 #include <util/list.h>
+#include <sync/lock.h>
 #include "pmm.h"
 
 typedef struct memory_range {
@@ -7,9 +8,9 @@ typedef struct memory_range {
     size_t page_count;
 } memory_range_t;
 
-static list_entry_t g_free_list = LIST_INIT(g_free_list);
+static list_entry_t g_free_list = INIT_LIST(g_free_list);
 
-static lock_t g_pmm_lock = {0};
+static ticket_lock_t g_pmm_lock = {0};
 
 err_t pmm_submit_range(directptr_t start, size_t page_count) {
     err_t err = NO_ERROR;
@@ -23,7 +24,7 @@ cleanup:
 err_t pmm_allocate(size_t page_count, directptr_t* base) {
     err_t err = NO_ERROR;
 
-    acquire_lock(&g_pmm_lock);
+    ticket_lock(&g_pmm_lock);
 
     CHECK(base != NULL);
 
@@ -34,20 +35,30 @@ err_t pmm_allocate(size_t page_count, directptr_t* base) {
             *base = (directptr_t)range + range->page_count * PAGE_SIZE;
             if (range->page_count == 0) {
                 list_del(&range->link);
-                goto cleanup;
             }
+            goto cleanup;
         }
     }
 
     CHECK_FAIL_ERROR(ERROR_OUT_OF_RESOURCES);
 
 cleanup:
-    release_lock(&g_pmm_lock);
+    ticket_unlock(&g_pmm_lock);
+    return err;
+}
+
+err_t pmm_allocate_zero(size_t page_count, directptr_t* base) {
+    err_t err = NO_ERROR;
+
+    CHECK_AND_RETHROW(pmm_allocate(page_count, base));
+    memset(*base, 0, page_count * PAGE_SIZE);
+
+cleanup:
     return err;
 }
 
 err_t pmm_free(directptr_t page, size_t page_count) {
-    acquire_lock(&g_pmm_lock);
+    ticket_lock(&g_pmm_lock);
 
     memory_range_t* range = NULL;
     FOR_EACH_ENTRY(range, &g_free_list, link) {
@@ -57,7 +68,7 @@ err_t pmm_free(directptr_t page, size_t page_count) {
             new_range->page_count = range->page_count + page_count;
             list_add(&g_free_list, &new_range->link);
             goto cleanup;
-        } else {
+        } else if(range + range->page_count * PAGE_SIZE == page) {
             range->page_count += page_count;
             goto cleanup;
         }
@@ -68,7 +79,7 @@ err_t pmm_free(directptr_t page, size_t page_count) {
     list_add_tail(&g_free_list, &range->link);
 
 cleanup:
-    release_lock(&g_pmm_lock);
+    ticket_unlock(&g_pmm_lock);
     return NO_ERROR;
 }
 

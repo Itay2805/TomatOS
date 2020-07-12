@@ -6,10 +6,11 @@
 typedef struct lock {
     atomic_size_t now_serving;
     atomic_size_t next_ticket;
-} lock_t;
+} ticket_lock_t;
 
-void acquire_lock(lock_t* lock);
+#define INIT_LOCK() ((ticket_lock_t){0})
 
-void release_lock(lock_t* lock);
+void ticket_lock(ticket_lock_t* lock);
+void ticket_unlock(ticket_lock_t* lock);
 
 #endif //__TOMATOS_KERNEL_SYNC_LOCK_H__

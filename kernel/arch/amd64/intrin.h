@@ -2,6 +2,7 @@
 #define __TOMATOS_KERNEL_ARCH_AMD64_INTRIN_H__
 
 #include <stdint.h>
+#include "gdt.h"
 
 void __outb(uint16_t port, uint8_t data);
 void __outw(uint16_t port, uint16_t data);
@@ -92,7 +93,7 @@ void __halt(void);
 void __nop(void);
 
 void __ltr(uint16_t seg);
-//void __lgdt(gdt_t* gdt);
+void __lgdt(gdt_t* gdt);
 
 void __swapgs(void);
 

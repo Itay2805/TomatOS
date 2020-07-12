@@ -198,9 +198,9 @@ void __ltr(uint16_t seg){
     asm volatile("ltr %%ax" : : "a"(seg));
 }
 
-//void __lgdt(gdt_t* gdt) {
-//    asm volatile ( "lgdt %0" : : "m" (*gdt));
-//}
+void __lgdt(gdt_t* gdt) {
+    asm volatile ( "lgdt %0" : : "m" (*gdt));
+}
 
 void __swapgs(void) {
     asm volatile("swapgs" ::: "memory");

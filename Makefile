@@ -27,10 +27,12 @@ CFLAGS += -DPRINTF_DISABLE_SUPPORT_FLOAT
 LDFLAGS := -nostdlib -no-pie
 
 SRCS += kernel/arch/pmm.c
+SRCS += kernel/proc/process.c
 SRCS += kernel/sync/lock.c
 SRCS += kernel/util/list.c
 SRCS += kernel/util/except.c
 SRCS += kernel/util/printf.c
+SRCS += kernel/util/string.c
 
 ifeq ($(DEBUG), 1)
 #	SRCS +=

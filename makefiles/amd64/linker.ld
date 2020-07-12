@@ -1,7 +1,7 @@
 ENTRY(kentry)
 SECTIONS
 {
-    . = 0xffffffff80000000 + 0x100000;
+    . = 0xffffffff80000000 + 0x01000000;
 
     .stivalehdr ALIGN(4K) :
     {

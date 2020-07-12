@@ -13,3 +13,4 @@ SRCS += kernel/arch/amd64/debug.c
 SRCS += kernel/arch/amd64/entry.c
 SRCS += kernel/arch/amd64/gdt.c
 SRCS += kernel/arch/amd64/intrin.c
+SRCS += kernel/arch/amd64/vmm.c

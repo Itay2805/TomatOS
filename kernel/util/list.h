@@ -12,7 +12,7 @@ typedef struct list_entry {
 #define CR(ptr, type, member) \
     ((type*)((char*)(ptr) - (char*)offsetof(type, member)))
 
-#define LIST_INIT(var) \
+#define INIT_LIST(var) \
     ((list_entry_t){ &(var), &(var) })
 
 void list_add(list_entry_t* head, list_entry_t* new);
