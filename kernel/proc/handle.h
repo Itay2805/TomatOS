@@ -49,6 +49,8 @@ typedef enum handle_kind {
     HANDLE_THREAD,
 } handle_kind_t;
 
+struct handle_meta;
+typedef err_t (*handle_dtor_t)(struct handle_meta* meta);
 
 /**
  * The metadata of a handle
@@ -72,12 +74,7 @@ typedef struct handle_meta {
     /**
      * The destructor of the handle
      */
-    err_t (*dtor)(struct handle_meta* meta);
-
-    /**
-     * The metadata of the handle
-     */
-    char meta[];
+    handle_dtor_t dtor;
 } handle_meta_t;
 
 /**

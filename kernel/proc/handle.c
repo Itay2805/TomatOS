@@ -4,6 +4,7 @@
 #include <util/defs.h>
 #include <stdbool.h>
 #include "handle.h"
+#include "process.h"
 
 static handle_meta_t** g_global_handles = NULL;
 static ticket_lock_t g_global_handles_lock = INIT_LOCK();
@@ -11,6 +12,21 @@ static ticket_lock_t g_global_handles_lock = INIT_LOCK();
 #define LOCAL_HANDLE 0
 #define GLOBAL_HANDLE 1
 #define SPECIAL_HANDLE 2
+
+err_t create_and_bind_global_handle(handle_meta_t* meta, handle_t* out_handle) {
+    err_t err = NO_ERROR;
+
+    CHECK(meta != NULL);
+    CHECK(out_handle != NULL);
+
+    ticket_lock(&g_global_handles_lock);
+
+
+
+cleanup:
+    ticket_unlock(&g_global_handles_lock);
+    return err;
+}
 
 err_t get_handle_meta(handle_t handle, handle_meta_t** meta) {
     err_t err = NO_ERROR;
@@ -42,11 +58,19 @@ err_t get_handle_meta(handle_t handle, handle_meta_t** meta) {
 
         case SPECIAL_HANDLE: {
             switch (handle_id) {
-                case 1: CHECK_FAIL_ERROR_TRACE(ERROR_INVALID_HANDLE, "TODO: THIS_PROCESS");
-                case 2: CHECK_FAIL_ERROR_TRACE(ERROR_INVALID_HANDLE, "TODO: THIS_THREAD");
+                case 1: {
+                    g_current_process->handle_meta.refcount++;
+                    *meta = (handle_meta_t*)g_current_process;
+                } break;
+
+                case 2: {
+                    g_current_thread->handle_meta.refcount++;
+                    *meta = (handle_meta_t*)g_current_thread;
+                } break;
+
                 default: CHECK_FAIL_ERROR(ERROR_INVALID_HANDLE);
             }
-        }
+        } break;
 
         default: CHECK_FAIL_ERROR(ERROR_INVALID_HANDLE);
     }
@@ -114,11 +138,12 @@ err_t close_handle(handle_t handle) {
 
         case SPECIAL_HANDLE: {
             switch (handle_id) {
-                case 1: CHECK_FAIL_ERROR_TRACE(ERROR_INVALID_HANDLE, "TODO: THIS_PROCESS");
-                case 2: CHECK_FAIL_ERROR_TRACE(ERROR_INVALID_HANDLE, "TODO: THIS_THREAD");
+                // can't close own process/thread handles
+                case 1: CHECK_FAIL_ERROR(ERROR_INVALID_HANDLE);
+                case 2: CHECK_FAIL_ERROR(ERROR_INVALID_HANDLE);
                 default: CHECK_FAIL_ERROR(ERROR_INVALID_HANDLE);
             }
-        }
+        } break;
 
         default: CHECK_FAIL_ERROR(ERROR_INVALID_HANDLE);
     }

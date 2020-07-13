@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include "gdt.h"
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Port io operations
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void __outb(uint16_t port, uint8_t data);
 void __outw(uint16_t port, uint16_t data);
 void __outl(uint16_t port, uint32_t data);
@@ -11,6 +15,10 @@ void __outl(uint16_t port, uint32_t data);
 uint8_t __inb(uint16_t port);
 uint16_t __inw(uint16_t port);
 uint32_t __inl(uint16_t port);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Control registers operations
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 uint64_t __readcr8(void);
 void __writecr8(uint64_t Data);
@@ -81,15 +89,69 @@ typedef union IA32_CR0 {
 IA32_CR0 __readcr0(void);
 void __writecr0(IA32_CR0 Data);
 
-uint64_t __readmsr(uint32_t msr);
-void __writemsr(uint32_t msr, uint64_t Value);
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// MSR operations
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define MSR_IA32_FS_BASE                         0xC0000100
+#define MSR_IA32_GS_BASE                         0xC0000101
+#define MSR_IA32_KERNEL_GS_BASE                  0xC0000102
+
+#define MSR_IA32_STAR                            0xC0000081
+#define MSR_IA32_LSTAR                           0xC0000082
+#define MSR_IA32_CSTAR                           0xC0000083
+#define MSR_IA32_FMASK                           0xC0000084
+
+#define MSR_IA32_EFER                            0xC0000080
+typedef union _IA32_EFER {
+    struct {
+        ///
+        /// [Bit 0] SYSCALL Enable: IA32_EFER.SCE (R/W) Enables SYSCALL/SYSRET
+        /// instructions in 64-bit mode.
+        ///
+        uint32_t  SCE:1;
+        uint32_t  _reserved1:7;
+        ///
+        /// [Bit 8] IA-32e Mode Enable: IA32_EFER.LME (R/W) Enables IA-32e mode
+        /// operation.
+        ///
+        uint32_t  LME:1;
+        uint32_t  _reserved2:1;
+        ///
+        /// [Bit 10] IA-32e Mode Active: IA32_EFER.LMA (R) Indicates IA-32e mode
+        /// is active when set.
+        ///
+        uint32_t  LMA:1;
+        ///
+        /// [Bit 11] Execute Disable Bit Enable: IA32_EFER.NXE (R/W).
+        ///
+        uint32_t  NXE:1;
+        uint32_t  _reserved3:20;
+        uint32_t  _reserved4:32;
+    };
+    uint64_t raw;
+} IA32_EFER;
+
+uint64_t __rdmsr(uint32_t msr);
+void __wrmsr(uint32_t msr, uint64_t Value);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Port CPUID operations
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void __cpuid(int __info[4], int __level);
 void __cpuidex(int __info[4], int __level, int __ecx);
 
+void cpuid(uint32_t val, uint32_t* rax, uint32_t* rbx, uint32_t* rcx, uint32_t* rdx);
+void cpuidex(uint32_t val, uint64_t leaf, uint32_t* rax, uint32_t* rbx, uint32_t* rcx, uint32_t* rdx);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Misc operations
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void __invlpg(uintptr_t a);
 
-void __halt(void);
+void __hlt(void);
 void __nop(void);
 
 void __ltr(uint16_t seg);
@@ -129,6 +191,10 @@ typedef union {
     };
     uint64_t raw;
 } IA32_RFLAGS;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// SIMD operations
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef union {
     struct {

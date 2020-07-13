@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <mem/mm.h>
 #include "stivale.h"
+#include "intrin.h"
 
 uint8_t g_bootstrap_stack[SIZE_4KB] = {0};
 
@@ -16,6 +17,7 @@ stivale_header_t header = {
 
 void init_gdt();
 err_t init_vmm(stivale_struct_t* strct);
+void init_cpu_local_for_bsp();
 
 static const char* g_memory_map_names[] = {
     [1] = "Usable RAM",
@@ -82,10 +84,13 @@ void kentry(stivale_struct_t* strct) {
     }
     TRACE("Available memory size: %d %s", size, g_size_names[div]);
 
-    // initialize the kernel allocator
+    // initialize the kernel allocator and
+    // cpu locals, in preparation for threading
     CHECK_AND_RETHROW(mm_init());
+    init_cpu_local_for_bsp();
 
 cleanup:
     ASSERT_TRACE(!IS_ERROR(err), "Error during kernel initialization");
-    while(true);
+    TRACE("kernel entry end");
+    while(true) __hlt();
 }

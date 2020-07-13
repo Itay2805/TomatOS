@@ -9,6 +9,7 @@ LDFLAGS += --oformat elf_amd64
 LDFLAGS += -z max-page-size=0x1000
 LDFLAGS += -T makefiles/amd64/linker.ld
 
+SRCS += kernel/arch/amd64/cpu.c
 SRCS += kernel/arch/amd64/debug.c
 SRCS += kernel/arch/amd64/entry.c
 SRCS += kernel/arch/amd64/gdt.c

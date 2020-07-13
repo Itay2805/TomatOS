@@ -5,7 +5,14 @@
 # A target to start the kernel in qemu
 #
 qemu: $(BIN_DIR)/image.hdd
-	qemu-system-x86_64 -hdd $^ --enable-kvm -m 4G -smp 4 -machine q35 -debugcon stdio --no-shutdown --no-reboot
+	qemu-system-x86_64 \
+		-hdd $^ \
+		--enable-kvm \
+	 	-m 4G -smp 4 \
+	 	-machine q35 \
+	 	-debugcon stdio \
+	 	--no-shutdown \
+	 	--no-reboot
 
 #
 # A target to build a bootable image

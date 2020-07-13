@@ -1,10 +1,11 @@
+#include <arch/cpu.h>
 #include <stddef.h>
 #include "lock.h"
 
 void ticket_lock(ticket_lock_t* lock) {
     size_t ticket = atomic_fetch_add_explicit(&lock->next_ticket, 1, memory_order_relaxed);
     while (atomic_load_explicit(&lock->now_serving, memory_order_acquire) != ticket) {
-        // TODO: cpu relax
+        cpu_pause();
     }
 }
 

@@ -120,7 +120,6 @@ err_t set_address_space(address_space_t* space) {
     CHECK(space != NULL);
     __writecr3(DIRECT_TO_PHYSICAL(space->pml4));
 
-
 cleanup:
     return err;
 }

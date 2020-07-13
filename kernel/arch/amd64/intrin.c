@@ -122,7 +122,7 @@ void __writecr0(IA32_CR0 Data) {
     : "memory");
 }
 
-uint64_t __readmsr(uint32_t msr) {
+uint64_t __rdmsr(uint32_t msr) {
     uint32_t val1, val2;
     __asm__ __volatile__(
     "rdmsr"
@@ -131,7 +131,7 @@ uint64_t __readmsr(uint32_t msr) {
     return ((uint64_t) val1) | (((uint64_t)val2) << 32u);
 }
 
-void __writemsr (uint32_t msr, uint64_t Value) {
+void __wrmsr (uint32_t msr, uint64_t Value) {
     uint32_t val1 = Value, val2 = Value >> 32;
     __asm__ __volatile__ (
     "wrmsr"
@@ -186,7 +186,7 @@ void __invlpg(uintptr_t a) {
     __asm__ __volatile__("invlpg (%%eax)" : : "a" (a) );
 }
 
-void __halt(void) {
+void __hlt(void) {
     __asm__ volatile ("hlt");
 }
 
