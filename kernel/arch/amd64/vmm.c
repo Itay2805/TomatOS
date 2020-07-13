@@ -1,10 +1,10 @@
 #include <proc/process.h>
 #include <util/except.h>
-#include <arch/pmm.h>
+#include <mem/pmm.h>
 #include <stdbool.h>
 
 #include "stivale.h"
-#include "../vmm.h"
+#include "mem/vmm.h"
 #include "intrin.h"
 
 

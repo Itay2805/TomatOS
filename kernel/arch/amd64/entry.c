@@ -1,7 +1,8 @@
 #include <util/defs.h>
 #include <util/except.h>
-#include <arch/pmm.h>
+#include <mem/pmm.h>
 #include <stdbool.h>
+#include <mem/mm.h>
 #include "stivale.h"
 
 uint8_t g_bootstrap_stack[SIZE_4KB] = {0};
@@ -81,6 +82,10 @@ void kentry(stivale_struct_t* strct) {
     }
     TRACE("Available memory size: %d %s", size, g_size_names[div]);
 
+    // initialize the kernel allocator
+    CHECK_AND_RETHROW(mm_init());
+
 cleanup:
     ASSERT_TRACE(!IS_ERROR(err), "Error during kernel initialization");
+    while(true);
 }

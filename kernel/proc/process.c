@@ -1,4 +1,4 @@
 #include "process.h"
 
-process_t g_kernel = {0};
+process_data_t g_kernel = {0};
 
