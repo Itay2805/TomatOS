@@ -1,5 +1,5 @@
 #include "except.h"
-#include "debug.h"
+#include "debug/debug.h"
 
 static const char* g_error_to_name[] = {
     [NO_ERROR] = "No error",

@@ -18,6 +18,7 @@ stivale_header_t header = {
 void init_gdt();
 err_t init_vmm(stivale_struct_t* strct);
 void init_cpu_local_for_bsp();
+err_t init_idt();
 
 static const char* g_memory_map_names[] = {
     [1] = "Usable RAM",
@@ -86,8 +87,9 @@ void kentry(stivale_struct_t* strct) {
 
     // initialize the kernel allocator and
     // cpu locals, in preparation for threading
-    CHECK_AND_RETHROW(mm_init());
     init_cpu_local_for_bsp();
+    CHECK_AND_RETHROW(mm_init());
+    CHECK_AND_RETHROW(init_idt());
 
 cleanup:
     ASSERT_TRACE(!IS_ERROR(err), "Error during kernel initialization");

@@ -11,9 +11,11 @@ cleanup:
 
 process_t g_kernel = {
     .handle_meta = {
-        .size = sizeof(process_t),
         .kind = HANDLE_PROCESS,
         .refcount = 1,
         .dtor = (handle_dtor_t)delete_kernel,
     },
+    .handles_lock = INIT_LOCK(),
+    .handles = NULL,
+    .next_handle = 1,
 };

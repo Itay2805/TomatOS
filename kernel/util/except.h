@@ -82,17 +82,25 @@ const char* strerror(err_t err);
 #define ASSERT(expr) \
     do { \
         if (!(expr)) { \
-            ERROR("ASSERT at %s (%s:%d)", __func__, __FILENAME__, __LINE__); \
-            __builtin_trap(); \
+            ERROR("*************************"); \
+            ERROR("    ASSERTION FAILED!    "); \
+            ERROR("*************************"); \
+            ERROR("%s:%d", __FILENAME__, __LINE__); \
+            ERROR("Condition: `%s`", #expr); \
+            while(1); \
         } \
     } while(0)
 
 #define ASSERT_TRACE(expr, fmt, ...) \
     do { \
         if (!(expr)) { \
-            ERROR("ASSERT at %s (%s:%d)", __func__, __FILENAME__, __LINE__); \
+            ERROR("*************************"); \
+            ERROR("    ASSERTION FAILED!    "); \
+            ERROR("*************************"); \
+            ERROR("%s:%d", __FILENAME__, __LINE__); \
+            ERROR("Condition: `%s`", #expr); \
             ERROR(fmt, ## __VA_ARGS__); \
-            __builtin_trap(); \
+            while(1); \
         } \
     } while(0);
 

@@ -40,6 +40,10 @@ static err_t figure_features() {
     return err;
 }
 
+// We get in this function `applying non-zero offset FFFF800000000000 to null pointer`
+// this is because one of the mapped addresses are 0, and adding offset to a null pointer
+// is technically undefined but not in this specific case, so we will disable ubsan for it
+__attribute__((no_sanitize("undefined")))
 static err_t map_huge_page(physptr_t ptr) {
     err_t err = NO_ERROR;
 

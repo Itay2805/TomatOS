@@ -14,21 +14,21 @@ typedef struct stivale_header {
     uint16_t framebuffer_height;
     uint16_t framebuffer_bpp;
     uint64_t entry_point;
-} __attribute__((packed)) stivale_header_t;
+} PACKED stivale_header_t;
 
 typedef struct mmap_entry {
     uint64_t base;
     uint64_t length;
     uint32_t type;
     uint32_t unused;
-} __attribute__((packed)) mmap_entry_t;
+} PACKED mmap_entry_t;
 
 typedef struct stivale_module {
     uint64_t begin;
     uint64_t end;
     char     string[128];
     struct stivale_module* next;
-} __attribute__((packed)) stivale_module_t;
+} PACKED stivale_module_t;
 
 typedef struct stivale_struct {
     const char* cmdline;
@@ -46,6 +46,6 @@ typedef struct stivale_struct {
     uint64_t flags;
       // bit 0: 1 if booted with BIOS, 0 if booted with UEFI
       // All other bits undefined.
-} __attribute__((packed)) stivale_struct_t;
+} PACKED stivale_struct_t;
 
 #endif //__TOMATOS_KERNEL_ARCH_AMD64_STIVALE_H__

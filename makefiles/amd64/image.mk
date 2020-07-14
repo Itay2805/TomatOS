@@ -7,13 +7,12 @@
 qemu: $(BIN_DIR)/image.hdd
 	qemu-system-x86_64 \
 		-hdd $^ \
-		--enable-kvm \
 	 	-m 4G -smp 4 \
 	 	-machine q35 \
 	 	-debugcon stdio \
+	 	-monitor telnet:localhost:4321,server,nowait \
 	 	--no-shutdown \
 	 	--no-reboot
-
 #
 # A target to build a bootable image
 #

@@ -26,11 +26,14 @@ CFLAGS += -DPRINTF_DISABLE_SUPPORT_FLOAT
 
 LDFLAGS := -nostdlib -no-pie
 
+SRCS += kernel/debug/ubsan.c
 SRCS += kernel/mem/mm.c
 SRCS += kernel/mem/pmm.c
 SRCS += kernel/mem/tlsf.c
+SRCS += kernel/proc/event.c
 SRCS += kernel/proc/handle.c
 SRCS += kernel/proc/process.c
+SRCS += kernel/sync/critical.c
 SRCS += kernel/sync/lock.c
 SRCS += kernel/util/except.c
 SRCS += kernel/util/list.c

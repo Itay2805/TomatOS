@@ -2,6 +2,7 @@
 #define __TOMATOS_KERNEL_UTIL_DEFS_H__
 
 #define UNREACHABLE()  __builtin_unreachable ()
+#define PACKED __attribute__((packed))
 
 #define SIGNATURE_16(A, B)        ((A) | (B << 8))
 #define SIGNATURE_32(A, B, C, D)  (SIGNATURE_16 (A, B) | (SIGNATURE_16 (C, D) << 16))

@@ -11,16 +11,49 @@ struct thread;
  * This represents a process
  */
 typedef struct process {
+    /**
+     * The meta of the process handle
+     */
     handle_meta_t handle_meta;
+
+    /**
+     * The address space of the handle
+     */
     address_space_t address_space;
+
+    /**
+     * Lock on the handles list
+     * TODO: convert to rwlock
+     */
+    ticket_lock_t handles_lock;
+
+    /**
+     * The handles of the process
+     */
+    struct {
+        handle_t key;
+        handle_meta_t* value;
+    }* handles;
+
+    /**
+     * used for generation handle ids
+     */
+     handle_t next_handle;
 } process_t;
 
 /**
  * This represents a thread
  */
 typedef struct thread {
+    /**
+     * The thread handle meta
+     */
     handle_meta_t handle_meta;
-    process_t* parent;
+
+    /**
+     * The parent process
+     */
+     process_t* parent;
 } thread_t;
 
 /**
