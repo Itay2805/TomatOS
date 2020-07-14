@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <proc/event.h>
 #include <util/defs.h>
+#include <arch/ints.h>
 #include "intrin.h"
 
 event_t g_interrupt_events[256] = {0};
@@ -10,10 +11,160 @@ event_t g_interrupt_events[256] = {0};
 // Interrupts without signals, this applies to:
 //  - exceptions
 //  - scheduler tick
-// TODO: this
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO:
+/**
+ * The common handler that will push all registers and call
+ * the true common handler with the system_context_t
+ */
+__attribute__((naked, used))
+void common_exception_stub() {
+    asm("cld\n"
+        "pushq %rax\n"
+        "pushq %rbx\n"
+        "pushq %rcx\n"
+        "pushq %rdx\n"
+        "pushq %rsi\n"
+        "pushq %rdi\n"
+        "pushq %rbp\n"
+        "pushq %r8\n"
+        "pushq %r9\n"
+        "pushq %r10\n"
+        "pushq %r11\n"
+        "pushq %r12\n"
+        "pushq %r13\n"
+        "pushq %r14\n"
+        "pushq %r15\n"
+        "movq %ds, %rax\n"
+        "pushq %rax\n"
+        "movw $16, %ax\n"
+        "movw %ax, %ds\n"
+        "movw %ax, %es\n"
+        "movw %ax, %ss\n"
+        "movq %rsp, %rdi\n"
+        "call common_exception_handler\n"
+        "popq %rax\n"
+        "movw %ax, %ds\n"
+        "movw %ax, %es\n"
+        "popq %r15\n"
+        "popq %r14\n"
+        "popq %r13\n"
+        "popq %r12\n"
+        "popq %r11\n"
+        "popq %r10\n"
+        "popq %r9\n"
+        "popq %r8\n"
+        "popq %rbp\n"
+        "popq %rdi\n"
+        "popq %rsi\n"
+        "popq %rdx\n"
+        "popq %rcx\n"
+        "popq %rbx\n"
+        "popq %rax\n"
+        "addq $16, %rsp\n"
+        "iretq");
+}
+
+/**
+ * Define exception stub that has no error
+ */
+#define EXCEPTION_STUB(num) \
+    __attribute__((naked)) \
+    void interrupt_handle_##num() { \
+        asm("pushq $0\n" \
+            "pushq $" #num "\n" \
+            "jmp common_exception_stub"); \
+    }
+
+/**
+ * Define exception stub that has an error code
+ */
+#define EXCEPTION_ERROR_STUB(num) \
+    __attribute__((naked)) \
+    void interrupt_handle_##num() { \
+        asm("pushq $" #num "\n" \
+            "jmp common_exception_stub"); \
+    }
+
+/**
+ * Define all exception handlers
+ * this includes the scheduler tick
+ * interrupt
+ */
+EXCEPTION_STUB(0x00);
+EXCEPTION_STUB(0x01);
+EXCEPTION_STUB(0x02);
+EXCEPTION_STUB(0x03);
+EXCEPTION_STUB(0x04);
+EXCEPTION_STUB(0x05);
+EXCEPTION_STUB(0x06);
+EXCEPTION_STUB(0x07);
+EXCEPTION_ERROR_STUB(0x08);
+EXCEPTION_STUB(0x09);
+EXCEPTION_ERROR_STUB(0x0a);
+EXCEPTION_ERROR_STUB(0x0b);
+EXCEPTION_ERROR_STUB(0x0c);
+EXCEPTION_ERROR_STUB(0x0d);
+EXCEPTION_ERROR_STUB(0x0e);
+EXCEPTION_STUB(0x0f);
+EXCEPTION_ERROR_STUB(0x10);
+EXCEPTION_STUB(0x11);
+EXCEPTION_STUB(0x12);
+EXCEPTION_STUB(0x13);
+EXCEPTION_STUB(0x14);
+EXCEPTION_STUB(0x15);
+EXCEPTION_STUB(0x16);
+EXCEPTION_STUB(0x17);
+EXCEPTION_STUB(0x18);
+EXCEPTION_STUB(0x19);
+EXCEPTION_STUB(0x1a);
+EXCEPTION_STUB(0x1b);
+EXCEPTION_STUB(0x1c);
+EXCEPTION_STUB(0x1d);
+EXCEPTION_STUB(0x1e);
+EXCEPTION_STUB(0x1f);
+EXCEPTION_STUB(0x20);
+
+static const char* g_exception_name[0x20] = {
+    "#DE - Divide Error",
+    "#DB - Debug",
+    "NMI Interrupt",
+    "#BP - Breakpoint",
+    "#OF - Overflow",
+    "#BR - BOUND Range Exceeded",
+    "#UD - Invalid Opcode",
+    "#NM - Device Not Available",
+    "#DF - Double Fault",
+    "Coprocessor Segment Overrun",
+    "#TS - Invalid TSS",
+    "#NP - Segment Not Present",
+    "#SS - Stack Fault Fault",
+    "#GP - General Protection",
+    "#PF - Page-Fault",
+    "Reserved",
+    "#MF - x87 FPU Floating-Point Error",
+    "#AC - Alignment Check",
+    "#MC - Machine-Check",
+    "#XM - SIMD floating-point",
+    "#VE - Virtualization",
+    "#CP - Control Protection",
+};
+
+static void default_exception_handler(system_context_t* ctx) {
+    ERROR("Exception occurred: %s", g_exception_name[ctx->int_num]);
+    // TODO: print stuff nicely
+    ERROR("RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx", ctx->rax, ctx->rbx, ctx->rcx, ctx->rdx);
+    ERROR("RSI=%016llx RDI=%016llx RBP=%016llx RSP=%016llx", ctx->rsi, ctx->rdi, ctx->rbp, ctx->rsp);
+    ERROR("R8 =%016llx R9 =%016llx R10=%016llx R11=%016llx", ctx->r8 , ctx->r9 , ctx->r10, ctx->r11);
+    ERROR("R12=%016llx R13=%016llx R14=%016llx R15=%016llx", ctx->r12, ctx->r13, ctx->r14, ctx->r15);
+    ERROR("RIP=%016llx RFL=%08x", ctx->rip, ctx->rflags.raw); // TODO: proper cpl and flags parsing
+    ERROR("CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
+}
+
+__attribute__((used))
+void common_exception_handler(system_context_t* ctx) {
+    default_exception_handler(ctx);
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // All the handlers for general purpose interrupts
@@ -327,39 +478,39 @@ err_t init_idt() {
     }
 
     // setup full idt
-//    set_idt_entry(0x0, interrupt_handle_0x0, 0);
-//    set_idt_entry(0x1, interrupt_handle_0x1, 0);
-//    set_idt_entry(0x2, interrupt_handle_0x2, 0);
-//    set_idt_entry(0x3, interrupt_handle_0x3, 0);
-//    set_idt_entry(0x4, interrupt_handle_0x4, 0);
-//    set_idt_entry(0x5, interrupt_handle_0x5, 0);
-//    set_idt_entry(0x6, interrupt_handle_0x6, 0);
-//    set_idt_entry(0x7, interrupt_handle_0x7, 0);
-//    set_idt_entry(0x8, interrupt_handle_0x8, 0);
-//    set_idt_entry(0x9, interrupt_handle_0x9, 0);
-//    set_idt_entry(0xa, interrupt_handle_0xa, 0);
-//    set_idt_entry(0xb, interrupt_handle_0xb, 0);
-//    set_idt_entry(0xc, interrupt_handle_0xc, 0);
-//    set_idt_entry(0xd, interrupt_handle_0xd, 0);
-//    set_idt_entry(0xe, interrupt_handle_0xe, 0);
-//    set_idt_entry(0xf, interrupt_handle_0xf, 0);
-//    set_idt_entry(0x10, interrupt_handle_0x10, 0);
-//    set_idt_entry(0x11, interrupt_handle_0x11, 0);
-//    set_idt_entry(0x12, interrupt_handle_0x12, 0);
-//    set_idt_entry(0x13, interrupt_handle_0x13, 0);
-//    set_idt_entry(0x14, interrupt_handle_0x14, 0);
-//    set_idt_entry(0x15, interrupt_handle_0x15, 0);
-//    set_idt_entry(0x16, interrupt_handle_0x16, 0);
-//    set_idt_entry(0x17, interrupt_handle_0x17, 0);
-//    set_idt_entry(0x18, interrupt_handle_0x18, 0);
-//    set_idt_entry(0x19, interrupt_handle_0x19, 0);
-//    set_idt_entry(0x1a, interrupt_handle_0x1a, 0);
-//    set_idt_entry(0x1b, interrupt_handle_0x1b, 0);
-//    set_idt_entry(0x1c, interrupt_handle_0x1c, 0);
-//    set_idt_entry(0x1d, interrupt_handle_0x1d, 0);
-//    set_idt_entry(0x1e, interrupt_handle_0x1e, 0);
-//    set_idt_entry(0x1f, interrupt_handle_0x1f, 0);
-//    set_idt_entry(0x20, interrupt_handle_0x20, 0);
+    set_idt_entry(0x0, interrupt_handle_0x00, 0);
+    set_idt_entry(0x1, interrupt_handle_0x01, 0);
+    set_idt_entry(0x2, interrupt_handle_0x02, 0);
+    set_idt_entry(0x3, interrupt_handle_0x03, 0);
+    set_idt_entry(0x4, interrupt_handle_0x04, 0);
+    set_idt_entry(0x5, interrupt_handle_0x05, 0);
+    set_idt_entry(0x6, interrupt_handle_0x06, 0);
+    set_idt_entry(0x7, interrupt_handle_0x07, 0);
+    set_idt_entry(0x8, interrupt_handle_0x08, 0);
+    set_idt_entry(0x9, interrupt_handle_0x09, 0);
+    set_idt_entry(0xa, interrupt_handle_0x0a, 0);
+    set_idt_entry(0xb, interrupt_handle_0x0b, 0);
+    set_idt_entry(0xc, interrupt_handle_0x0c, 0);
+    set_idt_entry(0xd, interrupt_handle_0x0d, 0);
+    set_idt_entry(0xe, interrupt_handle_0x0e, 0);
+    set_idt_entry(0xf, interrupt_handle_0x0f, 0);
+    set_idt_entry(0x10, interrupt_handle_0x10, 0);
+    set_idt_entry(0x11, interrupt_handle_0x11, 0);
+    set_idt_entry(0x12, interrupt_handle_0x12, 0);
+    set_idt_entry(0x13, interrupt_handle_0x13, 0);
+    set_idt_entry(0x14, interrupt_handle_0x14, 0);
+    set_idt_entry(0x15, interrupt_handle_0x15, 0);
+    set_idt_entry(0x16, interrupt_handle_0x16, 0);
+    set_idt_entry(0x17, interrupt_handle_0x17, 0);
+    set_idt_entry(0x18, interrupt_handle_0x18, 0);
+    set_idt_entry(0x19, interrupt_handle_0x19, 0);
+    set_idt_entry(0x1a, interrupt_handle_0x1a, 0);
+    set_idt_entry(0x1b, interrupt_handle_0x1b, 0);
+    set_idt_entry(0x1c, interrupt_handle_0x1c, 0);
+    set_idt_entry(0x1d, interrupt_handle_0x1d, 0);
+    set_idt_entry(0x1e, interrupt_handle_0x1e, 0);
+    set_idt_entry(0x1f, interrupt_handle_0x1f, 0);
+    set_idt_entry(0x20, interrupt_handle_0x20, 0);
     set_idt_entry(0x21, interrupt_handle_0x21, 0);
     set_idt_entry(0x22, interrupt_handle_0x22, 0);
     set_idt_entry(0x23, interrupt_handle_0x23, 0);
