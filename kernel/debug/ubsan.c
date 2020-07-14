@@ -68,6 +68,11 @@ typedef struct ubsan_nonnull_arg {
     ubsan_source_location_t loc;
 } ubsan_nonnull_arg_t;
 
+typedef struct ubsan_invalid_builtin {
+    ubsan_source_location_t loc;
+    unsigned char kind;
+} ubsan_invalid_builtin_t;
+
 const char* g_type_check_names[] = {
     "load of",
     "store to",
@@ -79,8 +84,7 @@ const char* g_type_check_names[] = {
     "downcast of",
     "upcast of",
     "cast to virtual base of",
-    "_Nonnull binding to",
-    "dynamic operation on"
+    "_Nonnull binding to"
 };
 
 #define WARN_PRINT(fmt, ...) PRINT("[!] " __MODULE__ ": " fmt "\n", ## __VA_ARGS__)
@@ -124,11 +128,34 @@ void __ubsan_handle_negate_overflow(ubsan_overflow_t* data, uintptr_t old) {
 }
 
 void __ubsan_handle_shift_out_of_bounds(ubsan_shift_out_of_bounds_t* data, uintptr_t lhs, uintptr_t rhs) {
-    WARN_PRINT("%s", __FUNCTION__);
+    if (((int64_t)rhs) < 0 && data->rhs->kind == 0 && data->rhs->info & 1) {
+        WARN_PRINT("shift exponent %d is negative (%s:%d:%d)",
+                rhs,
+                data->loc.filename, data->loc.line, data->loc.column);
+    } else if (rhs >= (1 << (data->lhs->info >> 1))) {
+        WARN_PRINT("shift exponent %d is too large for %d-bit type %s (%s:%d:%d)",
+                rhs,
+                1 << (data->lhs->kind >> 1),
+                data->lhs->name,
+                data->loc.filename, data->loc.line, data->loc.column);
+    } else if (((int64_t)rhs) < 0 && data->lhs->kind == 0 && data->lhs->info & 1) {
+        WARN_PRINT("left shift of negative value %d (%s:%d:%d)",
+                   lhs,
+                   data->loc.filename, data->loc.line, data->loc.column);
+    } else {
+        WARN_PRINT("left shift of %d by %d places cannot be represented in type %s (%s:%d:%d)",
+                   lhs,
+                   rhs,
+                   data->lhs->name,
+                   data->loc.filename, data->loc.line, data->loc.column);
+    }
 }
 
 void __ubsan_handle_out_of_bounds(ubsan_out_of_bounds_t* data, uintptr_t index) {
-    WARN_PRINT("index %d out of bounds for type %s (%s:%d:%d)", index, data->array->name, data->loc.filename, data->loc.line, data->loc.column);
+    WARN_PRINT("index %d out of bounds for type %s (%s:%d:%d)",
+            index,
+            data->array->name,
+            data->loc.filename, data->loc.line, data->loc.column);
 }
 
 void __ubsan_handle_nonnull_return(ubsan_non_null_return_t* data, ubsan_source_location_t* loc) {
@@ -136,7 +163,26 @@ void __ubsan_handle_nonnull_return(ubsan_non_null_return_t* data, ubsan_source_l
 }
 
 void __ubsan_handle_type_mismatch_v1(ubsan_type_mismatch_v1_t* data, uintptr_t ptr) {
-    WARN_PRINT("%s", __FUNCTION__);
+    size_t alignment = 1 << data->log_alignment;
+    if (ptr == 0) {
+        WARN_PRINT("%s null pointer of type %s (%s:%d:%d)",
+                g_type_check_names[data->type_check_kind],
+                data->type->name,
+                data->loc.filename, data->loc.line, data->loc.column);
+    } else if (ptr & (alignment - 1)) {
+        WARN_PRINT("%s misaligned address %p for type %s, which requires %d byte alignment (%s:%d:%d)",
+                g_type_check_names[data->type_check_kind],
+                (void*)ptr,
+                alignment,
+                data->type->name,
+                data->loc.filename, data->loc.line, data->loc.column);
+    } else {
+        WARN_PRINT("%s address %p with insufficient space for an object of type %s (%s:%d:%d)",
+               g_type_check_names[data->type_check_kind],
+               (void*)ptr,
+               data->type->name,
+               data->loc.filename, data->loc.line, data->loc.column);
+    }
 }
 
 void __ubsan_handle_vla_bound_not_positive(ubsan_vla_bound_t* data, uintptr_t bound) {
@@ -157,4 +203,10 @@ void __ubsan_handle_nonnull_arg(ubsan_nonnull_arg_t* data) {
 
 void __ubsan_handle_type_mismatch(ubsan_type_mismatch_t* data, uintptr_t ptr) {
     WARN_PRINT("%s", __FUNCTION__);
+}
+
+void __ubsan_handle_invalid_builtin(ubsan_invalid_builtin_t* data) {
+    WARN_PRINT("passing zero to %s, which is not a valid argument (%s:%d:%d)",
+            data->kind ? "clz()" : "ctz()",
+            data->loc.filename, data->loc.line, data->loc.column);
 }

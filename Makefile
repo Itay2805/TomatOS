@@ -13,8 +13,7 @@ DEBUG ?= 0
 # Build constants
 ########################################################################################################################
 
-CFLAGS := -Wall -Werror
-CFLAGS += -ffreestanding -fno-pic
+CFLAGS := -ffreestanding -fno-pic
 CFLAGS += -Ikernel
 CFLAGS += -O2 -flto -g
 
@@ -26,13 +25,18 @@ CFLAGS += -DPRINTF_DISABLE_SUPPORT_FLOAT
 
 LDFLAGS := -nostdlib -no-pie
 
-SRCS += kernel/debug/ubsan.c
+SRCS += kernel/acpi/tables/rsdp.c
+SRCS += kernel/acpi/tables/rsdt.c
+SRCS += kernel/acpi/tables/table.c
+SRCS += kernel/acpi/acpi.c
+SRCS += kernel/arch/timing.c
 SRCS += kernel/mem/mm.c
 SRCS += kernel/mem/pmm.c
 SRCS += kernel/mem/tlsf.c
 SRCS += kernel/proc/event.c
 SRCS += kernel/proc/handle.c
 SRCS += kernel/proc/process.c
+SRCS += kernel/proc/scheduler.c
 SRCS += kernel/sync/critical.c
 SRCS += kernel/sync/lock.c
 SRCS += kernel/util/except.c
@@ -41,16 +45,37 @@ SRCS += kernel/util/printf.c
 SRCS += kernel/util/stb_ds.c
 SRCS += kernel/util/string.c
 
+# include lai
+CFLAGS += -Ideps/lai/include
+SRCS += deps/lai/core/error.c
+SRCS += deps/lai/core/eval.c
+SRCS += deps/lai/core/exec.c
+SRCS += deps/lai/core/exec-operand.c
+SRCS += deps/lai/core/libc.c
+SRCS += deps/lai/core/ns.c
+SRCS += deps/lai/core/object.c
+SRCS += deps/lai/core/opregion.c
+SRCS += deps/lai/core/os_methods.c
+SRCS += deps/lai/core/variable.c
+SRCS += deps/lai/core/vsnprintf.c
+#SRCS += deps/lai/drivers/ec.c
+#SRCS += deps/lai/drivers/timer.c
+SRCS += deps/lai/helpers/pci.c
+SRCS += deps/lai/helpers/pm.c
+SRCS += deps/lai/helpers/resource.c
+SRCS += deps/lai/helpers/sci.c
+
 ifeq ($(DEBUG), 1)
-#	SRCS +=
+	SRCS += kernel/debug/ubsan.c
+	CFLAGS += -D__TOMATOS_DEBUG__
 endif
 
 ifeq ($(DEBUG), 1)
 	BIN_DIR := bin/$(ARCH)/DEBUG
-	BUILD_DIR := build/$(BUILD)/DEBUG
+	BUILD_DIR := build/$(ARCH)/DEBUG
 else
 	BIN_DIR := bin/$(ARCH)/RELEASE
-	BUILD_DIR := build/$(BUILD)/RELEASE
+	BUILD_DIR := build/$(ARCH)/RELEASE
 endif
 
 include makefiles/$(ARCH)/consts.mk
@@ -75,6 +100,11 @@ $(BIN_DIR)/tomatos.elf: $(OBJS)
 	@echo LD $@
 	@mkdir -p $(@D)
 	@$(LD) $(LDFLAGS) -o $@ $^
+
+$(BUILD_DIR)/deps/%.c.o: %.c
+	@echo CC $@
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) -Wall -Werror -MMD -D__FILENAME__="\"$<\"" -D__MODULE__="\"$(notdir $(basename $<))\"" -c $< -o $@
 
 $(BUILD_DIR)/%.c.o: %.c
 	@echo CC $@

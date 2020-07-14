@@ -2,11 +2,6 @@
 #define __TOMATOS_KERNEL_PROC_SCHEDULER_H__
 
 #include <util/except.h>
-
-/**
- * This runs the scheduler inside a
- * @return
- */
-err_t scheduler_tick();
+#include <arch/ints.h>
 
 #endif //__TOMATOS_KERNEL_PROC_SCHEDULER_H__

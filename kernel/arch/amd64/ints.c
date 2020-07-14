@@ -125,7 +125,7 @@ EXCEPTION_STUB(0x1e);
 EXCEPTION_STUB(0x1f);
 EXCEPTION_STUB(0x20);
 
-static const char* g_exception_name[0x20] = {
+static const char* g_exception_name[] = {
     "#DE - Divide Error",
     "#DB - Debug",
     "NMI Interrupt",
@@ -151,7 +151,11 @@ static const char* g_exception_name[0x20] = {
 };
 
 static void default_exception_handler(system_context_t* ctx) {
+    ERROR("");
+    ERROR("****************************************************");
     ERROR("Exception occurred: %s", g_exception_name[ctx->int_num]);
+    ERROR("****************************************************");
+    ERROR("");
     // TODO: print stuff nicely
     ERROR("RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx", ctx->rax, ctx->rbx, ctx->rcx, ctx->rdx);
     ERROR("RSI=%016llx RDI=%016llx RBP=%016llx RSP=%016llx", ctx->rsi, ctx->rdi, ctx->rbp, ctx->rsp);
@@ -159,11 +163,20 @@ static void default_exception_handler(system_context_t* ctx) {
     ERROR("R12=%016llx R13=%016llx R14=%016llx R15=%016llx", ctx->r12, ctx->r13, ctx->r14, ctx->r15);
     ERROR("RIP=%016llx RFL=%08x", ctx->rip, ctx->rflags.raw); // TODO: proper cpl and flags parsing
     ERROR("CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
+    ERROR("");
+    ERROR("Halting :(");
+    while(1) __hlt();
 }
+
+err_t scheduler_tick(system_context_t* ctx);
 
 __attribute__((used))
 void common_exception_handler(system_context_t* ctx) {
-    default_exception_handler(ctx);
+    if (ctx->int_num == 0x20) {
+        ASSERT_TRACE(!IS_ERROR(scheduler_tick(ctx)), "Scheduler tick returned error!");
+    } else {
+        default_exception_handler(ctx);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -31,7 +31,7 @@ int memcmp(const void* ptr1, const void* ptr2, size_t len) {
     return (0);
 }
 
-void* memcpy(void* _dst, void* _src, size_t len) {
+void* memcpy(void* _dst, const void* _src, size_t len) {
     if (_dst != _src) {
         char* dst = _dst;
         const char* src = _src;
@@ -42,7 +42,7 @@ void* memcpy(void* _dst, void* _src, size_t len) {
     return _dst;
 }
 
-void* memmove(void* _dst, void* _src, size_t len) {
+void* memmove(void* _dst, const void* _src, size_t len) {
     char* dst = _dst;
     const char* src = _src;
 

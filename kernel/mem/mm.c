@@ -43,8 +43,10 @@ void* kalloc(size_t size) {
         res = tlsf_malloc(g_tlsf, size);
     }
 
+    size_t ptr = DIRECT_TO_PHYSICAL(res);
+    ASSERT_TRACE(ptr < 0x1000000 || 0x108d000 < ptr, "tried to allocate a kernel pointer %p", ptr);
 
-cleanup:
+    cleanup:
     ticket_unlock(&g_tlsf_lock);
     return res;
 }
@@ -61,6 +63,9 @@ void* krealloc(void* ptr, size_t size) {
         }
         res = tlsf_realloc(g_tlsf, ptr, size);
     }
+
+    size_t a = DIRECT_TO_PHYSICAL(res);
+    ASSERT_TRACE(a < 0x1000000 || 0x108c8d1 < a, "tried to allocate a kernel pointer%p", a);
 
 cleanup:
     ticket_unlock(&g_tlsf_lock);
