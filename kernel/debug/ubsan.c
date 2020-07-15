@@ -2,6 +2,7 @@
 #include <util/except.h>
 #include <util/defs.h>
 #include <stdint.h>
+#include <mem/vmm.h>
 
 typedef struct ubsan_type {
     uint16_t kind;
@@ -32,10 +33,6 @@ typedef struct ubsan_out_of_bounds {
     ubsan_type_t* index;
 } ubsan_out_of_bounds_t;
 
-typedef struct ubsan_non_null_return {
-    ubsan_source_location_t loc;
-} ubsan_non_null_return_t;
-
 typedef struct ubsan_type_mismatch_v1 {
     ubsan_source_location_t loc;
     ubsan_type_t* type;
@@ -43,35 +40,25 @@ typedef struct ubsan_type_mismatch_v1 {
     uint8_t type_check_kind;
 } ubsan_type_mismatch_v1_t;
 
-typedef struct ubsan_type_mismatch {
-    ubsan_source_location_t loc;
-    ubsan_type_t* type;
-    uint64_t alignment;
-    uint8_t type_check_kind;
-} ubsan_type_mismatch_t;
-
-typedef struct ubsan_vla_bound {
-    ubsan_source_location_t loc;
-    ubsan_type_t* type;
-} ubsan_vla_bound_t;
-
-typedef struct ubsan_invalid_value {
-    ubsan_source_location_t loc;
-    ubsan_type_t* type;
-} ubsan_invalid_value_t;
-
 typedef struct ubsan_unreachable {
     ubsan_source_location_t loc;
 } ubsan_unreachable_t;
-
-typedef struct ubsan_nonnull_arg {
-    ubsan_source_location_t loc;
-} ubsan_nonnull_arg_t;
 
 typedef struct ubsan_invalid_builtin {
     ubsan_source_location_t loc;
     unsigned char kind;
 } ubsan_invalid_builtin_t;
+
+typedef struct ubsan_alignment_assumption {
+    ubsan_source_location_t loc;
+    ubsan_source_location_t assumption_loc;
+    ubsan_type_t* type;
+} ubsan_alignment_assumption_t;
+
+typedef struct ubsan_invalid_value {
+    ubsan_source_location_t loc;
+    ubsan_type_t* type;
+} ubsan_invalid_value_t;
 
 const char* g_type_check_names[] = {
     "load of",
@@ -89,12 +76,34 @@ const char* g_type_check_names[] = {
 
 #define WARN_PRINT(fmt, ...) PRINT("[!] " __MODULE__ ": " fmt "\n", ## __VA_ARGS__)
 
+typedef struct frame {
+    struct frame* rbp;
+    uint64_t rip;
+} frame_t;
+
+static void trace_stack() {
+#ifdef __TOMATOS_AMD64__
+    frame_t* current = (frame_t*)__builtin_frame_address(0);
+    for (size_t i = 0; i < UINT64_MAX; i++) {
+        if(!current) {
+            break;
+        }
+
+        WARN_PRINT("\t%02d: RIP [%p]", i, current->rip);
+
+        current = current->rbp;
+    }
+#endif
+}
+
 void __ubsan_handle_add_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
+    trace_stack();
 }
 
 void __ubsan_handle_sub_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
+    trace_stack();
 }
 
 void __ubsan_handle_pointer_overflow(ubsan_overflow_t* data, uintptr_t base, uintptr_t result) {
@@ -113,18 +122,22 @@ void __ubsan_handle_pointer_overflow(ubsan_overflow_t* data, uintptr_t base, uin
     } else {
         WARN_PRINT("pointer index expression with base %p overflowed to %p (%s:%d:%d)", base, result, data->loc.filename, data->loc.line, data->loc.column);
     }
+    trace_stack();
 }
 
 void __ubsan_handle_mul_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
+    trace_stack();
 }
 
 void __ubsan_handle_divrem_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
+    trace_stack();
 }
 
 void __ubsan_handle_negate_overflow(ubsan_overflow_t* data, uintptr_t old) {
     WARN_PRINT("%s", __FUNCTION__);
+    trace_stack();
 }
 
 void __ubsan_handle_shift_out_of_bounds(ubsan_shift_out_of_bounds_t* data, uintptr_t lhs, uintptr_t rhs) {
@@ -149,6 +162,7 @@ void __ubsan_handle_shift_out_of_bounds(ubsan_shift_out_of_bounds_t* data, uintp
                    data->lhs->name,
                    data->loc.filename, data->loc.line, data->loc.column);
     }
+    trace_stack();
 }
 
 void __ubsan_handle_out_of_bounds(ubsan_out_of_bounds_t* data, uintptr_t index) {
@@ -156,10 +170,7 @@ void __ubsan_handle_out_of_bounds(ubsan_out_of_bounds_t* data, uintptr_t index) 
             index,
             data->array->name,
             data->loc.filename, data->loc.line, data->loc.column);
-}
-
-void __ubsan_handle_nonnull_return(ubsan_non_null_return_t* data, ubsan_source_location_t* loc) {
-    WARN_PRINT("%s", __FUNCTION__);
+    trace_stack();
 }
 
 void __ubsan_handle_type_mismatch_v1(ubsan_type_mismatch_v1_t* data, uintptr_t ptr) {
@@ -183,30 +194,49 @@ void __ubsan_handle_type_mismatch_v1(ubsan_type_mismatch_v1_t* data, uintptr_t p
                data->type->name,
                data->loc.filename, data->loc.line, data->loc.column);
     }
-}
-
-void __ubsan_handle_vla_bound_not_positive(ubsan_vla_bound_t* data, uintptr_t bound) {
-    WARN_PRINT("%s", __FUNCTION__);
-}
-
-void __ubsan_handle_load_invalid_value(ubsan_invalid_value_t* data, uintptr_t val) {
-    WARN_PRINT("%s", __FUNCTION__);
+    trace_stack();
 }
 
 void __ubsan_handle_builtin_unreachable(ubsan_unreachable_t* data) {
     WARN_PRINT("execution reached an unreachable program point (%s:%d:%d)", data->loc.filename, data->loc.line, data->loc.column);
-}
-
-void __ubsan_handle_nonnull_arg(ubsan_nonnull_arg_t* data) {
-    WARN_PRINT("%s", __FUNCTION__);
-}
-
-void __ubsan_handle_type_mismatch(ubsan_type_mismatch_t* data, uintptr_t ptr) {
-    WARN_PRINT("%s", __FUNCTION__);
+    trace_stack();
 }
 
 void __ubsan_handle_invalid_builtin(ubsan_invalid_builtin_t* data) {
     WARN_PRINT("passing zero to %s, which is not a valid argument (%s:%d:%d)",
             data->kind ? "clz()" : "ctz()",
             data->loc.filename, data->loc.line, data->loc.column);
+    trace_stack();
+}
+
+void __ubsan_handle_alignment_assumption(ubsan_alignment_assumption_t* data, uint64_t pointer, uint64_t alignment, uint64_t offset) {
+//    uintptr_t real_pointer = pointer - offset;
+    // TODO: lsb
+    // TODO: actual_alignment
+
+//    uint64_t mask = alignment - 1;
+//    uint64_t mis_alignment_offset =
+
+    if (!offset) {
+        WARN_PRINT("assumption of %d byte alignment for pointer of type %s failed (%s:%d:%d)",
+                alignment,
+                data->type->name,
+                data->loc.filename, data->loc.line, data->loc.column);
+    } else {
+        WARN_PRINT("assumption of %d byte alignment (with offset of %d byte) for pointer of type %s failed (%s:%d:%d)",
+                alignment,
+                offset,
+                data->type->name,
+                data->loc.filename, data->loc.line, data->loc.column);
+    }
+    WARN_PRINT("assumption was made specified here %s:%d:%d", data->assumption_loc.filename, data->assumption_loc.line, data->assumption_loc.column);
+    trace_stack();
+}
+
+void __ubsan_handle_load_invalid_value(ubsan_invalid_value_t* data, uintptr_t val) {
+    WARN_PRINT("load of value %p, which is not a valid value of type %s (%s:%d:%d)",
+            val,
+            data->type->name,
+            data->loc.filename, data->loc.line, data->loc.column);
+    trace_stack();
 }

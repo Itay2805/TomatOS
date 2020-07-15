@@ -8,6 +8,13 @@
 #include "intrin.h"
 
 
+typedef char symbol_t[0];
+
+symbol_t __kernel_start_text;
+symbol_t __kernel_end_text;
+symbol_t __kernel_end_rodata;
+symbol_t __kernel_end_data;
+
 #define PM_PRESENT  (BIT0)
 #define PM_WRITE    (BIT1)
 #define PM_USER     (BIT2)
@@ -83,32 +90,20 @@ err_t init_vmm(stivale_struct_t* stivale) {
     // now map the kernel (at -2GB)
     // TODO: don't rwx the kernel and modules
     TRACE("Mapping kernel");
-    for (size_t i = 0; i < stivale->memory_map_entries; i++) {
-        entry = &stivale->memory_map_addr[i];
-
-        if (entry->type == 10) {
-            bool is_kernel = true;
-
-            // if this is a module direct map it
-            stivale_module_t* module = stivale->modules;
-            while (module != NULL) {
-                if (entry->base == module->begin) {
-                    is_kernel = false;
-                    break;
-                }
-                module = module->next;
-            }
-
-            // otherwise it is the kernel and we want
-            // to map it at the -2gb mark
-            if (is_kernel) {
-                for (physptr_t ptr = entry->base;
-                     ptr < ALIGN_UP(entry->base + entry->length, PAGE_SIZE);
-                     ptr += PAGE_SIZE) {
-                    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (void*)(KERNEL_BASE + ptr), ptr, MAP_EXEC | MAP_WRITE));
-                }
-            }
-        }
+    for (void* ptr = __kernel_start_text;
+         ptr < (void*)ALIGN_UP(__kernel_end_text, PAGE_SIZE);
+         ptr += PAGE_SIZE) {
+        CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, ptr, ptr - KERNEL_BASE, MAP_EXEC));
+    }
+    for (void* ptr = ALIGN_UP(__kernel_end_text, PAGE_SIZE);
+         ptr < (void*)ALIGN_UP(__kernel_end_rodata, PAGE_SIZE);
+         ptr += PAGE_SIZE) {
+        CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, ptr, ptr - KERNEL_BASE, 0));
+    }
+    for (void* ptr = ALIGN_UP(__kernel_end_rodata, PAGE_SIZE);
+         ptr < (void*)ALIGN_UP(__kernel_end_data, PAGE_SIZE);
+         ptr += PAGE_SIZE) {
+        CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, ptr, ptr - KERNEL_BASE, MAP_WRITE));
     }
 
     // set the kernel paging

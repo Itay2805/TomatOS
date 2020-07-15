@@ -7,18 +7,22 @@ LD := ld.lld
 
 ARCH ?= amd64
 
-DEBUG ?= 0
+DEBUG ?= 1
+
+DEBUGGER ?= 0
 
 ########################################################################################################################
 # Build constants
 ########################################################################################################################
 
-CFLAGS := -ffreestanding -fno-pic
+CFLAGS :=  -Wall -Werror
+CFLAGS += -ffreestanding -fno-pic
 CFLAGS += -Ikernel
 CFLAGS += -O2 -flto -g
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -fsanitize=undefined
+	CFLAGS += -D__TOMATOS_DEBUG__
 endif
 
 CFLAGS += -DPRINTF_DISABLE_SUPPORT_FLOAT
@@ -67,7 +71,6 @@ SRCS += deps/lai/helpers/sci.c
 
 ifeq ($(DEBUG), 1)
 	SRCS += kernel/debug/ubsan.c
-	CFLAGS += -D__TOMATOS_DEBUG__
 endif
 
 ifeq ($(DEBUG), 1)
@@ -100,11 +103,6 @@ $(BIN_DIR)/tomatos.elf: $(OBJS)
 	@echo LD $@
 	@mkdir -p $(@D)
 	@$(LD) $(LDFLAGS) -o $@ $^
-
-$(BUILD_DIR)/deps/%.c.o: %.c
-	@echo CC $@
-	@mkdir -p $(@D)
-	@$(CC) $(CFLAGS) -Wall -Werror -MMD -D__FILENAME__="\"$<\"" -D__MODULE__="\"$(notdir $(basename $<))\"" -c $< -o $@
 
 $(BUILD_DIR)/%.c.o: %.c
 	@echo CC $@

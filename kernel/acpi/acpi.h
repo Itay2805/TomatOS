@@ -6,15 +6,16 @@
 /**
  * Memory regions that acpi has access to
  */
-typedef struct acpi_mem_region {
+typedef struct memmap_entry {
     uint64_t base;
     uint64_t end;
-} acpi_mem_region_t;
+    bool acpi_access;
+} memmap_entry_t;
 
 /**
  * This is regions that acpi can access
  */
-extern acpi_mem_region_t* g_acpi_regions;
+extern memmap_entry_t* g_memory_map;
 
 /**
  * Initialize all the acpi tables

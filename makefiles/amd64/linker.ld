@@ -17,18 +17,22 @@ SECTIONS
         KEEP(*(.stivalehdr))
     }
 
+    __kernel_start_text = .;
     .text ALIGN(4K) :
     {
         *(.text*)
     }
+    __kernel_end_text = .;
 
     .rodata ALIGN(4K) :
     {
         *(.rodata*)
     }
+    __kernel_end_rodata = .;
 
     .data ALIGN(4K) :
     {
+        *(.stivale_stack*)
         *(.data*)
 
         g_bsp_cpu_local_buffer = .;
@@ -40,4 +44,5 @@ SECTIONS
     {
         *(.bss*)
     }
+    __kernel_end_data = .;
 }

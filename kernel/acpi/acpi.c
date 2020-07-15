@@ -19,7 +19,7 @@ static uint16_t g_timer_port;
 
 static acpi_fadt_t* g_acpi_fadt;
 
-acpi_mem_region_t* g_acpi_regions = NULL;
+memmap_entry_t* g_memory_map = NULL;
 
 void init_acpi_tables(uintptr_t rsdp_ptr) {
     TRACE("ACPI Table initialization");
@@ -84,12 +84,20 @@ void laihost_free(void* ptr) {
 }
 
 void* laihost_map(size_t address, size_t count) {
-    for (int i = 0; i < arrlen(g_acpi_regions); i++) {
-        if (g_acpi_regions[i].base <= address && g_acpi_regions[i].end >= address + count) {
-            return PHYSICAL_TO_DIRECT(address);
+    for (int i = 0; i < arrlen(g_memory_map); i++) {
+        if (g_memory_map[i].base <= address && g_memory_map[i].end >= address + count) {
+            if (g_memory_map[i].acpi_access) {
+                return PHYSICAL_TO_DIRECT(address);
+            } else {
+                ASSERT_TRACE(false, "ACPI tried to access an invalid address (%p - %p)", address, address + count);
+            }
         }
     }
-    ASSERT_TRACE(false, "ACPI tried to access an invalid address");
+
+    // if not in memory map assume mmio and that acpi can access it,
+    // also map it for acpi
+    ASSERT_TRACE(address + count <= arrlast(g_memory_map).end, "TODO: map unmapped addresses");
+    return PHYSICAL_TO_DIRECT(address);
 }
 
 void laihost_unmap(void *pointer, size_t count) {

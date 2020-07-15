@@ -11,7 +11,7 @@
     #define USERSPACE_END               0x00007fffffffffffull
     #define DIRECT_MAPPING_BASE         0xffff800000000000ull
     #define DIRECT_MAPPING_END          0xffffffeeffffffffull
-    #define KERNEL_BASE                 0xffffffff80000000ull
+    #define KERNEL_BASE                 ((void*)0xffffffff80000000ull)
 #else
     #error Unknown target arch
 #endif

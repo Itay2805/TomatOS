@@ -10,7 +10,8 @@
 #include "stivale.h"
 #include "intrin.h"
 
-uint8_t g_bootstrap_stack[SIZE_4KB] = {0};
+__attribute__((section(".stivale_stack")))
+uint8_t g_bootstrap_stack[SIZE_16KB] = {0};
 
 __attribute__((used, section(".stivalehdr")))
 stivale_header_t header = {
@@ -41,10 +42,12 @@ void kentry(stivale_struct_t* strct) {
     size_t size = 0;
     size_t div = 0;
 
-#define COLOR_TOMATOS "\x1b[38;5;118mT\x1b[0m\x1b[38;5;214mo\x1b[0m\x1b[38;5;198mm\x1b[0m\x1b[38;5;129ma\x1b[0m\x1b[38;5;33mt\x1b[0m\x1b[38;5;44mO\x1b[0m\x1b[38;5;83mS\x1b[0m"
-#define TOMATOS "TomatOS"
+#ifndef __TOMATOS_DEBUG__
+    TRACE("TomatOS (build " __DATE__ " " __TIME__ ")");
+#else
+    TRACE("TomatOS/Debug (build " __DATE__ " " __TIME__ ")");
+#endif
 
-    TRACE(TOMATOS " (build " __DATE__ " " __TIME__ ")");
 
     // first of all set the gdt properly
     init_gdt();
@@ -102,13 +105,12 @@ void kentry(stivale_struct_t* strct) {
     // tell acpi which ranges it can access
     for (int i = 0; i < strct->memory_map_entries; i++) {
         mmap_entry_t* entry = &strct->memory_map_addr[i];
-        if (entry->type == 2) {
-            acpi_mem_region_t reg = {
-                    .base = entry->base,
-                    .end = entry->base + entry->length
-            };
-            arrpush(g_acpi_regions, reg);
-        }
+        memmap_entry_t reg = {
+            .base = entry->base,
+            .end = entry->base + entry->length,
+            .acpi_access = entry->type == 2 || entry->type == 3 || entry->type == 4,
+        };
+        arrpush(g_memory_map, reg);
     }
 
     // initialize tables
@@ -117,7 +119,7 @@ void kentry(stivale_struct_t* strct) {
     // setup lai shit
     TRACE("Going to initialize lai now, cross fingers");
     lai_create_namespace();
-//    lai_enable_acpi(0);
+    lai_enable_acpi(1);
 
 cleanup:
     ASSERT_TRACE(!IS_ERROR(err), "Error during kernel initialization");

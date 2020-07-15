@@ -1,18 +1,24 @@
 
 # TODO: support uefi boot
 
+QEMU_ARGS += -hdd $^
+QEMU_ARGS += -m 4G -smp 4
+QEMU_ARGS += -machine q35
+QEMU_ARGS += -debugcon stdio
+QEMU_ARGS += -monitor telnet:localhost:4321,server,nowait
+QEMU_ARGS += --no-shutdown
+QEMU_ARGS += --no-reboot
+
+ifeq ($(DEBUGGER), 1)
+	QEMU_ARGS += -S -s
+endif
+
 #
 # A target to start the kernel in qemu
 #
 qemu: $(BIN_DIR)/image.hdd
-	qemu-system-x86_64 \
-		-hdd $^ \
-	 	-m 4G -smp 4 \
-	 	-machine q35 \
-	 	-debugcon stdio \
-	 	-monitor telnet:localhost:4321,server,nowait \
-	 	--no-shutdown \
-	 	--no-reboot
+	qemu-system-x86_64 $(QEMU_ARGS) | python3 scripts/trace2funcs.py $(BIN_DIR)/tomatos.elf
+
 #
 # A target to build a bootable image
 #
