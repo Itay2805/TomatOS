@@ -138,6 +138,7 @@ void* laihost_scan(const char* signature, size_t index) {
 #ifdef __TOMATOS_AMD64__
 
 #include <arch/amd64/intrin.h>
+#include <sys/pci/pci.h>
 
 void laihost_outb(uint16_t port, uint8_t value) {
     __outb(port, value);
@@ -172,26 +173,47 @@ void laihost_sleep(uint64_t ms) {
 }
 
 void laihost_pci_writeb(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset, uint8_t val) {
-
+    void* region;
+    ASSERT(!IS_ERROR(get_config_for_pci(seg, bus, slot, fun, &region)));
+    *(uint8_t*)(region + offset) = val;
 }
 
 void laihost_pci_writew(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset, uint16_t val) {
-
+    void* region;
+    ASSERT(!IS_ERROR(get_config_for_pci(seg, bus, slot, fun, &region)));
+    *(uint16_t*)(region + offset) = val;
 }
 
 void laihost_pci_writed(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset, uint32_t val) {
-
+    void* region;
+    ASSERT(!IS_ERROR(get_config_for_pci(seg, bus, slot, fun, &region)));
+    *(uint32_t*)(region + offset) = val;
 }
 
 
 uint8_t laihost_pci_readb(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset) {
-    return 0xFF;
+    void* region;
+    ASSERT(!IS_ERROR(get_config_for_pci(seg, bus, slot, fun, &region)));
+    struct PACKED {
+        uint8_t val;
+    }* ptr = region + offset;
+    return ptr->val;
 }
 
 uint16_t laihost_pci_readw(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset) {
-    return 0xFF;
+    void* region;
+    ASSERT(!IS_ERROR(get_config_for_pci(seg, bus, slot, fun, &region)));
+    struct PACKED {
+        uint16_t val;
+    }* ptr = region + offset;
+    return ptr->val;
 }
 
 uint32_t laihost_pci_readd(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset) {
-    return 0xFF;
+    void* region;
+    ASSERT(!IS_ERROR(get_config_for_pci(seg, bus, slot, fun, &region)));
+    struct PACKED {
+        uint32_t val;
+    }* ptr = region + offset;
+    return ptr->val;
 }

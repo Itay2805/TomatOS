@@ -7,6 +7,7 @@
 #include <arch/timing.h>
 #include <lai/helpers/sci.h>
 #include <util/stb_ds.h>
+#include <sys/pci/pci.h>
 #include "stivale.h"
 #include "intrin.h"
 
@@ -115,6 +116,7 @@ void kentry(stivale_struct_t* strct) {
 
     // initialize tables
     init_acpi_tables(strct->rsdp);
+    CHECK_AND_RETHROW(init_pci());
 
     // setup lai shit
     TRACE("Going to initialize lai now, cross fingers");

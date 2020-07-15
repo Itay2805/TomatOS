@@ -184,8 +184,8 @@ void __ubsan_handle_type_mismatch_v1(ubsan_type_mismatch_v1_t* data, uintptr_t p
         WARN_PRINT("%s misaligned address %p for type %s, which requires %d byte alignment (%s:%d:%d)",
                 g_type_check_names[data->type_check_kind],
                 (void*)ptr,
-                alignment,
                 data->type->name,
+                alignment,
                 data->loc.filename, data->loc.line, data->loc.column);
     } else {
         WARN_PRINT("%s address %p with insufficient space for an object of type %s (%s:%d:%d)",

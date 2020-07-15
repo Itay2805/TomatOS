@@ -43,6 +43,7 @@ SRCS += kernel/proc/process.c
 SRCS += kernel/proc/scheduler.c
 SRCS += kernel/sync/critical.c
 SRCS += kernel/sync/lock.c
+SRCS += kernel/sys/pci/pci.c
 SRCS += kernel/util/except.c
 SRCS += kernel/util/list.c
 SRCS += kernel/util/printf.c
