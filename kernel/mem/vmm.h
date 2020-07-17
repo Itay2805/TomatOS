@@ -8,9 +8,18 @@
 
 #ifdef __TOMATOS_AMD64__
     #define PAGE_SIZE SIZE_4KB
+
+    // all the lower half to userspace
     #define USERSPACE_END               0x00007fffffffffffull
+
+    // unlimited direct map
     #define DIRECT_MAPPING_BASE         0xffff800000000000ull
-    #define DIRECT_MAPPING_END          0xffffffeeffffffffull
+
+    // 1GB for kernel thread stacks
+    #define KERNEL_STACK_HEAP_BASE      0xffffe00000000000ull
+    #define KERNEL_STACK_HEAP_END       0xffffe00040000000ull
+
+    // the kernel base
     #define KERNEL_BASE                 ((void*)0xffffffff80000000ull)
 #else
     #error Unknown target arch

@@ -46,4 +46,19 @@ typedef struct system_context {
 #endif
 } system_context_t;
 
+/**
+ * This will tell the kernel we want to route an irq
+ * to the given vector
+ *
+ * @param irq       [IN]    The irq to register
+ * @param vector    [OUT]   The vector in which the irq will fire
+ */
+err_t register_irq(uint8_t irq, uint8_t* vector);
+
+/**
+ * Will request an empty interrupt vector from
+ * the kernel
+ */
+uint8_t allocate_vector();
+
 #endif //__TOMATOS_KERNEL_ARCH_INTS_H__

@@ -6,7 +6,7 @@ void enter_critical(critical_t* crit) {
     disable_interrupts();
 }
 
-void leave_critical(critical_t* crit) {
+void exit_critical(critical_t* crit) {
     if (crit->enable_int) {
         enable_interrupts();
     }

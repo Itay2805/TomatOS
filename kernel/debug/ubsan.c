@@ -156,7 +156,7 @@ void __ubsan_handle_shift_out_of_bounds(ubsan_shift_out_of_bounds_t* data, uintp
                    lhs,
                    data->loc.filename, data->loc.line, data->loc.column);
     } else {
-        WARN_PRINT("left shift of %d by %d places cannot be represented in type %s (%s:%d:%d)",
+        WARN_PRINT("left shift of %x by %d places cannot be represented in type %s (%s:%d:%d)",
                    lhs,
                    rhs,
                    data->lhs->name,

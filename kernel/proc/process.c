@@ -1,5 +1,8 @@
 #include "process.h"
 
+process_t* CPU_LOCAL g_current_process;
+thread_t* CPU_LOCAL g_current_thread;
+
 static err_t delete_kernel(handle_meta_t* proc) {
     err_t err = NO_ERROR;
 

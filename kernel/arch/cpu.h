@@ -20,4 +20,6 @@ bool are_interrupts_enabled();
     #error Invalid architecture
 #endif
 
+extern size_t CPU_LOCAL g_cpu_id;
+
 #endif //__TOMATOS_KERNEL_ARCH_CPU_H__

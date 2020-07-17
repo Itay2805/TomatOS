@@ -24,4 +24,15 @@ void* krealloc(void* ptr, size_t size);
  */
 void kfree(void* ptr);
 
+/**
+ * Allocate a stack that can be used for a kernel
+ * thread
+ */
+void* alloc_stack();
+
+/**
+ * Free a kernel thread task
+ */
+void free_stack(void* stk);
+
 #endif //__TOMATOS_KERNEL_ARCH_MM_H__

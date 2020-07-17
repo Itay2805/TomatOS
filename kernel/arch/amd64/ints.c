@@ -3,7 +3,9 @@
 #include <proc/event.h>
 #include <util/defs.h>
 #include <arch/ints.h>
+#include <arch/cpu.h>
 #include "intrin.h"
+#include "idt.h"
 
 event_t g_interrupt_events[256] = {0};
 
@@ -155,6 +157,8 @@ static void default_exception_handler(system_context_t* ctx) {
     ERROR("****************************************************");
     ERROR("Exception occurred: %s", g_exception_name[ctx->int_num]);
     ERROR("****************************************************");
+    ERROR("");
+    ERROR("Cpu: #%d", g_cpu_id);
     ERROR("");
     // TODO: print stuff nicely
     ERROR("RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx", ctx->rax, ctx->rbx, ctx->rcx, ctx->rdx);
@@ -435,30 +439,6 @@ EVENT_INTERRUPT_HANDLER(0xff);
 // Define IDT structures and set the idt up
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define IDT_TYPE_TASK           0x5
-#define IDT_TYPE_INTERRUPT_16   0x6
-#define IDT_TYPE_TRAP_16        0x7
-#define IDT_TYPE_INTERRUPT_32   0xE
-#define IDT_TYPE_TRAP_32        0xF
-
-typedef struct idt_entry {
-    uint64_t handler_low : 16;
-    uint64_t selector : 16;
-    uint64_t ist : 3;
-    uint64_t _zero1 : 5;
-    uint64_t gate_type : 4;
-    uint64_t _zero2 : 1;
-    uint64_t ring : 2;
-    uint64_t present : 1;
-    uint64_t handler_high : 48;
-    uint64_t _zero3 : 32;
-} PACKED idt_entry_t;
-
-typedef struct idt {
-    uint16_t limit;
-    idt_entry_t* base;
-} PACKED idt_t;
-
 /**
  * All interrupt handler entries
  */
@@ -467,7 +447,7 @@ static idt_entry_t g_idt_entries[0xFF + 1];
 /**
  * The idt
  */
-static idt_t g_idt = {
+idt_t g_idt = {
     .limit = sizeof(g_idt_entries) - 1,
     .base = g_idt_entries
 };
@@ -753,4 +733,25 @@ err_t init_idt() {
 
 cleanup:
     return err;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// IRQ handling
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static uint8_t g_next_vector = 0;
+
+err_t register_irq(uint8_t irq, uint8_t* vector) {
+    err_t err = NO_ERROR;
+
+
+
+//cleanup:
+    return err;
+}
+
+uint8_t allocate_vector() {
+    uint8_t vector = g_next_vector + 0x21;
+    g_next_vector = (g_next_vector + 1) % (0xFF - 0x21);
+    return vector;
 }

@@ -5,7 +5,7 @@ SECTIONS
     . = 0x0;
     .cpu_local_data (NOLOAD) :
     {
-        *(.cpu_local_data*)
+        KEEP(*(.cpu_local_data*))
     }
     __cpu_local_size = .;
 

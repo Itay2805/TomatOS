@@ -8,8 +8,10 @@
 #include <lai/helpers/sci.h>
 #include <util/stb_ds.h>
 #include <sys/pci/pci.h>
+#include <arch/cpu.h>
 #include "stivale.h"
 #include "intrin.h"
+#include "apic.h"
 
 __attribute__((section(".stivale_stack")))
 uint8_t g_bootstrap_stack[SIZE_16KB] = {0};
@@ -24,6 +26,7 @@ stivale_header_t header = {
 void init_gdt();
 err_t init_vmm(stivale_struct_t* strct);
 void init_cpu_local_for_bsp();
+err_t init_cpu_local();
 err_t init_idt();
 
 static const char* g_memory_map_names[] = {
@@ -123,8 +126,27 @@ void kentry(stivale_struct_t* strct) {
     lai_create_namespace();
     lai_enable_acpi(1);
 
+    CHECK_AND_RETHROW(init_lapic());
+    g_cpu_id = get_lapic_id();
+    CHECK_AND_RETHROW(startup_all_cores());
+
 cleanup:
     ASSERT_TRACE(!IS_ERROR(err), "Error during kernel initialization");
     TRACE("kernel entry end");
     while(true) __hlt();
+}
+
+void per_cpu_entry() {
+    err_t err = NO_ERROR;
+
+    CHECK_AND_RETHROW(init_lapic());
+    CHECK_AND_RETHROW(init_cpu_local());
+    g_cpu_id = get_lapic_id();
+
+cleanup:
+    if (IS_ERROR(err)) {
+        TRACE("Error during kernel initialization on core #%d, halting core", get_lapic_id());
+    }
+    while(1)
+        __hlt();
 }

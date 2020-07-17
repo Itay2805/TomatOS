@@ -130,7 +130,40 @@ typedef union _IA32_EFER {
         uint32_t  _reserved4:32;
     };
     uint64_t raw;
-} IA32_EFER;
+} PACKED IA32_EFER;
+
+#define MSR_IA32_APIC_BASE                       0x0000001B
+typedef union {
+    ///
+    /// Individual bit fields
+    ///
+    struct {
+        uint32_t _reserved1:8;
+        ///
+        /// [Bit 8] BSP flag (R/W).
+        ///
+        uint32_t BSP:1;
+        uint32_t _reserved2:1;
+        ///
+        /// [Bit 10] Enable x2APIC mode. Introduced at Display Family / Display
+        /// Model 06_1AH.
+        ///
+        uint32_t EXTD:1;
+        ///
+        /// [Bit 11] APIC Global Enable (R/W).
+        ///
+        uint32_t EN:1;
+        ///
+        /// [Bits 31:12] APIC Base (R/W).
+        ///
+        uint32_t ApicBase:20;
+        ///
+        /// [Bits 63:32] APIC Base (R/W).
+        ///
+        uint32_t ApicBaseHi:32;
+    };
+    uint64_t raw;
+} PACKED MSR_IA32_APIC_BASE_REGISTER;
 
 uint64_t __rdmsr(uint32_t msr);
 void __wrmsr(uint32_t msr, uint64_t Value);
@@ -138,6 +171,8 @@ void __wrmsr(uint32_t msr, uint64_t Value);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Port CPUID operations
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define CPUID_SIGNATURE (0x00)
 
 void __cpuid(int __info[4], int __level);
 void __cpuidex(int __info[4], int __level, int __ecx);

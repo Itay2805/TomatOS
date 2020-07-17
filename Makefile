@@ -98,12 +98,15 @@ default: image
 
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 DEPS := $(OBJS:%.o=%.d)
+BINS ?=
 -include $(DEPS)
 
-$(BIN_DIR)/tomatos.elf: $(OBJS)
+$(BIN_DIR)/tomatos.elf: $(BINS) $(OBJS)
 	@echo LD $@
 	@mkdir -p $(@D)
-	@$(LD) $(LDFLAGS) -o $@ $^
+	@$(LD) $(LDFLAGS) -o $@ $(OBJS)
+
+-include makefiles/$(ARCH)/targets.mk
 
 $(BUILD_DIR)/%.c.o: %.c
 	@echo CC $@

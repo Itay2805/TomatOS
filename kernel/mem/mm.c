@@ -1,5 +1,7 @@
 #include <sync/lock.h>
 #include <stdbool.h>
+#include <util/list.h>
+#include <proc/process.h>
 #include "tlsf.h"
 
 #include "mm.h"
@@ -7,6 +9,10 @@
 
 static tlsf_t g_tlsf = NULL;
 static ticket_lock_t g_tlsf_lock = INIT_LOCK();
+
+static list_entry_t g_stack_free_list = INIT_LIST(g_stack_free_list);
+static ticket_lock_t g_stack_lock = INIT_LOCK();
+static void* g_stack_ptr = (void*)KERNEL_STACK_HEAP_BASE;
 
 err_t mm_init() {
     err_t err = NO_ERROR;
@@ -43,10 +49,7 @@ void* kalloc(size_t size) {
         res = tlsf_malloc(g_tlsf, size);
     }
 
-    size_t ptr = DIRECT_TO_PHYSICAL(res);
-    ASSERT_TRACE(ptr < 0x1000000 || 0x108d000 < ptr, "tried to allocate a kernel pointer %p", ptr);
-
-    cleanup:
+cleanup:
     ticket_unlock(&g_tlsf_lock);
     return res;
 }
@@ -78,3 +81,33 @@ void kfree(void* ptr) {
     ticket_unlock(&g_tlsf_lock);
 }
 
+void* alloc_stack() {
+    void* stack = NULL;
+
+    ticket_lock(&g_stack_lock);
+    if (list_is_empty(&g_stack_free_list)) {
+        stack = g_stack_ptr;
+        g_stack_ptr += SIZE_4KB + SIZE_4KB;
+
+        directptr_t new_stack;
+        if (!IS_ERROR(pmm_allocate_zero(2, &new_stack))) {
+            // map the stack
+            vmm_map(&g_kernel.address_space, stack, DIRECT_TO_PHYSICAL(new_stack) + 0, MAP_WRITE);
+            stack += SIZE_4KB;
+        }
+    } else {
+        list_entry_t* stack_entry = g_stack_free_list.next;
+        list_del(stack);
+        stack = (void*)stack_entry + SIZE_4KB;
+    }
+    ticket_unlock(&g_stack_lock);
+
+    return stack;
+}
+
+void free_stack(void* stk) {
+    ticket_lock(&g_stack_lock);
+    list_entry_t* entry = stk - SIZE_4KB;
+    list_add(&g_stack_free_list, entry);
+    ticket_unlock(&g_stack_lock);
+}
