@@ -95,9 +95,9 @@ mov ax, GDT_KERNEL_DATA
 mov ds, ax
 mov es, ax
 mov ss, ax
-mov gs, ax
 mov ax, GDT_USER_DATA
 mov fs, ax
+mov gs, ax
 
 ; set the stack
 mov rsp, qword [SMP_STACK_POINTER]

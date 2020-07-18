@@ -2,7 +2,7 @@
 # TODO: support uefi boot
 
 QEMU_ARGS += -hdd $^
-QEMU_ARGS += -m 4G -smp 255
+QEMU_ARGS += -m 4G -smp 4
 QEMU_ARGS += -machine q35
 QEMU_ARGS += -debugcon stdio
 QEMU_ARGS += -monitor telnet:localhost:4321,server,nowait

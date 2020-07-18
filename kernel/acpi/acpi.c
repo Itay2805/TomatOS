@@ -105,18 +105,7 @@ void laihost_unmap(void *pointer, size_t count) {
 }
 
 void laihost_log(int level, const char* msg) {
-    switch (level) {
-#ifdef __TOMATOS_DEBUG__
-        case LAI_DEBUG_LOG: {
-            TRACE("%s", msg);
-        } break;
-#endif
-        case LAI_WARN_LOG:
-        default: {
-            PRINT("[!] " __MODULE__ ": %s\n", msg);
-        } break;
-    }
-
+    TRACE("%s", msg);
 }
 
 void laihost_panic(const char * fmt) {

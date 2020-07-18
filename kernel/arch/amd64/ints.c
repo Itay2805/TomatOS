@@ -6,6 +6,7 @@
 #include <arch/cpu.h>
 #include "intrin.h"
 #include "idt.h"
+#include "apic.h"
 
 event_t g_interrupt_events[256] = {0};
 
@@ -178,6 +179,7 @@ __attribute__((used))
 void common_exception_handler(system_context_t* ctx) {
     if (ctx->int_num == 0x20) {
         ASSERT_TRACE(!IS_ERROR(scheduler_tick(ctx)), "Scheduler tick returned error!");
+        send_lapic_eoi();
     } else {
         default_exception_handler(ctx);
     }
@@ -206,6 +208,7 @@ typedef struct interrupt_frame {
     __attribute__((interrupt)) \
     static void interrupt_handle_##num(interrupt_frame_t* frame) { \
         signal_event(g_interrupt_events[num]); \
+        send_lapic_eoi(); \
     }
 
 /**

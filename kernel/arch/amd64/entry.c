@@ -46,15 +46,15 @@ void kentry(stivale_struct_t* strct) {
     size_t size = 0;
     size_t div = 0;
 
+    // first of all set the gdt properly
+    init_gdt();
+    init_cpu_local_for_bsp();
+
 #ifndef __TOMATOS_DEBUG__
     TRACE("TomatOS (build " __DATE__ " " __TIME__ ")");
 #else
     TRACE("TomatOS/Debug (build " __DATE__ " " __TIME__ ")");
 #endif
-
-
-    // first of all set the gdt properly
-    init_gdt();
 
     // setup the allocator (only first 4GB)
     TRACE("Boostraping memory");
@@ -102,7 +102,6 @@ void kentry(stivale_struct_t* strct) {
 
     // initialize the kernel allocator and
     // cpu locals, in preparation for threading
-    init_cpu_local_for_bsp();
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(init_idt());
 
@@ -139,9 +138,12 @@ cleanup:
 void per_cpu_entry() {
     err_t err = NO_ERROR;
 
-    CHECK_AND_RETHROW(init_lapic());
+    // initialize locals properly
     CHECK_AND_RETHROW(init_cpu_local());
     g_cpu_id = get_lapic_id();
+
+    // setup the lapic
+    CHECK_AND_RETHROW(init_lapic());
 
 cleanup:
     if (IS_ERROR(err)) {

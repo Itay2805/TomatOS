@@ -99,6 +99,19 @@ typedef union lapic_lvt_lint {
     uint32_t raw;
 } PACKED lapic_lvt_lint_t;
 
+typedef union lapic_lvt_timer {
+        struct {
+            uint32_t vector : 8;                ///< The vector number of the interrupt being sent.
+            uint32_t _reserved0 : 4;            ///< Reserved.
+            uint32_t delivery_status : 1;       ///< 0: Idle, 1: send pending.
+            uint32_t _reserved1 : 3;            ///< Reserved.
+            uint32_t mask : 1;                  ///< 0: Not masked, 1: Masked.
+            uint32_t timer_mode : 1;            ///< 0: One-shot, 1: Periodic.
+            uint32_t _reserved : 14;            ///< Reserved.
+        };
+        uint32_t raw;
+} lapic_lvt_timer_t;
+
 
 #define FOR_EACH_IN_MADT() \
     for (madt_entry_t* entry = (void*)(g_madt + 1); (uint64_t) entry < (uint64_t) g_madt + g_madt->header.length; entry = (madt_entry_t*)((uint64_t)entry + entry->length))
@@ -111,6 +124,11 @@ extern acpi_madt_t* g_madt;
 err_t init_lapic();
 
 /**
+ * Send an eoi to the current lapic
+ */
+void send_lapic_eoi();
+
+/**
  * Starts all the cores not including self
  */
 err_t startup_all_cores();
@@ -119,5 +137,10 @@ err_t startup_all_cores();
  * Get the ID of the current lapic
  */
 uint32_t get_lapic_id();
+
+/**
+ * Will set the lapic timer for the next interrupt
+ */
+err_t setup_lapic_timer(uint64_t ticks);
 
 #endif //__TOMATOS_KERNEL_ARCH_AMD64_APIC_H__

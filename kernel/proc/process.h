@@ -3,6 +3,7 @@
 
 #include <mem/vmm.h>
 #include <arch/cpu.h>
+#include <util/list.h>
 #include "handle.h"
 
 struct thread;
@@ -39,6 +40,19 @@ typedef struct process {
      * used for generation handle ids
      */
      handle_t next_handle;
+
+     /**
+      * The threads of this process
+      */
+     list_entry_t threads;
+
+     /**
+      * The static priority of the
+      * process:
+      *     - 0-99: real time
+      *     - 100-139: normal
+      */
+     size_t priority;
 } process_t;
 
 /**
@@ -53,7 +67,31 @@ typedef struct thread {
     /**
      * The parent process
      */
-     process_t* parent;
+    process_t* parent;
+
+    /**
+     * The link in the process list
+     */
+    list_entry_t link;
+
+    ///////////////////////////////////
+    // Scheduling vars
+    ///////////////////////////////////
+
+    /**
+     * the link in the scheduler
+     */
+    list_entry_t scheduler_link;
+
+    /**
+     * The dynamic priority of this thread
+     */
+    size_t priority;
+
+    /**
+     *
+     */
+    size_t last_run;
 } thread_t;
 
 /**

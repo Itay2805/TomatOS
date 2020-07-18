@@ -7,7 +7,7 @@ LD := ld.lld
 
 ARCH ?= amd64
 
-DEBUG ?= 1
+DEBUG ?= 0
 
 DEBUGGER ?= 0
 

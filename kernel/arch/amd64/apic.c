@@ -21,6 +21,11 @@
  */
 static uint8_t* g_lapic_base = NULL;
 
+/**
+ * The frequency of the local lapic
+ */
+static uint64_t CPU_LOCAL g_lapic_freq;
+
 acpi_madt_t* g_madt = NULL;
 
 static void lapic_write(size_t reg, uint32_t value) {
@@ -38,6 +43,7 @@ uint32_t get_lapic_id() {
 err_t init_lapic() {
     err_t err = NO_ERROR;
 
+    // if not initialized once initialize once
     if (g_lapic_base == NULL) {
         g_madt = laihost_scan("APIC", 0);
         CHECK_ERROR_TRACE(g_madt != NULL, ERROR_NOT_FOUND, "Could not find APIC ACPI table");
@@ -59,12 +65,38 @@ err_t init_lapic() {
     svr.software_enable = 1;
     lapic_write(XAPIC_SPURIOUS_VECTOR_OFFSET, svr.raw);
 
-    // TODO: setup timer and shit
+    // setup the divier to biggest one
+    lapic_write(XAPIC_TIMER_DIVIDE_CONFIGURATION_OFFSET, 0);
+
+    // setup the timer lvt
+    lapic_lvt_timer_t timer = {
+        .vector = 0x20,
+        .mask = 1,
+    };
+    lapic_write(XAPIC_LVT_TIMER_OFFSET, timer.raw);
+
+    // check the count
+    lapic_write(XAPIC_TIMER_INIT_COUNT_OFFSET, 0xFFFFFFFF);
+    stall(1000);
+    g_lapic_freq = 0xFFFFFFFF - lapic_read(XAPIC_TIMER_CURRENT_COUNT_OFFSET);
+
+    // now we can setup the proper timer
+    timer = (lapic_lvt_timer_t) {
+            .vector = 0x20,
+    };
+    lapic_write(XAPIC_LVT_TIMER_OFFSET, timer.raw);
 
 cleanup:
     return err;
 }
 
+void send_lapic_eoi() {
+    lapic_write(0, XAPIC_EOI_OFFSET);
+}
+
+/**
+ * Send an ipi to the given lapic
+ */
 static void send_ipi(lapic_icr_low_t low, uint8_t lapic_id) {
     critical_t critical;
     enter_critical(&critical);
@@ -81,6 +113,9 @@ static void send_ipi(lapic_icr_low_t low, uint8_t lapic_id) {
     exit_critical(&critical);
 }
 
+/**
+ * Send an init ipi to the given lapic
+ */
 static void send_init_ipi(uint32_t lapic_id) {
     lapic_icr_low_t icr = {
         .delivery_mode = LOCAL_APIC_DELIVERY_MODE_INIT,
@@ -89,6 +124,9 @@ static void send_init_ipi(uint32_t lapic_id) {
     send_ipi(icr, lapic_id);
 }
 
+/**
+ * Send a startup ipi to the given lapic
+ */
 static void send_sipi_ipi(uint32_t lapic_id, uint32_t entry) {
     lapic_icr_low_t icr = {
         .delivery_mode = LOCAL_APIC_DELIVERY_MODE_STARTUP,
@@ -142,4 +180,8 @@ err_t startup_all_cores() {
 
 cleanup:
     return err;
+}
+
+void set_next_scheduler_tick(uint64_t ms) {
+    lapic_write(XAPIC_TIMER_CURRENT_COUNT_OFFSET, ms * g_lapic_freq);
 }
