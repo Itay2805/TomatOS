@@ -214,6 +214,7 @@ typedef struct interrupt_frame {
 /**
  * Define all interrupt event handlers
  */
+ #ifndef __IN_EDITOR__
 EVENT_INTERRUPT_HANDLER(0x21);
 EVENT_INTERRUPT_HANDLER(0x22);
 EVENT_INTERRUPT_HANDLER(0x23);
@@ -437,6 +438,7 @@ EVENT_INTERRUPT_HANDLER(0xfc);
 EVENT_INTERRUPT_HANDLER(0xfd);
 EVENT_INTERRUPT_HANDLER(0xfe);
 EVENT_INTERRUPT_HANDLER(0xff);
+ #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define IDT structures and set the idt up
@@ -474,6 +476,7 @@ err_t init_idt() {
     }
 
     // setup full idt
+#ifndef __IN_EDITOR__
     set_idt_entry(0x0, interrupt_handle_0x00, 0);
     set_idt_entry(0x1, interrupt_handle_0x01, 0);
     set_idt_entry(0x2, interrupt_handle_0x02, 0);
@@ -730,6 +733,7 @@ err_t init_idt() {
     set_idt_entry(0xfd, interrupt_handle_0xfd, 0);
     set_idt_entry(0xfe, interrupt_handle_0xfe, 0);
     set_idt_entry(0xff, interrupt_handle_0xfe, 0);
+#endif
 
     // TODO: put as __lidt
     asm volatile ("lidt %0" : : "m" (g_idt));

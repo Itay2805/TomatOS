@@ -105,7 +105,7 @@ static thread_t* g_acpi_thread = NULL;
  */
 static void acpi_thread() {
     err_t err = NO_ERROR;
-    TRACE("ACPI thread started");
+    TRACE("ACPI thread started (sci=%d)", g_sci_vector);
 
     while (true) {
         CHECK_AND_RETHROW(wait_for_events(&g_interrupt_events[g_sci_vector], 1, NULL));

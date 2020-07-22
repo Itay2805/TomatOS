@@ -81,7 +81,7 @@ err_t ioapic_redirect(uint8_t gsi, uint8_t vector, bool level_triggered, bool as
     // setup the entry
     ioapic_redir_entry_t entry = {
         .vector = vector,
-        .delivery_mode = LAPIC_DELIVERY_MODE_LOWEST_PRIORITY,
+        .delivery_mode = LAPIC_DELIVERY_MODE_FIXED,
         .polarity = !assertion_level,
         .trigger_mode = level_triggered,
         .destination_id = 0,

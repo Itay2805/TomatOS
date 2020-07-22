@@ -181,11 +181,6 @@ err_t startup_all_cores();
 uint32_t get_lapic_id();
 
 /**
- * Will set the lapic timer for the next interrupt
- */
-err_t setup_lapic_timer(uint64_t ticks);
-
-/**
  * will add a redirection entry
  */
 err_t ioapic_redirect(uint8_t gsi, uint8_t vector, bool level_triggered, bool assertion_level);

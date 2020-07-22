@@ -110,6 +110,7 @@ static void finish_exec_thread(thread_t* old_thread, system_context_t* ctx) {
  */
 static void exec_thread(thread_t* new_thread, system_context_t* ctx) {
     TRACE("Going to exec thread `%s`", new_thread->name);
+    set_next_scheduler_tick(100);
 }
 
 static void exec_idle(system_context_t* ctx) {
@@ -169,5 +170,6 @@ cleanup:
 
 void startup_scheduler() {
     // simply fire scheduler tick interrupt manually
+    enable_interrupts();
     asm("int $0x20");
 }
