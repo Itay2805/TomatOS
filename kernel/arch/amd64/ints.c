@@ -742,14 +742,16 @@ cleanup:
 // IRQ handling
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// might want a lock on this or something
 static uint8_t g_next_vector = 0;
 
 err_t register_irq(uint8_t irq, uint8_t* vector) {
     err_t err = NO_ERROR;
 
+    *vector = allocate_vector();
+    CHECK_AND_RETHROW(ioapic_redirect(irq, *vector, false, true));
 
-
-//cleanup:
+cleanup:
     return err;
 }
 

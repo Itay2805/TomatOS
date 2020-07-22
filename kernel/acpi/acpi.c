@@ -7,6 +7,10 @@
 #include <mem/mm.h>
 #include <proc/process.h>
 #include <util/stb_ds.h>
+#include <proc/event.h>
+#include <arch/ints.h>
+#include <lai/helpers/sci.h>
+#include <proc/scheduler.h>
 
 #include "acpi.h"
 
@@ -16,6 +20,11 @@
  * The timer block of the timer
  */
 static uint16_t g_timer_port;
+
+/**
+ * 32bit counter is used
+ */
+static bool g_extended_timer = false;
 
 static acpi_fadt_t* g_acpi_fadt;
 
@@ -30,36 +39,119 @@ void init_acpi_tables(uintptr_t rsdp_ptr) {
     // initialize the pm timer
     g_acpi_fadt = (acpi_fadt_t*)rsdt_search("FACP", 0);
     ASSERT_TRACE(g_acpi_fadt != NULL, "The FADT must be present");
-    if (g_acpi_fadt->pm_timer_length == 4) {
-        TRACE("ACPI Timer present");
+
+    // initialize timer
+    ASSERT_TRACE(g_acpi_fadt->pm_timer_length == 4, "ACPI Timer must be present");
+    TRACE("Using ACPI Timer");
+    if (g_acpi_rsdp->revision >= 2 && g_acpi_fadt->x_pm_timer_block.base != 0) {
+        if (g_acpi_fadt->x_pm_timer_block.address_space != ACPI_GAS_IO) {
+            TRACE("TODO: support timer of type %d", g_acpi_fadt->x_pm_timer_block.address_space);
+            g_timer_port = g_acpi_fadt->pm_timer_block;
+        } else {
+            g_timer_port = g_acpi_fadt->x_pm_timer_block.base;
+            ASSERT(g_acpi_fadt->x_pm_timer_block.bit_offset == 0);
+            ASSERT(g_acpi_fadt->x_pm_timer_block.access_size == 4);
+            ASSERT(g_acpi_fadt->x_pm_timer_block.bit_width >= 24);
+        }
+    } else {
         g_timer_port = g_acpi_fadt->pm_timer_block;
-        g_timer = TIMER_ACPI;
+    }
+
+    if (g_acpi_fadt->flags & BIT8) {
+        TRACE("\t* Extended timer is supported");
+        g_extended_timer = true;
     }
 }
 
 static uint32_t get_timer_ticks() {
-    return laihost_ind(g_timer_port) & 0xFFFFFF;
+    if (g_extended_timer) {
+        return laihost_ind(g_timer_port);
+    } else {
+        return laihost_ind(g_timer_port) & 0xFFFFFF;
+    }
 }
 
 static void acpi_delay(uint64_t delay) {
-    uint32_t times = delay >> 22;
-    times &= BIT22 - 1;
+    uint32_t times = delay >> (g_extended_timer ? 30 : 22);
+    times &= (g_extended_timer ? BIT30 : BIT22) - 1;
     do {
         uint32_t ticks = get_timer_ticks() + delay;
-        delay = BIT22;
+        delay = g_extended_timer ? BIT30 : BIT22;
 
-        while (((ticks - get_timer_ticks()) & BIT23) == 0) {
+        uint32_t bit = g_extended_timer ? BIT31 : BIT23;
+        while (((ticks - get_timer_ticks()) & bit) == 0) {
             cpu_pause();
         }
     } while (times-- > 0);
 }
 
-void acpi_ustall(uint64_t ns) {
+/**
+ * Used to tell the uptime function how many overflows we had
+ */
+static atomic_size_t g_timer_overflows = 0;
+
+/**
+ * The vector used for scis
+ */
+static uint8_t g_sci_vector = 0;
+
+/**
+ * The acpi event handling thread
+ */
+static thread_t* g_acpi_thread = NULL;
+
+/**
+ * This thread handles scis
+ */
+static void acpi_thread() {
+    err_t err = NO_ERROR;
+    TRACE("ACPI thread started");
+
+    while (true) {
+        CHECK_AND_RETHROW(wait_for_events(&g_interrupt_events[g_sci_vector], 1, NULL));
+
+        uint16_t event = lai_get_sci_event();
+        TRACE("Got SCI %b", event);
+
+        if (event & ACPI_TIMER) {
+            g_timer_overflows++;
+        }
+    }
+
+cleanup:
+    ASSERT_TRACE(false, "Tried exiting acpi thread! err=%s", strerror(err));
+}
+
+err_t init_acpi() {
+    err_t err = NO_ERROR;
+
+    TRACE("Initializing ACPI");
+    lai_create_namespace();
+    lai_enable_acpi(1);
+
+    // setup the interrupts we want
+    lai_set_sci_event(ACPI_POWER_BUTTON | ACPI_SLEEP_BUTTON | ACPI_WAKE | ACPI_TIMER);
+    lai_get_sci_event();
+
+    // do sci handling
+    CHECK_AND_RETHROW(register_irq(g_acpi_fadt->sci_irq, &g_sci_vector));
+    CHECK_AND_RETHROW(create_thread(&g_acpi_thread, acpi_thread, NULL, "acpi"));
+    CHECK_AND_RETHROW(schedule_thread(g_acpi_thread));
+
+cleanup:
+    return err;
+}
+
+void ustall(uint64_t ns) {
     acpi_delay((ns * ACPI_TIMER_FREQUENCY) / 1000000000u);
 }
 
-void acpi_stall(uint64_t ms) {
+void stall(uint64_t ms) {
     acpi_delay((ms * ACPI_TIMER_FREQUENCY) / 1000000u);
+}
+
+uint64_t uptime() {
+    return ((g_timer_overflows * ACPI_TIMER_FREQUENCY) + get_timer_ticks()) / (ACPI_TIMER_FREQUENCY * 1000ul);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -9,6 +9,7 @@
 #include <util/stb_ds.h>
 #include <sys/pci/pci.h>
 #include <arch/cpu.h>
+#include <proc/scheduler.h>
 #include "stivale.h"
 #include "intrin.h"
 #include "apic.h"
@@ -105,6 +106,9 @@ void kentry(stivale_struct_t* strct) {
     CHECK_AND_RETHROW(mm_init());
     CHECK_AND_RETHROW(init_idt());
 
+    // the kernel is the current process
+    g_current_process = &g_kernel;
+
     // tell acpi which ranges it can access
     for (int i = 0; i < strct->memory_map_entries; i++) {
         mmap_entry_t* entry = &strct->memory_map_addr[i];
@@ -116,18 +120,32 @@ void kentry(stivale_struct_t* strct) {
         arrpush(g_memory_map, reg);
     }
 
-    // initialize tables
+    // initialize acpi and apic
     init_acpi_tables(strct->rsdp);
+    CHECK_AND_RETHROW(init_apic());
+
+    // initialize scheduler
+    // this is done here so we can start
+    // queueing threads
+    int cpu_count = 0;
+    FOR_EACH_IN_MADT() {
+        if (entry->type != MADT_LAPIC) continue;
+        if (!entry->lapic.enabled && !entry->lapic.online_capable) continue;
+        cpu_count++;
+    }
+    init_scheduler(cpu_count);
+
+    // initialize other stuff
     CHECK_AND_RETHROW(init_pci());
+    CHECK_AND_RETHROW(init_acpi());
 
-    // setup lai shit
-    TRACE("Going to initialize lai now, cross fingers");
-    lai_create_namespace();
-    lai_enable_acpi(1);
 
-    CHECK_AND_RETHROW(init_lapic());
+    // initialize smp
+    init_lapic();
     g_cpu_id = get_lapic_id();
     CHECK_AND_RETHROW(startup_all_cores());
+
+    startup_scheduler();
 
 cleanup:
     ASSERT_TRACE(!IS_ERROR(err), "Error during kernel initialization");
@@ -141,14 +159,17 @@ void per_cpu_entry() {
     // initialize locals properly
     CHECK_AND_RETHROW(init_cpu_local());
     g_cpu_id = get_lapic_id();
+    g_current_process = &g_kernel;
 
     // setup the lapic
-    CHECK_AND_RETHROW(init_lapic());
+    init_lapic();
+
+    // startup scheduler
+    startup_scheduler();
 
 cleanup:
     if (IS_ERROR(err)) {
         TRACE("Error during kernel initialization on core #%d, halting core", get_lapic_id());
     }
-    while(1)
-        __hlt();
+    while(1) __hlt();
 }

@@ -24,18 +24,25 @@
 #define X2APIC_MSR_BASE_ADDRESS                 0x800
 #define X2APIC_MSR_ICR_ADDRESS                  0x830
 
-#define LOCAL_APIC_DELIVERY_MODE_FIXED           0
-#define LOCAL_APIC_DELIVERY_MODE_LOWEST_PRIORITY 1
-#define LOCAL_APIC_DELIVERY_MODE_SMI             2
-#define LOCAL_APIC_DELIVERY_MODE_NMI             4
-#define LOCAL_APIC_DELIVERY_MODE_INIT            5
-#define LOCAL_APIC_DELIVERY_MODE_STARTUP         6
-#define LOCAL_APIC_DELIVERY_MODE_EXTINT          7
+#define LAPIC_DELIVERY_MODE_FIXED           0
+#define LAPIC_DELIVERY_MODE_LOWEST_PRIORITY 1
+#define LAPIC_DELIVERY_MODE_SMI             2
+#define LAPIC_DELIVERY_MODE_NMI             4
+#define LAPIC_DELIVERY_MODE_INIT            5
+#define LAPIC_DELIVERY_MODE_STARTUP         6
+#define LAPIC_DELIVERY_MODE_EXTINT          7
 
-#define LOCAL_APIC_DESTINATION_SHORTHAND_NO_SHORTHAND       0
-#define LOCAL_APIC_DESTINATION_SHORTHAND_SELF               1
-#define LOCAL_APIC_DESTINATION_SHORTHAND_ALL_INCLUDING_SELF 2
-#define LOCAL_APIC_DESTINATION_SHORTHAND_ALL_EXCLUDING_SELF 3
+#define LAPIC_DESTINATION_SHORTHAND_NO_SHORTHAND       0
+#define LAPIC_DESTINATION_SHORTHAND_SELF               1
+#define LAPIC_DESTINATION_SHORTHAND_ALL_INCLUDING_SELF 2
+#define LAPIC_DESTINATION_SHORTHAND_ALL_EXCLUDING_SELF 3
+
+#define IOAPIC_INDEX_OFFSET  0x00
+#define IOAPIC_DATA_OFFSET   0x10
+
+#define IOAPIC_IDENTIFICATION_REGISTER_INDEX  0x00
+#define IOAPIC_VERSION_REGISTER_INDEX         0x01
+#define IOAPIC_REDIRECTION_TABLE_ENTRY_INDEX  0x10
 
 typedef union lapic_version {
     struct {
@@ -112,6 +119,36 @@ typedef union lapic_lvt_timer {
         uint32_t raw;
 } lapic_lvt_timer_t;
 
+typedef union ioapic_redir_entry {
+    struct {
+        uint32_t  vector:8;
+        uint32_t  delivery_mode:3;
+        uint32_t  destination_mode:1;
+        uint32_t  delivery_status:1;
+        uint32_t  polarity:1;
+        uint32_t  remote_irr:1;
+        uint32_t  trigger_mode:1;
+        uint32_t  mask:1;
+        uint32_t  _reserved0:15;
+        uint32_t  _reserved1:24;
+        uint32_t  destination_id:8;
+    };
+    struct {
+        uint32_t low;
+        uint32_t high;
+    } raw_split;
+    uint64_t raw;
+} ioapic_redir_entry_t;
+
+typedef union ioapic_version {
+    struct {
+        uint32_t  version:8;
+        uint32_t  _reserved0:8;
+        uint32_t  maximum_redirection_entry:8;
+        uint32_t  _reserved1:8;
+    };
+    uint32_t raw;
+} ioapic_version_t;
 
 #define FOR_EACH_IN_MADT() \
     for (madt_entry_t* entry = (void*)(g_madt + 1); (uint64_t) entry < (uint64_t) g_madt + g_madt->header.length; entry = (madt_entry_t*)((uint64_t)entry + entry->length))
@@ -119,9 +156,14 @@ typedef union lapic_lvt_timer {
 extern acpi_madt_t* g_madt;
 
 /**
+ * Initialize the apic globally
+ */
+err_t init_apic();
+
+/**
  * Initialize the local apic
  */
-err_t init_lapic();
+void init_lapic();
 
 /**
  * Send an eoi to the current lapic
@@ -142,5 +184,10 @@ uint32_t get_lapic_id();
  * Will set the lapic timer for the next interrupt
  */
 err_t setup_lapic_timer(uint64_t ticks);
+
+/**
+ * will add a redirection entry
+ */
+err_t ioapic_redirect(uint8_t gsi, uint8_t vector, bool level_triggered, bool assertion_level);
 
 #endif //__TOMATOS_KERNEL_ARCH_AMD64_APIC_H__

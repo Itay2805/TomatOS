@@ -22,7 +22,9 @@ extern memmap_entry_t* g_memory_map;
  */
 void init_acpi_tables(uintptr_t rsdp_ptr);
 
-void acpi_ustall(uint64_t nanoseconds);
-void acpi_stall(uint64_t microseconds);
+/**
+ * Initialize the acpi timer
+ */
+err_t init_acpi();
 
 #endif //__ACPI_ACPI_H__

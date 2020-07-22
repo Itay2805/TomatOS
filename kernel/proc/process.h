@@ -13,6 +13,16 @@ struct thread;
  */
 typedef struct process {
     /**
+     * The process id
+     */
+    int pid;
+
+    /**
+     * The name of the process
+     */
+    char name[32];
+
+    /**
      * The meta of the process handle
      */
     handle_meta_t handle_meta;
@@ -39,12 +49,22 @@ typedef struct process {
     /**
      * used for generation handle ids
      */
-     handle_t next_handle;
+     _Atomic(handle_t) next_handle;
 
      /**
       * The threads of this process
       */
      list_entry_t threads;
+
+     /**
+      * Lock for the thread list
+      */
+     ticket_lock_t threads_lock;
+
+     /**
+      * Next tid
+      */
+     atomic_int next_tid;
 
      /**
       * The static priority of the
@@ -55,10 +75,38 @@ typedef struct process {
      size_t priority;
 } process_t;
 
+typedef enum thread_state {
+    /**
+     *
+     */
+    STATE_RUNNING,
+
+    /**
+     * The thread is waiting on something, if the scheduler sees
+     * this state on the current thread, it dequeues the thread.
+     */
+    STATE_WAITING,
+
+    /**
+     * A dead thread, will not run and the context won't be saved
+     */
+    STATE_DEAD,
+} thread_state_t;
+
 /**
  * This represents a thread
  */
 typedef struct thread {
+    /**
+     * The thread id
+     */
+    int tid;
+
+    /**
+     * The state of the process
+     */
+    _Atomic(thread_state_t) state;
+
     /**
      * The thread handle meta
      */
@@ -74,6 +122,11 @@ typedef struct thread {
      */
     list_entry_t link;
 
+    /**
+     * The name of the thread
+     */
+    char name[32];
+
     ///////////////////////////////////
     // Scheduling vars
     ///////////////////////////////////
@@ -84,14 +137,19 @@ typedef struct thread {
     list_entry_t scheduler_link;
 
     /**
+     * The last run queue;
+     */
+    int last_rq;
+
+    /**
+     * The last cpu
+     */
+    int last_cpu;
+
+    /**
      * The dynamic priority of this thread
      */
     size_t priority;
-
-    /**
-     *
-     */
-    size_t last_run;
 } thread_t;
 
 /**
@@ -110,8 +168,13 @@ extern process_t* CPU_LOCAL g_current_process;
 extern thread_t* CPU_LOCAL g_current_thread;
 
 /**
- * This will initialize the kernel process
+ * Create a thread for the current process
+ *
+ * @param thread    [OUT]   The new thread
+ * @param func      [IN]    The entry function
+ * @param data      [IN]    The data to pass to the entry
+ * @param name      [IN]    The name of the thread, can be null
  */
-err_t init_kernel_process();
+err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, char* name);
 
 #endif //__TOMATOS_KERNEL_PROC_PROCESS_H__
