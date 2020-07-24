@@ -186,7 +186,7 @@ err_t scheduler_tick(system_context_t* ctx) {
         restore_context(ctx);
 
         // calculate the priority based on the avg sleep time of the thread
-        uint64_t delta = (uptime() - g_current_thread->last_run) / 100;
+        uint64_t delta = (uptime() - g_current_thread->last_run) / 100000;
         g_current_thread->sleep_time += delta;
         g_current_thread->sleep_time = MIN(g_current_thread->sleep_time, 10);
         g_current_thread->priority = MAX(100, MIN(g_current_thread->priority - g_current_thread->sleep_time + 5, 139));

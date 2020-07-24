@@ -130,7 +130,10 @@ static noreturn void acpi_thread() {
                 g_total_ticks += g_timer_mask;
                 g_initial_ticks = 0;
             }
-            TRACE("timer overflow");
+        }
+
+        if (event & ACPI_POWER_BUTTON) {
+
         }
     }
 }

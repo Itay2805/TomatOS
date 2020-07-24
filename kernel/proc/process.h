@@ -168,6 +168,11 @@ typedef struct thread {
 } thread_t;
 
 /**
+ * An event that is called
+ */
+extern event_t g_shutdown_event;
+
+/**
  * The kernel process
  */
 extern process_t g_kernel;

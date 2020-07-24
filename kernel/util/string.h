@@ -6,9 +6,11 @@
 int strcmp(const char* str1, const char* str2);
 size_t strlen(const char* str);
 
-int memcmp(const void* ptr1, const void* ptr2, size_t len);
-void* memcpy(void* dst, const void* src, size_t len);
-void* memmove(void* dst, const void* src, size_t len);
-void* memset(void* dst, int val, size_t len);
+void* memcpy(void* _dst, const void* _src, size_t len);
+
+#define memmove __builtin_memmove
+#define memcpy __builtin_memcpy
+#define memcmp __builtin_memcmp
+#define memset __builtin_memset
 
 #endif //__TOMATOS_KERNEL_UTIL_STRING_H__
