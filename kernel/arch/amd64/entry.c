@@ -10,6 +10,7 @@
 #include <sys/pci/pci.h>
 #include <arch/cpu.h>
 #include <proc/scheduler.h>
+#include <stdnoreturn.h>
 #include "stivale.h"
 #include "intrin.h"
 #include "apic.h"
@@ -28,7 +29,7 @@ void init_gdt();
 err_t init_vmm(stivale_struct_t* strct);
 void init_cpu_local_for_bsp();
 err_t init_cpu_local();
-err_t init_idt();
+void init_idt();
 
 static const char* g_memory_map_names[] = {
     [1] = "Usable RAM",
@@ -41,7 +42,7 @@ static const char* g_memory_map_names[] = {
 
 static const char* g_size_names[] = { "B", "kB", "MB", "GB" };
 
-void kentry(stivale_struct_t* strct) {
+noreturn void kentry(stivale_struct_t* strct) {
     err_t err = NO_ERROR;
     size_t available_size = 0;
     size_t size = 0;
@@ -103,8 +104,8 @@ void kentry(stivale_struct_t* strct) {
 
     // initialize the kernel allocator and
     // cpu locals, in preparation for threading
+    init_idt();
     CHECK_AND_RETHROW(mm_init());
-    CHECK_AND_RETHROW(init_idt());
 
     // the kernel is the current process
     g_current_process = &g_kernel;
@@ -145,6 +146,9 @@ void kentry(stivale_struct_t* strct) {
     g_cpu_id = get_lapic_id();
     CHECK_AND_RETHROW(startup_all_cores());
 
+    // allocate a stack for the idle thread and
+    // start the scheduler
+    g_idle_stack = (uintptr_t)alloc_stack();
     startup_scheduler();
 
 cleanup:
@@ -153,13 +157,14 @@ cleanup:
     while(true) __hlt();
 }
 
-void per_cpu_entry() {
+noreturn void per_cpu_entry(uintptr_t stack) {
     err_t err = NO_ERROR;
 
     // initialize locals properly
     CHECK_AND_RETHROW(init_cpu_local());
     g_cpu_id = get_lapic_id();
     g_current_process = &g_kernel;
+    g_idle_stack = stack;
 
     // setup the lapic
     init_lapic();

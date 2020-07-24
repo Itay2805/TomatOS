@@ -5,6 +5,11 @@
 #include <arch/ints.h>
 #include "process.h"
 
+/**
+ * A per-cpu stack used for idle tasks
+ */
+extern uintptr_t CPU_LOCAL g_idle_stack;
+
 void init_scheduler(size_t cpu_count);
 
 /**
@@ -12,18 +17,16 @@ void init_scheduler(size_t cpu_count);
  *
  * @param process   [IN]
  */
-err_t schedule_thread(thread_t* process);
-
-/**
- *
- * @param process
- * @return
- */
-err_t deschedule_thread(thread_t* process);
+void schedule_thread(thread_t* process);
 
 /**
  * Start the scheduler on the current cpu
  */
 void startup_scheduler();
+
+/**
+ * Will yield to the scheduler
+ */
+void yield();
 
 #endif //__TOMATOS_KERNEL_PROC_SCHEDULER_H__

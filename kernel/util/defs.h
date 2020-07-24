@@ -22,6 +22,9 @@
 #define RELAXED_POKE32(addr) RELAXED_POKE(uint32_t, addr)
 #define RELAXED_POKE64(addr) RELAXED_POKE(uint64_t, addr)
 
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 // TODO: fallback for these?
 #define ALIGN_UP(value, align) __builtin_align_up(value, align)
 #define ALIGN_DOWN(value, align) __builtin_align_down(value, align)

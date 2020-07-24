@@ -70,6 +70,17 @@ err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, char
     new_thread->tid = g_current_process->next_tid++;
     new_thread->state = STATE_WAITING;
 
+    // setup the system context
+    if ((void *)func > KERNEL_BASE) {
+        init_context(&new_thread->system_context, true);
+        new_thread->system_context.SP = (uintptr_t)alloc_stack();
+    } else {
+        init_context(&new_thread->system_context, false);
+        CHECK_FAIL_TRACE("TODO");
+    }
+    new_thread->system_context.IP = (uintptr_t)func;
+    new_thread->system_context.ARG0 = (uintptr_t)data;
+
     if (name != NULL) {
         memcpy(new_thread->name, name, ARRAY_LENGTH(new_thread->name));
     } else {
@@ -82,6 +93,16 @@ err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, char
     ticket_unlock(&g_current_process->threads_lock);
 
     *thread = new_thread;
+
+cleanup:
+    return err;
+}
+
+err_t close_thread(thread_t* thread) {
+    err_t err = NO_ERROR;
+
+    CHECK(thread != NULL);
+    CHECK_AND_RETHROW(release_handle_meta(&thread->handle_meta));
 
 cleanup:
     return err;

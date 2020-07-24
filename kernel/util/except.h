@@ -2,7 +2,7 @@
 #define __TOMATOS_KERNEL_UTIL_EXCEPT_H__
 
 #include <util/printf.h>
-#include <arch/cpu.h>
+#include <arch/timing.h>
 
 #ifndef __MODULE__
     #define __MODULE__ "tomatos"
@@ -11,8 +11,8 @@
 void trace(const char* fmt, ...);
 
 #define PRINT(fmt, ...) trace(fmt, ## __VA_ARGS__)
-#define TRACE(fmt, ...) PRINT("[*] " __MODULE__ ": " fmt "\n", ## __VA_ARGS__)
-#define ERROR(fmt, ...) PRINT("[-] " __MODULE__ ": " fmt "\n", ## __VA_ARGS__)
+#define TRACE(fmt, ...) PRINT("[%5u.%06u][*] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
+#define ERROR(fmt, ...) PRINT("[%5u.%06u][-] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
 
 typedef enum err {
     NO_ERROR,

@@ -107,6 +107,7 @@ lgdt [SMP_KERNEL_GDT]
 lidt [SMP_KERNEL_IDT]
 
 ; jump to entry point
+mov rdi, rsp
 mov rbx, qword [SMP_KERNEL_ENTRY]
 jmp rbx
 

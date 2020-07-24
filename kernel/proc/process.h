@@ -4,6 +4,7 @@
 #include <mem/vmm.h>
 #include <arch/cpu.h>
 #include <util/list.h>
+#include <arch/ints.h>
 #include "handle.h"
 
 struct thread;
@@ -77,7 +78,11 @@ typedef struct process {
 
 typedef enum thread_state {
     /**
+     * The thread is currently running
      *
+     * @remark
+     * This does not mean code is executing right now, it just
+     * means that it will get scheduled
      */
     STATE_RUNNING,
 
@@ -127,6 +132,11 @@ typedef struct thread {
      */
     char name[32];
 
+    /**
+     * The execution context
+     */
+    system_context_t system_context;
+
     ///////////////////////////////////
     // Scheduling vars
     ///////////////////////////////////
@@ -137,14 +147,19 @@ typedef struct thread {
     list_entry_t scheduler_link;
 
     /**
-     * The last run queue;
-     */
-    int last_rq;
-
-    /**
      * The last cpu
      */
     int last_cpu;
+
+    /**
+     * The last time the thread was ran
+     */
+    uint64_t last_run;
+
+    /**
+     * The time the thread spent on sleeping
+     */
+    uint64_t sleep_time;
 
     /**
      * The dynamic priority of this thread
@@ -176,5 +191,17 @@ extern thread_t* CPU_LOCAL g_current_thread;
  * @param name      [IN]    The name of the thread, can be null
  */
 err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, char* name);
+
+/**
+ * Will close the thread
+ *
+ * @remark
+ * This will not actually kill the thread.
+ *
+ * @remark
+ * Internally this will simply call the release_handle_meta
+ * on the threads's handle_meta
+ */
+err_t close_thread(thread_t* thread);
 
 #endif //__TOMATOS_KERNEL_PROC_PROCESS_H__

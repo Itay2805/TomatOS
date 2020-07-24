@@ -11,6 +11,7 @@
 #include <arch/ints.h>
 #include <lai/helpers/sci.h>
 #include <proc/scheduler.h>
+#include <stdnoreturn.h>
 
 #include "acpi.h"
 
@@ -26,9 +27,28 @@ static uint16_t g_timer_port;
  */
 static bool g_extended_timer = false;
 
+/**
+ * The overflow value
+ */
+static uint32_t g_timer_mask = 0;
+
+/**
+ * The total amount of overflows we had
+ */
+static _Atomic(uint64_t) g_total_ticks = 0;
+
+/**
+ * The counter when we actually started counting
+ */
+static uint32_t g_initial_ticks = 0;
+
 static acpi_fadt_t* g_acpi_fadt;
 
 memmap_entry_t* g_memory_map = NULL;
+
+static uint32_t get_timer_ticks() {
+    return laihost_ind(g_timer_port) & g_timer_mask;
+}
 
 void init_acpi_tables(uintptr_t rsdp_ptr) {
     TRACE("ACPI Table initialization");
@@ -57,18 +77,16 @@ void init_acpi_tables(uintptr_t rsdp_ptr) {
         g_timer_port = g_acpi_fadt->pm_timer_block;
     }
 
+    // initialize timer values
     if (g_acpi_fadt->flags & BIT8) {
         TRACE("\t* Extended timer is supported");
         g_extended_timer = true;
-    }
-}
-
-static uint32_t get_timer_ticks() {
-    if (g_extended_timer) {
-        return laihost_ind(g_timer_port);
+        g_timer_mask = UINT32_MAX;
     } else {
-        return laihost_ind(g_timer_port) & 0xFFFFFF;
+        g_timer_mask = 0xFFFFFF;
     }
+
+    g_initial_ticks = get_timer_ticks();
 }
 
 static void acpi_delay(uint64_t delay) {
@@ -86,11 +104,6 @@ static void acpi_delay(uint64_t delay) {
 }
 
 /**
- * Used to tell the uptime function how many overflows we had
- */
-static atomic_size_t g_timer_overflows = 0;
-
-/**
  * The vector used for scis
  */
 static uint8_t g_sci_vector = 0;
@@ -103,23 +116,23 @@ static thread_t* g_acpi_thread = NULL;
 /**
  * This thread handles scis
  */
-static void acpi_thread() {
-    err_t err = NO_ERROR;
+static noreturn void acpi_thread() {
     TRACE("ACPI thread started (sci=%d)", g_sci_vector);
 
     while (true) {
-        CHECK_AND_RETHROW(wait_for_events(&g_interrupt_events[g_sci_vector], 1, NULL));
+        wait_for_interrupt(g_sci_vector);
 
         uint16_t event = lai_get_sci_event();
-        TRACE("Got SCI %b", event);
 
         if (event & ACPI_TIMER) {
-            g_timer_overflows++;
+            bool really_overflowed = !(get_timer_ticks() & (g_extended_timer ? BIT31 : BIT23));
+            if (really_overflowed) {
+                g_total_ticks += g_timer_mask;
+                g_initial_ticks = 0;
+            }
+            TRACE("timer overflow");
         }
     }
-
-cleanup:
-    ASSERT_TRACE(false, "Tried exiting acpi thread! err=%s", strerror(err));
 }
 
 err_t init_acpi() {
@@ -136,7 +149,7 @@ err_t init_acpi() {
     // do sci handling
     CHECK_AND_RETHROW(register_irq(g_acpi_fadt->sci_irq, &g_sci_vector));
     CHECK_AND_RETHROW(create_thread(&g_acpi_thread, acpi_thread, NULL, "acpi"));
-    CHECK_AND_RETHROW(schedule_thread(g_acpi_thread));
+    schedule_thread(g_acpi_thread);
 
 cleanup:
     return err;
@@ -151,7 +164,7 @@ void stall(uint64_t ms) {
 }
 
 uint64_t uptime() {
-    return ((g_timer_overflows * ACPI_TIMER_FREQUENCY) + get_timer_ticks()) / (ACPI_TIMER_FREQUENCY * 1000ul);
+    return (((g_total_ticks + get_timer_ticks()) - g_initial_ticks) * 1000000u) / ACPI_TIMER_FREQUENCY;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

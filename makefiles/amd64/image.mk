@@ -13,11 +13,17 @@ ifeq ($(DEBUGGER), 1)
 	QEMU_ARGS += -S -s
 endif
 
+ifeq ($(shell uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/p'), Microsoft)
+    QEMU := qemu-system-x86_64.exe
+else
+    QEMU := qemu-system-x86_64
+endif
+
 #
 # A target to start the kernel in qemu
 #
 qemu: $(BIN_DIR)/image.hdd
-	qemu-system-x86_64 $(QEMU_ARGS) | python3 scripts/trace2funcs.py $(BIN_DIR)/tomatos.elf
+	$(QEMU) $(QEMU_ARGS) | python3 scripts/trace2funcs.py $(BIN_DIR)/tomatos.elf
 
 #
 # A target to build a bootable image

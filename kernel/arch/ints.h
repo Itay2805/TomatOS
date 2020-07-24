@@ -5,17 +5,15 @@
 #include <arch/amd64/intrin.h>
 
 #ifdef __TOMATOS_AMD64__
-    #define INTERRUPT_COUNT 256
+    #define INTERRUPT_COUNT (256 - 0x21)
 #else
     #error Unknown achitecture
 #endif
 
 /**
- * This has an event for every possible interrupt, allowing
- * for threads to wait for a certain interrupt
+ * This will cause the thread to wait for an interrupt
  */
-extern event_t g_interrupt_events[INTERRUPT_COUNT];
-
+void wait_for_interrupt(uint8_t vector);
 typedef struct system_context {
 #ifdef __TOMATOS_AMD64__
     uint64_t ds;
@@ -41,10 +39,31 @@ typedef struct system_context {
     IA32_RFLAGS rflags;
     uint64_t rsp;
     uint64_t ss;
+
+    // system context regs
+    #define IP rip
+    #define SP rsp
+    #define ARG0 rdi
+    #define ARG1 rsi
 #else
     #error Unknown achitecture
 #endif
 } system_context_t;
+
+/**
+ * Initialize a new system context
+ */
+void init_context(system_context_t* target, bool kernel);
+
+/**
+ * Will save the current context to the current thread
+ */
+void save_context(system_context_t* curr);
+
+/**
+ * Will restore the context of the current thread to the current context
+ */
+void restore_context(system_context_t* curr);
 
 /**
  * This will tell the kernel we want to route an irq

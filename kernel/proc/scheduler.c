@@ -1,5 +1,7 @@
 #include <mem/mm.h>
 #include <sync/critical.h>
+#include <arch/timing.h>
+#include <stdnoreturn.h>
 #include "scheduler.h"
 
 typedef struct run_queue {
@@ -8,9 +10,11 @@ typedef struct run_queue {
 } run_queue_t;
 
 typedef struct cpu_ctx {
-    run_queue_t rqs[3];
+    run_queue_t rqs[2];
     size_t thread_count;
 } cpu_ctx_t;
+
+uintptr_t CPU_LOCAL g_idle_stack;
 
 /**
  * The total number of scheduled threads
@@ -56,65 +60,58 @@ void init_scheduler(size_t cpu_count) {
     }
 }
 
-err_t schedule_thread(thread_t* thread) {
-    err_t err = NO_ERROR;
+static noreturn void idle_loop() {
+    while (true) {
+        // enable interrupts and wait for one
+        // once we get one then yield
+        enable_interrupts();
+        cpu_sleep();
+        yield();
+    }
+}
 
+void schedule_thread(thread_t* thread) {
     // we now reference this thread
     thread->handle_meta.refcount++;
 
-    // find cpu with least number of threads
     size_t cpu = 0;
-    size_t num = SIZE_MAX;
-    for (size_t i = 0; i < g_max_cpu; i++) {
-        if (num > g_cpus[i].thread_count) {
-            num = g_cpus[i].thread_count;
-            cpu = i;
+    if (thread->last_cpu != -1) {
+        // already has a last thread, meaning we just woke
+        // up the thread
+        cpu = thread->last_cpu;
+    } else {
+        // find cpu with least number of threads
+        size_t num = SIZE_MAX;
+        for (size_t i = 0; i < g_max_cpu; i++) {
+            if (num > g_cpus[i].thread_count) {
+                num = g_cpus[i].thread_count;
+                cpu = i;
+            }
         }
+
+        thread->last_cpu = cpu;
     }
 
-    // add the thread to run queue 1 of the given cpu
-    // this has to be in a critical section because we
-    // can schedule threads from an interrupt handler
+    // add the thread to run queue 0 or 1 depending on the
+    // priority of it
     critical_t crit;
     enter_critical(&crit);
-    ticket_lock(&g_cpus[cpu].rqs[1].lock);
-    append_to_queue(&g_cpus[cpu].rqs[1], thread);
-    ticket_unlock(&g_cpus[cpu].rqs[1].lock);
+    if (thread->priority < 130) {
+        ticket_lock(&g_cpus[cpu].rqs[0].lock);
+        append_to_queue(&g_cpus[cpu].rqs[0], thread);
+        ticket_unlock(&g_cpus[cpu].rqs[0].lock);
+    } else {
+        ticket_lock(&g_cpus[cpu].rqs[1].lock);
+        append_to_queue(&g_cpus[cpu].rqs[1], thread);
+        ticket_unlock(&g_cpus[cpu].rqs[1].lock);
+    }
     exit_critical(&crit);
 
-    // increase the amount of threads
-    g_cpus[cpu].thread_count++;
-    g_num_threads++;
-
-    return err;
-}
-
-err_t deschedule_thread(thread_t* process) {
-    err_t err = NO_ERROR;
-
-    CHECK_FAIL_TRACE("TODO: Implement this");
-
-cleanup:
-    return err;
-}
-
-static void finish_exec_thread(thread_t* old_thread, system_context_t* ctx) {
-
-}
-
-/**
- * Execute the thread, this includes:
- *  - setting the thread context
- *  - setting per-thread globals
- *  - setting the next time a scheduler tick
- */
-static void exec_thread(thread_t* new_thread, system_context_t* ctx) {
-    TRACE("Going to exec thread `%s`", new_thread->name);
-    set_next_scheduler_tick(100);
-}
-
-static void exec_idle(system_context_t* ctx) {
-    TRACE("Going to exec idle");
+    if (thread->last_cpu == -1) {
+        // this is a new thread to the scheduler
+        g_cpus[cpu].thread_count++;
+        g_num_threads++;
+    }
 }
 
 err_t scheduler_tick(system_context_t* ctx) {
@@ -124,12 +121,34 @@ err_t scheduler_tick(system_context_t* ctx) {
 
     // handle the current thread
     if (g_current_thread != NULL) {
-        if (g_current_thread->state != STATE_RUNNING) {
-            CHECK_AND_RETHROW(deschedule_thread(g_current_thread));
-        }
-
         if (g_current_thread->state != STATE_DEAD) {
-            finish_exec_thread(g_current_thread, ctx);
+            // store the thread context
+            save_context(ctx);
+
+            // setup the last_run and sleep time
+            g_current_thread->sleep_time -= (uptime() - g_current_thread->last_run) / 100000;
+            g_current_thread->last_run = uptime();
+
+            // add back to a run queue if still needs to run
+            if (g_current_thread->state == STATE_RUNNING) {
+                if (g_current_thread->priority < 130) {
+                    ticket_lock(&g_cpus[g_cpu_id].rqs[0].lock);
+                    append_to_queue(&g_cpus[g_cpu_id].rqs[0], g_current_thread);
+                    ticket_unlock(&g_cpus[g_cpu_id].rqs[0].lock);
+                } else {
+                    ticket_lock(&g_cpus[g_cpu_id].rqs[1].lock);
+                    append_to_queue(&g_cpus[g_cpu_id].rqs[1], g_current_thread);
+                    ticket_unlock(&g_cpus[g_cpu_id].rqs[1].lock);
+                }
+            }
+        } else {
+            // remove this thread from the scheduler
+            g_current_thread->last_cpu = -1;
+            g_cpus[g_cpu_id].thread_count--;
+            g_num_threads--;
+
+            // remove the reference completely
+            CHECK_AND_RETHROW(close_thread(g_current_thread));
         }
     }
 
@@ -144,24 +163,45 @@ err_t scheduler_tick(system_context_t* ctx) {
     }
 
     if (rq == NULL) {
-        // no thread to run
-        exec_idle(ctx);
+        // no thread to run, just wait for
+        // an interrupt
+        g_current_process = &g_kernel;
+        g_current_thread = NULL;
+        set_address_space(&g_kernel.address_space);
+        ctx->IP = (uintptr_t)idle_loop;
+        ctx->SP = (uintptr_t)g_idle_stack;
     } else {
         // dequeue a thread
-        thread_t* new_thread = CR(rq->link.next, thread_t, scheduler_link);
-        list_del(&new_thread->scheduler_link);
+        g_current_thread = CR(rq->link.next, thread_t, scheduler_link);
+        list_del(&g_current_thread->scheduler_link);
 
         // don't forget to unlock it
         ticket_unlock(&rq->lock);
 
-        // setup for execution
-        exec_thread(new_thread, ctx);
-
-        // this is the new thread
-        g_current_thread = new_thread;
-        g_current_thread->last_rq = (rq - cpu_ctx->rqs);
-        g_current_thread->last_cpu = g_cpu_id;
+        // set everything up
+        g_current_process = g_current_thread->parent;
         g_current_thread->state = STATE_RUNNING;
+
+        // setup for execution
+        restore_context(ctx);
+
+        // calculate the priority based on the avg sleep time of the thread
+        uint64_t delta = (uptime() - g_current_thread->last_run) / 100;
+        g_current_thread->sleep_time += delta;
+        g_current_thread->sleep_time = MIN(g_current_thread->sleep_time, 10);
+        g_current_thread->priority = MAX(100, MIN(g_current_thread->priority - g_current_thread->sleep_time + 5, 139));
+
+        // calculate the last time based on priority
+        uint64_t timeslice = 0;
+        if (g_current_thread->priority < 120) {
+            timeslice = (140 - g_current_thread->priority) * 20;
+        } else {
+            timeslice = (140 - g_current_thread->priority) * 5;
+        }
+        set_next_scheduler_tick(timeslice);
+
+        // set the last time runnning
+        g_current_thread->last_run = uptime();
     }
 
 cleanup:
@@ -171,5 +211,5 @@ cleanup:
 void startup_scheduler() {
     // simply fire scheduler tick interrupt manually
     enable_interrupts();
-    asm("int $0x20");
+    yield();
 }

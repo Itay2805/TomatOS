@@ -13,6 +13,10 @@ void cpu_pause() {
     asm volatile ("pause");
 }
 
+void cpu_sleep() {
+    __hlt();
+}
+
 void memory_fence() {
     asm volatile ("" ::: "memory");
 }

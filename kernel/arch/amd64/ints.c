@@ -4,6 +4,11 @@
 #include <util/defs.h>
 #include <arch/ints.h>
 #include <arch/cpu.h>
+#include <proc/process.h>
+#include <stdnoreturn.h>
+#include <sync/critical.h>
+#include <proc/scheduler.h>
+#include <util/string.h>
 #include "intrin.h"
 #include "idt.h"
 #include "apic.h"
@@ -202,19 +207,32 @@ typedef struct interrupt_frame {
 } PACKED interrupt_frame_t;
 
 /**
+ * List of lists of threads waiting for interrupts
+ */
+static list_entry_t g_interrupt_waiters[INTERRUPT_COUNT];
+static ticket_lock_t g_interrupt_locks[INTERRUPT_COUNT];
+
+/**
  * Define a generic interrupt handler that signalls an event
  */
 #define EVENT_INTERRUPT_HANDLER(num) \
     __attribute__((interrupt)) \
     static void interrupt_handle_##num(interrupt_frame_t* frame) { \
-        signal_event(g_interrupt_events[num]); \
+        list_entry_t* threads = &g_interrupt_waiters[num - 0x21]; \
+        ticket_lock(&g_interrupt_locks[num - 0x21]); \
+        while (!list_is_empty(threads)) { \
+            thread_t* thread = CR(threads->next, thread_t, scheduler_link); \
+            list_del(&thread->scheduler_link); \
+            schedule_thread(thread); \
+        } \
+        ticket_unlock(&g_interrupt_locks[num - 0x21]); \
         send_lapic_eoi(); \
     }
 
 /**
  * Define all interrupt event handlers
  */
- #ifndef __IN_EDITOR__
+#ifndef __IN_EDITOR__
 EVENT_INTERRUPT_HANDLER(0x21);
 EVENT_INTERRUPT_HANDLER(0x22);
 EVENT_INTERRUPT_HANDLER(0x23);
@@ -438,7 +456,21 @@ EVENT_INTERRUPT_HANDLER(0xfc);
 EVENT_INTERRUPT_HANDLER(0xfd);
 EVENT_INTERRUPT_HANDLER(0xfe);
 EVENT_INTERRUPT_HANDLER(0xff);
- #endif
+#endif
+
+void wait_for_interrupt(uint8_t vector) {
+    // register
+    critical_t crit;
+    enter_critical(&crit);
+    ticket_lock(&g_interrupt_locks[vector]);
+    list_add(&g_interrupt_waiters[vector], &g_current_thread->scheduler_link);
+    ticket_unlock(&g_interrupt_locks[vector]);
+    exit_critical(&crit);
+
+    // yield
+    g_current_thread->state = STATE_WAITING;
+    yield();
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define IDT structures and set the idt up
@@ -467,12 +499,11 @@ static void set_idt_entry(uint8_t i, void(*handler)(), int ist) {
     g_idt_entries[i].ist = (uint64_t) ist;
 }
 
-err_t init_idt() {
-    err_t err = NO_ERROR;
-
+void init_idt() {
     // create all events
-    for (int i = 0; i < ARRAY_LENGTH(g_interrupt_events); i++) {
-        CHECK_AND_RETHROW(create_event(&g_interrupt_events[i]));
+    for (int i = 0; i < ARRAY_LENGTH(g_interrupt_waiters); i++) {
+        g_interrupt_waiters[i] = INIT_LIST(g_interrupt_waiters[i]);
+        g_interrupt_locks[i] = INIT_LOCK();
     }
 
     // setup full idt
@@ -737,9 +768,10 @@ err_t init_idt() {
 
     // TODO: put as __lidt
     asm volatile ("lidt %0" : : "m" (g_idt));
+}
 
-cleanup:
-    return err;
+void yield() {
+    asm ("int $0x20");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -753,14 +785,43 @@ err_t register_irq(uint8_t irq, uint8_t* vector) {
     err_t err = NO_ERROR;
 
     *vector = allocate_vector();
-    CHECK_AND_RETHROW(ioapic_redirect(irq, *vector, false, true));
+    CHECK_AND_RETHROW(ioapic_redirect(irq, *vector + 0x21, false, true));
 
 cleanup:
     return err;
 }
 
 uint8_t allocate_vector() {
-    uint8_t vector = g_next_vector + 0x21;
-    g_next_vector = (g_next_vector + 1) % (0xFF - 0x21);
+    uint8_t vector = g_next_vector;
+    g_next_vector = (g_next_vector + 1) % INTERRUPT_COUNT;
     return vector;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Context switching
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// TODO: fpu context
+
+void init_context(system_context_t* target, bool kernel) {
+    *target = (system_context_t) {
+        .ds = kernel ? GDT_KERNEL_DATA : GDT_USER_DATA,
+        .ss = kernel ? GDT_KERNEL_DATA : GDT_USER_DATA,
+        .cs = kernel ? GDT_KERNEL_CODE : GDT_USER_CODE,
+        .rflags = (IA32_RFLAGS) {
+            .always_one = 1,
+            .IF = 1,
+            .ID = 1,
+        }
+    };
+}
+
+void save_context(system_context_t* curr) {
+    g_current_thread->system_context = *curr;
+}
+
+void restore_context(system_context_t* curr) {
+    *curr = g_current_thread->system_context;
+    set_address_space(&g_current_process->address_space);
+}
+

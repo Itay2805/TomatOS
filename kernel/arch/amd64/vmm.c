@@ -117,7 +117,10 @@ err_t set_address_space(address_space_t* space) {
     err_t err = NO_ERROR;
 
     CHECK(space != NULL);
-    __writecr3(DIRECT_TO_PHYSICAL(space->pml4));
+
+    if (PHYSICAL_TO_DIRECT(__readcr3()) != space->pml4) {
+        __writecr3(DIRECT_TO_PHYSICAL(space->pml4));
+    }
 
 cleanup:
     return err;

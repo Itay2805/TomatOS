@@ -153,27 +153,14 @@ void init_lapic() {
     // setup the divier to biggest one
     lapic_write(XAPIC_TIMER_DIVIDE_CONFIGURATION_OFFSET, 0);
 
-    // setup the timer lvt
-    lapic_lvt_timer_t timer = {
-        .vector = 0x20,
-        .mask = 1,
-    };
-    lapic_write(XAPIC_LVT_TIMER_OFFSET, timer.raw);
-
-    // check the count
+    // check the amount of ticks passed
     lapic_write(XAPIC_TIMER_INIT_COUNT_OFFSET, 0xFFFFFFFF);
     stall(1000);
     g_lapic_freq = 0xFFFFFFFF - lapic_read(XAPIC_TIMER_CURRENT_COUNT_OFFSET);
-
-    // now we can setup the proper timer
-    timer = (lapic_lvt_timer_t) {
-            .vector = 0x20,
-    };
-    lapic_write(XAPIC_LVT_TIMER_OFFSET, timer.raw);
 }
 
 void send_lapic_eoi() {
-    lapic_write(0, XAPIC_EOI_OFFSET);
+    lapic_write(XAPIC_EOI_OFFSET, 0);
 }
 
 /**
@@ -265,5 +252,10 @@ cleanup:
 }
 
 void set_next_scheduler_tick(uint64_t ms) {
-    lapic_write(XAPIC_TIMER_CURRENT_COUNT_OFFSET, ms * g_lapic_freq);
+    lapic_lvt_timer_t timer = {
+        .vector = 0x20,
+    };
+    lapic_write(XAPIC_TIMER_INIT_COUNT_OFFSET, ms * g_lapic_freq);
+    lapic_write(XAPIC_TIMER_DIVIDE_CONFIGURATION_OFFSET, 0);
+    lapic_write(XAPIC_LVT_TIMER_OFFSET, timer.raw);
 }

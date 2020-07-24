@@ -14,7 +14,7 @@ void ustall(uint64_t nanoseconds);
 void stall(uint64_t microseconds);
 
 /**
- * Return the uptime in millisecs
+ * Return the uptime in microseconds
  */
 uint64_t uptime();
 

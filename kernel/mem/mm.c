@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <util/list.h>
 #include <proc/process.h>
+#include <util/string.h>
 #include "tlsf.h"
 
 #include "mm.h"
@@ -49,6 +50,10 @@ void* kalloc(size_t size) {
         res = tlsf_malloc(g_tlsf, size);
     }
 
+    if (res != NULL) {
+        memset(res, 0, size);
+    }
+
 cleanup:
     ticket_unlock(&g_tlsf_lock);
     return res;
@@ -67,8 +72,9 @@ void* krealloc(void* ptr, size_t size) {
         res = tlsf_realloc(g_tlsf, ptr, size);
     }
 
-    size_t a = DIRECT_TO_PHYSICAL(res);
-    ASSERT_TRACE(a < 0x1000000 || 0x108c8d1 < a, "tried to allocate a kernel pointer%p", a);
+    if (res != NULL) {
+        memset(res, 0, size);
+    }
 
 cleanup:
     ticket_unlock(&g_tlsf_lock);
@@ -98,6 +104,7 @@ void* alloc_stack() {
     } else {
         list_entry_t* stack_entry = g_stack_free_list.next;
         list_del(stack);
+        memset(stack_entry, 0, SIZE_4KB);
         stack = (void*)stack_entry + SIZE_4KB;
     }
     ticket_unlock(&g_stack_lock);

@@ -30,6 +30,12 @@ extern size_t CPU_LOCAL g_cpu_id;
 void cpu_pause();
 
 /**
+ * Makes the cpu go to sleep until an interrupt
+ * arrives
+ */
+void cpu_sleep();
+
+/**
  * Memory fence to serialize memory accesses
  */
 void memory_fence();
