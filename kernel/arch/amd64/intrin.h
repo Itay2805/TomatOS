@@ -189,6 +189,10 @@ void __invlpg(uintptr_t a);
 void __hlt(void);
 void __nop(void);
 
+void __stac(void);
+void __clac(void);
+
+
 void __ltr(uint16_t seg);
 void __lgdt(gdt_t* gdt);
 

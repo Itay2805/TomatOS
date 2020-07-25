@@ -194,6 +194,14 @@ void __nop(void) {
     __asm__ volatile ("nop");
 }
 
+void __stac(void) {
+    __asm__ volatile ("stac" ::: "cc");
+}
+
+void __clac(void) {
+    __asm__ volatile ("clac" ::: "cc");
+}
+
 void __ltr(uint16_t seg){
     asm volatile("ltr %%ax" : : "a"(seg));
 }

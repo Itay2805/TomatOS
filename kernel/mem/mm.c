@@ -117,7 +117,7 @@ void* alloc_stack() {
 
 void free_stack(void* stk) {
     ticket_lock(&g_stack_lock);
-    list_entry_t* entry = stk - SIZE_4KB;
+    list_entry_t* entry = (stk + (sizeof(uintptr_t) * 2)) - SIZE_4KB;
     list_add(&g_stack_free_list, entry);
     ticket_unlock(&g_stack_lock);
 }

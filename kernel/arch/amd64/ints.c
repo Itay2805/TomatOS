@@ -175,7 +175,6 @@ static void default_exception_handler(system_context_t* ctx) {
         ERROR("Thread: `%s` (#%d)", g_current_thread->name, g_current_thread->tid);
     }
     ERROR("");
-    // TODO: print stuff nicely
     ERROR("RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx", ctx->rax, ctx->rbx, ctx->rcx, ctx->rdx);
     ERROR("RSI=%016llx RDI=%016llx RBP=%016llx RSP=%016llx", ctx->rsi, ctx->rdi, ctx->rbp, ctx->rsp);
     ERROR("R8 =%016llx R9 =%016llx R10=%016llx R11=%016llx", ctx->r8 , ctx->r9 , ctx->r10, ctx->r11);
@@ -523,38 +522,38 @@ void init_idt() {
 
     // setup full idt
 #ifndef __IN_EDITOR__
-    set_idt_entry(0x0, interrupt_handle_0x00, 0);
-    set_idt_entry(0x1, interrupt_handle_0x01, 0);
-    set_idt_entry(0x2, interrupt_handle_0x02, 0);
-    set_idt_entry(0x3, interrupt_handle_0x03, 0);
-    set_idt_entry(0x4, interrupt_handle_0x04, 0);
-    set_idt_entry(0x5, interrupt_handle_0x05, 0);
-    set_idt_entry(0x6, interrupt_handle_0x06, 0);
-    set_idt_entry(0x7, interrupt_handle_0x07, 0);
-    set_idt_entry(0x8, interrupt_handle_0x08, 0);
-    set_idt_entry(0x9, interrupt_handle_0x09, 0);
-    set_idt_entry(0xa, interrupt_handle_0x0a, 0);
-    set_idt_entry(0xb, interrupt_handle_0x0b, 0);
-    set_idt_entry(0xc, interrupt_handle_0x0c, 0);
-    set_idt_entry(0xd, interrupt_handle_0x0d, 0);
-    set_idt_entry(0xe, interrupt_handle_0x0e, 0);
-    set_idt_entry(0xf, interrupt_handle_0x0f, 0);
-    set_idt_entry(0x10, interrupt_handle_0x10, 0);
-    set_idt_entry(0x11, interrupt_handle_0x11, 0);
-    set_idt_entry(0x12, interrupt_handle_0x12, 0);
-    set_idt_entry(0x13, interrupt_handle_0x13, 0);
-    set_idt_entry(0x14, interrupt_handle_0x14, 0);
-    set_idt_entry(0x15, interrupt_handle_0x15, 0);
-    set_idt_entry(0x16, interrupt_handle_0x16, 0);
-    set_idt_entry(0x17, interrupt_handle_0x17, 0);
-    set_idt_entry(0x18, interrupt_handle_0x18, 0);
-    set_idt_entry(0x19, interrupt_handle_0x19, 0);
-    set_idt_entry(0x1a, interrupt_handle_0x1a, 0);
-    set_idt_entry(0x1b, interrupt_handle_0x1b, 0);
-    set_idt_entry(0x1c, interrupt_handle_0x1c, 0);
-    set_idt_entry(0x1d, interrupt_handle_0x1d, 0);
-    set_idt_entry(0x1e, interrupt_handle_0x1e, 0);
-    set_idt_entry(0x1f, interrupt_handle_0x1f, 0);
+    set_idt_entry(0x0, interrupt_handle_0x00, 1);
+    set_idt_entry(0x1, interrupt_handle_0x01, 1);
+    set_idt_entry(0x2, interrupt_handle_0x02, 2);
+    set_idt_entry(0x3, interrupt_handle_0x03, 1);
+    set_idt_entry(0x4, interrupt_handle_0x04, 1);
+    set_idt_entry(0x5, interrupt_handle_0x05, 1);
+    set_idt_entry(0x6, interrupt_handle_0x06, 1);
+    set_idt_entry(0x7, interrupt_handle_0x07, 1);
+    set_idt_entry(0x8, interrupt_handle_0x08, 3);
+    set_idt_entry(0x9, interrupt_handle_0x09, 1);
+    set_idt_entry(0xa, interrupt_handle_0x0a, 1);
+    set_idt_entry(0xb, interrupt_handle_0x0b, 1);
+    set_idt_entry(0xc, interrupt_handle_0x0c, 3);
+    set_idt_entry(0xd, interrupt_handle_0x0d, 3);
+    set_idt_entry(0xe, interrupt_handle_0x0e, 3);
+    set_idt_entry(0xf, interrupt_handle_0x0f, 1);
+    set_idt_entry(0x10, interrupt_handle_0x10, 1);
+    set_idt_entry(0x11, interrupt_handle_0x11, 1);
+    set_idt_entry(0x12, interrupt_handle_0x12, 1);
+    set_idt_entry(0x13, interrupt_handle_0x13, 1);
+    set_idt_entry(0x14, interrupt_handle_0x14, 1);
+    set_idt_entry(0x15, interrupt_handle_0x15, 1);
+    set_idt_entry(0x16, interrupt_handle_0x16, 1);
+    set_idt_entry(0x17, interrupt_handle_0x17, 1);
+    set_idt_entry(0x18, interrupt_handle_0x18, 1);
+    set_idt_entry(0x19, interrupt_handle_0x19, 1);
+    set_idt_entry(0x1a, interrupt_handle_0x1a, 1);
+    set_idt_entry(0x1b, interrupt_handle_0x1b, 1);
+    set_idt_entry(0x1c, interrupt_handle_0x1c, 1);
+    set_idt_entry(0x1d, interrupt_handle_0x1d, 1);
+    set_idt_entry(0x1e, interrupt_handle_0x1e, 1);
+    set_idt_entry(0x1f, interrupt_handle_0x1f, 1);
     set_idt_entry(0x20, interrupt_handle_0x20, 0);
     set_idt_entry(0x21, interrupt_handle_0x21, 0);
     set_idt_entry(0x22, interrupt_handle_0x22, 0);

@@ -2,6 +2,7 @@
 #define __TOMATOS_KERNEL_ARCH_AMD64_GDT_H__
 
 #include <util/defs.h>
+#include <arch/cpu.h>
 #include <stdint.h>
 
 #define GDT_KERNEL_CODE offsetof(gdt_entries_t, kernel_code)
@@ -62,5 +63,7 @@ typedef struct tss64 {
 } PACKED tss64_t;
 
 extern gdt_t g_gdt;
+
+extern tss64_t CPU_LOCAL g_tss;
 
 #endif //__TOMATOS_KERNEL_ARCH_AMD64_GDT_H__

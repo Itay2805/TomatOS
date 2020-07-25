@@ -27,10 +27,12 @@ stivale_header_t header = {
 };
 
 void init_gdt();
+void init_tss();
 err_t init_vmm(stivale_struct_t* strct);
 void init_cpu_local_for_bsp();
 err_t init_cpu_local();
 void init_idt();
+err_t vmm_figure_features();
 
 static const char* g_memory_map_names[] = {
     [1] = "Usable RAM",
@@ -45,25 +47,13 @@ static const char* g_size_names[] = { "B", "kB", "MB", "GB" };
 
 event_t event = NULL;
 
-static void test1(void* a) {
-    (void)a;
-    TRACE("THREAD 1");
-    uint64_t start = uptime();
-    while (true) {
-        if (uptime() - start >= 1000000) {
-            TRACE("thread1: GOT TO IT");
-            signal_event(event);
-            break;
-        }
-    }
-}
+static void main_thread(void* arg) {
+    err_t err = NO_ERROR;
 
-static void test2(void* a) {
-    (void)a;
-    TRACE("THREAD 2");
-    wait_for_event(&event, 1, NULL);
-    TRACE("thread2: Got the event");
-    exit();
+    TRACE("In kernel thread!");
+
+//cleanup:
+    ASSERT_TRACE(!IS_ERROR(err), "Got an error in main thread");
 }
 
 noreturn void kentry(stivale_struct_t* strct) {
@@ -76,10 +66,9 @@ noreturn void kentry(stivale_struct_t* strct) {
     init_gdt();
     init_cpu_local_for_bsp();
 
-#ifndef __TOMATOS_DEBUG__
     TRACE("TomatOS (build " __DATE__ " " __TIME__ ")");
-#else
-    TRACE("TomatOS/Debug (build " __DATE__ " " __TIME__ ")");
+#ifdef __TOMATOS_DEBUG__
+    TRACE("\t* Debug");
 #endif
 
     // setup the allocator (only first 4GB)
@@ -128,8 +117,9 @@ noreturn void kentry(stivale_struct_t* strct) {
 
     // initialize the kernel allocator and
     // cpu locals, in preparation for threading
-    init_idt();
     CHECK_AND_RETHROW(mm_init());
+    init_tss();
+    init_idt();
 
     // the kernel is the current process
     g_current_process = &g_kernel;
@@ -172,17 +162,11 @@ noreturn void kentry(stivale_struct_t* strct) {
     // initialize other services we need
     CHECK_AND_RETHROW(init_ripper());
 
-    // dispatch drivers
-    CHECK_AND_RETHROW(create_event(&event));
-
-    thread_t* thread1;
-    thread_t* thread2;
-    CHECK_AND_RETHROW(create_thread(&thread1, test1, NULL, "test1"));
-    CHECK_AND_RETHROW(create_thread(&thread2, test2, NULL, "test2"));
-    schedule_thread(thread1);
-    schedule_thread(thread2);
-    CHECK_AND_RETHROW(close_thread(thread1));
-    CHECK_AND_RETHROW(close_thread(thread2));
+    // start drivers dispatching thread
+    thread_t* thread;
+    CHECK_AND_RETHROW(create_thread(&thread, main_thread, NULL, NULL));
+    schedule_thread(thread);
+    CHECK_AND_RETHROW(close_thread(thread));
 
     // allocate a stack for the idle thread and
     // start the scheduler
@@ -190,9 +174,7 @@ noreturn void kentry(stivale_struct_t* strct) {
     startup_scheduler();
 
 cleanup:
-    ASSERT_TRACE(!IS_ERROR(err), "Error during kernel initialization");
-    TRACE("kernel entry end");
-    while(true) __hlt();
+    ASSERT_TRACE(false, "Error during kernel initialization");
 }
 
 noreturn void per_cpu_entry(uintptr_t stack) {
@@ -204,6 +186,9 @@ noreturn void per_cpu_entry(uintptr_t stack) {
     g_current_process = &g_kernel;
     g_idle_stack = stack;
 
+    CHECK_AND_RETHROW(vmm_figure_features());
+    init_tss();
+
     // setup the lapic
     init_lapic();
 
@@ -211,8 +196,5 @@ noreturn void per_cpu_entry(uintptr_t stack) {
     startup_scheduler();
 
 cleanup:
-    if (IS_ERROR(err)) {
-        TRACE("Error during kernel initialization on core #%d, halting core", get_lapic_id());
-    }
-    while(1) __hlt();
+    ASSERT_TRACE(false, "Error during kernel initialization");
 }

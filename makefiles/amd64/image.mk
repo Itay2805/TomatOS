@@ -15,10 +15,10 @@ endif
 
 ifeq ($(shell uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/p'), Microsoft)
     QEMU := qemu-system-x86_64.exe
-#    QEMU_ARGS += --accel whpx
+    QEMU_ARGS += --accel whpx
 else
     QEMU := qemu-system-x86_64
-#	QEMU_ARGS += --enable-kvm
+	QEMU_ARGS += --enable-kvm
 endif
 
 #

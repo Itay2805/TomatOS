@@ -64,4 +64,22 @@ err_t vmm_map(address_space_t* space, void* virtual, physptr_t physical, map_fla
 
 err_t vmm_unmap(address_space_t* space, void* virtual);
 
+/**
+ * Copy from userspace into kernel space
+ *
+ * @param dst       [IN] The buffer to write to
+ * @param src       [IN] The buffer to read from
+ * @param size      [IN] The size of the buffer to copy
+ */
+err_t copy_from_user(void* dst, void* src, size_t size);
+
+/**
+ * Copy from kernel to userspace
+ *
+ * @param dst       [IN] The buffer to write to
+ * @param src       [IN] The buffer to read from
+ * @param size      [IN] The size of the buffer to copy
+ */
+err_t copy_to_user(void* dst, void* src, size_t size);
+
 #endif //__TOMATOS_KERNEL_ARCH_VMM_H__

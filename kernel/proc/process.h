@@ -137,6 +137,11 @@ typedef struct thread {
      */
     system_context_t system_context;
 
+    /**
+     * The stack of the thread
+     */
+    void* stack;
+
     ///////////////////////////////////
     // Scheduling vars
     ///////////////////////////////////

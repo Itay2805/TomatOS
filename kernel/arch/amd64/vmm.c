@@ -2,6 +2,7 @@
 #include <util/except.h>
 #include <mem/pmm.h>
 #include <stdbool.h>
+#include <util/string.h>
 
 #include "stivale.h"
 #include "mem/vmm.h"
@@ -10,11 +11,17 @@
 
 typedef char symbol_t[0];
 
+/**
+ * Kernel regions
+ */
 symbol_t __kernel_start_text;
 symbol_t __kernel_end_text;
 symbol_t __kernel_end_rodata;
 symbol_t __kernel_end_data;
 
+/**
+ * Bits
+ */
 #define PM_PRESENT  (BIT0)
 #define PM_WRITE    (BIT1)
 #define PM_USER     (BIT2)
@@ -22,28 +29,61 @@ symbol_t __kernel_end_data;
 #define PM_SIZE     (BIT7)
 #define PM_XD       (BIT63)
 
+#define HUGE_PAGE_SIZE PAGE_SIZE
+
 /**
  * Are global pages supported
  */
 static bool g_global_pages = false;
 
-// TODO: use 2mb pages
-#define HUGE_PAGE_SIZE SIZE_4KB
+/**
+ * Is smap supported (and should we handle it)
+ */
+static bool g_smap;
 
-static err_t figure_features() {
+/**
+ * Figure which features are available and need to be enabled
+ * @return
+ */
+err_t vmm_figure_features() {
     err_t err = NO_ERROR;
     IA32_CR4 cr4 = __readcr4();
 
-    TRACE("CPU Paging Features");
+    if(g_cpu_id == 0) TRACE("CPU Paging Features");
 
     // TODO: no execute
 
-    if (cr4.PGE) {
-        TRACE("\t* Global pages");
+    //----------------------------------
+    // Extended features
+    //----------------------------------
+
+    uint32_t num;
+    cpuidex(0x7, 0x0, NULL, &num, NULL, NULL);
+
+    if (num & BIT7) {
+        if(g_cpu_id == 0) TRACE("\t* SMEP");
+        cr4.SMEP = 1;
+    }
+
+    if (num & BIT20) {
+        if(g_cpu_id == 0) TRACE("\t* SMAP");
+        cr4.SMAP = 1;
+    }
+
+    //----------------------------------
+    // Version id
+    //----------------------------------
+    cpuidex(0x0, 0, NULL, NULL, NULL, &num);
+
+    if (num & BIT13) {
+        if(g_cpu_id == 0) TRACE("\t* Global pages");
+        cr4.PGE = 1;
         g_global_pages = true;
     }
 
-//cleanup:
+    // apply it
+    __writecr4(cr4);
+
     return err;
 }
 
@@ -65,7 +105,7 @@ err_t init_vmm(stivale_struct_t* stivale) {
     err_t err = NO_ERROR;
 
     // setup the cpu features
-    CHECK_AND_RETHROW(figure_features());
+    CHECK_AND_RETHROW(vmm_figure_features());
 
     // initialize the kernel address space
     g_kernel.address_space.lock = INIT_LOCK();
@@ -182,11 +222,25 @@ cleanup:
 
 err_t vmm_unmap(address_space_t* space, void* virtual) {
     err_t err = NO_ERROR;
+    uintptr_t virt = (uintptr_t)virtual;
 
     CHECK(space != NULL);
     ticket_lock(&space->lock);
 
+    uint64_t* table = space->pml4;
+    for (int level = 4; level > 1; level--) {
+        uint64_t* entry = &table[(virt >> (12u + 9u * (level - 1))) & 0x1ffu];
 
+        // check if present
+        CHECK_ERROR(*entry & PM_PRESENT, ERROR_NOT_FOUND);
+
+        // get the next layer
+        table = PHYSICAL_TO_DIRECT(*entry & 0x7ffffffffffff000ull);
+    }
+
+    uint64_t* entry = &table[(virt >> 12u) & 0x1ffu];
+    *entry = 0;
+    __invlpg((uintptr_t)virtual);
 
 cleanup:
     if (space != NULL) {
@@ -195,3 +249,35 @@ cleanup:
     return err;
 }
 
+// TODO: if we page fault in any of these we should return
+//       ERROR_INVALID_ADDRESS
+
+err_t copy_from_user(void* dst, void* src, size_t size) {
+    err_t err = NO_ERROR;
+
+    size_t addition;
+    CHECK_ERROR(!__builtin_add_overflow((uintptr_t)src, size, &addition), ERROR_INVALID_ADDRESS);
+    CHECK_ERROR(addition < USERSPACE_END, ERROR_INVALID_ADDRESS);
+
+    if (g_smap) __stac();
+    memcpy(dst, src, size);
+    if (g_smap) __clac();
+
+cleanup:
+    return err;
+}
+
+err_t copy_to_user(void* dst, void* src, size_t size) {
+    err_t err = NO_ERROR;
+
+    size_t addition;
+    CHECK_ERROR(!__builtin_add_overflow((uintptr_t)dst, size, &addition), ERROR_INVALID_ADDRESS);
+    CHECK_ERROR(addition < USERSPACE_END, ERROR_INVALID_ADDRESS);
+
+    if (g_smap) __stac();
+    memcpy(dst, src, size);
+    if (g_smap) __clac();
+
+cleanup:
+    return err;
+}

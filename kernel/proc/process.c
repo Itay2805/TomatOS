@@ -76,6 +76,9 @@ static noreturn void ripper_thread() {
             // release the process handle
             CHECK_AND_RETHROW(release_handle_meta(&thread->parent->handle_meta));
 
+            // free the stack
+            free_stack(thread->stack);
+
             // free it
             kfree(thread);
         }
@@ -152,14 +155,17 @@ err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, char
     new_thread->last_cpu = -1;
 
     // setup the system context
-    if ((void *)func > KERNEL_BASE) {
+    if (g_current_process == &g_kernel) {
         init_context(&new_thread->system_context, true);
-        new_thread->system_context.SP = (uintptr_t)alloc_stack();
+        new_thread->stack = alloc_stack();
+        new_thread->system_context.SP = (uintptr_t)new_thread->stack;
         POKE64(new_thread->system_context.SP) = (uintptr_t)exit;
     } else {
         init_context(&new_thread->system_context, false);
         CHECK_FAIL_TRACE("TODO");
     }
+
+    // set the ip and argument
     new_thread->system_context.IP = (uintptr_t)func;
     new_thread->system_context.ARG0 = (uintptr_t)data;
 
