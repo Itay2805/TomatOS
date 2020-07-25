@@ -11,6 +11,7 @@
 #include <arch/cpu.h>
 #include <proc/scheduler.h>
 #include <stdnoreturn.h>
+#include <proc/event.h>
 #include "stivale.h"
 #include "intrin.h"
 #include "apic.h"
@@ -41,6 +42,29 @@ static const char* g_memory_map_names[] = {
 };
 
 static const char* g_size_names[] = { "B", "kB", "MB", "GB" };
+
+event_t event = NULL;
+
+static void test1(void* a) {
+    (void)a;
+    TRACE("THREAD 1");
+    uint64_t start = uptime();
+    while (true) {
+        if (uptime() - start >= 1000000) {
+            TRACE("thread1: GOT TO IT");
+            signal_event(event);
+            break;
+        }
+    }
+}
+
+static void test2(void* a) {
+    (void)a;
+    TRACE("THREAD 2");
+    wait_for_event(&event, 1, NULL);
+    TRACE("thread2: Got the event");
+    exit();
+}
 
 noreturn void kentry(stivale_struct_t* strct) {
     err_t err = NO_ERROR;
@@ -140,11 +164,25 @@ noreturn void kentry(stivale_struct_t* strct) {
     CHECK_AND_RETHROW(init_pci());
     CHECK_AND_RETHROW(init_acpi());
 
-
     // initialize smp
     init_lapic();
     g_cpu_id = get_lapic_id();
     CHECK_AND_RETHROW(startup_all_cores());
+
+    // initialize other services we need
+    CHECK_AND_RETHROW(init_ripper());
+
+    // dispatch drivers
+    CHECK_AND_RETHROW(create_event(&event));
+
+    thread_t* thread1;
+    thread_t* thread2;
+    CHECK_AND_RETHROW(create_thread(&thread1, test1, NULL, "test1"));
+    CHECK_AND_RETHROW(create_thread(&thread2, test2, NULL, "test2"));
+    schedule_thread(thread1);
+    schedule_thread(thread2);
+    CHECK_AND_RETHROW(close_thread(thread1));
+    CHECK_AND_RETHROW(close_thread(thread2));
 
     // allocate a stack for the idle thread and
     // start the scheduler

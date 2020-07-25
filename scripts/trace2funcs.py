@@ -1,7 +1,7 @@
 import subprocess, fileinput, re, sys
 
 ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-reg_pattern = re.compile(r'(FFFFFFFF81[a-fA-F0-9]{6})')
+reg_pattern = re.compile(r'([fF]{8}81[a-fA-F0-9]{6})')
 
 
 def addr2line(addr):
@@ -21,4 +21,8 @@ with fileinput.FileInput("-") as file_in:
         if not reg_match:
             print(line)
         else:
-            print(line + " -> " + addr2line(reg_match.group(1)))
+            s = addr2line(reg_match.group(1))
+            if '?? ??:0' not in s:
+                print(line + " -> " + s)
+            else:
+                print(line)

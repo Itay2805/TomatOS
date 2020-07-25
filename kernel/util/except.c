@@ -35,4 +35,3 @@ void trace(const char* fmt, ...) {
 const char* strerror(err_t err) {
     return g_error_to_name[err];
 }
-

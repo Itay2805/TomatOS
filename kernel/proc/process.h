@@ -1,10 +1,10 @@
 #ifndef __TOMATOS_KERNEL_PROC_PROCESS_H__
 #define __TOMATOS_KERNEL_PROC_PROCESS_H__
 
-#include <mem/vmm.h>
-#include <arch/cpu.h>
-#include <util/list.h>
 #include <arch/ints.h>
+#include <util/list.h>
+#include <arch/cpu.h>
+#include <mem/vmm.h>
 #include "handle.h"
 
 struct thread;
@@ -168,11 +168,6 @@ typedef struct thread {
 } thread_t;
 
 /**
- * An event that is called
- */
-extern event_t g_shutdown_event;
-
-/**
  * The kernel process
  */
 extern process_t g_kernel;
@@ -188,6 +183,11 @@ extern process_t* CPU_LOCAL g_current_process;
 extern thread_t* CPU_LOCAL g_current_thread;
 
 /**
+ * Will initialize the ripper thread
+ */
+err_t init_ripper();
+
+/**
  * Create a thread for the current process
  *
  * @param thread    [OUT]   The new thread
@@ -196,6 +196,11 @@ extern thread_t* CPU_LOCAL g_current_thread;
  * @param name      [IN]    The name of the thread, can be null
  */
 err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, char* name);
+
+/**
+ * Will exit from the current thread
+ */
+err_t exit();
 
 /**
  * Will close the thread

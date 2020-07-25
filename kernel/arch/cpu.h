@@ -1,8 +1,8 @@
 #ifndef __TOMATOS_KERNEL_ARCH_CPU_H__
 #define __TOMATOS_KERNEL_ARCH_CPU_H__
 
-#include <util/except.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /**
@@ -14,6 +14,11 @@
      * the cpu locals
      */
     #define CPU_LOCAL __attribute__((address_space(256), section(".cpu_local_data")))
+
+    /**
+     * The vector which is used for the scheduler tick
+     */
+    #define SCHEDULER_VECTOR (0x20)
 #else
 #error Invalid architecture
 #endif
@@ -60,5 +65,10 @@ bool are_interrupts_enabled();
  * should fire
  */
 void set_next_scheduler_tick(uint64_t ms);
+
+/**
+ * Send an ipi to another cpu
+ */
+void cpu_send_ipi(size_t cpu_id, uint8_t vector);
 
 #endif //__TOMATOS_KERNEL_ARCH_CPU_H__

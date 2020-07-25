@@ -7,4 +7,14 @@
  */
 void debug_write_char(char v);
 
+/**
+ * Print a stack trace
+ */
+void debug_trace_stack(void* frame_pointer);
+
+/**
+ * Trace the caller's stack
+ */
+void debug_trace_own_stack();
+
 #endif //__TOMATOS_KERNEL_UTIL_DEBUG_H__

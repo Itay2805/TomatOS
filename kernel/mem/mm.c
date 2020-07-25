@@ -99,15 +99,18 @@ void* alloc_stack() {
         if (!IS_ERROR(pmm_allocate_zero(2, &new_stack))) {
             // map the stack
             vmm_map(&g_kernel.address_space, stack, DIRECT_TO_PHYSICAL(new_stack) + 0, MAP_WRITE);
-            stack += SIZE_4KB;
         }
     } else {
         list_entry_t* stack_entry = g_stack_free_list.next;
         list_del(stack);
         memset(stack_entry, 0, SIZE_4KB);
-        stack = (void*)stack_entry + SIZE_4KB;
+        stack = (void*)stack_entry;
     }
     ticket_unlock(&g_stack_lock);
+
+    // set the return to exit
+    stack += SIZE_4KB;
+    stack -= sizeof(uintptr_t) * 2;
 
     return stack;
 }

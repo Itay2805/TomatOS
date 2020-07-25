@@ -12,6 +12,7 @@ typedef struct run_queue {
 typedef struct cpu_ctx {
     run_queue_t rqs[2];
     size_t thread_count;
+    atomic_bool idle;
 } cpu_ctx_t;
 
 uintptr_t CPU_LOCAL g_idle_stack;
@@ -40,6 +41,7 @@ static void append_to_queue(run_queue_t* queue, thread_t* thread) {
     FOR_EACH_ENTRY(current, &queue->link, scheduler_link) {
         if (current->priority <= thread->priority) {
             list_add_tail(&current->scheduler_link, &thread->scheduler_link);
+            return;
         }
     }
     list_add_tail(&queue->link, &thread->scheduler_link);
@@ -62,8 +64,7 @@ void init_scheduler(size_t cpu_count) {
 
 static noreturn void idle_loop() {
     while (true) {
-        // enable interrupts and wait for one
-        // once we get one then yield
+        // just sleep
         enable_interrupts();
         cpu_sleep();
         yield();
@@ -71,15 +72,22 @@ static noreturn void idle_loop() {
 }
 
 void schedule_thread(thread_t* thread) {
-    // we now reference this thread
-    thread->handle_meta.refcount++;
+    if (thread->state != STATE_WAITING) {
+        return;
+    }
+    thread->state = STATE_RUNNING;
 
     size_t cpu = 0;
+    bool new = false;
     if (thread->last_cpu != -1) {
         // already has a last thread, meaning we just woke
-        // up the thread
+        // up the thread, this also means that the thread is
+        // referenced by us and no need to re-reference it
         cpu = thread->last_cpu;
     } else {
+        // we now reference this thread
+        thread->handle_meta.refcount++;
+
         // find cpu with least number of threads
         size_t num = SIZE_MAX;
         for (size_t i = 0; i < g_max_cpu; i++) {
@@ -89,6 +97,7 @@ void schedule_thread(thread_t* thread) {
             }
         }
 
+        new = true;
         thread->last_cpu = cpu;
     }
 
@@ -107,10 +116,16 @@ void schedule_thread(thread_t* thread) {
     }
     exit_critical(&crit);
 
-    if (thread->last_cpu == -1) {
-        // this is a new thread to the scheduler
+    // this is a new thread to the scheduler
+    if (new) {
         g_cpus[cpu].thread_count++;
         g_num_threads++;
+
+    }
+
+    // if idle then send an ipi
+    if (g_cpus[cpu].idle) {
+        cpu_send_ipi(cpu, SCHEDULER_VECTOR);
     }
 }
 
@@ -118,6 +133,9 @@ err_t scheduler_tick(system_context_t* ctx) {
     err_t err = NO_ERROR;
     cpu_ctx_t* cpu_ctx = &g_cpus[g_cpu_id];
     run_queue_t* rq = NULL;
+
+    // we are not idle unless said otherwise
+    cpu_ctx->idle = false;
 
     // handle the current thread
     if (g_current_thread != NULL) {
@@ -170,6 +188,7 @@ err_t scheduler_tick(system_context_t* ctx) {
         set_address_space(&g_kernel.address_space);
         ctx->IP = (uintptr_t)idle_loop;
         ctx->SP = (uintptr_t)g_idle_stack;
+        cpu_ctx->idle = true;
     } else {
         // dequeue a thread
         g_current_thread = CR(rq->link.next, thread_t, scheduler_link);

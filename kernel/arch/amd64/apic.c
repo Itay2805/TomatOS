@@ -182,6 +182,15 @@ static void send_ipi(lapic_icr_low_t low, uint8_t lapic_id) {
     exit_critical(&critical);
 }
 
+void cpu_send_ipi(size_t cpu_id, uint8_t vector) {
+    lapic_icr_low_t icr = {
+        .vector = vector,
+        .delivery_mode = LAPIC_DELIVERY_MODE_FIXED,
+        .level = 1
+    };
+    send_ipi(icr, cpu_id);
+}
+
 /**
  * Send an init ipi to the given lapic
  */

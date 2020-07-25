@@ -9,6 +9,7 @@
 #include <sync/critical.h>
 #include <proc/scheduler.h>
 #include <util/string.h>
+#include <debug/debug.h>
 #include "intrin.h"
 #include "idt.h"
 #include "apic.h"
@@ -158,6 +159,8 @@ static const char* g_exception_name[] = {
     "#CP - Control Protection",
 };
 
+static int CPU_LOCAL g_exception_count = 0;
+
 static void default_exception_handler(system_context_t* ctx) {
     ERROR("");
     ERROR("****************************************************");
@@ -165,6 +168,12 @@ static void default_exception_handler(system_context_t* ctx) {
     ERROR("****************************************************");
     ERROR("");
     ERROR("Cpu: #%d", g_cpu_id);
+    if (g_current_process != NULL) {
+        ERROR("Process: `%s` (#%d)", g_current_process->name, g_current_process->pid);
+    }
+    if (g_current_thread != NULL) {
+        ERROR("Thread: `%s` (#%d)", g_current_thread->name, g_current_thread->tid);
+    }
     ERROR("");
     // TODO: print stuff nicely
     ERROR("RAX=%016llx RBX=%016llx RCX=%016llx RDX=%016llx", ctx->rax, ctx->rbx, ctx->rcx, ctx->rdx);
@@ -174,6 +183,12 @@ static void default_exception_handler(system_context_t* ctx) {
     ERROR("RIP=%016llx RFL=%08x", ctx->rip, ctx->rflags.raw); // TODO: proper cpl and flags parsing
     ERROR("CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
     ERROR("");
+    if (g_exception_count == 0) {
+        g_exception_count++;
+        ERROR("Stack trace:");
+        debug_trace_stack((void*)ctx->rbp);
+        ERROR("");
+    }
     ERROR("Halting :(");
     while(1) __hlt();
 }

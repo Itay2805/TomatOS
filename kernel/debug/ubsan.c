@@ -3,6 +3,7 @@
 #include <util/defs.h>
 #include <stdint.h>
 #include <mem/vmm.h>
+#include "debug.h"
 
 typedef struct ubsan_type {
     uint16_t kind;
@@ -76,34 +77,18 @@ const char* g_type_check_names[] = {
 
 #define WARN_PRINT(fmt, ...) PRINT("[!] " __MODULE__ ": " fmt "\n", ## __VA_ARGS__)
 
-typedef struct frame {
-    struct frame* rbp;
-    uint64_t rip;
-} frame_t;
-
-static void trace_stack() {
-#ifdef __TOMATOS_AMD64__
-    frame_t* current = (frame_t*)__builtin_frame_address(0);
-    for (size_t i = 0; i < UINT64_MAX; i++) {
-        if(!current) {
-            break;
-        }
-
-        WARN_PRINT("\t%02d: RIP [%p]", i, current->rip);
-
-        current = current->rbp;
-    }
-#endif
+void debug_trace_own_stack() {
+    debug_trace_stack(__builtin_frame_address(0));
 }
 
 void __ubsan_handle_add_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_sub_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_pointer_overflow(ubsan_overflow_t* data, uintptr_t base, uintptr_t result) {
@@ -122,22 +107,22 @@ void __ubsan_handle_pointer_overflow(ubsan_overflow_t* data, uintptr_t base, uin
     } else {
         WARN_PRINT("pointer index expression with base %p overflowed to %p (%s:%d:%d)", base, result, data->loc.filename, data->loc.line, data->loc.column);
     }
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_mul_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_divrem_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_negate_overflow(ubsan_overflow_t* data, uintptr_t old) {
     WARN_PRINT("%s", __FUNCTION__);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_shift_out_of_bounds(ubsan_shift_out_of_bounds_t* data, uintptr_t lhs, uintptr_t rhs) {
@@ -162,7 +147,7 @@ void __ubsan_handle_shift_out_of_bounds(ubsan_shift_out_of_bounds_t* data, uintp
                    data->lhs->name,
                    data->loc.filename, data->loc.line, data->loc.column);
     }
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_out_of_bounds(ubsan_out_of_bounds_t* data, uintptr_t index) {
@@ -170,7 +155,7 @@ void __ubsan_handle_out_of_bounds(ubsan_out_of_bounds_t* data, uintptr_t index) 
             index,
             data->array->name,
             data->loc.filename, data->loc.line, data->loc.column);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_type_mismatch_v1(ubsan_type_mismatch_v1_t* data, uintptr_t ptr) {
@@ -194,19 +179,19 @@ void __ubsan_handle_type_mismatch_v1(ubsan_type_mismatch_v1_t* data, uintptr_t p
                data->type->name,
                data->loc.filename, data->loc.line, data->loc.column);
     }
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_builtin_unreachable(ubsan_unreachable_t* data) {
     WARN_PRINT("execution reached an unreachable program point (%s:%d:%d)", data->loc.filename, data->loc.line, data->loc.column);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_invalid_builtin(ubsan_invalid_builtin_t* data) {
     WARN_PRINT("passing zero to %s, which is not a valid argument (%s:%d:%d)",
             data->kind ? "clz()" : "ctz()",
             data->loc.filename, data->loc.line, data->loc.column);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_alignment_assumption(ubsan_alignment_assumption_t* data, uint64_t pointer, uint64_t alignment, uint64_t offset) {
@@ -230,7 +215,7 @@ void __ubsan_handle_alignment_assumption(ubsan_alignment_assumption_t* data, uin
                 data->loc.filename, data->loc.line, data->loc.column);
     }
     WARN_PRINT("assumption was made specified here %s:%d:%d", data->assumption_loc.filename, data->assumption_loc.line, data->assumption_loc.column);
-    trace_stack();
+    debug_trace_own_stack();
 }
 
 void __ubsan_handle_load_invalid_value(ubsan_invalid_value_t* data, uintptr_t val) {
@@ -238,5 +223,5 @@ void __ubsan_handle_load_invalid_value(ubsan_invalid_value_t* data, uintptr_t va
             val,
             data->type->name,
             data->loc.filename, data->loc.line, data->loc.column);
-    trace_stack();
+    debug_trace_own_stack();
 }

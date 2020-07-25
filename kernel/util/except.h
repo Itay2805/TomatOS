@@ -3,6 +3,7 @@
 
 #include <util/printf.h>
 #include <arch/timing.h>
+#include <arch/cpu.h>
 
 #ifndef __MODULE__
     #define __MODULE__ "tomatos"
@@ -11,8 +12,8 @@
 void trace(const char* fmt, ...);
 
 #define PRINT(fmt, ...) trace(fmt, ## __VA_ARGS__)
-#define TRACE(fmt, ...) PRINT("[%5u.%06u][*] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
-#define ERROR(fmt, ...) PRINT("[%5u.%06u][-] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
+#define TRACE(fmt, ...) PRINT("[%5u.%06u][cpu%3d][*] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, g_cpu_id, ## __VA_ARGS__)
+#define ERROR(fmt, ...) PRINT("[%5u.%06u][cpu%3d][-] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, g_cpu_id, ## __VA_ARGS__)
 
 typedef enum err {
     NO_ERROR,

@@ -1,8 +1,9 @@
 #ifndef __TOMATOS_KERNEL_ARCH_INTS_H__
 #define __TOMATOS_KERNEL_ARCH_INTS_H__
 
-#include <proc/event.h>
 #include <arch/amd64/intrin.h>
+#include <util/except.h>
+#include <stdbool.h>
 
 #ifdef __TOMATOS_AMD64__
     #define INTERRUPT_COUNT (256 - 0x21)
