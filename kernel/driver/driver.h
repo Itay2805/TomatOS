@@ -17,7 +17,7 @@ typedef struct driver_bind {
     driver_bind_type_t type;
     union {
         struct {
-            const char hid[8];
+            const char* hid;
         } acpi;
     };
 } driver_bind_t;
@@ -31,11 +31,11 @@ typedef struct driver_bind_data {
     };
 } driver_bind_data_t;
 
-typedef void (*driver_entry_t)(driver_bind_data_t* data);
+typedef void (*driver_func_t)(driver_bind_data_t* data);
 
 typedef struct driver {
-    char* name;
-    driver_entry_t entry;
+    const char* name;
+    driver_func_t entry;
     size_t binds_count;
     driver_bind_t* binds;
 } driver_t;
