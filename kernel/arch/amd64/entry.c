@@ -7,13 +7,13 @@
 #include <arch/timing.h>
 #include <lai/helpers/sci.h>
 #include <util/stb_ds.h>
-#include <sys/pci/pci.h>
+#include <driver/pci/pci.h>
 #include <arch/cpu.h>
 #include <proc/scheduler.h>
 #include <stdnoreturn.h>
 #include <proc/event.h>
+#include <driver/driver.h>
 #include "stivale.h"
-#include "intrin.h"
 #include "apic.h"
 
 __attribute__((section(".stivale_stack")))
@@ -51,8 +51,9 @@ static void main_thread(void* arg) {
     err_t err = NO_ERROR;
 
     TRACE("In kernel thread!");
+    CHECK_AND_RETHROW(dispatch_drivers());
 
-//cleanup:
+cleanup:
     ASSERT_TRACE(!IS_ERROR(err), "Got an error in main thread");
 }
 

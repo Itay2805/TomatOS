@@ -4,6 +4,9 @@
 #define UNREACHABLE()  __builtin_unreachable ()
 #define PACKED __attribute__((packed))
 
+#define _CONCAT(x, y) x ## y
+#define CONCAT(x, y) _CONCAT(x, y)
+
 #define SIGNATURE_16(A, B)        ((A) | (B << 8))
 #define SIGNATURE_32(A, B, C, D)  (SIGNATURE_16 (A, B) | (SIGNATURE_16 (C, D) << 16))
 #define SIGNATURE_64(A, B, C, D, E, F, G, H) (SIGNATURE_32 (A, B, C, D) | ((UINT64) (SIGNATURE_32 (E, F, G, H)) << 32))

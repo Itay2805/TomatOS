@@ -40,6 +40,13 @@ SECTIONS
         . += ABSOLUTE(__cpu_local_size);
     }
 
+    .drivers ALIGN(4K) :
+    {
+        g_drivers = .;
+        KEEP(*(.drivers*))
+        g_drivers_end = .;
+    }
+
     .bss ALIGN(4K) :
     {
         *(.bss*)

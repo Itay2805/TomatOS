@@ -159,6 +159,17 @@ static const char* g_exception_name[] = {
     "#CP - Control Protection",
 };
 
+static const char* g_pf_reason[] = {
+    "Supervisory process tried to read a non-present page entry",
+    "Supervisory process tried to read a page and caused a protection fault",
+    "Supervisory process tried to write to a non-present page entry",
+    "Supervisory process tried to write a page and caused a protection fault",
+    "User process tried to read a non-present page entry",
+    "User process tried to read a page and caused a protection fault",
+    "User process tried to write to a non-present page entry",
+    "User process tried to write a page and caused a protection fault"
+};
+
 static int CPU_LOCAL g_exception_count = 0;
 
 static void default_exception_handler(system_context_t* ctx) {
@@ -167,6 +178,14 @@ static void default_exception_handler(system_context_t* ctx) {
     ERROR("Exception occurred: %s", g_exception_name[ctx->int_num]);
     ERROR("****************************************************");
     ERROR("");
+    if (ctx->int_num == 0xE) {
+        if (ctx->error_code & BIT3) {
+            ERROR("one or more page directory entries contain reserved bits which are set to 1");
+        } else {
+            ERROR("%s", g_pf_reason[ctx->error_code & 0b111]);
+        }
+        ERROR("");
+    }
     ERROR("Cpu: #%d", g_cpu_id);
     if (g_current_process != NULL) {
         ERROR("Process: `%s` (#%d)", g_current_process->name, g_current_process->pid);

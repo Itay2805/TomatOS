@@ -22,3 +22,6 @@ SRCS += kernel/arch/amd64/vmm.c
 
 REALFILES := kernel/arch/amd64/smp.real
 BINS := $(REALFILES:%.real=$(BUILD_DIR)/%.bin)
+
+# drivers enabled by default
+DRIVER_PS2 := 1

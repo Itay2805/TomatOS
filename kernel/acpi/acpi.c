@@ -235,7 +235,7 @@ void* laihost_scan(const char* signature, size_t index) {
 #ifdef __TOMATOS_AMD64__
 
 #include <arch/amd64/intrin.h>
-#include <sys/pci/pci.h>
+#include <driver/pci/pci.h>
 
 void laihost_outb(uint16_t port, uint8_t value) {
     __outb(port, value);
@@ -260,8 +260,6 @@ uint16_t laihost_inw(uint16_t port) {
 uint32_t laihost_ind(uint16_t port) {
     return __inl(port);
 }
-
-// TODO: pci
 
 #endif
 
@@ -313,4 +311,17 @@ uint32_t laihost_pci_readd(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun,
         uint32_t val;
     }* ptr = region + offset;
     return ptr->val;
+}
+
+int laihost_sync_wait(struct lai_sync_state *sync, unsigned int val, int64_t timeout) {
+    if (sync->p == NULL) {
+        ASSERT(!IS_ERROR(create_event(&sync->p)));
+    }
+    // TODO: timeout
+    ASSERT(!IS_ERROR(wait_for_event(&sync->p, 1, NULL)));
+    return 0;
+}
+
+void laihost_sync_wake(struct lai_sync_state *sync) {
+    ASSERT(!IS_ERROR(signal_event(sync->p)));
 }
