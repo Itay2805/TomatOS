@@ -223,9 +223,9 @@ void laihost_panic(const char * fmt) {
 void* laihost_scan(const char* signature, size_t index) {
     if (memcmp(signature, "DSDT", 4) == 0) {
         if (g_acpi_fadt->x_dsdt) {
-            return PHYSICAL_TO_DIRECT((physptr_t)g_acpi_fadt->dsdt);
-        } else {
             return PHYSICAL_TO_DIRECT(g_acpi_fadt->x_dsdt);
+        } else {
+            return PHYSICAL_TO_DIRECT((physptr_t)g_acpi_fadt->dsdt);
         }
     } else {
         return rsdt_search(signature, index);

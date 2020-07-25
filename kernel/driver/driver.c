@@ -1,4 +1,6 @@
 #include <util/stb_ds.h>
+#include <lai/helpers/sci.h>
+#include <util/defs.h>
 #include "driver.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,12 +70,17 @@ static bool check_acpi_id(lai_nsnode_t* node, lai_nsnode_t* hid_handle) {
         } else if (id.type == LAI_INTEGER) {
             int index = hmgeti(g_acpi_drivers, id.integer);
             if (index != -1) {
-                driver_entry_t entry;
+                driver_entry_t* entry = &g_acpi_drivers[index].value;
                 char* path = lai_stringify_node_path(node);
-                TRACE("\tBound `%s`", entry.driver->name);
-                TRACE("\t\tID: %s", entry.bind->acpi.hid);
+                TRACE("\tBound `%s`", entry->driver->name);
+                TRACE("\t\tID: %s", entry->bind->acpi.hid);
                 TRACE("\t\tPATH: %s", path);
                 kfree(path);
+
+                // found hid! check STA
+                int sta = lai_evaluate_sta(node);
+                if ((sta & 0b11011) != 0b11011) return false;
+
                 return true;
             }
         }
@@ -88,6 +95,8 @@ static void bind_acpi_drivers() {
     struct lai_ns_iterator iter = LAI_NS_ITERATOR_INITIALIZER;
     lai_nsnode_t* node;
     while ((node = lai_ns_iterate(&iter))) {
+        if (lai_ns_get_node_type(node) != LAI_NODETYPE_DEVICE) continue;
+
         // try to get the _HID
         lai_nsnode_t* hid_handle = lai_resolve_path(node, "_HID");
         if (check_acpi_id(node, hid_handle)) continue;

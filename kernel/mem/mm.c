@@ -8,6 +8,8 @@
 #include "mm.h"
 #include "pmm.h"
 
+#define STACK_SIZE (PAGE_SIZE * 2)
+
 static tlsf_t g_tlsf = NULL;
 static ticket_lock_t g_tlsf_lock = INIT_LOCK();
 
@@ -72,10 +74,6 @@ void* krealloc(void* ptr, size_t size) {
         res = tlsf_realloc(g_tlsf, ptr, size);
     }
 
-    if (res != NULL) {
-        memset(res, 0, size);
-    }
-
 cleanup:
     ticket_unlock(&g_tlsf_lock);
     return res;
@@ -93,23 +91,25 @@ void* alloc_stack() {
     ticket_lock(&g_stack_lock);
     if (list_is_empty(&g_stack_free_list)) {
         stack = g_stack_ptr;
-        g_stack_ptr += SIZE_4KB + SIZE_4KB;
+        g_stack_ptr += SIZE_4KB + STACK_SIZE;
 
         directptr_t new_stack;
-        if (!IS_ERROR(pmm_allocate_zero(2, &new_stack))) {
+        if (!IS_ERROR(pmm_allocate_zero(1 + (STACK_SIZE / PAGE_SIZE), &new_stack))) {
             // map the stack
-            vmm_map(&g_kernel.address_space, stack, DIRECT_TO_PHYSICAL(new_stack) + 0, MAP_WRITE);
+            for (int i = 0; i < (STACK_SIZE / PAGE_SIZE); i++) {
+                vmm_map(&g_kernel.address_space, stack + i * PAGE_SIZE, DIRECT_TO_PHYSICAL(new_stack + i * PAGE_SIZE) + 0, MAP_WRITE);
+            }
         }
     } else {
         list_entry_t* stack_entry = g_stack_free_list.next;
         list_del(stack);
-        memset(stack_entry, 0, SIZE_4KB);
+        memset(stack_entry, 0, STACK_SIZE);
         stack = (void*)stack_entry;
     }
     ticket_unlock(&g_stack_lock);
 
     // set the return to exit
-    stack += SIZE_4KB;
+    stack += STACK_SIZE;
     stack -= sizeof(uintptr_t) * 2;
 
     return stack;
@@ -117,7 +117,7 @@ void* alloc_stack() {
 
 void free_stack(void* stk) {
     ticket_lock(&g_stack_lock);
-    list_entry_t* entry = (stk + (sizeof(uintptr_t) * 2)) - SIZE_4KB;
+    list_entry_t* entry = (stk + (sizeof(uintptr_t) * 2)) - STACK_SIZE;
     list_add(&g_stack_free_list, entry);
     ticket_unlock(&g_stack_lock);
 }
