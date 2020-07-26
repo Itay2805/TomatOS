@@ -102,7 +102,7 @@ void* alloc_stack() {
         }
     } else {
         list_entry_t* stack_entry = g_stack_free_list.next;
-        list_del(stack);
+        list_del(stack_entry);
         memset(stack_entry, 0, STACK_SIZE);
         stack = (void*)stack_entry;
     }

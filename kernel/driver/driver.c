@@ -1,6 +1,8 @@
 #include <util/stb_ds.h>
 #include <lai/helpers/sci.h>
 #include <util/defs.h>
+#include <proc/process.h>
+#include <proc/scheduler.h>
 #include "driver.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,6 +72,12 @@ static bool check_acpi_id(lai_nsnode_t* node, lai_nsnode_t* hid_handle) {
         } else if (id.type == LAI_INTEGER) {
             int index = hmgeti(g_acpi_drivers, id.integer);
             if (index != -1) {
+                // found hid! check STA
+//                int sta = lai_evaluate_sta(node);
+//                TRACE("sta: %b", sta);
+//                if ((sta & 0b11011) != 0b11011) return false;
+
+                // everything is good!
                 driver_entry_t* entry = &g_acpi_drivers[index].value;
                 char* path = lai_stringify_node_path(node);
                 TRACE("\tBound `%s`", entry->driver->name);
@@ -77,9 +85,15 @@ static bool check_acpi_id(lai_nsnode_t* node, lai_nsnode_t* hid_handle) {
                 TRACE("\t\tPATH: %s", path);
                 kfree(path);
 
-                // found hid! check STA
-                int sta = lai_evaluate_sta(node);
-                if ((sta & 0b11011) != 0b11011) return false;
+                // start the thread
+                thread_t* thread;
+                driver_bind_data_t* data = kalloc(sizeof(driver_bind_data_t));
+                ASSERT(data != NULL);
+                data->bind = entry->bind;
+                data->acpi.node = node;
+                ASSERT(!IS_ERROR(create_thread(&thread, (void*)entry->driver->entry, data, entry->driver->name)));
+                schedule_thread(thread);
+                ASSERT(!IS_ERROR(release_thread(thread)));
 
                 return true;
             }
@@ -116,26 +130,29 @@ err_t dispatch_drivers() {
 
      size_t driver_count = g_drivers_end - g_drivers;
 
-    // prepare drivers
+    TRACE("Preparing driver dispatch");
     for (int i = 0; i < driver_count; i++) {
         driver_t* driver = &g_drivers[i];
-        for (int j = 0; j < driver->binds_count; j++) {
-            switch (driver->binds[j].type) {
-
+        driver_bind_t* bind = driver->binds;
+        while (bind->type != DRIVER_END) {
+            switch (bind->type) {
                 case DRIVER_ACPI: {
                     driver_entry_t data = {
                         .driver = driver,
-                        .bind = &driver->binds[j],
+                        .bind = bind,
                     };
-                    hmput(g_acpi_drivers, str_to_eisa(driver->binds[j].acpi.hid), data);
+                    hmput(g_acpi_drivers, str_to_eisa(bind->acpi.hid), data);
                 } break;
 
                 default: break;
             }
+            bind++;
         }
     }
 
     bind_acpi_drivers();
+
+    TRACE("Finished driver dispatch");
 
     hmfree(g_acpi_drivers);
     return err;

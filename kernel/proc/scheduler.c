@@ -166,7 +166,7 @@ err_t scheduler_tick(system_context_t* ctx) {
             g_num_threads--;
 
             // remove the reference completely
-            CHECK_AND_RETHROW(close_thread(g_current_thread));
+            CHECK_AND_RETHROW(release_thread(g_current_thread));
         }
     }
 

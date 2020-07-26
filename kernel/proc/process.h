@@ -200,7 +200,7 @@ err_t init_ripper();
  * @param data      [IN]    The data to pass to the entry
  * @param name      [IN]    The name of the thread, can be null
  */
-err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, char* name);
+err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, const char* name);
 
 /**
  * Will exit from the current thread
@@ -217,6 +217,6 @@ err_t exit();
  * Internally this will simply call the release_handle_meta
  * on the threads's handle_meta
  */
-err_t close_thread(thread_t* thread);
+err_t release_thread(thread_t* thread);
 
 #endif //__TOMATOS_KERNEL_PROC_PROCESS_H__

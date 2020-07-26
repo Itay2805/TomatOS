@@ -96,6 +96,12 @@ const char* strerror(err_t err);
         } \
     } while(0)
 
+#define ASSERT_LAI(err) \
+    do { \
+        lai_api_error_t e = (err); \
+        ASSERT_TRACE(e == LAI_ERROR_NONE, "Got lai error %s", lai_api_error_to_string(e)); \
+    } while (0)
+
 #define ASSERT_TRACE(expr, fmt, ...) \
     do { \
         if (!(expr)) { \

@@ -133,7 +133,7 @@ cleanup:
     return err;
 }
 
-err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, char* name) {
+err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, const char* name) {
     err_t err = NO_ERROR;
 
     CHECK(thread != NULL);
@@ -198,7 +198,7 @@ cleanup:
     return err;
 }
 
-err_t close_thread(thread_t* thread) {
+err_t release_thread(thread_t* thread) {
     err_t err = NO_ERROR;
 
     CHECK(thread != NULL);

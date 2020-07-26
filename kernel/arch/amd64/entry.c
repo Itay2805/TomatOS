@@ -167,7 +167,7 @@ noreturn void kentry(stivale_struct_t* strct) {
     thread_t* thread;
     CHECK_AND_RETHROW(create_thread(&thread, main_thread, NULL, NULL));
     schedule_thread(thread);
-    CHECK_AND_RETHROW(close_thread(thread));
+    CHECK_AND_RETHROW(release_thread(thread));
 
     // allocate a stack for the idle thread and
     // start the scheduler

@@ -1,23 +1,41 @@
-
 #include <driver/driver.h>
 #include <util/defs.h>
 
-void ps2_entry(driver_bind_data_t* data) {
-    TRACE("PS2 Driver started!");
+#undef  __MODULE__
+#define __MODULE__ "ps2"
+
+void ps2kbd_entry(driver_bind_data_t* data) {
 }
 
-static driver_bind_t g_binds[] = {
-    {
-        .type = DRIVER_ACPI,
-        .acpi = {
-            .hid = "PNP0303"
-        }
-    }
-};
+void ps2mou_entry(driver_bind_data_t* data) {
+}
 
 DRIVER {
     .name = "Standard PS2 Keyboard",
-    .entry = ps2_entry,
-    .binds_count = ARRAY_LENGTH(g_binds),
-    .binds = (driver_bind_t*)&g_binds,
+    .entry = ps2kbd_entry,
+    .binds = (driver_bind_t[]) {
+        {
+            /* IBM Enhanced Keyboard (101/102-key, PS/2 Mouse) */
+            .type = DRIVER_ACPI,
+            .acpi = {
+                .hid = "PNP0303"
+            }
+        },
+        { DRIVER_END }
+    },
+};
+
+DRIVER {
+    .name = "Standard PS2 Mouse",
+    .entry = ps2mou_entry,
+    .binds = (driver_bind_t[]) {
+        {
+            /* PS/2 Mouse */
+            .type = DRIVER_ACPI,
+            .acpi = {
+                .hid = "PNP0F13"
+            }
+        },
+        { DRIVER_END }
+    },
 };
