@@ -34,6 +34,7 @@ SRCS += kernel/acpi/tables/rsdt.c
 SRCS += kernel/acpi/tables/table.c
 SRCS += kernel/acpi/acpi.c
 SRCS += kernel/driver/pci/pci.c
+SRCS += kernel/driver/pci/pciname.c
 SRCS += kernel/driver/driver.c
 SRCS += kernel/mem/mm.c
 SRCS += kernel/mem/pmm.c

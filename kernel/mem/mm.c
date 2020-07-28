@@ -8,7 +8,7 @@
 #include "mm.h"
 #include "pmm.h"
 
-#define STACK_SIZE (PAGE_SIZE * 2)
+#define STACK_SIZE (PAGE_SIZE * 4)
 
 static tlsf_t g_tlsf = NULL;
 static ticket_lock_t g_tlsf_lock = INIT_LOCK();

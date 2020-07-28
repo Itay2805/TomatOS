@@ -152,7 +152,7 @@ noreturn void kentry(stivale_struct_t* strct) {
     init_scheduler(cpu_count);
 
     // initialize other stuff
-    CHECK_AND_RETHROW(init_pci());
+    CHECK_AND_RETHROW(early_init_pci());
     CHECK_AND_RETHROW(init_acpi());
 
     // initialize smp

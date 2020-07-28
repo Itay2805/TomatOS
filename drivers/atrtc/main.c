@@ -4,7 +4,8 @@
 #undef  __MODULE__
 #define __MODULE__ "atrtc"
 
-static void rtc_entry(driver_bind_data_t* data) {
+static err_t rtc_entry(driver_bind_data_t* data) {
+    return NO_ERROR;
 }
 
 DRIVER {

@@ -33,7 +33,9 @@ typedef struct pci_common_header {
     pci_command_t command;
     pci_status_t status;
     uint8_t revision_id;
-    uint8_t class_code[3];
+    uint8_t progif;
+    uint8_t subclass;
+    uint8_t class;
     uint8_t cache_line_size;
     uint8_t latency_timer;
     uint8_t header_type;

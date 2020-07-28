@@ -12,8 +12,8 @@
 void trace(const char* fmt, ...);
 
 #define PRINT(fmt, ...) trace(fmt, ## __VA_ARGS__)
-#define TRACE(fmt, ...) PRINT("[%5u.%06u][cpu%3d][*] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, g_cpu_id, ## __VA_ARGS__)
-#define ERROR(fmt, ...) PRINT("[%5u.%06u][cpu%3d][-] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, g_cpu_id, ## __VA_ARGS__)
+#define TRACE(fmt, ...) PRINT("[%5u.%06u][*] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
+#define ERROR(fmt, ...) PRINT("[%5u.%06u][-] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
 
 typedef enum err {
     NO_ERROR,
@@ -75,10 +75,16 @@ const char* strerror(err_t err);
 
 #define CHECK_AND_RETHROW(error) CHECK_AND_RETHROW_LABEL(error, cleanup)
 
+#define CHECK_LAI(expr) \
+    do { \
+        lai_api_error_t _e = (expr); \
+        CHECK_TRACE(_e == LAI_ERROR_NONE, "Got lai error %s", lai_api_error_to_string(_e)); \
+    } while(0)
+
 #define WARN(expr, fmt, ...) \
     do { \
         if (!(expr)) { \
-            PRINT("[!] Warning! " fmt " at %s (%s:%d) \n", ## __VA_ARGS__ , __func__, __FILENAME__, __LINE__); \
+            PRINT("[%5u.%06u][!] " __MODULE__ ": Warning! " fmt " at %s (%s:%d)\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__ , __func__, __FILENAME__, __LINE__); \
         } \
     } while(0)
 

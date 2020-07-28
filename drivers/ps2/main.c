@@ -4,10 +4,12 @@
 #undef  __MODULE__
 #define __MODULE__ "ps2"
 
-void ps2kbd_entry(driver_bind_data_t* data) {
+err_t ps2kbd_entry(driver_bind_data_t* data) {
+    return NO_ERROR;
 }
 
-void ps2mou_entry(driver_bind_data_t* data) {
+err_t ps2mou_entry(driver_bind_data_t* data) {
+    return NO_ERROR;
 }
 
 DRIVER {

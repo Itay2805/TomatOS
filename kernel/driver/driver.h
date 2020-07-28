@@ -31,7 +31,7 @@ typedef struct driver_bind_data {
     };
 } driver_bind_data_t;
 
-typedef void (*driver_func_t)(driver_bind_data_t* data);
+typedef err_t (*driver_func_t)(driver_bind_data_t* data);
 
 typedef struct driver {
     const char* name;

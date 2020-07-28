@@ -75,7 +75,7 @@ const char* g_type_check_names[] = {
     "_Nonnull binding to"
 };
 
-#define WARN_PRINT(fmt, ...) PRINT("[!] " __MODULE__ ": " fmt "\n", ## __VA_ARGS__)
+#define WARN_PRINT(fmt, ...) PRINT("[%5u.%06u][!] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
 
 void debug_trace_own_stack() {
     debug_trace_stack(__builtin_frame_address(0));

@@ -67,18 +67,14 @@ static bool check_acpi_id(lai_nsnode_t* node, lai_nsnode_t* hid_handle) {
     lai_init_state(&state);
 
     if (hid_handle) {
-        if (lai_eval(&id, hid_handle, &state)) {
+        uint64_t index;
+        if (lai_eval(&id, hid_handle, &state) != LAI_ERROR_NONE) {
             WARN(false, "could not evaluate _HID of device");
-        } else if (id.type == LAI_INTEGER) {
-            int index = hmgeti(g_acpi_drivers, id.integer);
-            if (index != -1) {
-                // found hid! check STA
-//                int sta = lai_evaluate_sta(node);
-//                TRACE("sta: %b", sta);
-//                if ((sta & 0b11011) != 0b11011) return false;
-
+        } else if (lai_obj_get_type(&id) == LAI_INTEGER && lai_obj_get_integer(&id, &index) == LAI_ERROR_NONE) {
+            int i = hmgeti(g_acpi_drivers, id.integer);
+            if (i != -1) {
                 // everything is good!
-                driver_entry_t* entry = &g_acpi_drivers[index].value;
+                driver_entry_t* entry = &g_acpi_drivers[i].value;
                 char* path = lai_stringify_node_path(node);
                 TRACE("\tBound `%s`", entry->driver->name);
                 TRACE("\t\tID: %s", entry->bind->acpi.hid);
@@ -86,14 +82,11 @@ static bool check_acpi_id(lai_nsnode_t* node, lai_nsnode_t* hid_handle) {
                 kfree(path);
 
                 // start the thread
-                thread_t* thread;
                 driver_bind_data_t* data = kalloc(sizeof(driver_bind_data_t));
                 ASSERT(data != NULL);
                 data->bind = entry->bind;
                 data->acpi.node = node;
-                ASSERT(!IS_ERROR(create_thread(&thread, (void*)entry->driver->entry, data, entry->driver->name)));
-                schedule_thread(thread);
-                ASSERT(!IS_ERROR(release_thread(thread)));
+                WARN(!IS_ERROR(entry->driver->entry(data)), "Got error while initializing driver, ignoring");
 
                 return true;
             }
