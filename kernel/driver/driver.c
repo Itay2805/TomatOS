@@ -3,6 +3,7 @@
 #include <util/defs.h>
 #include <proc/process.h>
 #include <proc/scheduler.h>
+#include <driver/pci/pci.h>
 #include "driver.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,17 +77,16 @@ static bool check_acpi_id(lai_nsnode_t* node, lai_nsnode_t* hid_handle) {
                 // everything is good!
                 driver_entry_t* entry = &g_acpi_drivers[i].value;
                 char* path = lai_stringify_node_path(node);
-                TRACE("\tBound `%s`", entry->driver->name);
-                TRACE("\t\tID: %s", entry->bind->acpi.hid);
-                TRACE("\t\tPATH: %s", path);
+                TRACE("Bound `%s`", entry->driver->name);
+                TRACE("\tID: %s", entry->bind->acpi.hid);
+                TRACE("\tPATH: %s", path);
                 kfree(path);
 
-                // start the thread
-                driver_bind_data_t* data = kalloc(sizeof(driver_bind_data_t));
-                ASSERT(data != NULL);
-                data->bind = entry->bind;
-                data->acpi.node = node;
-                WARN(!IS_ERROR(entry->driver->entry(data)), "Got error while initializing driver, ignoring");
+                // start it
+                driver_bind_data_t data;
+                data.bind = entry->bind;
+                data.acpi_node = node;
+                WARN(!IS_ERROR(entry->driver->entry(&data)), "Got error while initializing driver, ignoring");
 
                 return true;
             }
@@ -115,6 +115,56 @@ static void bind_acpi_drivers() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// PCI drivers
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static void bind_pci_drivers() {
+    TRACE("Binding PCI drivers");
+
+    size_t driver_count = g_drivers_end - g_drivers;
+    for (int i = 0; i < driver_count; i++) {
+        driver_t *driver = &g_drivers[i];
+        driver_bind_t *bind = driver->binds;
+        while (bind->type != BIND_END) {
+            switch (bind->type) {
+                case BIND_PCI: {
+                    for (int j = 0; j < hmlen(g_pci_map); j++) {
+                        if (g_pci_map[j].value == NULL) continue;
+                        pci_dev_t* dev = g_pci_map[j].value;
+
+                        // first check out the class-subclass-progif
+                        if (bind->pci.class != 0 && bind->pci.class != dev->class) continue;
+                        if (bind->pci.subclass != 0 && bind->pci.subclass != dev->subclass) continue;
+                        if (bind->pci.progif != 0 && bind->pci.progif != dev->progif) continue;
+                        if (bind->pci.device_id != 0 && bind->pci.device_id != dev->device_id) continue;
+                        if (bind->pci.vendor_id != 0 && bind->pci.vendor_id != dev->vendor_id) continue;
+
+                        // match!
+                        TRACE("Bound `%s`", driver->name);
+                        TRACE("\tID: %04x:%04x", dev->device_id, dev->vendor_id);
+                        TRACE("\tPATH: %04x:%02x:%02x.%x",
+                                dev->address.seg, dev->address.bus,
+                                dev->address.slot, dev->address.func);
+
+                        // TODO: don't double bind on acpi nodes
+
+                        // start the thread
+                        // start it
+                        driver_bind_data_t data;
+                        data.bind = bind;
+                        data.pci_dev = dev;
+                        WARN(!IS_ERROR(driver->entry(&data)), "Got error while initializing driver, ignoring");
+
+                    }
+                } break;
+
+                default: break;
+            }
+            bind++;
+        }
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Driver dispatching
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -127,9 +177,9 @@ err_t dispatch_drivers() {
     for (int i = 0; i < driver_count; i++) {
         driver_t* driver = &g_drivers[i];
         driver_bind_t* bind = driver->binds;
-        while (bind->type != DRIVER_END) {
+        while (bind->type != BIND_END) {
             switch (bind->type) {
-                case DRIVER_ACPI: {
+                case BIND_ACPI: {
                     driver_entry_t data = {
                         .driver = driver,
                         .bind = bind,
@@ -144,6 +194,7 @@ err_t dispatch_drivers() {
     }
 
     bind_acpi_drivers();
+    bind_pci_drivers();
 
     TRACE("Finished driver dispatch");
 

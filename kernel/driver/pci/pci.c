@@ -174,7 +174,7 @@ static err_t init_pci_dev(pci_dev_t* dev) {
     }
 
     // pci-to-pci bridge, iterate over the second bridge
-    if (dev->class == PCI_CLASS_BRIDGE && dev->subclass == PCI_CLASS_BRIDGE_P2P) {
+    if (dev->class == 0x06 && dev->subclass == 0x04) {
         CHECK_AND_RETHROW(enum_bus(dev, dev->bridge->secondary_bus, 0));
     }
 
@@ -227,8 +227,8 @@ err_t pci_entry(driver_bind_data_t* data) {
     LAI_CLEANUP_STATE lai_state_t state;
     lai_init_state(&state);
 
-    ASSERT(data->bind->type == DRIVER_ACPI);
-    lai_nsnode_t* node = data->acpi.node;
+    ASSERT(data->bind->type == BIND_ACPI);
+    lai_nsnode_t* node = data->acpi_node;
 
     uint64_t bus_result = 0;
     lai_nsnode_t* bbn_handle = lai_resolve_path(node, "_BBN");
@@ -269,19 +269,19 @@ DRIVER {
     .binds = (driver_bind_t[]) {
         /* PCI Bus */
         {
-            .type = DRIVER_ACPI,
+            .type = BIND_ACPI,
             .acpi = {
                 .hid = "PNP0A03"
             }
         },
         /* PCI Express Bus */
         {
-            .type = DRIVER_ACPI,
+            .type = BIND_ACPI,
             .acpi = {
                 .hid = "PNP0A08"
             }
         },
-        { DRIVER_END }
+        {BIND_END }
     }
 };
 

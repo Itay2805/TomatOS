@@ -11,10 +11,6 @@
     #error Unknown achitecture
 #endif
 
-/**
- * This will cause the thread to wait for an interrupt
- */
-void wait_for_interrupt(uint8_t vector);
 typedef struct system_context {
 #ifdef __TOMATOS_AMD64__
     uint64_t ds;
@@ -65,6 +61,13 @@ void save_context(system_context_t* curr);
  * Will restore the context of the current thread to the current context
  */
 void restore_context(system_context_t* curr);
+
+typedef bool (*interrupt_wakeup_t)(void* ptr);
+
+/**
+ * This will cause the thread to wait for an interrupt
+ */
+void wait_for_interrupt(uint8_t vector, interrupt_wakeup_t wakeup, void* data);
 
 /**
  * This will tell the kernel we want to route an irq

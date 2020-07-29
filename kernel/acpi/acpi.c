@@ -113,6 +113,21 @@ static uint8_t g_sci_vector = 0;
  */
 static thread_t* g_acpi_thread = NULL;
 
+static bool acpi_wakeup(uint16_t* event) {
+    *event = lai_get_sci_event();
+
+    // handle the timer directly
+    if (*event & ACPI_TIMER) {
+        bool really_overflowed = !(get_timer_ticks() & (g_extended_timer ? BIT31 : BIT23));
+        if (really_overflowed) {
+            g_total_ticks += g_timer_mask;
+            g_initial_ticks = 0;
+        }
+    }
+
+    return *event != 0;
+}
+
 /**
  * This thread handles scis
  */
@@ -120,20 +135,15 @@ static noreturn void acpi_thread() {
     TRACE("ACPI thread started (sci=%d)", g_sci_vector);
 
     while (true) {
-        wait_for_interrupt(g_sci_vector);
-
-        uint16_t event = lai_get_sci_event();
-
-        if (event & ACPI_TIMER) {
-            bool really_overflowed = !(get_timer_ticks() & (g_extended_timer ? BIT31 : BIT23));
-            if (really_overflowed) {
-                g_total_ticks += g_timer_mask;
-                g_initial_ticks = 0;
-            }
-        }
+        uint16_t event;
+        wait_for_interrupt(g_sci_vector, (interrupt_wakeup_t)acpi_wakeup, &event);
 
         if (event & ACPI_POWER_BUTTON) {
+            TRACE("Pressed power button");
+        }
 
+        if (event & ACPI_SLEEP_BUTTON) {
+            TRACE("Pressed sleep button");
         }
     }
 }

@@ -12,8 +12,8 @@
 void trace(const char* fmt, ...);
 
 #define PRINT(fmt, ...) trace(fmt, ## __VA_ARGS__)
-#define TRACE(fmt, ...) PRINT("[%5u.%06u][*] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
-#define ERROR(fmt, ...) PRINT("[%5u.%06u][-] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
+#define TRACE(fmt, ...) PRINT("[%5u.%06u][*] %-6s: " fmt "\n", uptime() / 1000000, uptime() % 1000000, __MODULE__, ## __VA_ARGS__)
+#define ERROR(fmt, ...) PRINT("[%5u.%06u][-] %-6s: " fmt "\n", uptime() / 1000000, uptime() % 1000000, __MODULE__, ## __VA_ARGS__)
 
 typedef enum err {
     NO_ERROR,

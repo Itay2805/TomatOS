@@ -2,15 +2,18 @@
 #define TOMATOS_DRIVER_H
 
 #include <util/except.h>
+#include <lai/core.h>
+
 #include <stdint.h>
 
-#include <lai/core.h>
-#include <lai/internal-ns.h>
+#include "pci/pci.h"
 
 typedef enum driver_bind_type {
-    DRIVER_END,
+    BIND_END,
 
-    DRIVER_ACPI,
+    BIND_ACPI,
+
+    BIND_PCI,
 } driver_bind_type_t;
 
 typedef struct driver_bind {
@@ -19,15 +22,21 @@ typedef struct driver_bind {
         struct {
             const char* hid;
         } acpi;
+        struct {
+            uint16_t device_id;
+            uint16_t vendor_id;
+            uint8_t class;
+            uint8_t subclass;
+            uint8_t progif;
+        } pci;
     };
 } driver_bind_t;
 
 typedef struct driver_bind_data {
     driver_bind_t* bind;
     union {
-        struct {
-            lai_nsnode_t* node;
-        } acpi;
+        lai_nsnode_t* acpi_node;
+        pci_dev_t* pci_dev;
     };
 } driver_bind_data_t;
 

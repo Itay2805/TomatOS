@@ -10,6 +10,7 @@
 #include <proc/scheduler.h>
 #include <util/string.h>
 #include <debug/debug.h>
+#include <util/stb_ds.h>
 #include "intrin.h"
 #include "idt.h"
 #include "apic.h"
@@ -239,10 +240,16 @@ typedef struct interrupt_frame {
     uint64_t ss;
 } PACKED interrupt_frame_t;
 
+typedef struct interrupt_entry {
+    thread_t* thread;
+    interrupt_wakeup_t wakeup;
+    void* ptr;
+} interrupt_entry_t;
+
 /**
  * List of lists of threads waiting for interrupts
  */
-static list_entry_t g_interrupt_waiters[INTERRUPT_COUNT];
+static interrupt_entry_t* g_interrupt_entries[INTERRUPT_COUNT];
 static ticket_lock_t g_interrupt_locks[INTERRUPT_COUNT];
 
 /**
@@ -251,13 +258,16 @@ static ticket_lock_t g_interrupt_locks[INTERRUPT_COUNT];
 #define EVENT_INTERRUPT_HANDLER(num) \
     __attribute__((interrupt)) \
     static void interrupt_handle_##num(interrupt_frame_t* frame) { \
-        list_entry_t* threads = &g_interrupt_waiters[num - 0x21]; \
         ticket_lock(&g_interrupt_locks[num - 0x21]); \
-        while (!list_is_empty(threads)) { \
-            thread_t* thread = CR(threads->next, thread_t, scheduler_link); \
-            list_del(&thread->scheduler_link); \
-            schedule_thread(thread); \
+        interrupt_entry_t* entries = g_interrupt_entries[num - 0x21]; \
+        for (int i = 0; i < arrlen(entries); i++) { \
+            if (!entries[i].wakeup || entries[i].wakeup(entries[i].ptr)) { \
+                schedule_thread(entries[i].thread); \
+                arrdelswap(entries, i); \
+                i--; \
+            } \
         } \
+        g_interrupt_entries[num - 0x21] = entries; \
         ticket_unlock(&g_interrupt_locks[num - 0x21]); \
         send_lapic_eoi(); \
     }
@@ -491,12 +501,19 @@ EVENT_INTERRUPT_HANDLER(0xfe);
 EVENT_INTERRUPT_HANDLER(0xff);
 #endif
 
-void wait_for_interrupt(uint8_t vector) {
+void wait_for_interrupt(uint8_t vector, interrupt_wakeup_t wakeup, void* data) {
     // register
     critical_t crit;
     enter_critical(&crit);
     ticket_lock(&g_interrupt_locks[vector]);
-    list_add(&g_interrupt_waiters[vector], &g_current_thread->scheduler_link);
+
+    interrupt_entry_t entry = {
+            .thread = g_current_thread,
+            .wakeup = wakeup,
+            .ptr = data
+    };
+    arrpush(g_interrupt_entries[vector], entry);
+
     ticket_unlock(&g_interrupt_locks[vector]);
     exit_critical(&crit);
 
@@ -534,8 +551,8 @@ static void set_idt_entry(uint8_t i, void(*handler)(), int ist) {
 
 void init_idt() {
     // create all events
-    for (int i = 0; i < ARRAY_LENGTH(g_interrupt_waiters); i++) {
-        g_interrupt_waiters[i] = INIT_LIST(g_interrupt_waiters[i]);
+    for (int i = 0; i < ARRAY_LENGTH(g_interrupt_entries); i++) {
+        g_interrupt_entries[i] = NULL;
         g_interrupt_locks[i] = INIT_LOCK();
     }
 
