@@ -180,7 +180,7 @@ static void bind_pci_drivers() {
 err_t dispatch_drivers() {
     err_t err = NO_ERROR;
 
-    // init drivers list
+    init_driver_interface();
 
     size_t driver_count = g_drivers_end - g_drivers;
     TRACE("Preparing driver dispatch");
@@ -212,6 +212,13 @@ err_t dispatch_drivers() {
     return err;
 }
 
+void init_driver_interface() {
+    for (int i = 0; i < DRIVER_MAX; i++) {
+        g_interfaces[i] = INIT_LIST(g_interfaces[i]);
+        g_interfaces_locks[i] = INIT_LOCK();
+    }
+}
+
 err_t register_interface(driver_instance_t* instance) {
     err_t err = NO_ERROR;
 
@@ -222,6 +229,8 @@ err_t register_interface(driver_instance_t* instance) {
     ticket_lock(&g_interfaces_locks[instance->type]);
     list_add(&g_interfaces[instance->type], &instance->link);
     ticket_unlock(&g_interfaces_locks[instance->type]);
+
+    TRACE("Added %s", g_interface_names[instance->type]);
 
     // notify anyone who wants to know about this
     size_t driver_count = g_drivers_end - g_drivers;

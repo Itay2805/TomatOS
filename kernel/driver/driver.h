@@ -147,6 +147,11 @@ extern list_entry_t g_interfaces[DRIVER_MAX];
 extern ticket_lock_t g_interfaces_locks[DRIVER_MAX];
 
 /**
+ * Initialize all the interfaces
+ */
+void init_driver_interface();
+
+/**
  * Register a driver interface
  */
 err_t register_interface(driver_instance_t* instance);
