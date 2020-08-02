@@ -30,6 +30,7 @@ typedef enum handle_kind {
     HANDLE_PROCESS,
     HANDLE_THREAD,
     HANDLE_EVENT,
+    HANDLE_DRIVER,
 } handle_kind_t;
 
 struct handle_meta;

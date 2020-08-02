@@ -87,17 +87,19 @@ include makefiles/$(ARCH)/consts.mk
 # Will define a driver to be compiled given the attribute is set
 #
 define def-driver
-	ifeq ($$(DRIVER_$$(shell echo $(1) | tr a-z A-Z)), 1)
+	ifeq ($$(DRIVER_$$(shell echo $(1)_$(2) | tr a-z A-Z)), 1)
 		DRIVER_SRCS :=
-		include drivers/$(1)/driver.mk
-		SRCS += $$(addprefix drivers/$(1)/,$$(DRIVER_SRCS))
+		include drivers/$(1)/$(2)/driver.mk
+		SRCS += $$(addprefix drivers/$(1)/$(2)/,$$(DRIVER_SRCS))
 	endif
 endef
 
 #
 # Iterate and define all drivers
 #
-$(foreach file, $(wildcard drivers/*), $(eval $(call def-driver,$(notdir $(file))));)
+$(foreach file, $(wildcard drivers/disk/*), $(eval $(call def-driver,disk,$(notdir $(file))));)
+$(foreach file, $(wildcard drivers/block/*), $(eval $(call def-driver,block,$(notdir $(file))));)
+$(foreach file, $(wildcard drivers/fs/*), $(eval $(call def-driver,fs,$(notdir $(file))));)
 
 ########################################################################################################################
 # Phony

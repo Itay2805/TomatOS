@@ -6,6 +6,17 @@
 #include <driver/pci/pci.h>
 #include "driver.h"
 
+list_entry_t g_interfaces[DRIVER_MAX];
+ticket_lock_t g_interfaces_locks[DRIVER_MAX];
+
+static const char* g_interface_names[] = {
+    [DRIVER_KEYBOARD] = "Keyboard",
+    [DRIVER_MOUSE] = "Mouse",
+    [DRIVER_STORAGE] = "Storage",
+    [DRIVER_BLOCK] = "Block",
+    [DRIVER_FS] = "Filesystem",
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Few helper functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,8 +61,6 @@ typedef struct driver_entry {
     driver_t* driver;
     driver_bind_t* bind;
 } driver_entry_t;
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ACPI Drivers
@@ -171,8 +180,9 @@ static void bind_pci_drivers() {
 err_t dispatch_drivers() {
     err_t err = NO_ERROR;
 
-     size_t driver_count = g_drivers_end - g_drivers;
+    // init drivers list
 
+    size_t driver_count = g_drivers_end - g_drivers;
     TRACE("Preparing driver dispatch");
     for (int i = 0; i < driver_count; i++) {
         driver_t* driver = &g_drivers[i];
@@ -199,5 +209,41 @@ err_t dispatch_drivers() {
     TRACE("Finished driver dispatch");
 
     hmfree(g_acpi_drivers);
+    return err;
+}
+
+err_t register_interface(driver_instance_t* instance) {
+    err_t err = NO_ERROR;
+
+    CHECK(instance != NULL);
+    CHECK(instance->type < DRIVER_MAX);
+
+    // add to driver list
+    ticket_lock(&g_interfaces_locks[instance->type]);
+    list_add(&g_interfaces[instance->type], &instance->link);
+    ticket_unlock(&g_interfaces_locks[instance->type]);
+
+    // notify anyone who wants to know about this
+    size_t driver_count = g_drivers_end - g_drivers;
+    for (int i = 0; i < driver_count; i++) {
+        driver_t* driver = &g_drivers[i];
+        for (driver_bind_t* bind = driver->binds; bind->type != BIND_END; bind++) {
+            if (bind->type == BIND_INTERFACE && bind->interface.type == instance->type) {
+                if (bind->interface.check(instance)) {
+                    TRACE("Bound `%s`", driver->name);
+                    TRACE("\tTYPE: %s", g_interface_names[bind->interface.type]);
+
+                    instance->meta.refcount++;
+                    WARN(!IS_ERROR(bind->interface.connect(instance)), "Error connecting interface!");
+                    break;
+                }
+            }
+        }
+    }
+
+    // TODO: notify userspace for a
+    //       new interface connection
+
+cleanup:
     return err;
 }

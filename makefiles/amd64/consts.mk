@@ -24,4 +24,5 @@ REALFILES := kernel/arch/amd64/smp.real
 BINS := $(REALFILES:%.real=$(BUILD_DIR)/%.bin)
 
 # drivers enabled by default
-DRIVER_AHCI := 1
+DRIVER_DISK_AHCI := 1
+DRIVER_FS_ECHFS := 1
