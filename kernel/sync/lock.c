@@ -1,5 +1,7 @@
 #include <arch/cpu.h>
 #include <stddef.h>
+#include <util/except.h>
+#include <debug/debug.h>
 #include "lock.h"
 
 void ticket_lock(ticket_lock_t* lock) {

@@ -78,7 +78,7 @@ noreturn void kentry(stivale_struct_t* strct) {
         mmap_entry_t* entry = &strct->memory_map_addr[i];
         TRACE("\t%016llx - %016llx: %s", entry->base, entry->base + entry->length, g_memory_map_names[entry->type]);
         if (entry->type == 1 && entry->base + entry->length < BASE_4GB) {
-            pmm_submit_range(PHYSICAL_TO_DIRECT(entry->base), entry->length / PAGE_SIZE);
+            pmm_add_range(PHYSICAL_TO_DIRECT(entry->base), entry->length);
             available_size += entry->length;
         }
     }
@@ -103,7 +103,7 @@ noreturn void kentry(stivale_struct_t* strct) {
     for (int i = 0; i < strct->memory_map_entries; i++) {
         mmap_entry_t* entry = &strct->memory_map_addr[i];
         if (entry->type == 1 && entry->base >= BASE_4GB) {
-            pmm_submit_range(PHYSICAL_TO_DIRECT(entry->base), entry->length / PAGE_SIZE);
+            pmm_add_range(PHYSICAL_TO_DIRECT(entry->base), entry->length);
             available_size += entry->length;
         }
     }

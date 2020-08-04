@@ -109,13 +109,13 @@ err_t init_vmm(stivale_struct_t* stivale) {
 
     // initialize the kernel address space
     g_kernel.address_space.lock = INIT_LOCK();
-    CHECK_AND_RETHROW(pmm_allocate_zero(1, &g_kernel.address_space.pml4));
+    g_kernel.address_space.pml4 = pmalloc(PAGE_SIZE);
 
     // all the kernel entries are preallocated, this makes sure the
     // address space is always in sync between all the kernel threads
     uint64_t* table = g_kernel.address_space.pml4;
     for (int i = 256; i < 512; i++) {
-        CHECK_AND_RETHROW(pmm_allocate_zero(1, (directptr_t*)&table[i]));
+        table[i] = (uint64_t)pmalloc(PAGE_SIZE);
         table[i] = DIRECT_TO_PHYSICAL(table[i]);
         table[i] |= (PM_PRESENT | PM_WRITE);
     }
@@ -196,8 +196,7 @@ err_t vmm_map(address_space_t* space, void* virtual, physptr_t physical, map_fla
 
         // check if need to allocate entry
         if (!(*entry & PM_PRESENT)) {
-            directptr_t ptr;
-            CHECK_AND_RETHROW(pmm_allocate_zero(1, &ptr));
+            directptr_t ptr = pmalloc(PAGE_SIZE);
             *entry = DIRECT_TO_PHYSICAL(ptr);
         }
         *entry |= flags;

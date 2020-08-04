@@ -1,85 +1,208 @@
 #include <util/string.h>
 #include <util/list.h>
 #include <sync/lock.h>
+#include <util/defs.h>
 #include "pmm.h"
 
-typedef struct memory_range {
-    list_entry_t link;
-    size_t page_count;
-} memory_range_t;
+/**
+ * The min order needs to fit a single pointer
+ * for our linked list, meaning the min is 3
+ */
+#define MIN_ORDER 3
 
-static list_entry_t g_free_list = INIT_LIST(g_free_list);
+#define NEXT(ptr) RELAXED_POKE(directptr_t, ptr)
 
-static ticket_lock_t g_pmm_lock = {0};
+/**
+ * Represents a single buddy
+ */
+typedef struct {
+    /**
+     * The max ordered supported by this structure
+     */
+    int max_order;
 
-err_t pmm_submit_range(directptr_t start, size_t page_count) {
-    err_t err = NO_ERROR;
+    /**
+     * The base of the buddy
+     */
+    directptr_t base;
 
-    CHECK_AND_RETHROW(pmm_free(start, page_count));
+    /**
+     * Singly linked list of all free pages in each of the orders
+     */
+    directptr_t* free_list;
 
-cleanup:
-    return err;
+    /**
+     * The buddies lock
+     */
+     ticket_lock_t lock;
+} buddy_t;
+
+/**
+ * The low memory buddy (<4GB)
+ */
+static buddy_t g_low_buddy = {
+    .max_order = 32,
+    .base = PHYSICAL_TO_DIRECT(0),
+    .free_list = (directptr_t[32 - MIN_ORDER]){},
+};
+
+/**
+ * The high memory buddy allocator (>4GB)
+ */
+static buddy_t g_high_buddy = {
+    .max_order = 64,
+    .base = 0, // will be set from the first entry
+    .free_list = (directptr_t[64 - MIN_ORDER]){},
+};
+
+static bool check_buddies(buddy_t* buddy, directptr_t a, directptr_t b, size_t size) {
+    uintptr_t lower = MIN(a, b) - buddy->base;
+    uintptr_t upper = MAX(a, b) - buddy->base;
+    return (lower ^ size) == upper;
 }
 
-err_t pmm_allocate(size_t page_count, directptr_t* base) {
-    err_t err = NO_ERROR;
+static void buddy_add_free_item(buddy_t* buddy, directptr_t address, size_t order, bool new) {
+    directptr_t head = buddy->free_list[order - MIN_ORDER];
+    NEXT(address) = 0;
+    size_t size = 1ull << order;
 
-    ticket_lock(&g_pmm_lock);
+    ticket_lock(&buddy->lock);
 
-    CHECK(base != NULL);
+    if (!new && head != 0) {
+        directptr_t prev = 0;
+        while (true) {
+            if (check_buddies(buddy, head, address, size)) {
+                if (prev != 0) {
+                    NEXT(prev) = NEXT(head);
+                } else {
+                    buddy->free_list[order - MIN_ORDER] = NEXT(head);
+                }
 
-    memory_range_t* range = NULL;
-    FOR_EACH_ENTRY(range, &g_free_list, link) {
-        if (range->page_count >= page_count) {
-            range->page_count -= page_count;
-            *base = (directptr_t)range + range->page_count * PAGE_SIZE;
-            if (range->page_count == 0) {
-                list_del(&range->link);
+                buddy_add_free_item(buddy, MIN(head, address), order + 1, false);
+                break;
             }
-            goto cleanup;
+
+            if (NEXT(head) == 0) {
+                NEXT(head) = address;
+                break;
+            }
+
+            prev = head;
+            head = NEXT(head);
+        }
+    } else {
+        // just put in the head
+        NEXT(address) = head;
+        buddy->free_list[order - MIN_ORDER] = address;
+    }
+
+    ticket_unlock(&buddy->lock);
+}
+
+static void buddy_add_range(buddy_t* buddy, directptr_t address, size_t size) {
+    // as long as the chunk is big enough to fit
+    while (size > (1ull << MIN_ORDER)) {
+        // find the largest order and use that
+        for (int order = buddy->max_order - 1; order >= MIN_ORDER; order--) {
+            if (size >= (1ull << order)) {
+                buddy_add_free_item(buddy, address, order, true);
+                address += 1ull << order;
+                size -= 1ull << order;
+                break;
+            }
+        }
+    }
+}
+
+static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
+    int original_order = MAX(64 - clz(size - 1), MIN_ORDER);
+    size_t want_size = 1ull << original_order;
+
+    // make sure the buddy can actually do that
+    if (original_order >= buddy->max_order) {
+        WARN(false, "Tried to access too much for buddy");
+        return NULL;
+    }
+
+    // TODO: maybe use a lock per free list
+    ticket_lock(&buddy->lock);
+
+    // find the smallest order with space
+    for (int order = original_order; order < buddy->max_order; order++) {
+        if (buddy->free_list[order - MIN_ORDER] != 0) {
+            // pop the head
+            directptr_t address = buddy->free_list[order - MIN_ORDER];
+            buddy->free_list[order - MIN_ORDER] = NEXT(address);
+            ticket_unlock(&buddy->lock);
+
+            // try to free the left overs
+            size_t found_size = 1ull << order;
+            buddy_add_range(buddy, address + want_size, found_size - want_size);
+
+            // return the allocated address
+            return address;
         }
     }
 
-    CHECK_FAIL_ERROR(ERROR_OUT_OF_RESOURCES);
+    ticket_unlock(&buddy->lock);
 
-cleanup:
-    ticket_unlock(&g_pmm_lock);
-    return err;
+    return NULL;
 }
 
-err_t pmm_allocate_zero(size_t page_count, directptr_t* base) {
-    err_t err = NO_ERROR;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Top level functions
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    CHECK_AND_RETHROW(pmm_allocate(page_count, base));
-    memset(*base, 0, page_count * PAGE_SIZE);
-
-cleanup:
-    return err;
-}
-
-err_t pmm_free(directptr_t page, size_t page_count) {
-    ticket_lock(&g_pmm_lock);
-
-    memory_range_t* range = NULL;
-    FOR_EACH_ENTRY(range, &g_free_list, link) {
-        if (range == page + page_count * PAGE_SIZE) {
-            list_del(&range->link);
-            memory_range_t* new_range = page;
-            new_range->page_count = range->page_count + page_count;
-            list_add(&g_free_list, &new_range->link);
-            goto cleanup;
-        } else if(range + range->page_count * PAGE_SIZE == page) {
-            range->page_count += page_count;
-            goto cleanup;
+void pmm_add_range(directptr_t base, size_t size) {
+    if (base < PHYSICAL_TO_DIRECT(BASE_4GB)) {
+        buddy_add_range(&g_low_buddy, base, size);
+    } else {
+        // allocate the high buddy if needed
+        if (g_high_buddy.base == NULL) {
+            g_high_buddy.base = base;
         }
+        buddy_add_range(&g_high_buddy, base, size);
+    }
+}
+
+directptr_t pmalloc_low(size_t size) {
+    directptr_t ptr = buddy_alloc(&g_low_buddy, size);
+    ASSERT_TRACE(ptr != NULL, "Kernel out of low memory");
+    return ptr;
+}
+
+directptr_t pmalloc(size_t size) {
+    directptr_t ptr = NULL;
+
+    // check if has high memory
+    if (g_high_buddy.base == 0) {
+        ptr = buddy_alloc(&g_high_buddy, size);
     }
 
-    range = page;
-    range->page_count = page_count;
-    list_add_tail(&g_free_list, &range->link);
+    // if still null try to allocate low memory
+    if (ptr == NULL) {
+        ptr = buddy_alloc(&g_low_buddy, size);
+    }
 
-cleanup:
-    ticket_unlock(&g_pmm_lock);
-    return NO_ERROR;
+    // TODO: trigger a full on cache flush
+    //       and try again
+    ASSERT_TRACE(ptr != NULL, "Kernel out of memory");
+
+    return ptr;
 }
 
+void pmfree(directptr_t ptr, size_t size) {
+    ASSERT(ptr >= (directptr_t)DIRECT_MAPPING_BASE);
+
+    // figure which of the buddies to use
+    buddy_t* buddy;
+    if (ptr < PHYSICAL_TO_DIRECT(BASE_4GB)) {
+        buddy = &g_low_buddy;
+    } else {
+        buddy = &g_high_buddy;
+    }
+
+    // get the order and add it
+    int order = MAX(64 - clz(size - 1), MIN_ORDER);
+    buddy_add_free_item(buddy, ptr, order, false);
+}

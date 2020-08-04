@@ -11,6 +11,10 @@ inline size_t ctz(uint64_t x) {
     return x ? __builtin_ctzll(x) : 64;
 }
 
+inline size_t clz(uint64_t x) {
+    return x ? __builtin_clzll(x) : 64;
+}
+
 inline size_t next_bit(uint64_t bf, size_t bit) {
     return ctz(bf & ~((1UL << bit) -1));
 }

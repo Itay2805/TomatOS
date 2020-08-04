@@ -68,14 +68,11 @@ static void ahci_thread(ahci_interface_t *interface) {
         cpu_pause();
     }
 
-    // TODO: this is wasteful on space ig
-    void *base;
-    CHECK_AND_RETHROW(pmm_allocate_zero(1, &base));
-
     // set the command list and fis
-    interface->port->clb = DIRECT_TO_PHYSICAL(base);
-    interface->cmd_list = base;
-    interface->port->fb = DIRECT_TO_PHYSICAL(base + SIZE_1KB);
+    // TODO: support 32bit only
+    interface->cmd_list = pmalloc(SIZE_1KB);
+    interface->port->clb = DIRECT_TO_PHYSICAL(interface->cmd_list);
+    interface->port->fb = DIRECT_TO_PHYSICAL(pmalloc(256));
 
     // set all entries to be zero
     for (int i = 0; i < interface->cmd_list_len; i++) {

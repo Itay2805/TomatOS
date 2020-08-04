@@ -1,6 +1,7 @@
 #ifndef __TOMATOS_KERNEL_UTIL_EXCEPT_H__
 #define __TOMATOS_KERNEL_UTIL_EXCEPT_H__
 
+#include <debug/debug.h>
 #include <util/printf.h>
 #include <arch/timing.h>
 #include <arch/cpu.h>
@@ -98,6 +99,8 @@ const char* strerror(err_t err);
             ERROR("*************************"); \
             ERROR("%s:%d", __FILENAME__, __LINE__); \
             ERROR("Condition: `%s`", #expr); \
+            ERROR("Stack trace:"); \
+            debug_trace_own_stack(); \
             while(1); \
         } \
     } while(0)
@@ -117,6 +120,8 @@ const char* strerror(err_t err);
             ERROR("%s:%d", __FILENAME__, __LINE__); \
             ERROR("Condition: `%s`", #expr); \
             ERROR(fmt, ## __VA_ARGS__); \
+            ERROR("Stack trace:"); \
+            debug_trace_own_stack(); \
             while(1); \
         } \
     } while(0);

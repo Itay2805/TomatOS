@@ -10,17 +10,17 @@
 err_t mm_init();
 
 /**
- * Allocate physicall cont memory
+ * Allocate memory for general purpose use
  */
 void* kalloc(size_t size);
 
 /**
- * Reallocate physically cont memory
+ * Reallocate memory
  */
 void* krealloc(void* ptr, size_t size);
 
 /**
- * Free physically cont memory
+ * Free memory
  */
 void kfree(void* ptr);
 
