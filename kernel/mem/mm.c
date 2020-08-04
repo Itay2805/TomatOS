@@ -93,12 +93,10 @@ void* alloc_stack() {
         stack = g_stack_ptr;
         g_stack_ptr += SIZE_4KB + STACK_SIZE;
 
-        directptr_t new_stack;
-        if (!IS_ERROR(pmm_allocate_zero(1 + (STACK_SIZE / PAGE_SIZE), &new_stack))) {
-            // map the stack
-            for (int i = 0; i < (STACK_SIZE / PAGE_SIZE); i++) {
-                vmm_map(&g_kernel.address_space, stack + i * PAGE_SIZE, DIRECT_TO_PHYSICAL(new_stack + i * PAGE_SIZE) + 0, MAP_WRITE);
-            }
+        for (int i = 0; i < (STACK_SIZE / PAGE_SIZE); i++) {
+            directptr_t new_stack;
+            ASSERT(!IS_ERROR(pmm_allocate_zero(1, &new_stack)));
+            vmm_map(&g_kernel.address_space, stack + i * PAGE_SIZE, DIRECT_TO_PHYSICAL(new_stack), MAP_WRITE);
         }
     } else {
         list_entry_t* stack_entry = g_stack_free_list.next;

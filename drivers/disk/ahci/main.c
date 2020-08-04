@@ -145,14 +145,12 @@ static err_t ahci_entry(driver_bind_data_t *data) {
     CHECK_TRACE(cap.s64a, "TODO: add support for non-64bit addressing");
 
     // iterate ports
-    TRACE("Iterating ports");
     uint32_t pi = hba->pi;
     for (int i = 0; i < 32; i++) {
         if (!(pi & (1u << i))) continue;
 
         volatile hba_port_t *port = &controller->hba->ports[i];
         if (port->det != 3 || port->ipm != 1) {
-            TRACE("\tport #%d - inactive", i);
             continue;
         }
 

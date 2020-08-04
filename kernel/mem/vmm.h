@@ -19,6 +19,11 @@
     #define KERNEL_STACK_HEAP_BASE      0xffffe00000000000ull
     #define KERNEL_STACK_HEAP_END       0xffffe00040000000ull
 
+    // 1GB for kernel heap
+    // (used for kernel objects)
+    #define KERNEL_HEAP_BASE            0xffffe00080000000ull
+    #define KERNEL_HEAP_END             0xffffe000c0000000ull
+
     // the kernel base
     #define KERNEL_BASE                 ((void*)0xffffffff80000000ull)
 #else
