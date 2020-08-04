@@ -77,10 +77,38 @@ typedef struct hba_port {
     uint32_t vendor[4]; // 0x70 ~ 0x7F, vendor specific
 } hba_port_t;
 
+typedef struct hba_cap {
+    uint32_t np : 5;    // Number of ports
+    uint32_t sxs : 1;   // Supports External SATA
+    uint32_t ems : 1;   // Enclosure Management Supported
+    uint32_t cccs : 1;  // Command Completion Coalescing Supported
+    uint32_t ncs : 5;   // Number of Command Slots
+    uint32_t psc : 1;   // Partial State Capable
+    uint32_t ssc : 1;   // Slumber State Capable
+    uint32_t pmd : 1;   // PIO Multiple DRQ Block
+    uint32_t fbss : 1;  // FIS-based Switching Supported
+    uint32_t spm : 1;   // Supports Port Multiplier
+    uint32_t sam : 1;   // Supports AHCI mode only
+    uint32_t _rsv : 1;
+    uint32_t iss : 4;   // Interface Speed Support
+    uint32_t sclo : 1;  // Supports Command List Override
+    uint32_t sal : 1;   // Supports Activity LED
+    uint32_t salp : 1;  // Supports Agressive Link Power Management
+    uint32_t sss : 1;   // Supports Stggered Spin-up
+    uint32_t smps : 1;  // Supports Mechanical Presence Switch
+    uint32_t ssntf : 1; // Supports SNotification Register
+    uint32_t sncq : 1;  // Supports Native command Queuing
+    uint32_t s64a : 1;  // Supports 64-bit Addressing
+} hba_cap_t;
+
 typedef struct hba_mem {
     /* x00 - 0x2B, Generic Host Control */
-    uint32_t cap;       /* 0x00: CAP, host capability */
+    hba_cap_t cap;       /* 0x00: CAP, host capability */
     uint32_t ghc;       /* 0x04: GHC, global host control */
+#define HBA_GHC_HR BIT0         // HBA Reset
+#define HBA_GHC_IE BIT1         // Interrupt Enable
+#define HBA_GHC_MRSM BIT2       // MSI Revert to Single Message
+#define HBA_GHC_AE BIT31        // AHCI Enable
     uint32_t is;        /* 0x08: IS, interrupt status */
     uint32_t pi;        /* 0x0c: PI, port implemented */
     uint32_t vs;        /* 0x10: VS, version */
@@ -89,7 +117,15 @@ typedef struct hba_mem {
     uint32_t em_loc;    /* 0x1c: enclosure management location */
     uint32_t em_ctl;    /* 0x20: enclosure management control */
     uint32_t cap2;      /* 0x24: CAP2, extended host capability */
+#define HBA_CAP2_BOH BIT0       // BIOS/OS Handoff
+#define HBA_CAP2_NVMP BIT1      // NVMHCI Present
+#define HBA_CAP2_APST BIT2      // Automatic Partial to Slumber Transitions
     uint32_t bohc;      /* 0x28, BIOS/OS handoff control and status */
+#define HBA_BOHC_BOS BIT0       // BIOS Owned Semaphore
+#define HBA_BOHC_OOS BIT1       // OS Owned Semaphore
+#define HBA_BOHC_SOOE BIT2      // SMI on OS Ownership Change Enable
+#define HBA_BOHC_OOC BIT3       // OS Ownership Change
+#define HBA_BOHC_BB BIT4        // BIOS Busy
     uint8_t  rsv[0xA0-0x2C];
     uint8_t  vendor[0x100-0xA0];
     hba_port_t ports[];

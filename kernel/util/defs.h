@@ -1,15 +1,26 @@
 #ifndef __TOMATOS_KERNEL_UTIL_DEFS_H__
 #define __TOMATOS_KERNEL_UTIL_DEFS_H__
 
+#include <stdint.h>
+#include <stddef.h>
+
 #define UNREACHABLE()  __builtin_unreachable ()
 #define PACKED __attribute__((packed))
+
+inline size_t ctz(uint64_t x) {
+    return x ? __builtin_ctzll(x) : 64;
+}
+
+inline size_t next_bit(uint64_t bf, size_t bit) {
+    return ctz(bf & ~((1UL << bit) -1));
+}
 
 #define _CONCAT(x, y) x ## y
 #define CONCAT(x, y) _CONCAT(x, y)
 
-#define SIGNATURE_16(A, B)        ((A) | (B << 8))
-#define SIGNATURE_32(A, B, C, D)  (SIGNATURE_16 (A, B) | (SIGNATURE_16 (C, D) << 16))
-#define SIGNATURE_64(A, B, C, D, E, F, G, H) (SIGNATURE_32 (A, B, C, D) | ((UINT64) (SIGNATURE_32 (E, F, G, H)) << 32))
+#define SIGNATURE_16(A) ((A[0]) | (A[1] << 8))
+#define SIGNATURE_32(A) (SIGNATURE_16 (&A[0]) | (SIGNATURE_16 (&A[2]) << 16))
+#define SIGNATURE_64(A) (SIGNATURE_32 (&A[0]) | ((UINT64) (SIGNATURE_32 (&A[4])) << 32))
 
 #define ARRAY_LENGTH(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 
