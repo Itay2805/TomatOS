@@ -70,9 +70,9 @@ static void ahci_thread(ahci_interface_t *interface) {
 
     // set the command list and fis
     // TODO: support 32bit only
-    interface->cmd_list = pmalloc(SIZE_1KB);
+    interface->cmd_list = pmallocz(SIZE_1KB);
     interface->port->clb = DIRECT_TO_PHYSICAL(interface->cmd_list);
-    interface->port->fb = DIRECT_TO_PHYSICAL(pmalloc(256));
+    interface->port->fb = DIRECT_TO_PHYSICAL(pmallocz(256));
 
     // set all entries to be zero
     for (int i = 0; i < interface->cmd_list_len; i++) {
@@ -152,11 +152,8 @@ static err_t ahci_entry(driver_bind_data_t *data) {
         }
 
         if (port->sig != 0x00000101) {
-            TRACE("\tport #%d - %08x", i, port->sig);
             continue;
         }
-
-        TRACE("\tport #%d - SATA", i);
 
         // create the device
         ahci_interface_t *interface = kalloc(sizeof(ahci_interface_t));

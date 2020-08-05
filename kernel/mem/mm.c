@@ -21,7 +21,7 @@ err_t mm_init() {
     err_t err = NO_ERROR;
 
     size_t size = ALIGN_UP(tlsf_size(), PAGE_SIZE);
-    g_tlsf = pmalloc(size);
+    g_tlsf = pmallocz(size);
     g_tlsf = tlsf_create_with_pool(g_tlsf, size);
     CHECK(g_tlsf != NULL);
 
@@ -91,7 +91,7 @@ void* alloc_stack() {
 
         for (int i = 0; i < (STACK_SIZE / PAGE_SIZE); i++) {
             directptr_t new_stack;
-            new_stack = pmalloc(PAGE_SIZE);
+            new_stack = pmallocz(PAGE_SIZE);
             vmm_map(&g_kernel.address_space, stack + i * PAGE_SIZE, DIRECT_TO_PHYSICAL(new_stack), MAP_WRITE);
         }
     } else {

@@ -191,6 +191,12 @@ directptr_t pmalloc(size_t size) {
     return ptr;
 }
 
+directptr_t pmallocz(size_t size) {
+    directptr_t ptr = pmalloc(size);
+    memset(ptr, 0, size);
+    return ptr;
+}
+
 void pmfree(directptr_t ptr, size_t size) {
     ASSERT(ptr >= (directptr_t)DIRECT_MAPPING_BASE);
 

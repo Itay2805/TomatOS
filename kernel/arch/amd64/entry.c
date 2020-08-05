@@ -13,6 +13,7 @@
 #include <stdnoreturn.h>
 #include <proc/event.h>
 #include <driver/driver.h>
+#include <debug/early_console.h>
 #include "stivale.h"
 #include "apic.h"
 
@@ -22,8 +23,7 @@ uint8_t g_bootstrap_stack[SIZE_16KB] = {0};
 __attribute__((used, section(".stivalehdr")))
 stivale_header_t header = {
     .stack = (uint64_t) (g_bootstrap_stack + sizeof(g_bootstrap_stack)),
-    .framebuffer_bpp = 32,
-    .flags = BIT1
+    .flags = BIT0
 };
 
 void init_gdt();
@@ -63,20 +63,16 @@ noreturn void kentry(stivale_struct_t* strct) {
     size_t size = 0;
     size_t div = 0;
 
+    TRACE("Early init");
+
     // first of all set the gdt properly
     init_gdt();
     init_cpu_local_for_bsp();
-
-    TRACE("TomatOS (build " __DATE__ " " __TIME__ ")");
-#ifdef __TOMATOS_DEBUG__
-    TRACE("\t* Debug");
-#endif
 
     // setup the allocator (only first 4GB)
     TRACE("Boostraping memory");
     for (int i = 0; i < strct->memory_map_entries; i++) {
         mmap_entry_t* entry = &strct->memory_map_addr[i];
-        TRACE("\t%016llx - %016llx: %s", entry->base, entry->base + entry->length, g_memory_map_names[entry->type]);
         if (entry->type == 1 && entry->base + entry->length < BASE_4GB) {
             pmm_add_range(PHYSICAL_TO_DIRECT(entry->base), entry->length);
             available_size += entry->length;
@@ -90,6 +86,21 @@ noreturn void kentry(stivale_struct_t* strct) {
     }
     TRACE("Bootstrap memory size: %d %s", size, g_size_names[div]);
 
+    // initialize an early console
+    if (strct->framebuffer_addr == 0) {
+        TRACE("Framebuffer not available for early console");
+    } else if (strct->framebuffer_bpp != 32) {
+        TRACE("Early console only supports 32bpp framebuffer (given %dbpp)", strct->framebuffer_bpp);
+    } else {
+        init_early_console(PHYSICAL_TO_DIRECT(strct->framebuffer_addr), strct->framebuffer_width, strct->framebuffer_height, strct->framebuffer_pitch);
+    }
+
+    // nice prints
+    TRACE("TomatOS (build " __DATE__ " " __TIME__ ")");
+#ifdef __TOMATOS_DEBUG__
+    TRACE("\t* Debug");
+#endif
+
     // setup the kernel paging
     CHECK_AND_RETHROW(init_vmm(strct));
 
@@ -102,6 +113,7 @@ noreturn void kentry(stivale_struct_t* strct) {
     // finish setup the pmm entries
     for (int i = 0; i < strct->memory_map_entries; i++) {
         mmap_entry_t* entry = &strct->memory_map_addr[i];
+        TRACE("\t%016llx - %016llx: %s", entry->base, entry->base + entry->length, g_memory_map_names[entry->type]);
         if (entry->type == 1 && entry->base >= BASE_4GB) {
             pmm_add_range(PHYSICAL_TO_DIRECT(entry->base), entry->length);
             available_size += entry->length;

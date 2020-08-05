@@ -33,9 +33,19 @@ directptr_t pmalloc_low(size_t size);
  * @remark
  * This function will ASSERT if it failed to allocate physical memory
  *
+ * @remark
+ * The allocated memory is not zeroed by default
+ *
  * @param size  [IN]    The amount of memory to allocate
  */
 directptr_t pmalloc(size_t size);
+
+/**
+ * Like pmalloc, but zeros the memory
+ *
+ * @param size  [IN]    The amount of memory to allocate
+ */
+directptr_t pmallocz(size_t size);
 
 /**
  * Free physical memory
