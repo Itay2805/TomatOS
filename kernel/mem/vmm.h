@@ -63,11 +63,47 @@ typedef enum map_flag {
     MAP_EXEC = BIT1,
 } map_flag_t;
 
+/**
+ *
+ * @param space
+ * @return
+ */
 err_t set_address_space(address_space_t* space);
 
+/**
+ *
+ * @param space
+ * @param virtual
+ * @param physical
+ * @param flag
+ * @return
+ */
 err_t vmm_map(address_space_t* space, void* virtual, physptr_t physical, map_flag_t flag);
 
+/**
+ *
+ * @param space
+ * @param virtual
+ * @return
+ */
 err_t vmm_unmap(address_space_t* space, void* virtual);
+
+typedef enum page_cache {
+    CACHE_NORMAL,
+    CACHE_NONE,
+    CACHE_WRITE_THROUGH,
+    CACHE_WRITE_BACK,
+    CACHE_WRITE_COMBINING
+} page_cache_t;
+
+/**
+ * Set the caching type of the given virtual address
+ *
+ * @param space     [IN] Address space
+ * @param virtual   [IN] Virtual address to change the caching of
+ * @param cache     [IN] The caching type
+ */
+err_t vmm_cache(address_space_t* space, void* virtual, page_cache_t cache);
 
 /**
  * Copy from userspace into kernel space

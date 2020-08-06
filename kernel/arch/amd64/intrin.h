@@ -102,6 +102,12 @@ void __writecr0(IA32_CR0 Data);
 #define MSR_IA32_CSTAR                           0xC0000083
 #define MSR_IA32_FMASK                           0xC0000084
 
+#define MSR_IA32_PAT                             0x00000277
+#define PAT_UC                                   0x00ul
+#define PAT_WC                                   0x01ul
+#define PAT_WT                                   0x04ul
+#define PAT_WB                                   0x06ul
+
 #define MSR_IA32_EFER                            0xC0000080
 typedef union _IA32_EFER {
     struct {

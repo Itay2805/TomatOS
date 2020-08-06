@@ -86,6 +86,21 @@ noreturn void kentry(stivale_struct_t* strct) {
     }
     TRACE("Bootstrap memory size: %d %s", size, g_size_names[div]);
 
+    // setup the kernel paging
+    CHECK_AND_RETHROW(init_vmm(strct));
+
+    // convert relevant pointers
+    strct = PHYSICAL_TO_DIRECT(strct);
+    strct->rsdp = (uint64_t)PHYSICAL_TO_DIRECT(strct->rsdp);
+    strct->cmdline = PHYSICAL_TO_DIRECT(strct->cmdline);
+    strct->memory_map_addr = PHYSICAL_TO_DIRECT(strct->memory_map_addr);
+
+    // initialize the kernel allocator and
+    // cpu locals, in preparation for threading
+    CHECK_AND_RETHROW(mm_init());
+    init_tss();
+    init_idt();
+
     // initialize an early console
     if (strct->framebuffer_addr == 0) {
         TRACE("Framebuffer not available for early console");
@@ -101,16 +116,8 @@ noreturn void kentry(stivale_struct_t* strct) {
     TRACE("\t* Debug");
 #endif
 
-    // setup the kernel paging
-    CHECK_AND_RETHROW(init_vmm(strct));
-
-    // convert relevant pointers
-    strct = PHYSICAL_TO_DIRECT(strct);
-    strct->rsdp = (uint64_t)PHYSICAL_TO_DIRECT(strct->rsdp);
-    strct->cmdline = PHYSICAL_TO_DIRECT(strct->cmdline);
-    strct->memory_map_addr = PHYSICAL_TO_DIRECT(strct->memory_map_addr);
-
     // finish setup the pmm entries
+    TRACE("Memory map:");
     for (int i = 0; i < strct->memory_map_entries; i++) {
         mmap_entry_t* entry = &strct->memory_map_addr[i];
         TRACE("\t%016llx - %016llx: %s", entry->base, entry->base + entry->length, g_memory_map_names[entry->type]);
@@ -127,12 +134,6 @@ noreturn void kentry(stivale_struct_t* strct) {
         size /= 1024;
     }
     TRACE("Available memory size: %d %s", size, g_size_names[div]);
-
-    // initialize the kernel allocator and
-    // cpu locals, in preparation for threading
-    CHECK_AND_RETHROW(mm_init());
-    init_tss();
-    init_idt();
 
     // the kernel is the current process
     g_current_process = &g_kernel;

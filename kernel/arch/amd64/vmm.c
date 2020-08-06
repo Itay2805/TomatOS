@@ -31,10 +31,19 @@ symbol_t __kernel_end_data;
 
 #define HUGE_PAGE_SIZE PAGE_SIZE
 
+//----------------------------------------------------------------------------------------------------------------------
+// Features supported by the cpu
+//----------------------------------------------------------------------------------------------------------------------
+
 /**
  * Are global pages supported
  */
-static bool g_global_pages = false;
+static bool g_global_pages;
+
+/**
+ *
+ */
+static bool g_pat;
 
 /**
  * Is smap supported (and should we handle it)
@@ -47,38 +56,55 @@ static bool g_smap;
  */
 err_t vmm_figure_features() {
     err_t err = NO_ERROR;
+    uint32_t num;
     IA32_CR4 cr4 = __readcr4();
 
-    if(g_cpu_id == 0) TRACE("CPU Paging Features");
+    if (g_cpu_id == 0) TRACE("CPU Paging Features");
 
     // TODO: no execute
 
-    //----------------------------------
-    // Extended features
-    //----------------------------------
-
-    uint32_t num;
-    cpuidex(0x7, 0x0, NULL, &num, NULL, NULL);
-
-    if (num & BIT7) {
-        if(g_cpu_id == 0) TRACE("\t* SMEP");
-        cr4.SMEP = 1;
-    }
-
-    if (num & BIT20) {
-        if(g_cpu_id == 0) TRACE("\t* SMAP");
-        cr4.SMAP = 1;
-    }
 
     //----------------------------------
     // Version id
     //----------------------------------
-    cpuidex(0x0, 0, NULL, NULL, NULL, &num);
+    cpuid(0x0, NULL, NULL, NULL, &num);
 
     if (num & BIT13) {
-        if(g_cpu_id == 0) TRACE("\t* Global pages");
+        if (g_cpu_id == 0) TRACE("\t* Global pages");
         cr4.PGE = 1;
         g_global_pages = true;
+    }
+
+    //----------------------------------
+    // Feature Information
+    //----------------------------------
+    cpuid(0x1, NULL, NULL, NULL, &num);
+    if (num & BIT16) {
+        if (g_cpu_id == 0) TRACE("\t* PAT");
+        g_pat = true;
+        __wrmsr(MSR_IA32_PAT, (PAT_WB) |
+                                    (PAT_WT << 8) |
+                                    (PAT_UC << 16) |
+                                    (PAT_WC << 24) |
+                                    (PAT_WB << 32) |
+                                    (PAT_WT << 40) |
+                                    (PAT_UC << 48) |
+                                    (PAT_WC << 56));
+    }
+
+    //----------------------------------
+    // Extended features
+    //----------------------------------
+    cpuid(0x7, NULL, &num, NULL, NULL);
+
+    if (num & BIT7) {
+        if (g_cpu_id == 0) TRACE("\t* SMEP");
+        cr4.SMEP = 1;
+    }
+
+    if (num & BIT20) {
+        if (g_cpu_id == 0) TRACE("\t* SMAP");
+        cr4.SMAP = 1;
     }
 
     // apply it
@@ -86,6 +112,29 @@ err_t vmm_figure_features() {
 
     return err;
 }
+
+static uint64_t get_caching_attr(page_cache_t type) {
+    switch (type) {
+        case CACHE_WRITE_THROUGH: return BIT3;
+        case CACHE_NONE: return BIT4;
+
+        case CACHE_WRITE_COMBINING: {
+            if (g_pat) {
+                return BIT3 | BIT4;
+            } else {
+                return 0;
+            }
+        }
+
+        // default caching is write back
+        case CACHE_WRITE_BACK:
+        case CACHE_NORMAL:          return 0;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// VMM init
+//----------------------------------------------------------------------------------------------------------------------
 
 // We get in this function `applying non-zero offset FFFF800000000000 to null pointer`
 // this is because one of the mapped addresses are 0, and adding offset to a null pointer
@@ -151,6 +200,41 @@ err_t init_vmm(stivale_struct_t* stivale) {
 cleanup:
     return err;
 }
+
+/**
+ * Get the page of a certain virtual address in the address space
+ *
+ * @param space [IN]    The address space
+ * @param virt  [IN]    The virtual address
+ * @param page  [OUT]   The page
+ */
+static err_t get_page(address_space_t* space, uintptr_t virt, uint64_t** page) {
+    err_t err = 0;
+
+    CHECK(page != NULL);
+    CHECK(space != NULL);
+
+    uint64_t* table = space->pml4;
+    for (int level = 4; level > 1; level--) {
+        uint64_t* entry = &table[(virt >> (12u + 9u * (level - 1))) & 0x1ffu];
+
+        // check if present
+        CHECK_ERROR(*entry & PM_PRESENT, ERROR_NOT_FOUND);
+
+        // get the next layer
+        table = PHYSICAL_TO_DIRECT(*entry & 0x7ffffffffffff000ull);
+    }
+
+    *page = &table[(virt >> 12u) & 0x1ffu];
+    CHECK_ERROR(**page & PM_PRESENT, ERROR_NOT_FOUND);
+
+cleanup:
+    return err;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// VMM API implementation
+//----------------------------------------------------------------------------------------------------------------------
 
 err_t set_address_space(address_space_t* space) {
     err_t err = NO_ERROR;
@@ -220,25 +304,37 @@ cleanup:
 
 err_t vmm_unmap(address_space_t* space, void* virtual) {
     err_t err = NO_ERROR;
-    uintptr_t virt = (uintptr_t)virtual;
 
     CHECK(space != NULL);
     ticket_lock(&space->lock);
 
-    uint64_t* table = space->pml4;
-    for (int level = 4; level > 1; level--) {
-        uint64_t* entry = &table[(virt >> (12u + 9u * (level - 1))) & 0x1ffu];
+    // get the page
+    uint64_t* entry;
+    CHECK_AND_RETHROW(get_page(space, (uintptr_t)virtual, &entry));
 
-        // check if present
-        CHECK_ERROR(*entry & PM_PRESENT, ERROR_NOT_FOUND);
-
-        // get the next layer
-        table = PHYSICAL_TO_DIRECT(*entry & 0x7ffffffffffff000ull);
-    }
-
-    uint64_t* entry = &table[(virt >> 12u) & 0x1ffu];
+    // invalidate it
     *entry = 0;
     __invlpg((uintptr_t)virtual);
+
+cleanup:
+    if (space != NULL) {
+        ticket_unlock(&space->lock);
+    }
+    return err;
+}
+
+err_t vmm_cache(address_space_t* space, void* virtual, page_cache_t cache) {
+    err_t err = NO_ERROR;
+
+    CHECK(space != NULL);
+    ticket_lock(&space->lock);
+
+    // get the page
+    uint64_t* entry;
+    CHECK_AND_RETHROW(get_page(space, (uintptr_t)virtual, &entry));
+
+    // set the attributes
+    *entry |= get_caching_attr(cache);
 
 cleanup:
     if (space != NULL) {

@@ -1,5 +1,6 @@
 #include <util/string.h>
 #include <mem/pmm.h>
+#include <proc/process.h>
 #include "early_console.h"
 
 /**
@@ -23,17 +24,22 @@ uint8_t* get_font_char(char c);
 static char* g_grid = NULL;
 
 void init_early_console(directptr_t framebuffer, size_t width, size_t height, size_t pitch) {
+    // framebuffer stuff
     g_framebuffer = framebuffer;
     g_width = width;
     g_height = height;
     g_pitch = pitch / 4;
 
+    // terminal stuff
     g_rows = height / FONT_HEIGHT;
     g_cols = width / FONT_WIDTH;
-
     g_grid = pmalloc(g_rows * g_cols);
     memset(g_grid, ' ', g_rows * g_cols);
 
+    // mape as wc
+    for (uintptr_t addr = ALIGN_DOWN((uintptr_t)framebuffer, PAGE_SIZE); addr < ALIGN_UP((uintptr_t)framebuffer + height * pitch, PAGE_SIZE); addr += PAGE_SIZE) {
+        vmm_cache(&g_kernel.address_space, framebuffer, CACHE_WRITE_COMBINING);
+    }
     memset(framebuffer, 0x2c, height * pitch);
 }
 
