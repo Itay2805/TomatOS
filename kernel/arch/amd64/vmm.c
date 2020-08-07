@@ -217,8 +217,8 @@ static err_t get_page(address_space_t* space, uintptr_t virt, uint64_t** page) {
         table = PHYSICAL_TO_DIRECT(*entry & 0x7ffffffffffff000ull);
     }
 
+    CHECK_ERROR(table[(virt >> 12u) & 0x1ffu] & PM_PRESENT, ERROR_NOT_FOUND);
     *page = &table[(virt >> 12u) & 0x1ffu];
-    CHECK_ERROR(**page & PM_PRESENT, ERROR_NOT_FOUND);
 
 cleanup:
     return err;

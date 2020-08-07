@@ -41,7 +41,7 @@ void init_early_console(directptr_t framebuffer, size_t width, size_t height, si
 
     // mape as wc
     for (directptr_t addr = ALIGN_DOWN(framebuffer, PAGE_SIZE); addr < ALIGN_UP(framebuffer + height * pitch, PAGE_SIZE); addr += PAGE_SIZE) {
-        vmm_cache(&g_kernel.address_space, addr, CACHE_WRITE_COMBINING);
+        ASSERT(!IS_ERROR(vmm_cache(&g_kernel.address_space, addr, CACHE_WRITE_COMBINING)));
     }
     memset(framebuffer, 0x2c, height * pitch);
 }
