@@ -77,10 +77,6 @@ const char* g_type_check_names[] = {
 
 #define WARN_PRINT(fmt, ...) PRINT("[%5u.%06u][!] " __MODULE__ ": " fmt "\n", uptime() / 1000000, uptime() % 1000000, ## __VA_ARGS__)
 
-void debug_trace_own_stack() {
-    debug_trace_stack(__builtin_frame_address(0));
-}
-
 void __ubsan_handle_add_overflow(ubsan_overflow_t* data, uintptr_t lhs, uintptr_t rhs) {
     WARN_PRINT("%s", __FUNCTION__);
     debug_trace_own_stack();

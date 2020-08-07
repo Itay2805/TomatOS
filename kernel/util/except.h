@@ -76,11 +76,13 @@ const char* strerror(err_t err);
 
 #define CHECK_AND_RETHROW(error) CHECK_AND_RETHROW_LABEL(error, cleanup)
 
-#define CHECK_LAI(expr) \
+#define CHECK_LAI_LABEL(expr, label) \
     do { \
         lai_api_error_t _e = (expr); \
-        CHECK_TRACE(_e == LAI_ERROR_NONE, "Got lai error %s", lai_api_error_to_string(_e)); \
+        CHECK_LABEL_TRACE(_e == LAI_ERROR_NONE, label, "Got lai error %s", lai_api_error_to_string(_e)); \
     } while(0)
+
+#define CHECK_LAI(expr) CHECK_LAI_LABEL(expr, cleanup)
 
 #define WARN(expr, fmt, ...) \
     do { \

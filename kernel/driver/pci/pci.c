@@ -148,15 +148,15 @@ static err_t init_pci_dev(pci_dev_t* dev) {
                 pin = (((pin - 1) + (tmp->address.slot % 4)) % 4) + 1;
                 tmp = tmp->parent;
             } else {
-                CHECK(tmp->acpi_node);
+                CHECK_LABEL(tmp->acpi_node, skip_irq);
                 prt_node = lai_resolve_path(tmp->acpi_node, "_PRT");
                 break;
             }
         }
 
         // eval the prt
-        CHECK_ERROR(prt_node != NULL, ERROR_NOT_FOUND);
-        CHECK_LAI(lai_eval(&prt, prt_node, &state));
+        CHECK_ERROR_LABEL(prt_node != NULL, ERROR_NOT_FOUND, skip_irq);
+        CHECK_LAI_LABEL(lai_eval(&prt, prt_node, &state), skip_irq);
 
         // iterate the prt
         struct lai_prt_iterator iter = LAI_PRT_ITERATOR_INITIALIZER(&prt);
@@ -170,7 +170,15 @@ static err_t init_pci_dev(pci_dev_t* dev) {
                 break;
             }
         }
-        CHECK_LAI(e);
+        CHECK_LAI_LABEL(e, skip_irq);
+
+    skip_irq:
+        if (IS_ERROR(err)) {
+            // recover from error in routing
+            err = NO_ERROR;
+            dev->irq = -1;
+            TRACE("irq routing failed for device...");
+        }
     }
 
     // pci-to-pci bridge, iterate over the second bridge

@@ -334,7 +334,9 @@ err_t vmm_cache(address_space_t* space, void* virtual, page_cache_t cache) {
     CHECK_AND_RETHROW(get_page(space, (uintptr_t)virtual, &entry));
 
     // set the attributes
+    *entry &= ~(BIT7 | BIT3 | BIT4);
     *entry |= get_caching_attr(cache);
+    __invlpg((uintptr_t)virtual);
 
 cleanup:
     if (space != NULL) {

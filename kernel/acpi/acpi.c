@@ -68,10 +68,12 @@ void init_acpi_tables(uintptr_t rsdp_ptr) {
             TRACE("TODO: support timer of type %d", g_acpi_fadt->x_pm_timer_block.address_space);
             g_timer_port = g_acpi_fadt->pm_timer_block;
         } else {
+            // some verification on the port
             g_timer_port = g_acpi_fadt->x_pm_timer_block.base;
-            ASSERT(g_acpi_fadt->x_pm_timer_block.bit_offset == 0);
-            ASSERT(g_acpi_fadt->x_pm_timer_block.access_size == 4);
-            ASSERT(g_acpi_fadt->x_pm_timer_block.bit_width >= 24);
+            ASSERT_TRACE(g_acpi_fadt->x_pm_timer_block.bit_offset == 0, "bit_offset=%d", g_acpi_fadt->x_pm_timer_block.bit_offset);
+            ASSERT_TRACE(g_acpi_fadt->x_pm_timer_block.access_size == 3 ||
+                         g_acpi_fadt->x_pm_timer_block.access_size == 4, "access_size=%d", g_acpi_fadt->x_pm_timer_block.access_size);
+            ASSERT_TRACE(g_acpi_fadt->x_pm_timer_block.bit_width >= 24, "bit_width=%d", g_acpi_fadt->x_pm_timer_block.bit_width);
         }
     } else {
         g_timer_port = g_acpi_fadt->pm_timer_block;

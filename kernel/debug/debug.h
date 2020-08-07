@@ -15,6 +15,8 @@ void debug_trace_stack(void* frame_pointer);
 /**
  * Trace the caller's stack
  */
-void debug_trace_own_stack();
+static inline void debug_trace_own_stack() {
+    debug_trace_stack(__builtin_frame_address(0));
+}
 
 #endif //__TOMATOS_KERNEL_UTIL_DEBUG_H__
