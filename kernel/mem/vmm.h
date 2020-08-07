@@ -89,12 +89,12 @@ err_t vmm_map(address_space_t* space, void* virtual, physptr_t physical, map_fla
 err_t vmm_unmap(address_space_t* space, void* virtual);
 
 typedef enum page_cache {
-    CACHE_NORMAL,
     CACHE_NONE,
     CACHE_WRITE_THROUGH,
     CACHE_WRITE_BACK,
     CACHE_WRITE_COMBINING
 } page_cache_t;
+#define CACHE_NORMAL CACHE_WRITE_BACK
 
 /**
  * Set the caching type of the given virtual address

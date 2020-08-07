@@ -6,6 +6,9 @@
 /**
  * adapted from:
  * https://github.com/Takao-OS/Takao/blob/master/source/services/terminal/
+ *
+ * we disable ubsan for these functions mainly for performance reasons, because this
+ * is going to run alot
  */
 
 // framebuffer state
@@ -37,16 +40,18 @@ void init_early_console(directptr_t framebuffer, size_t width, size_t height, si
     memset(g_grid, ' ', g_rows * g_cols);
 
     // mape as wc
-    for (uintptr_t addr = ALIGN_DOWN((uintptr_t)framebuffer, PAGE_SIZE); addr < ALIGN_UP((uintptr_t)framebuffer + height * pitch, PAGE_SIZE); addr += PAGE_SIZE) {
-        vmm_cache(&g_kernel.address_space, framebuffer, CACHE_WRITE_COMBINING);
+    for (directptr_t addr = ALIGN_DOWN(framebuffer, PAGE_SIZE); addr < ALIGN_UP(framebuffer + height * pitch, PAGE_SIZE); addr += PAGE_SIZE) {
+        vmm_cache(&g_kernel.address_space, addr, CACHE_WRITE_COMBINING);
     }
     memset(framebuffer, 0x2c, height * pitch);
 }
 
+__attribute__((no_sanitize("undefined")))
 static void put_pixel(size_t x, size_t y, uint32_t color) {
     g_framebuffer[x + g_pitch * y] = color;
 }
 
+__attribute__((no_sanitize("undefined")))
 static void print_char(size_t row, size_t col, char c) {
     g_grid[col + row * g_cols] = c;
 
@@ -66,6 +71,7 @@ static void print_char(size_t row, size_t col, char c) {
     }
 }
 
+__attribute__((no_sanitize("undefined")))
 static void scroll() {
     for (int row = 1; row < g_rows; row++) {
         for (int col = 0; col < g_cols; col++) {
@@ -78,6 +84,7 @@ static void scroll() {
     }
 }
 
+__attribute__((no_sanitize("undefined")))
 void early_console_putc(char c) {
     if (g_framebuffer == NULL) {
         return;
@@ -460,6 +467,7 @@ static uint8_t g_early_font[] = {
         0x1a, 0x02, 0x02, 0x3c
 };
 
+__attribute__((no_sanitize("undefined")))
 uint8_t* get_font_char(char c) {
     return &g_early_font[((FONT_WIDTH * FONT_HEIGHT) / 8) * c];
 }

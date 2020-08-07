@@ -41,11 +41,6 @@ symbol_t __kernel_end_data;
 static bool g_global_pages;
 
 /**
- *
- */
-static bool g_pat;
-
-/**
  * Is smap supported (and should we handle it)
  */
 static bool g_smap;
@@ -63,45 +58,52 @@ err_t vmm_figure_features() {
 
     // TODO: no execute
 
-
-    //----------------------------------
+    ////////////////////////////////////
     // Version id
-    //----------------------------------
+    ////////////////////////////////////
     cpuid(0x0, NULL, NULL, NULL, &num);
 
+    //----------------------------------
+    // Global Pages - Optional
+    //----------------------------------
     if (num & BIT13) {
         if (g_cpu_id == 0) TRACE("\t* Global pages");
         cr4.PGE = 1;
         g_global_pages = true;
     }
 
-    //----------------------------------
+    ////////////////////////////////////
     // Feature Information
-    //----------------------------------
+    ////////////////////////////////////
     cpuid(0x1, NULL, NULL, NULL, &num);
-    if (num & BIT16) {
-        if (g_cpu_id == 0) TRACE("\t* PAT");
-        g_pat = true;
-        __wrmsr(MSR_IA32_PAT, (PAT_WB) |
-                                    (PAT_WT << 8) |
-                                    (PAT_UC << 16) |
-                                    (PAT_WC << 24) |
-                                    (PAT_WB << 32) |
-                                    (PAT_WT << 40) |
-                                    (PAT_UC << 48) |
-                                    (PAT_WC << 56));
-    }
 
     //----------------------------------
-    // Extended features
+    // PAT - Must be supported
     //----------------------------------
+    ASSERT_TRACE(num & BIT16, "PAT must be supported");
+    if (g_cpu_id == 0) TRACE("\t* PAT");
+
+    uint64_t pat = __rdmsr(MSR_IA32_PAT);
+    pat &= 0xFFFFFFFF;
+    pat |= (PAT_WC << 32);
+    __wrmsr(MSR_IA32_PAT, pat);
+
+    ////////////////////////////////////
+    // Extended features
+    ////////////////////////////////////
     cpuid(0x7, NULL, &num, NULL, NULL);
 
+    //----------------------------------
+    // SMEP - Optional
+    //----------------------------------
     if (num & BIT7) {
         if (g_cpu_id == 0) TRACE("\t* SMEP");
         cr4.SMEP = 1;
     }
 
+    //----------------------------------
+    // SMAP - Optional
+    //----------------------------------
     if (num & BIT20) {
         if (g_cpu_id == 0) TRACE("\t* SMAP");
         cr4.SMAP = 1;
@@ -115,20 +117,10 @@ err_t vmm_figure_features() {
 
 static uint64_t get_caching_attr(page_cache_t type) {
     switch (type) {
-        case CACHE_WRITE_THROUGH: return BIT3;
-        case CACHE_NONE: return BIT4;
-
-        case CACHE_WRITE_COMBINING: {
-            if (g_pat) {
-                return BIT3 | BIT4;
-            } else {
-                return 0;
-            }
-        }
-
-        // default caching is write back
-        case CACHE_WRITE_BACK:
-        case CACHE_NORMAL:          return 0;
+        case CACHE_WRITE_BACK:      return 0;
+        case CACHE_WRITE_THROUGH:   return BIT3;
+        case CACHE_NONE:            return BIT4;
+        case CACHE_WRITE_COMBINING: return BIT7;
     }
 }
 
