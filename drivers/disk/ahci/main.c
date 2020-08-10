@@ -15,6 +15,7 @@ typedef struct ahci_interface {
     volatile hba_port_t *port;
     int cmd_list_len;
     hba_cmd_header_t *cmd_list;
+    bool s64a;
 } ahci_interface_t;
 
 typedef struct ahci_controller {
@@ -69,10 +70,9 @@ static void ahci_thread(ahci_interface_t *interface) {
     }
 
     // set the command list and fis
-    // TODO: support 32bit only
-    interface->cmd_list = pmallocz(SIZE_1KB);
+    interface->cmd_list = interface->s64a ? pmallocz(SIZE_1KB) : pmallocz_low(SIZE_1KB);
     interface->port->clb = DIRECT_TO_PHYSICAL(interface->cmd_list);
-    interface->port->fb = DIRECT_TO_PHYSICAL(pmallocz(256));
+    interface->port->fb = DIRECT_TO_PHYSICAL(interface->s64a ? pmallocz(256) : pmallocz_low(256));
 
     // set all entries to be zero
     for (int i = 0; i < interface->cmd_list_len; i++) {
@@ -123,14 +123,30 @@ static err_t ahci_entry(driver_bind_data_t *data) {
     controller->hba = hba;
 
     // gain ownership over the device
-    if (hba->cap2 & HBA_CAP2_BOH && hba->bohc & HBA_BOHC_BOS) {
+    if (hba->cap2 & HBA_CAP2_BOH) {
         hba->bohc |= HBA_BOHC_OOS;
         ustall(1);
 
-        while (hba->bohc & HBA_BOHC_BB) {
+        uint64_t started = uptime();
+        bool is_busy = false;
+        while (hba->bohc & HBA_BOHC_BOS) {
+
+            // see if BIOS Busy has been set
+            if (!is_busy) {
+                if (!(hba->bohc & HBA_BOHC_BB)) {
+                    if (uptime() - started > 25000) {
+                        // BIOS Busy was not set within 25ms, just continue
+                        break;
+                    }
+                } else {
+                    is_busy = true;
+                }
+            } else {
+                CHECK_TRACE(uptime() - started < 2000000, "Failed to gain ownership from BIOS within 2 seconds");
+            }
+
             cpu_pause();
         }
-
         CHECK(hba->bohc & HBA_BOHC_OOS);
     }
 
@@ -139,7 +155,6 @@ static err_t ahci_entry(driver_bind_data_t *data) {
 
     // now check the caps
     hba_cap_t cap = hba->cap;
-    CHECK_TRACE(cap.s64a, "TODO: add support for non-64bit addressing");
 
     // iterate ports
     uint32_t pi = hba->pi;
@@ -165,6 +180,7 @@ static err_t ahci_entry(driver_bind_data_t *data) {
         interface->instance.block.read = NULL;
         interface->instance.block.write = NULL;
         interface->cmd_list_len = cap.ncs + 1;
+        interface->s64a = cap.s64a;
         interface->port = port;
 
         // create the thread

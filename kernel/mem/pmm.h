@@ -48,6 +48,13 @@ directptr_t pmalloc(size_t size);
 directptr_t pmallocz(size_t size);
 
 /**
+ * Like pmalloc_low, but zeros the memory
+ *
+ * @param size  [IN]    The amount of memory to allocate
+ */
+directptr_t pmallocz_low(size_t size);
+
+/**
  * Free physical memory
  *
  * @param ptr   [IN]    The pointer to free
