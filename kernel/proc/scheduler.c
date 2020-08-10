@@ -3,6 +3,7 @@
 #include <arch/timing.h>
 #include <stdnoreturn.h>
 #include "scheduler.h"
+#include "event.h"
 
 typedef struct run_queue {
     ticket_lock_t lock;
@@ -136,6 +137,9 @@ err_t scheduler_tick(system_context_t* ctx) {
 
     // we are not idle unless said otherwise
     cpu_ctx->idle = false;
+
+    // process timers
+    CHECK_AND_RETHROW(process_timers());
 
     // handle the current thread
     if (g_current_thread != NULL) {

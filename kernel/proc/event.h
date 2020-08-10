@@ -79,6 +79,11 @@ err_t close_event(event_t event);
  * @param type          [IN] The type of the timer
  * @param trigger_time  [IN] The trigger time for the timer (in microseconds)
  */
-err_t set_Timer(event_t timer, timer_type_t type, uint64_t trigger_time);
+err_t set_timer(event_t timer, timer_type_t type, uint64_t trigger_time);
+
+/**
+ * Will process all the timer events in the sytem
+ */
+err_t process_timers();
 
 #endif //__TOMATOS_KERNEL_PROC_EVENT_H__
