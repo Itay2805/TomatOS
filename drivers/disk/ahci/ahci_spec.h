@@ -15,6 +15,27 @@ typedef enum fis_type {
     FIS_TYPE_DEV_BITS   = 0xA1, /* set device bits - device to host */
 } fis_type_t;
 
+typedef struct fis_reg_h2d {
+    uint8_t fis_type;
+    uint8_t pmport : 4;
+    uint8_t _reserved : 3;
+    uint8_t c : 1;
+    uint8_t command;
+    uint8_t featurel;
+    uint8_t lba0;
+    uint8_t lba1;
+    uint8_t lba2;
+    uint8_t device;
+    uint8_t lba3;
+    uint8_t lba4;
+    uint8_t lba5;
+    uint8_t featureh;
+    uint16_t count;
+    uint8_t icc;
+    uint8_t control;
+    uint32_t _reserved2;
+} fis_reg_h2d_t;
+
 typedef struct hba_cmd_header {
     uint8_t cfl: 5;             // Command FIS length in DWORDS, 2 ~ 16
     uint8_t a: 1;               // ATAPI
@@ -43,7 +64,6 @@ typedef struct hba_cmd_table {
     uint8_t cfis[64];
     uint8_t acmd[16];
     uint8_t _reserved[48];
-
 } hba_cmd_table_t;
 
 typedef struct hba_port {

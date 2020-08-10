@@ -5,16 +5,30 @@
 #include <proc/scheduler.h>
 #include <mem/mm.h>
 #include <mem/pmm.h>
+#include <proc/event.h>
 #include "ahci_spec.h"
 
 #undef __MODULE__
 #define __MODULE__ "ahci"
 
 typedef struct ahci_interface {
+    // the interface stuff
     driver_instance_t instance;
     volatile hba_port_t *port;
+    event_t port_event;
+
+    // command manipulation
     int cmd_list_len;
     hba_cmd_header_t *cmd_list;
+    uint32_t free_cmds;
+    ticket_lock_t cmd_lock;
+
+    // the queue of commands to the device
+    list_entry_t request_queue;
+    ticket_lock_t request_lock;
+    event_t request_event;
+
+    // misc
     bool s64a;
 } ahci_interface_t;
 
@@ -24,6 +38,17 @@ typedef struct ahci_controller {
     ahci_interface_t *interfaces[32];
 } ahci_controller_t;
 
+typedef struct ahci_request {
+    // the event to trigger on completion
+    event_t event;
+
+    // the header to add
+    hba_cmd_header_t header;
+
+    // the link in the request queue
+    list_entry_t link;
+} ahci_request_t;
+
 /**
  * check if the device fired and the irq thread should wakeup
  */
@@ -32,6 +57,7 @@ bool ahci_wakeup(ahci_controller_t *controller) {
 }
 
 static void ahci_interrupt(ahci_controller_t *controller) {
+    err_t err = NO_ERROR;
     TRACE("Started %s", g_current_thread->name);
 
     while (true) {
@@ -39,12 +65,13 @@ static void ahci_interrupt(ahci_controller_t *controller) {
 
         uint32_t is = controller->hba->is;
         for (size_t i = next_bit(is, 0); i < 64; i = next_bit(is, i + 1)) {
-            TRACE("port %d fired interrupt", i);
+            CHECK_AND_RETHROW(signal_event(controller->interfaces[i]->port_event));
         }
         controller->hba->is = is;
     }
 
-    ASSERT_TRACE(false, "Tried to exit `%s`", g_current_thread->name);
+cleanup:
+    ASSERT_TRACE(false, "Tried to exit `%s` - %s", g_current_thread->name, strerror(err));
 }
 
 /**
@@ -56,6 +83,14 @@ static void ahci_thread(ahci_interface_t *interface) {
     volatile hba_port_t *port = interface->port;
 
     TRACE("initializing %s", g_current_thread->name);
+
+    // cmd stuff
+    interface->free_cmds = (1ull << interface->cmd_list_len) - 1;
+    CHECK_AND_RETHROW(create_event(&interface->port_event));
+
+    // request stuff
+    interface->request_queue = INIT_LIST(interface->request_queue);
+    CHECK_AND_RETHROW(create_event(&interface->request_event));
 
     // TODO setup PxIE
 
@@ -74,12 +109,6 @@ static void ahci_thread(ahci_interface_t *interface) {
     interface->port->clb = DIRECT_TO_PHYSICAL(interface->cmd_list);
     interface->port->fb = DIRECT_TO_PHYSICAL(interface->s64a ? pmallocz(256) : pmallocz_low(256));
 
-    // set all entries to be zero
-    for (int i = 0; i < interface->cmd_list_len; i++) {
-        interface->cmd_list[i].prdtl = 0;
-        interface->cmd_list[i].ctba = 0;
-    }
-
     // start the command engine
     while (port->cmd & HBA_PxCMD_CR)
         cpu_pause();
@@ -91,12 +120,39 @@ static void ahci_thread(ahci_interface_t *interface) {
 
     // we are ready to accept requests
     TRACE("%s ready", g_current_thread->name);
+    event_t events[] = { interface->port_event, interface->request_event };
     while (1) {
-        yield();
+        size_t index;
+        CHECK_AND_RETHROW(wait_for_event(events, ARRAY_LENGTH(events), &index));
+
+        // got a port event
+        if (index == 0) {
+            TRACE("GOT PORT EVENT");
+        }
+
+        // always check if there are requests to handle
+        size_t slot = 0;
+        ticket_lock(&interface->request_lock);
+        while (!list_is_empty(&interface->request_queue)) {
+            slot = next_bit(interface->free_cmds, slot);
+            if (slot >= interface->cmd_list_len) {
+                // no commands available
+                break;
+            }
+
+            // dequeue
+            ahci_request_t* request = CR(&interface->request_queue, ahci_request_t, link);
+            list_del(&request->link);
+
+            // set the command and fire it
+            interface->cmd_list[slot] = request->header;
+            port->ci = 1 << slot;
+        }
+        ticket_unlock(&interface->request_lock);
     }
 
-    cleanup:
-    (void) err;
+cleanup:
+    ASSERT(!IS_ERROR(err));
 }
 
 /**
@@ -172,6 +228,8 @@ static err_t ahci_entry(driver_bind_data_t *data) {
 
         // create the device
         ahci_interface_t *interface = kalloc(sizeof(ahci_interface_t));
+
+        // interface
         interface->instance.type = DRIVER_BLOCK;
         interface->instance.meta.refcount = 1;
         interface->instance.meta.dtor = NULL;
@@ -179,6 +237,8 @@ static err_t ahci_entry(driver_bind_data_t *data) {
         interface->instance.block.size = NULL;
         interface->instance.block.read = NULL;
         interface->instance.block.write = NULL;
+
+        // cmd stuff
         interface->cmd_list_len = cap.ncs + 1;
         interface->s64a = cap.s64a;
         interface->port = port;

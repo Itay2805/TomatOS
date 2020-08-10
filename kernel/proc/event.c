@@ -140,7 +140,7 @@ err_t wait_for_event(event_t* events, size_t event_count, size_t* index) {
             }
 
             event_data_t* data = events[i];
-            CHECK(data->thread == NULL);
+            CHECK_TRACE(data->thread == NULL || data->thread == g_current_thread, "Thread `%s` already listening on event (requester `%s`)", data->thread->name, g_current_thread->name);
             data->thread = g_current_thread;
         }
 
