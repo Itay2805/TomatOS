@@ -135,44 +135,66 @@ static void bind_pci_drivers() {
         driver_t *driver = &g_drivers[i];
         driver_bind_t *bind = driver->binds;
         while (bind->type != BIND_END) {
-            switch (bind->type) {
-                case BIND_PCI: {
-                    for (int j = 0; j < hmlen(g_pci_map); j++) {
-                        if (g_pci_map[j].value == NULL) continue;
-                        pci_dev_t* dev = g_pci_map[j].value;
+            if (bind->type == BIND_PCI) {
+                for (int j = 0; j < hmlen(g_pci_map); j++) {
+                    if (g_pci_map[j].value == NULL) continue;
+                    pci_dev_t* dev = g_pci_map[j].value;
 
-                        // first check out the class-subclass-progif
-                        if (bind->pci.class != 0 && bind->pci.class != dev->class) continue;
-                        if (bind->pci.subclass != 0 && bind->pci.subclass != dev->subclass) continue;
-                        if (bind->pci.progif != 0 && bind->pci.progif != dev->progif) continue;
-                        if (bind->pci.device_id != 0 && bind->pci.device_id != dev->device_id) continue;
-                        if (bind->pci.vendor_id != 0 && bind->pci.vendor_id != dev->vendor_id) continue;
+                    // first check out the class-subclass-progif
+                    if (bind->pci.class != 0 && bind->pci.class != dev->class) continue;
+                    if (bind->pci.subclass != 0 && bind->pci.subclass != dev->subclass) continue;
+                    if (bind->pci.progif != 0 && bind->pci.progif != dev->progif) continue;
+                    if (bind->pci.device_id != 0 && bind->pci.device_id != dev->device_id) continue;
+                    if (bind->pci.vendor_id != 0 && bind->pci.vendor_id != dev->vendor_id) continue;
 
-                        // match!
-                        TRACE("Bound `%s`", driver->name);
-                        TRACE("\tID: %04x:%04x", dev->device_id, dev->vendor_id);
-                        TRACE("\tPATH: %04x:%02x:%02x.%x",
-                                dev->address.seg, dev->address.bus,
-                                dev->address.slot, dev->address.func);
+                    // match!
+                    TRACE("Bound `%s`", driver->name);
+                    TRACE("\tID: %04x:%04x", dev->device_id, dev->vendor_id);
+                    TRACE("\tPATH: %04x:%02x:%02x.%x",
+                            dev->address.seg, dev->address.bus,
+                            dev->address.slot, dev->address.func);
 
-                        // TODO: don't double bind on acpi nodes
+                    // TODO: don't double bind on acpi nodes
 
-                        // start the thread
-                        // start it
-                        driver_bind_data_t data;
-                        data.bind = bind;
-                        data.pci_dev = dev;
-                        WARN(!IS_ERROR(driver->entry(&data)), "Got error while initializing driver, ignoring");
-
-                    }
-                } break;
-
-                default: break;
+                    // start the thread
+                    // start it
+                    driver_bind_data_t data;
+                    data.bind = bind;
+                    data.pci_dev = dev;
+                    WARN(!IS_ERROR(driver->entry(&data)), "Got error while initializing driver, ignoring");
+                }
             }
             bind++;
         }
     }
 }
+
+static void bind_fallback_drivers() {
+    TRACE("Binding Fallback drivers");
+
+    // TODO: This is probably kinda slow, since it has to go over all
+    //       the drivers, maybe just register the fallback while
+    //       setting up and check on them later
+    size_t driver_count = g_drivers_end - g_drivers;
+    for (int i = 0; i < driver_count; i++) {
+        driver_t *driver = &g_drivers[i];
+        driver_bind_t *bind = driver->binds;
+        while (bind->type != BIND_END) {
+            if (bind->type == BIND_FALLBACK) {
+                if (list_is_empty(&g_interfaces[bind->fallback.type])) {
+                    // match!
+                    TRACE("Bound `%s`", driver->name);
+
+                    driver_bind_data_t data;
+                    data.bind = bind;
+                    WARN(!IS_ERROR(driver->entry(&data)), "Got error while initializing driver, ignoring");
+                }
+            }
+            bind++;
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Driver dispatching
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -205,6 +227,7 @@ err_t dispatch_drivers() {
 
     bind_acpi_drivers();
     bind_pci_drivers();
+    bind_fallback_drivers();
 
     TRACE("Finished driver dispatch");
 

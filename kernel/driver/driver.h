@@ -47,6 +47,7 @@ typedef enum driver_bind_type {
     BIND_ACPI,
     BIND_PCI,
     BIND_INTERFACE,
+    BIND_FALLBACK,
 } driver_bind_type_t;
 
 typedef struct driver_bind {
@@ -67,6 +68,9 @@ typedef struct driver_bind {
             driver_connect_t connect;
             driver_check_t check;
         } interface;
+        struct {
+            driver_interface_type_t type;
+        } fallback;
     };
 } driver_bind_t;
 
