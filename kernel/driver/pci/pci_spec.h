@@ -16,15 +16,23 @@ typedef struct pci_command {
     uint16_t stepping_control : 1;
     uint16_t serr : 1;
     uint16_t fast_back_to_back : 1;
+    uint16_t interrupt_disable : 1;
 } PACKED pci_command_t;
 
 typedef struct pci_status {
-    uint16_t _reserved1 : 4;
+    uint16_t _reserved1 : 3;
+    uint16_t interrupt : 1;
     uint16_t capability : 1;
     uint16_t capable_66mz : 1;
     uint16_t _reserved2 : 1;
     uint16_t fast_back_to_back_capable : 1;
     uint16_t master_data_parity_error : 1;
+    uint16_t devsel_timing : 2;
+    uint16_t signaled_target_abort : 1;
+    uint16_t received_target_abort : 1;
+    uint16_t received_master_abort : 1;
+    uint16_t signaled_system_error : 1;
+    uint16_t detected_parity_error : 1;
 } PACKED pci_status_t;
 
 typedef struct pci_common_header {

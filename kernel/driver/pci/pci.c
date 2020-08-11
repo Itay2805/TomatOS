@@ -181,6 +181,12 @@ static err_t init_pci_dev(pci_dev_t* dev) {
         }
     }
 
+    // configure device
+    dev->header->command.bus_master = 1;
+    if (dev->irq) {
+        dev->header->command.interrupt_disable = 0;
+    }
+
     // pci-to-pci bridge, iterate over the second bridge
     if (dev->class == 0x06 && dev->subclass == 0x04) {
         CHECK_AND_RETHROW(enum_bus(dev, dev->bridge->secondary_bus, 0));

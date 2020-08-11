@@ -62,4 +62,28 @@ directptr_t pmallocz_low(size_t size);
  */
 void pmfree(directptr_t ptr, size_t size);
 
+/**
+ * Initialize the ref-counted page management
+ */
+void pmalloc_page_init();
+
+/**
+ * Will allocate a single page.
+ */
+directptr_t pmalloc_page();
+
+/**
+ * Will increment the ref count for the given page
+ *
+ * @param page  [IN] The page
+ */
+void pmalloc_ref_page(directptr_t page);
+
+/**
+ * Will free (decrement the ref count) of the given page
+ *
+ * @param page  [IN] The page
+ */
+void pmfree_page(directptr_t page);
+
 #endif //__TOMATOS_KERNEL_ARCH_PMM_H__

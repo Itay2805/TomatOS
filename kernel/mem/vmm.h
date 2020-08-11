@@ -8,6 +8,7 @@
 
 #ifdef __TOMATOS_AMD64__
     #define PAGE_SIZE SIZE_4KB
+    #define PAGE_SHIFT 12
 
     // all the lower half to userspace
     #define USERSPACE_END               0x00007fffffffffffull

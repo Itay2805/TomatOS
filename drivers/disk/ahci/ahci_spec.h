@@ -64,18 +64,32 @@ typedef struct hba_cmd_table {
     uint8_t cfis[64];
     uint8_t acmd[16];
     uint8_t _reserved[48];
+    hba_prdt_entry_t prdts[0];
 } hba_cmd_table_t;
 
 typedef struct hba_port {
     uint64_t clb;       // 0x00, command list base address, 1K-byte aligned
     uint64_t fb;        // 0x08, FIS base address, 256-byte aligned
     uint32_t is;        // 0x10, interrupt status
+#define PxIS_DHRS   BIT0    /* Device to Host Register FIS Interrupt */
+#define PxIS_PSS    BIT1    /* PIO Setup FIS Interrupt */
+#define PxIS_DSS    BIT2    /* DMA Setup FIS Interrupt */
+#define PxIS_SDBS   BIT3    /* Set Device Bits Interrupt */
+#define PxIS_UFS    BIT4    /* Unknown FIS Interrupt */
+#define PxIS_DPS    BIT5    /* Descriptor Processed */
+// TODO: The rest
     uint32_t ie;        // 0x14, interrupt enable
+#define PxIE_DHRE   BIT0    /* Device to Host Register FIS Interrupt */
+#define PxIE_PSE    BIT1    /* PIO Setup FIS Interrupt Enabe */
+#define PxIE_DSE    BIT2    /* DMA Setup FIS Interrupt Enable */
+#define PxIE_SDBE   BIT3    /* Set Device Bits Interrupt Enable */
+#define PxIE_UFE    BIT4    /* Unknown FIS Interrupt Enable */
+#define PxIE_DPE    BIT5    /* Descriptor Processed Interrupt Enable */
     uint32_t cmd;       // 0x18, command and status
-#define HBA_PxCMD_ST    0x0001
-#define HBA_PxCMD_FRE   0x0010
-#define HBA_PxCMD_FR    0x4000
-#define HBA_PxCMD_CR    0x8000
+#define PxCMD_ST    0x0001
+#define PxCMD_FRE   0x0010
+#define PxCMD_FR    0x4000
+#define PxCMD_CR    0x8000
     uint32_t rsv0;      // 0x1C, Reserved
     uint32_t tfd;       // 0x20, task file data
     uint32_t sig;       // 0x24, signature
@@ -123,12 +137,12 @@ typedef struct hba_cap {
 
 typedef struct hba_mem {
     /* x00 - 0x2B, Generic Host Control */
-    hba_cap_t cap;       /* 0x00: CAP, host capability */
+    hba_cap_t cap;      /* 0x00: CAP, host capability */
     uint32_t ghc;       /* 0x04: GHC, global host control */
-#define HBA_GHC_HR BIT0         // HBA Reset
-#define HBA_GHC_IE BIT1         // Interrupt Enable
-#define HBA_GHC_MRSM BIT2       // MSI Revert to Single Message
-#define HBA_GHC_AE BIT31        // AHCI Enable
+#define GHC_HR      BIT0         // HBA Reset
+#define GHC_IE      BIT1         // Interrupt Enable
+#define GHC_MRSM    BIT2       // MSI Revert to Single Message
+#define GHC_AE      BIT31        // AHCI Enable
     uint32_t is;        /* 0x08: IS, interrupt status */
     uint32_t pi;        /* 0x0c: PI, port implemented */
     uint32_t vs;        /* 0x10: VS, version */
@@ -137,15 +151,15 @@ typedef struct hba_mem {
     uint32_t em_loc;    /* 0x1c: enclosure management location */
     uint32_t em_ctl;    /* 0x20: enclosure management control */
     uint32_t cap2;      /* 0x24: CAP2, extended host capability */
-#define HBA_CAP2_BOH BIT0       // BIOS/OS Handoff
-#define HBA_CAP2_NVMP BIT1      // NVMHCI Present
-#define HBA_CAP2_APST BIT2      // Automatic Partial to Slumber Transitions
+#define CAP2_BOH BIT0       // BIOS/OS Handoff
+#define CAP2_NVMP BIT1      // NVMHCI Present
+#define CAP2_APST BIT2      // Automatic Partial to Slumber Transitions
     uint32_t bohc;      /* 0x28, BIOS/OS handoff control and status */
-#define HBA_BOHC_BOS BIT0       // BIOS Owned Semaphore
-#define HBA_BOHC_OOS BIT1       // OS Owned Semaphore
-#define HBA_BOHC_SOOE BIT2      // SMI on OS Ownership Change Enable
-#define HBA_BOHC_OOC BIT3       // OS Ownership Change
-#define HBA_BOHC_BB BIT4        // BIOS Busy
+#define BOHC_BOS BIT0       // BIOS Owned Semaphore
+#define BOHC_OOS BIT1       // OS Owned Semaphore
+#define BOHC_SOOE BIT2      // SMI on OS Ownership Change Enable
+#define BOHC_OOC BIT3       // OS Ownership Change
+#define BOHC_BB BIT4        // BIOS Busy
     uint8_t  rsv[0xA0-0x2C];
     uint8_t  vendor[0x100-0xA0];
     hba_port_t ports[];

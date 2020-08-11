@@ -55,6 +55,11 @@ static buddy_t g_high_buddy = {
     .free_list = (directptr_t[64 - MIN_ORDER]){},
 };
 
+/**
+ * The amount of pages in the system
+ */
+static size_t g_page_count;
+
 static bool check_buddies(buddy_t* buddy, directptr_t a, directptr_t b, size_t size) {
     uintptr_t lower = MIN(a, b) - buddy->base;
     uintptr_t upper = MAX(a, b) - buddy->base;
@@ -163,6 +168,10 @@ void pmm_add_range(directptr_t base, size_t size) {
         }
         buddy_add_range(&g_high_buddy, base, size);
     }
+
+    if (g_page_count < ALIGN_UP((uintptr_t)base + size, PAGE_SIZE) / PAGE_SIZE) {
+        g_page_count = ALIGN_UP((uintptr_t)base + size, PAGE_SIZE) / PAGE_SIZE;
+    }
 }
 
 directptr_t pmalloc_low(size_t size) {
@@ -217,4 +226,26 @@ void pmfree(directptr_t ptr, size_t size) {
     // get the order and add it
     int order = MAX(64 - clz(size - 1), MIN_ORDER);
     buddy_add_free_item(buddy, ptr, order, false);
+}
+
+static _Atomic(uint16_t)* g_page_refcount = NULL;
+
+void pmalloc_page_init() {
+    g_page_refcount = pmallocz(sizeof(uint16_t) * g_page_count);
+}
+
+directptr_t pmalloc_page() {
+    directptr_t page = pmalloc(PAGE_SIZE);
+    pmalloc_ref_page(page);
+    return page;
+}
+
+void pmalloc_ref_page(directptr_t page) {
+    g_page_refcount[(uintptr_t)page >> PAGE_SHIFT]++;
+}
+
+void pmfree_page(directptr_t page) {
+    if (--g_page_refcount[(uintptr_t)page >> PAGE_SHIFT] == 0) {
+        pmfree(page, PAGE_SIZE);
+    }
 }

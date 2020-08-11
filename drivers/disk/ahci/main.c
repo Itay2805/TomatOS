@@ -7,6 +7,7 @@
 #include <mem/pmm.h>
 #include <proc/event.h>
 #include "ahci_spec.h"
+#include "../ata_spec.h"
 
 #undef __MODULE__
 #define __MODULE__ "ahci"
@@ -21,6 +22,8 @@ typedef struct ahci_interface {
     int cmd_list_len;
     hba_cmd_header_t *cmd_list;
     uint32_t free_cmds;
+    uint32_t used_cmds;
+    struct ahci_request* requests[32];
     ticket_lock_t cmd_lock;
 
     // the queue of commands to the device
@@ -88,17 +91,14 @@ static void ahci_thread(ahci_interface_t *interface) {
     interface->free_cmds = (1ull << interface->cmd_list_len) - 1;
     CHECK_AND_RETHROW(create_event(&interface->port_event));
 
-    // request stuff
-    interface->request_queue = INIT_LIST(interface->request_queue);
-    CHECK_AND_RETHROW(create_event(&interface->request_event));
-
-    // TODO setup PxIE
+    // setup the interrupts
+    port->ie = PxIE_DHRE;
 
     // make sure to stop the cmd before doing anything
-    port->cmd &= ~HBA_PxCMD_ST;
-    port->cmd &= ~HBA_PxCMD_FRE;
+    port->cmd &= ~PxCMD_ST;
+    port->cmd &= ~PxCMD_FRE;
     while (1) {
-        if (!(port->cmd & HBA_PxCMD_FR) && !(port->cmd & HBA_PxCMD_CR)) {
+        if (!(port->cmd & PxCMD_FR) && !(port->cmd & PxCMD_CR)) {
             break;
         }
         cpu_pause();
@@ -110,10 +110,10 @@ static void ahci_thread(ahci_interface_t *interface) {
     interface->port->fb = DIRECT_TO_PHYSICAL(interface->s64a ? pmallocz(256) : pmallocz_low(256));
 
     // start the command engine
-    while (port->cmd & HBA_PxCMD_CR)
+    while (port->cmd & PxCMD_CR)
         cpu_pause();
-    port->cmd |= HBA_PxCMD_FRE;
-    port->cmd |= HBA_PxCMD_ST;
+    port->cmd |= PxCMD_FRE;
+    port->cmd |= PxCMD_ST;
 
     // register the interface
     CHECK_AND_RETHROW(register_interface((void *) interface));
@@ -127,24 +127,43 @@ static void ahci_thread(ahci_interface_t *interface) {
 
         // got a port event
         if (index == 0) {
-            TRACE("GOT PORT EVENT");
+            if (port->is & PxIS_DHRS) {
+                // transaction complete
+                for (size_t slot = next_bit(interface->used_cmds, 0); slot < interface->cmd_list_len; slot = next_bit(interface->used_cmds, slot + 1)) {
+                    if (!(port->ci & slot)) {
+                        // check the request
+                        ahci_request_t* request = interface->requests[slot];
+                        CHECK_AND_RETHROW(signal_event(request->event));
+
+                        // can free the slot
+                        interface->used_cmds &= ~slot;
+                        interface->free_cmds |= slot;
+                    }
+                }
+            }
+
+            // TODO: errors and such
         }
 
         // always check if there are requests to handle
         size_t slot = 0;
         ticket_lock(&interface->request_lock);
         while (!list_is_empty(&interface->request_queue)) {
-            slot = next_bit(interface->free_cmds, slot);
+            slot = next_bit(interface->free_cmds, slot + 1);
             if (slot >= interface->cmd_list_len) {
                 // no commands available
                 break;
             }
 
+            interface->free_cmds &= ~(1u << slot);
+            interface->used_cmds |= (1u << slot);
+
             // dequeue
-            ahci_request_t* request = CR(&interface->request_queue, ahci_request_t, link);
+            ahci_request_t* request = CR(interface->request_queue.next, ahci_request_t, link);
             list_del(&request->link);
 
             // set the command and fire it
+            interface->requests[slot] = request;
             interface->cmd_list[slot] = request->header;
             port->ci = 1 << slot;
         }
@@ -153,6 +172,56 @@ static void ahci_thread(ahci_interface_t *interface) {
 
 cleanup:
     ASSERT(!IS_ERROR(err));
+}
+
+/**
+ * Will request an identify from the device and setup the device
+ * information
+ */
+static err_t request_identify(ahci_interface_t* interface) {
+    err_t err = NO_ERROR;
+
+    // setup the request
+    ahci_request_t request;
+    ata_identify_data_t* identify_data = pmallocz(sizeof(ata_identify_data_t));
+    CHECK_AND_RETHROW(create_event(&request.event));
+
+    // setup the header
+    request.header.cfl = sizeof(fis_reg_h2d_t) / sizeof(uint32_t);
+    request.header.prdtl = 1;
+
+    // setup the command table
+    hba_cmd_table_t* cmdtbl = pmallocz(sizeof(hba_cmd_table_t) + sizeof(hba_prdt_entry_t));
+    request.header.ctba = DIRECT_TO_PHYSICAL(cmdtbl);
+    cmdtbl->prdts[0].dba = DIRECT_TO_PHYSICAL(identify_data);
+    cmdtbl->prdts[0].dbc = sizeof(*identify_data) - 1;
+    cmdtbl->prdts[0].i = 1;
+
+    // setup the fis
+    fis_reg_h2d_t* fis = (fis_reg_h2d_t*)cmdtbl->cfis;
+    fis->fis_type = FIS_TYPE_REG_H2D;
+    fis->command = ATA_CMD_IDENTIFY;
+    fis->c = 1;
+
+    // queue it and signal that there is a request
+    ticket_lock(&interface->request_lock);
+    list_add(&interface->request_queue, &request.link);
+    ticket_unlock(&interface->request_lock);
+    CHECK_AND_RETHROW(signal_event(interface->request_event));
+
+    // wait for it
+    CHECK_AND_RETHROW(wait_for_event(&request.event, 1, NULL));
+
+    // get the name
+    char model_number[20];
+    for(int i = 0; i < 10; i++) {
+        model_number[i * 2 + 0] = (char)((identify_data->model_number[i] >> 8u) & 0xFFu);
+        model_number[i * 2 + 1] = (char)(identify_data->model_number[i] & 0xFFu);
+    }
+    TRACE("Model number %s", model_number);
+
+cleanup:
+    return err;
 }
 
 /**
@@ -179,17 +248,17 @@ static err_t ahci_entry(driver_bind_data_t *data) {
     controller->hba = hba;
 
     // gain ownership over the device
-    if (hba->cap2 & HBA_CAP2_BOH) {
-        hba->bohc |= HBA_BOHC_OOS;
+    if (hba->cap2 & CAP2_BOH) {
+        hba->bohc |= BOHC_OOS;
         ustall(1);
 
         uint64_t started = uptime();
         bool is_busy = false;
-        while (hba->bohc & HBA_BOHC_BOS) {
+        while (hba->bohc & BOHC_BOS) {
 
             // see if BIOS Busy has been set
             if (!is_busy) {
-                if (!(hba->bohc & HBA_BOHC_BB)) {
+                if (!(hba->bohc & BOHC_BB)) {
                     if (uptime() - started > 25000) {
                         // BIOS Busy was not set within 25ms, just continue
                         break;
@@ -203,14 +272,28 @@ static err_t ahci_entry(driver_bind_data_t *data) {
 
             cpu_pause();
         }
-        CHECK(hba->bohc & HBA_BOHC_OOS);
+        CHECK(hba->bohc & BOHC_OOS);
     }
 
     // make sure interrupts are enabled and that we are in ahci mode
-    hba->ghc |= HBA_GHC_IE | HBA_GHC_AE;
+    hba->ghc |= GHC_IE | GHC_AE;
 
     // now check the caps
     hba_cap_t cap = hba->cap;
+
+    // setup the irq handling thread
+    // TODO: msi/msix
+    CHECK_AND_RETHROW(register_irq(data->pci_dev->irq, &controller->vector));
+
+    char thread_name[32];
+    snprintf(thread_name, sizeof(thread_name), "ahci/%04x:%02x:%02x.%x/irq",
+             data->pci_dev->address.seg, data->pci_dev->address.bus,
+             data->pci_dev->address.slot, data->pci_dev->address.func);
+
+    thread_t *thread;
+    CHECK_AND_RETHROW(create_thread(&thread, (void *) ahci_interrupt, controller, thread_name));
+    schedule_thread(thread);
+    CHECK_AND_RETHROW(release_thread(thread));
 
     // iterate ports
     uint32_t pi = hba->pi;
@@ -228,6 +311,7 @@ static err_t ahci_entry(driver_bind_data_t *data) {
 
         // create the device
         ahci_interface_t *interface = kalloc(sizeof(ahci_interface_t));
+        controller->interfaces[i] = interface;
 
         // interface
         interface->instance.type = DRIVER_BLOCK;
@@ -237,6 +321,10 @@ static err_t ahci_entry(driver_bind_data_t *data) {
         interface->instance.block.size = NULL;
         interface->instance.block.read = NULL;
         interface->instance.block.write = NULL;
+
+        // request stuff
+        interface->request_queue = INIT_LIST(interface->request_queue);
+        CHECK_AND_RETHROW(create_event(&interface->request_event));
 
         // cmd stuff
         interface->cmd_list_len = cap.ncs + 1;
@@ -249,44 +337,34 @@ static err_t ahci_entry(driver_bind_data_t *data) {
                  data->pci_dev->address.seg, data->pci_dev->address.bus,
                  data->pci_dev->address.slot, data->pci_dev->address.func, i);
 
+        // create and start the threads
         thread_t *thread;
         CHECK_AND_RETHROW(create_thread(&thread, (void *) ahci_thread, interface, thread_name));
         schedule_thread(thread);
         CHECK_AND_RETHROW(release_thread(thread));
+
+        CHECK_AND_RETHROW(request_identify(interface));
     }
-
-    // TODO: msi/msix
-    CHECK_AND_RETHROW(register_irq(data->pci_dev->irq, &controller->vector));
-
-    char thread_name[32];
-    snprintf(thread_name, sizeof(thread_name), "ahci/%04x:%02x:%02x.%x/irq",
-             data->pci_dev->address.seg, data->pci_dev->address.bus,
-             data->pci_dev->address.slot, data->pci_dev->address.func);
-
-    thread_t *thread;
-    CHECK_AND_RETHROW(create_thread(&thread, (void *) ahci_interrupt, controller, thread_name));
-    schedule_thread(thread);
-    CHECK_AND_RETHROW(release_thread(thread));
 
 cleanup:
     return err;
 }
 
 DRIVER {
-        .name = "AHCI 1.0",
-        .entry = ahci_entry,
-        .interface = {
-                .type = DRIVER_BLOCK,
+    .name = "AHCI 1.0",
+    .entry = ahci_entry,
+    .interface = {
+        .type = DRIVER_BLOCK,
+    },
+    .binds = (driver_bind_t[]) {
+        {
+            .type = BIND_PCI,
+            .pci = {
+                .class = 0x01,
+                .subclass = 0x06,
+                .progif = 0x01
+            }
         },
-        .binds = (driver_bind_t[]) {
-                {
-                        .type = BIND_PCI,
-                        .pci = {
-                                .class = 0x01,
-                                .subclass = 0x06,
-                                .progif = 0x01
-                        }
-                },
-                {BIND_END}
-        }
+        {BIND_END}
+    }
 };
