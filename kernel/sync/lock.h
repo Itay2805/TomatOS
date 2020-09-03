@@ -3,10 +3,12 @@
 
 #include <stdatomic.h>
 #include <stdbool.h>
+#include "critical.h"
 
 typedef struct lock {
     atomic_size_t now_serving;
     atomic_size_t next_ticket;
+    critical_t critical;
 } ticket_lock_t;
 
 #define INIT_LOCK() ((ticket_lock_t){0})

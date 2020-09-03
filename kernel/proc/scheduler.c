@@ -197,7 +197,7 @@ err_t scheduler_tick(system_context_t* ctx) {
         // dequeue a thread
         g_current_thread = CR(rq->link.next, thread_t, scheduler_link);
         list_del(&g_current_thread->scheduler_link);
-
+        
         // don't forget to unlock it
         ticket_unlock(&rq->lock);
 

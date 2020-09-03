@@ -241,8 +241,7 @@ typedef struct interrupt_frame {
 } PACKED interrupt_frame_t;
 
 typedef struct interrupt_entry {
-    thread_t* thread;
-    interrupt_wakeup_t wakeup;
+    err_t (*handler)(void* ptr);
     void* ptr;
 } interrupt_entry_t;
 
@@ -255,22 +254,38 @@ static ticket_lock_t g_interrupt_locks[INTERRUPT_COUNT];
 /**
  * Define a generic interrupt handler that signalls an event
  */
-#define EVENT_INTERRUPT_HANDLER(num) \
-    __attribute__((interrupt)) \
-    static void interrupt_handle_##num(interrupt_frame_t* frame) { \
-        ticket_lock(&g_interrupt_locks[num - 0x21]); \
-        interrupt_entry_t* entries = g_interrupt_entries[num - 0x21]; \
-        for (int i = 0; i < arrlen(entries); i++) { \
-            if (!entries[i].wakeup || entries[i].wakeup(entries[i].ptr)) { \
-                schedule_thread(entries[i].thread); \
-                arrdelswap(entries, i); \
-                i--; \
-            } \
-        } \
-        g_interrupt_entries[num - 0x21] = entries; \
-        ticket_unlock(&g_interrupt_locks[num - 0x21]); \
-        send_lapic_eoi(); \
+#define EVENT_INTERRUPT_HANDLER(num)                                                                                    \
+    __attribute__((interrupt))                                                                                          \
+    static void interrupt_handle_##num(interrupt_frame_t* frame) {                                                      \
+        ticket_lock(&g_interrupt_locks[num - 0x21]);                                                                    \
+        interrupt_entry_t* entries = g_interrupt_entries[num - 0x21];                                                   \
+        for (int i = 0; i < arrlen(entries); i++) {                                                                     \
+            entries[i].handler(entries[i].ptr);                                                                         \
+        }                                                                                                               \
+        ticket_unlock(&g_interrupt_locks[num - 0x21]);                                                                  \
+        send_lapic_eoi();                                                                                               \
     }
+
+err_t register_irq_handler(uint8_t vector, err_t (*handler)(void* data), void* data) {
+    err_t err = NO_ERROR;
+
+    CHECK(handler != NULL);
+
+    critical_t crit;
+    enter_critical(&crit);
+    ticket_lock(&g_interrupt_locks[vector]);
+
+    interrupt_entry_t entry = {
+        .handler = handler,
+        .ptr = data
+    };
+    arrpush(g_interrupt_entries[vector], entry);
+
+cleanup:
+    ticket_unlock(&g_interrupt_locks[vector]);
+    exit_critical(&crit);
+    return err;
+}
 
 /**
  * Define all interrupt event handlers
@@ -500,27 +515,6 @@ EVENT_INTERRUPT_HANDLER(0xfd);
 EVENT_INTERRUPT_HANDLER(0xfe);
 EVENT_INTERRUPT_HANDLER(0xff);
 #endif
-
-void wait_for_interrupt(uint8_t vector, interrupt_wakeup_t wakeup, void* data) {
-    // register
-    critical_t crit;
-    enter_critical(&crit);
-    ticket_lock(&g_interrupt_locks[vector]);
-
-    interrupt_entry_t entry = {
-            .thread = g_current_thread,
-            .wakeup = wakeup,
-            .ptr = data
-    };
-    arrpush(g_interrupt_entries[vector], entry);
-
-    ticket_unlock(&g_interrupt_locks[vector]);
-    exit_critical(&crit);
-
-    // yield
-    g_current_thread->state = STATE_WAITING;
-    yield();
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define IDT structures and set the idt up

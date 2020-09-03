@@ -198,9 +198,9 @@ err_t init_ripper();
  * @param thread    [OUT]   The new thread
  * @param func      [IN]    The entry function
  * @param data      [IN]    The data to pass to the entry
- * @param name      [IN]    The name of the thread, can be null
+ * @param name_fmt  [IN]    The name of the thread, can be null
  */
-err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, const char* name);
+err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, const char* name_fmt, ...);
 
 /**
  * Will exit from the current thread

@@ -62,12 +62,12 @@ void save_context(system_context_t* curr);
  */
 void restore_context(system_context_t* curr);
 
-typedef bool (*interrupt_wakeup_t)(void* ptr);
-
 /**
- * This will cause the thread to wait for an interrupt
+ * This will register a new interrupt handler, where the handler runs in
+ * interrupt context, this should only be used for time critical usage, for
+ * anything else please use the irq events
  */
-void wait_for_interrupt(uint8_t vector, interrupt_wakeup_t wakeup, void* data);
+err_t register_irq_handler(uint8_t vector, err_t (*handler)(void* data), void* data);
 
 /**
  * This will tell the kernel we want to route an irq

@@ -8,8 +8,12 @@
  * For amd64 we are going to simply use the e9 port
  */
 void debug_write_char(char v) {
+#ifdef __TOMATOS_QEMU_CONSOLE__
     __outb(0xe9, v);
+#endif
+#ifdef __TOMATOS_EARLY_CONSOLE__
     early_console_putc(v);
+#endif
 }
 
 

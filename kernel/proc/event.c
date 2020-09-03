@@ -1,5 +1,6 @@
 #include <mem/mm.h>
 #include <util/stb_ds.h>
+#include <sync/critical.h>
 #include "event.h"
 #include "scheduler.h"
 
@@ -8,6 +9,11 @@ typedef struct event_data {
      * The handle meta of the event
      */
     handle_meta_t handle_meta;
+
+    /**
+     * The event lock
+     */
+    ticket_lock_t lock;
 
     /**
      * Is the event signalled
@@ -81,6 +87,7 @@ err_t create_event(event_t* event) {
     new_event->handle_meta.dtor = free_event;
     new_event->signaled = false;
     new_event->thread = NULL;
+    new_event->lock = INIT_LOCK();
 
     *event = new_event;
 
@@ -91,8 +98,12 @@ cleanup:
 err_t signal_event(event_t event) {
     err_t err = NO_ERROR;
     event_data_t* data = event;
+    critical_t crit;
 
     CHECK(event != NULL);
+
+    enter_critical(&crit);
+    ticket_lock(&data->lock);
 
     if (!data->signaled) {
         data->signaled = true;
@@ -105,6 +116,9 @@ err_t signal_event(event_t event) {
     }
 
 cleanup:
+    ticket_unlock(&data->lock);
+    exit_critical(&crit);
+
     return err;
 }
 
@@ -123,13 +137,25 @@ cleanup:
 
 err_t wait_for_event(event_t* events, size_t event_count, size_t* index) {
     err_t err = NO_ERROR;
+    critical_t crit;
 
     CHECK(events != NULL);
     CHECK(event_count > 0);
 
     while (true) {
+        // first lock everything
+        enter_critical(&crit);
         for (int i = 0; i < event_count; i++) {
-            err = check_event(events[i]);
+            event_data_t* data = events[i];
+            ticket_lock(&data->lock);
+        }
+
+        // now we can safely iterate all the events and check them
+        // one by one without anyone altering them in the middle
+        for (int i = 0; i < event_count; i++) {
+            event_data_t* data = events[i];
+
+            err = check_event(data);
             if (err == NO_ERROR) {
                 if (index != NULL) *index = i;
                 goto cleanup;
@@ -139,24 +165,37 @@ err_t wait_for_event(event_t* events, size_t event_count, size_t* index) {
                 CHECK_AND_RETHROW(err);
             }
 
-            event_data_t* data = events[i];
             CHECK_TRACE(data->thread == NULL || data->thread == g_current_thread, "Thread `%s` already listening on event (requester `%s`)", data->thread->name, g_current_thread->name);
             data->thread = g_current_thread;
         }
 
         g_current_thread->state = STATE_WAITING;
+
+        // unlock everything before we yield
+        for (int i = 0; i < event_count; i++) {
+            event_data_t* data = events[i];
+            ticket_unlock(&data->lock);
+        }
+        exit_critical(&crit);
+
+        // yield
         yield();
     }
 
 cleanup:
-    if (events != NULL) {
+    if (events != NULL && event_count > 0) {
+        // unregister waiting for all of these events
+        // and unlock all the events
         for (int i = 0; i < event_count; i++) {
             event_data_t* data = events[i];
 
             if (data->thread == g_current_thread) {
                 data->thread = NULL;
             }
+
+            ticket_unlock(&data->lock);
         }
+        exit_critical(&crit);
     }
     return err;
 }

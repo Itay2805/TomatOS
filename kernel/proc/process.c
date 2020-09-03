@@ -133,7 +133,7 @@ cleanup:
     return err;
 }
 
-err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, const char* name) {
+err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, const char* name_fmt, ...) {
     err_t err = NO_ERROR;
 
     CHECK(thread != NULL);
@@ -169,8 +169,11 @@ err_t create_thread(thread_t** thread, void(*func)(void* data), void* data, cons
     new_thread->system_context.IP = (uintptr_t)func;
     new_thread->system_context.ARG0 = (uintptr_t)data;
 
-    if (name != NULL) {
-        memcpy(new_thread->name, name, ARRAY_LENGTH(new_thread->name));
+    if (name_fmt != NULL) {
+        va_list ap;
+        va_start(ap, name_fmt);
+        vsnprintf(new_thread->name, ARRAY_LENGTH(new_thread->name), name_fmt, ap);
+        va_end(ap);
     } else {
         snprintf(new_thread->name, ARRAY_LENGTH(new_thread->name), "%s/%d", g_current_process->name, new_thread->tid);
     }

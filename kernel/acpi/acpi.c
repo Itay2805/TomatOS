@@ -115,11 +115,22 @@ static uint8_t g_sci_vector = 0;
  */
 static thread_t* g_acpi_thread = NULL;
 
-static bool acpi_wakeup(uint16_t* event) {
-    *event = lai_get_sci_event();
+/**
+ * Got an acpi event
+ */
+static event_t g_acpi_event;
+
+/**
+ * The acpi event data
+ */
+static _Atomic(uint16_t) g_sci_event;
+
+static err_t acpi_irq(void* ptr) {
+    err_t err = NO_ERROR;
+    g_sci_event = lai_get_sci_event();
 
     // handle the timer directly
-    if (*event & ACPI_TIMER) {
+    if (g_sci_event & ACPI_TIMER) {
         bool really_overflowed = !(get_timer_ticks() & (g_extended_timer ? BIT31 : BIT23));
         if (really_overflowed) {
             g_total_ticks += g_timer_mask;
@@ -127,27 +138,34 @@ static bool acpi_wakeup(uint16_t* event) {
         }
     }
 
-    return *event != 0;
+    // signal the event to wakeup the acpi thread
+    CHECK_AND_RETHROW(signal_event(g_acpi_event));
+
+cleanup:
+    return err;
 }
 
 /**
  * This thread handles scis
  */
 static noreturn void acpi_thread() {
+    err_t err = NO_ERROR;
     TRACE("ACPI thread started (sci=%d)", g_sci_vector);
 
     while (true) {
-        uint16_t event;
-        wait_for_interrupt(g_sci_vector, (interrupt_wakeup_t)acpi_wakeup, &event);
+        CHECK_AND_RETHROW(wait_for_event(&g_acpi_event, 1, NULL));
 
-        if (event & ACPI_POWER_BUTTON) {
+        if (g_sci_event & ACPI_POWER_BUTTON) {
             TRACE("Pressed power button");
         }
 
-        if (event & ACPI_SLEEP_BUTTON) {
+        if (g_sci_event & ACPI_SLEEP_BUTTON) {
             TRACE("Pressed sleep button");
         }
     }
+
+cleanup:
+    ASSERT_TRACE(false, "Got error %s!", strerror(err));
 }
 
 err_t init_acpi() {
@@ -161,8 +179,12 @@ err_t init_acpi() {
     lai_set_sci_event(ACPI_POWER_BUTTON | ACPI_SLEEP_BUTTON | ACPI_WAKE | ACPI_TIMER);
     lai_get_sci_event();
 
-    // do sci handling
+    // setup sci irq handler
+    CHECK_AND_RETHROW(create_event(&g_acpi_event));
     CHECK_AND_RETHROW(register_irq(g_acpi_fadt->sci_irq, &g_sci_vector));
+    CHECK_AND_RETHROW(register_irq_handler(g_sci_vector, acpi_irq, NULL));
+
+    // create sci handling thread
     CHECK_AND_RETHROW(create_thread(&g_acpi_thread, acpi_thread, NULL, "acpi"));
     schedule_thread(g_acpi_thread);
 
@@ -179,6 +201,7 @@ void stall(uint64_t ms) {
 }
 
 uint64_t uptime() {
+    // handle cases where we overflow and did not handle an interrupt
     return (((g_total_ticks + get_timer_ticks()) - g_initial_ticks) * 1000000u) / ACPI_TIMER_FREQUENCY;
 }
 

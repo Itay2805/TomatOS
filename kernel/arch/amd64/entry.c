@@ -101,6 +101,7 @@ noreturn void kentry(stivale_struct_t* strct) {
     init_tss();
     init_idt();
 
+#ifdef __TOMATOS_EARLY_CONSOLE__
     // initialize an early console
     if (strct->framebuffer_addr == 0) {
         TRACE("Framebuffer not available for early console");
@@ -109,11 +110,15 @@ noreturn void kentry(stivale_struct_t* strct) {
     } else {
         init_early_console(PHYSICAL_TO_DIRECT(strct->framebuffer_addr), strct->framebuffer_width, strct->framebuffer_height, strct->framebuffer_pitch);
     }
+#endif
 
     // nice prints
     TRACE("TomatOS (build " __DATE__ " " __TIME__ ")");
 #ifdef __TOMATOS_DEBUG__
     TRACE("\t* Debug");
+#endif
+#ifdef __TOMATOS_EARLY_CONSOLE__
+    TRACE("\t* Early console");
 #endif
 
     // finish setup the pmm entries

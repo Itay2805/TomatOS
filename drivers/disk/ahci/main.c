@@ -15,12 +15,12 @@
 typedef struct ahci_interface {
     // the interface stuff
     driver_instance_t instance;
-    volatile hba_port_t *port;
+    volatile hba_port_t* port;
     event_t port_event;
 
     // command manipulation
     int cmd_list_len;
-    hba_cmd_header_t *cmd_list;
+    hba_cmd_header_t* cmd_list;
     uint32_t free_cmds;
     uint32_t used_cmds;
     struct ahci_request* requests[32];
@@ -36,9 +36,10 @@ typedef struct ahci_interface {
 } ahci_interface_t;
 
 typedef struct ahci_controller {
-    volatile hba_mem_t *hba;
+    volatile hba_mem_t* hba;
     uint8_t vector;
-    ahci_interface_t *interfaces[32];
+    event_t event;
+    ahci_interface_t* interfaces[32];
 } ahci_controller_t;
 
 typedef struct ahci_request {
@@ -55,8 +56,15 @@ typedef struct ahci_request {
 /**
  * check if the device fired and the irq thread should wakeup
  */
-bool ahci_wakeup(ahci_controller_t *controller) {
-    return controller->hba->is;
+err_t ahci_irq(ahci_controller_t* controller) {
+    err_t err = NO_ERROR;
+
+    if (controller->hba->is) {
+        CHECK_AND_RETHROW(signal_event(controller->event));
+    }
+
+cleanup:
+    return NO_ERROR;
 }
 
 static void ahci_interrupt(ahci_controller_t *controller) {
@@ -64,7 +72,7 @@ static void ahci_interrupt(ahci_controller_t *controller) {
     TRACE("Started %s", g_current_thread->name);
 
     while (true) {
-        wait_for_interrupt(controller->vector, (interrupt_wakeup_t) ahci_wakeup, controller);
+        CHECK_AND_RETHROW(wait_for_event(&controller->event, 1, NULL));
 
         uint32_t is = controller->hba->is;
         for (size_t i = next_bit(is, 0); i < 64; i = next_bit(is, i + 1)) {
@@ -183,7 +191,7 @@ static err_t request_identify(ahci_interface_t* interface) {
 
     // setup the request
     ahci_request_t request;
-    ata_identify_data_t* identify_data = pmallocz(sizeof(ata_identify_data_t));
+    volatile ata_identify_data_t* identify_data = pmallocz(sizeof(ata_identify_data_t));
     CHECK_AND_RETHROW(create_event(&request.event));
 
     // setup the header
@@ -246,6 +254,7 @@ static err_t ahci_entry(driver_bind_data_t *data) {
     // get the hba
     ahci_controller_t *controller = kalloc(sizeof(ahci_controller_t));
     controller->hba = hba;
+    CHECK_AND_RETHROW(create_event(&controller->event));
 
     // gain ownership over the device
     if (hba->cap2 & CAP2_BOH) {
@@ -284,16 +293,15 @@ static err_t ahci_entry(driver_bind_data_t *data) {
     // setup the irq handling thread
     // TODO: msi/msix
     CHECK_AND_RETHROW(register_irq(data->pci_dev->irq, &controller->vector));
+    CHECK_AND_RETHROW(register_irq_handler(controller->vector, (void*)ahci_irq, controller));
 
-    char thread_name[32];
-    snprintf(thread_name, sizeof(thread_name), "ahci/%04x:%02x:%02x.%x/irq",
-             data->pci_dev->address.seg, data->pci_dev->address.bus,
-             data->pci_dev->address.slot, data->pci_dev->address.func);
-
-    thread_t *thread;
-    CHECK_AND_RETHROW(create_thread(&thread, (void *) ahci_interrupt, controller, thread_name));
-    schedule_thread(thread);
-    CHECK_AND_RETHROW(release_thread(thread));
+    thread_t* irq_thread;
+    CHECK_AND_RETHROW(create_thread(&irq_thread, (void *) ahci_interrupt, controller,
+                                    "ahci/%04x:%02x:%02x.%x/irq",
+                                    data->pci_dev->address.seg, data->pci_dev->address.bus,
+                                    data->pci_dev->address.slot, data->pci_dev->address.func));
+    schedule_thread(irq_thread);
+    CHECK_AND_RETHROW(release_thread(irq_thread));
 
     // iterate ports
     uint32_t pi = hba->pi;
@@ -331,17 +339,14 @@ static err_t ahci_entry(driver_bind_data_t *data) {
         interface->s64a = cap.s64a;
         interface->port = port;
 
-        // create the thread
-        char thread_name[32];
-        snprintf(thread_name, sizeof(thread_name), "ahci/%04x:%02x:%02x.%x/p%d",
-                 data->pci_dev->address.seg, data->pci_dev->address.bus,
-                 data->pci_dev->address.slot, data->pci_dev->address.func, i);
-
         // create and start the threads
-        thread_t *thread;
-        CHECK_AND_RETHROW(create_thread(&thread, (void *) ahci_thread, interface, thread_name));
-        schedule_thread(thread);
-        CHECK_AND_RETHROW(release_thread(thread));
+        thread_t* port_thread;
+        CHECK_AND_RETHROW(create_thread(&port_thread, (void *) ahci_thread, interface,
+                                        "ahci/%04x:%02x:%02x.%x/p%d",
+                                        data->pci_dev->address.seg, data->pci_dev->address.bus,
+                                        data->pci_dev->address.slot, data->pci_dev->address.func, i));
+        schedule_thread(port_thread);
+        CHECK_AND_RETHROW(release_thread(port_thread));
 
         CHECK_AND_RETHROW(request_identify(interface));
     }

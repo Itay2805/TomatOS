@@ -2,13 +2,23 @@
 # Build config
 ########################################################################################################################
 
+# Which compiler and linker to use
 CC := clang
 LD := ld.lld
 
+# Which architecture to use
 ARCH ?= amd64
 
+# Should debug be enabled
 DEBUG ?= 0
 
+# Should early console be enabled
+EARLY_CONSOLE ?= $(DEBUG)
+
+# Should qemu console be enabled
+QEMU_CONSOLE ?= $(DEBUG)
+
+# Should qemu debugger be enabled
 DEBUGGER ?= 0
 
 ########################################################################################################################
@@ -20,11 +30,6 @@ CFLAGS += -ffreestanding -fno-pic
 CFLAGS += -Ikernel
 CFLAGS += -O2 -flto -g
 
-ifeq ($(DEBUG), 1)
-	CFLAGS += -fsanitize=undefined
-	CFLAGS += -D__TOMATOS_DEBUG__
-endif
-
 CFLAGS += -DPRINTF_DISABLE_SUPPORT_FLOAT
 
 LDFLAGS := -nostdlib -no-pie
@@ -33,7 +38,6 @@ SRCS += kernel/acpi/tables/rsdp.c
 SRCS += kernel/acpi/tables/rsdt.c
 SRCS += kernel/acpi/tables/table.c
 SRCS += kernel/acpi/acpi.c
-SRCS += kernel/debug/early_console.c
 SRCS += kernel/driver/pci/pci.c
 SRCS += kernel/driver/pci/pciname.c
 SRCS += kernel/driver/driver.c
@@ -71,7 +75,20 @@ SRCS += deps/lai/helpers/resource.c
 SRCS += deps/lai/helpers/sci.c
 
 ifeq ($(DEBUG), 1)
+	CFLAGS += -fsanitize=undefined
+	CFLAGS += -D__TOMATOS_DEBUG__
+
 	SRCS += kernel/debug/ubsan.c
+endif
+
+ifeq ($(EARLY_CONSOLE), 1)
+	CFLAGS += -D__TOMATOS_EARLY_CONSOLE__
+
+	SRCS += kernel/debug/early_console.c
+endif
+
+ifeq ($(QEMU_CONSOLE), 1)
+	CFLAGS += -D__TOMATOS_QEMU_CONSOLE__
 endif
 
 ifeq ($(DEBUG), 1)

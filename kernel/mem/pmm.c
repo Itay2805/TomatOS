@@ -142,7 +142,10 @@ static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
 
             // try to free the left overs
             size_t found_size = 1ull << order;
-            buddy_add_range(buddy, address + want_size, found_size - want_size);
+            while (found_size > want_size) {
+                found_size >>= 1ull;
+                buddy_add_free_item(buddy, address + found_size, 64 - clz(found_size - 1), true);
+            }
 
             // return the allocated address
             return address;
