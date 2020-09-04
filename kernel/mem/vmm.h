@@ -107,6 +107,35 @@ typedef enum page_cache {
 err_t vmm_cache(address_space_t* space, void* virtual, page_cache_t cache);
 
 /**
+ * Represent a buffer inside a virtual
+ * address space
+ */
+typedef struct vbuffer {
+    size_t offset;
+    size_t size;
+    directptr_t pages[];
+} vbuffer_t;
+
+
+
+/**
+ * Get a range of virtual pages from the address space
+ *
+ * @param space     [IN]    Address space
+ * @param virtual   [IN]    Virtual address where the buffer starts
+ * @param size      [IN]    The size we are going to get
+ * @param vb        [OUT]   The created virtual buffer
+ */
+err_t vmm_get_vbuffer(address_space_t* space, void* virtual, size_t size, vbuffer_t** vb);
+
+/**
+ * Release the virtual buffer
+ *
+ * @param vb        [IN]    The virtual buffer to release
+ */
+err_t release_vbuffer(vbuffer_t* vb);
+
+/**
  * Copy from userspace into kernel space
  *
  * @param dst       [IN] The buffer to write to

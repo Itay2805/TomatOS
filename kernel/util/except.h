@@ -24,6 +24,7 @@ typedef enum err {
     ERROR_INVALID_HANDLE,
     ERROR_NOT_READY,
     ERROR_NOT_FOUND,
+    ERROR_BUFFER_TOO_SMALL,
 } err_t;
 
 #define IS_ERROR(err) (err != NO_ERROR)
@@ -56,6 +57,7 @@ const char* strerror(err_t err);
 #define CHECK_ERROR(expr, error) CHECK_ERROR_LABEL(expr, error, cleanup)
 #define CHECK_LABEL(expr, label) CHECK_ERROR_LABEL(expr, ERROR_CHECK_FAILED, label)
 #define CHECK(expr) CHECK_ERROR_LABEL(expr, ERROR_CHECK_FAILED, cleanup)
+#define CHECK_PARAM(expr) CHECK(expr)
 
 #define CHECK_FAIL_ERROR_TRACE(error, fmt, ...) CHECK_ERROR_LABEL_TRACE(0, error, cleanup, fmt, ## __VA_ARGS__)
 #define CHECK_FAIL_LABEL_TRACE(label, fmt, ...) CHECK_ERROR_LABEL_TRACE(0, ERROR_CHECK_FAILED, label, fmt, ## __VA_ARGS__)

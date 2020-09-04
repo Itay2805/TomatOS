@@ -3,6 +3,7 @@
 #include <mem/pmm.h>
 #include <stdbool.h>
 #include <util/string.h>
+#include <mem/mm.h>
 
 #include "stivale.h"
 #include "mem/vmm.h"
@@ -28,6 +29,8 @@ symbol_t __kernel_end_data;
 #define PM_GLOBAL   (BIT8)
 #define PM_SIZE     (BIT7)
 #define PM_XD       (BIT63)
+
+#define PM_ADDR(entry) ((entry) & 0x7ffffffffffff000ull)
 
 #define HUGE_PAGE_SIZE PAGE_SIZE
 
@@ -214,7 +217,7 @@ static err_t get_page(address_space_t* space, uintptr_t virt, uint64_t** page) {
         CHECK_ERROR(*entry & PM_PRESENT, ERROR_NOT_FOUND);
 
         // get the next layer
-        table = PHYSICAL_TO_DIRECT(*entry & 0x7ffffffffffff000ull);
+        table = PHYSICAL_TO_DIRECT(PM_ADDR(*entry));
     }
 
     CHECK_ERROR(table[(virt >> 12u) & 0x1ffu] & PM_PRESENT, ERROR_NOT_FOUND);
@@ -277,7 +280,7 @@ err_t vmm_map(address_space_t* space, void* virtual, physptr_t physical, map_fla
         *entry |= flags;
 
         // get the next layer
-        table = PHYSICAL_TO_DIRECT(*entry & 0x7ffffffffffff000ull);
+        table = PHYSICAL_TO_DIRECT(PM_ADDR(*entry));
     }
 
     // map it
@@ -336,6 +339,61 @@ cleanup:
     }
     return err;
 }
+
+err_t vmm_get_vbuffer(address_space_t* space, void* virtual, size_t size, vbuffer_t** vb) {
+    err_t err = NO_ERROR;
+    uintptr_t virt = (uintptr_t)virtual;
+    vbuffer_t* new_vb = NULL;
+
+    CHECK(space != NULL);
+    CHECK(vb != NULL);
+
+    ticket_lock(&space->lock);
+
+    // the amount of pages we need to cover
+    size_t page_count = ALIGN_UP(virt - ALIGN_DOWN(virt, PAGE_SIZE) + size, PAGE_SIZE) / PAGE_SIZE;
+
+    new_vb = kalloc(sizeof(vbuffer_t) + sizeof(physptr_t) * page_count);
+
+    // get all the pages
+    for (int i = 0; i < page_count; i++) {
+        uint64_t* entry;
+        CHECK_AND_RETHROW(get_page(space, virt, &entry));
+        new_vb->pages[i] = PHYSICAL_TO_DIRECT(PM_ADDR(*entry));
+        pmalloc_ref_page(new_vb->pages[i]);
+    }
+
+    // setup the rest
+    new_vb->size = size;
+    new_vb->offset = virt - ALIGN_DOWN(virt, PAGE_SIZE);
+
+    *vb = new_vb;
+
+cleanup:
+    if (space != NULL) {
+        ticket_unlock(&space->lock);
+    }
+    if (IS_ERROR(err) && new_vb) {
+        kfree(new_vb);
+    }
+
+    return err;
+}
+
+err_t release_vbuffer(vbuffer_t* vb) {
+    err_t err = NO_ERROR;
+
+    CHECK(vb != NULL);
+
+    size_t page_count = ALIGN_UP(vb->offset + vb->size, PAGE_SIZE) / PAGE_SIZE;
+    for (int i = 0; i < page_count; i++) {
+        pmfree_page(vb->pages[i]);
+    }
+
+cleanup:
+    return err;
+}
+
 
 // TODO: if we page fault in any of these we should return
 //       ERROR_INVALID_ADDRESS

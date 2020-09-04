@@ -3,6 +3,7 @@
 #include <sync/lock.h>
 #include <util/defs.h>
 #include "pmm.h"
+#include "mm.h"
 
 /**
  * The min order needs to fit a single pointer
@@ -125,7 +126,7 @@ static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
 
     // make sure the buddy can actually do that
     if (original_order >= buddy->max_order) {
-        WARN(false, "Tried to access too much for buddy");
+        WARN(false, "Tried to allocate too much from buddy (requested %zx bytes, order %d, max order %d)", size, original_order, buddy->max_order);
         return NULL;
     }
 
@@ -172,8 +173,8 @@ void pmm_add_range(directptr_t base, size_t size) {
         buddy_add_range(&g_high_buddy, base, size);
     }
 
-    if (g_page_count < ALIGN_UP((uintptr_t)base + size, PAGE_SIZE) / PAGE_SIZE) {
-        g_page_count = ALIGN_UP((uintptr_t)base + size, PAGE_SIZE) / PAGE_SIZE;
+    if (g_page_count < ALIGN_UP((uintptr_t)base + size - DIRECT_MAPPING_BASE, PAGE_SIZE) / PAGE_SIZE) {
+        g_page_count = ALIGN_UP((uintptr_t)base + size - DIRECT_MAPPING_BASE, PAGE_SIZE) / PAGE_SIZE;
     }
 }
 
@@ -231,10 +232,11 @@ void pmfree(directptr_t ptr, size_t size) {
     buddy_add_free_item(buddy, ptr, order, false);
 }
 
-static _Atomic(uint16_t)* g_page_refcount = NULL;
+static _Atomic(uint8_t)* g_page_refcount = NULL;
 
 void pmalloc_page_init() {
-    g_page_refcount = pmallocz(sizeof(uint16_t) * g_page_count);
+    TRACE("Page count %d", g_page_count);
+    g_page_refcount = kalloc(sizeof(uint8_t) * g_page_count);
 }
 
 directptr_t pmalloc_page() {
@@ -244,11 +246,11 @@ directptr_t pmalloc_page() {
 }
 
 void pmalloc_ref_page(directptr_t page) {
-    g_page_refcount[(uintptr_t)page >> PAGE_SHIFT]++;
+    g_page_refcount[DIRECT_TO_PHYSICAL(page) >> PAGE_SHIFT]++;
 }
 
 void pmfree_page(directptr_t page) {
-    if (--g_page_refcount[(uintptr_t)page >> PAGE_SHIFT] == 0) {
+    if (--g_page_refcount[DIRECT_TO_PHYSICAL(page) >> PAGE_SHIFT] == 0) {
         pmfree(page, PAGE_SIZE);
     }
 }

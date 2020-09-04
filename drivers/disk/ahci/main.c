@@ -123,9 +123,6 @@ static void ahci_thread(ahci_interface_t *interface) {
     port->cmd |= PxCMD_FRE;
     port->cmd |= PxCMD_ST;
 
-    // register the interface
-    CHECK_AND_RETHROW(register_interface((void *) interface));
-
     // we are ready to accept requests
     TRACE("%s ready", g_current_thread->name);
     event_t events[] = { interface->port_event, interface->request_event };
@@ -182,15 +179,95 @@ cleanup:
     ASSERT(!IS_ERROR(err));
 }
 
+static err_t do_read_write(driver_instance_t* instance, size_t lba, void* buffer, size_t buffer_size, bool write) {
+    err_t err = NO_ERROR;
+    ahci_interface_t* interface = CR(instance, ahci_interface_t, instance);
+    hba_cmd_table_t* cmdtbl = NULL;
+    vbuffer_t* vb = NULL;
+
+    // make sure everything is aligned nicely
+    CHECK(buffer_size % instance->block.block_size == 0);
+    CHECK(lba + (buffer_size / instance->block.block_size) <= instance->block.last_block);
+
+    // setup the request
+    ahci_request_t request;
+    CHECK_AND_RETHROW(create_event(&request.event));
+
+    // setup the header
+    request.header.cfl = sizeof(fis_reg_h2d_t) / sizeof(uint32_t);
+    request.header.prdtl = 1;
+    request.header.w = write;
+
+    // calculate the number of entries needed
+    int prdt_entries = ALIGN_UP(buffer_size, SIZE_4MB) / SIZE_4MB;
+
+    // get vbuffer of the memory
+    CHECK_AND_RETHROW(vmm_get_vbuffer(&g_current_process->address_space, buffer, buffer_size, &vb));
+
+    // setup the command table
+    cmdtbl = pmallocz(sizeof(hba_cmd_table_t) + sizeof(hba_prdt_entry_t) * prdt_entries);
+    request.header.ctba = DIRECT_TO_PHYSICAL(cmdtbl);
+    for (int i = 0; i < prdt_entries; i++) {
+        cmdtbl->prdts[i].dba = DIRECT_TO_PHYSICAL(vb->pages[i * (SIZE_4MB / PAGE_SIZE)]) + vb->offset;
+        cmdtbl->prdts[i].dbc = MIN(SIZE_4MB, vb->size);
+        cmdtbl->prdts[i].i = 1;
+
+        vb->offset = 0;
+        vb->size -= MIN(SIZE_4MB, vb->size);
+    }
+
+    // setup the fis
+    fis_reg_h2d_t* fis = (fis_reg_h2d_t*)cmdtbl->cfis;
+    fis->fis_type = FIS_TYPE_REG_H2D;
+    fis->command = write ? ATA_CMD_WRITE_DMA_EXT : ATA_CMD_READ_DMA_EXT;
+    fis->device = BIT6;
+    fis->c = 1;
+    fis->lba0 = (lba & 0xFFu);
+    fis->lba1 = ((lba >> 8u) & 0xFFu);
+    fis->lba2 = ((lba >> 16u) & 0xFFu);
+    fis->lba3 = ((lba >> 24u) & 0xFFu);
+    fis->lba4 = ((lba >> 32u) & 0xFFu);
+    fis->lba5 = ((lba >> 40u) & 0xFFu);
+    fis->count = buffer_size / instance->block.block_size;
+
+    // queue it and signal that there is a request
+    ticket_lock(&interface->request_lock);
+    list_add(&interface->request_queue, &request.link);
+    ticket_unlock(&interface->request_lock);
+    CHECK_AND_RETHROW(signal_event(interface->request_event));
+
+    // wait for it
+    CHECK_AND_RETHROW(wait_for_event(&request.event, 1, NULL));
+
+cleanup:
+    close_event(request.event);
+    if (cmdtbl) {
+        pmfree(cmdtbl, sizeof(hba_cmd_table_t) + sizeof(hba_prdt_entry_t) * prdt_entries);
+    }
+    if (vb) {
+        release_vbuffer(vb);
+    }
+    return err;
+}
+
+static err_t do_read(driver_instance_t* instance, size_t lba, void* buffer, size_t buffer_size) {
+    return do_read_write(instance, lba, buffer, buffer_size, false);
+}
+
+static err_t do_write(driver_instance_t* instance, size_t lba, void* buffer, size_t buffer_size) {
+    return do_read_write(instance, lba, buffer, buffer_size, true);
+}
+
 /**
  * Will request an identify from the device and setup the device
  * information
  */
 static err_t request_identify(ahci_interface_t* interface) {
     err_t err = NO_ERROR;
+    hba_cmd_table_t* cmdtbl = NULL;
 
     // setup the request
-    ahci_request_t request;
+    ahci_request_t request = {0};
     volatile ata_identify_data_t* identify_data = pmallocz(sizeof(ata_identify_data_t));
     CHECK_AND_RETHROW(create_event(&request.event));
 
@@ -199,7 +276,7 @@ static err_t request_identify(ahci_interface_t* interface) {
     request.header.prdtl = 1;
 
     // setup the command table
-    hba_cmd_table_t* cmdtbl = pmallocz(sizeof(hba_cmd_table_t) + sizeof(hba_prdt_entry_t));
+    cmdtbl = pmallocz(sizeof(hba_cmd_table_t) + sizeof(hba_prdt_entry_t));
     request.header.ctba = DIRECT_TO_PHYSICAL(cmdtbl);
     cmdtbl->prdts[0].dba = DIRECT_TO_PHYSICAL(identify_data);
     cmdtbl->prdts[0].dbc = sizeof(*identify_data) - 1;
@@ -220,15 +297,55 @@ static err_t request_identify(ahci_interface_t* interface) {
     // wait for it
     CHECK_AND_RETHROW(wait_for_event(&request.event, 1, NULL));
 
-    // get the name
-    char model_number[20];
-    for(int i = 0; i < 10; i++) {
-        model_number[i * 2 + 0] = (char)((identify_data->model_number[i] >> 8u) & 0xFFu);
-        model_number[i * 2 + 1] = (char)(identify_data->model_number[i] & 0xFFu);
+    // resolve the capacity of the device
+    size_t capacity;
+    if (identify_data->command_set_supported_83 & BIT10) {
+        // 48bit addressing support
+        capacity = 0;
+        for (int i = 0; i < 4; i++) {
+            capacity |= (size_t)identify_data->maximum_lba_for_48bit_addressing[i] << (16ull * i);
+        }
+    } else {
+        capacity = (identify_data->user_addressable_sectors_hi << 16) | identify_data->user_addressable_sectors_lo;
     }
-    TRACE("Model number %s", model_number);
+    interface->instance.block.last_block = capacity - 1;
+
+    // resolve the block size
+    size_t block_size = 512;
+    if ((identify_data->phy_logic_sector_support & (BIT14 | BIT15)) == BIT14) {
+        if ((identify_data->phy_logic_sector_support & BIT12) != 0) {
+            block_size = ((identify_data->logic_sector_size_hi << 16) | identify_data->logic_sector_size_lo) * sizeof(uint16_t);
+        }
+    }
+    interface->instance.block.block_size = block_size;
+
+    // set the name
+    for (int i = 0; i < 40; i += 2) {
+        interface->instance.name[i] = identify_data->model_name[i + 1];
+        interface->instance.name[i + 1] = identify_data->model_name[i];
+    }
+
+    interface->instance.name[40] = '\0';
+    for (int i = 40 - 1; i >= 0; i--) {
+        if (interface->instance.name[i] != ' ') {
+            break;
+        }
+        interface->instance.name[i] = '\0';
+    }
+
+
 
 cleanup:
+    // cleanup everything
+    if (request.event) {
+        close_event(request.event);
+    }
+    if (cmdtbl) {
+        pmfree(cmdtbl, sizeof(hba_cmd_table_t) + sizeof(hba_prdt_entry_t));
+    }
+    if (identify_data) {
+        pmfree((directptr_t)identify_data, sizeof(*identify_data));
+    }
     return err;
 }
 
@@ -326,9 +443,8 @@ static err_t ahci_entry(driver_bind_data_t *data) {
         interface->instance.meta.refcount = 1;
         interface->instance.meta.dtor = NULL;
         interface->instance.meta.kind = HANDLE_DRIVER;
-        interface->instance.block.size = NULL;
-        interface->instance.block.read = NULL;
-        interface->instance.block.write = NULL;
+        interface->instance.block.read_blocks = do_read;
+        interface->instance.block.write_blocks = do_write;
 
         // request stuff
         interface->request_queue = INIT_LIST(interface->request_queue);
@@ -339,7 +455,7 @@ static err_t ahci_entry(driver_bind_data_t *data) {
         interface->s64a = cap.s64a;
         interface->port = port;
 
-        // create and start the threads
+        // create and start the thread for the port
         thread_t* port_thread;
         CHECK_AND_RETHROW(create_thread(&port_thread, (void *) ahci_thread, interface,
                                         "ahci/%04x:%02x:%02x.%x/p%d",
@@ -348,7 +464,12 @@ static err_t ahci_entry(driver_bind_data_t *data) {
         schedule_thread(port_thread);
         CHECK_AND_RETHROW(release_thread(port_thread));
 
+        // setup everything that is left to handle
         CHECK_AND_RETHROW(request_identify(interface));
+
+        // register the interface
+        CHECK_AND_RETHROW(register_interface(&interface->instance));
+
     }
 
 cleanup:

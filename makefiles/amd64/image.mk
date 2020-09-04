@@ -2,7 +2,7 @@
 # TODO: support uefi boot
 
 QEMU_ARGS += -hdd $^
-QEMU_ARGS += -m 4G
+QEMU_ARGS += -m 4G -smp 4
 QEMU_ARGS += -machine q35
 QEMU_ARGS += -debugcon stdio
 QEMU_ARGS += -monitor telnet:localhost:4321,server,nowait
@@ -15,7 +15,7 @@ endif
 
 ifeq ($(shell uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/p'), Microsoft)
     QEMU := qemu-system-x86_64.exe
-#    QEMU_ARGS += --accel whpx
+    QEMU_ARGS += --accel whpx
 else
     QEMU := qemu-system-x86_64
 	QEMU_ARGS += --enable-kvm

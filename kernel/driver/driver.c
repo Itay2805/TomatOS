@@ -242,6 +242,8 @@ void init_driver_interface() {
     }
 }
 
+static const char* g_size_names[] = { "B", "kB", "MB", "GB" };
+
 err_t register_interface(driver_instance_t* instance) {
     err_t err = NO_ERROR;
 
@@ -253,7 +255,22 @@ err_t register_interface(driver_instance_t* instance) {
     list_add(&g_interfaces[instance->type], &instance->link);
     ticket_unlock(&g_interfaces_locks[instance->type]);
 
-    TRACE("Added %s", g_interface_names[instance->type]);
+    // pretty print the added driver
+    switch (instance->type) {
+
+        case DRIVER_BLOCK: {
+            size_t size = (instance->block.last_block + 1) * instance->block.block_size;
+            size_t div = 0;
+            while (size >= 1024 && div < ARRAY_LENGTH(g_size_names)) {
+                div++;
+                size /= 1024;
+            }
+            TRACE("Added Block <%s, %d %s>", instance->name, size, g_size_names[div]);
+        } break;
+
+        default: TRACE("Added %s <%s>", g_interface_names[instance->type], instance->name); break;
+    }
+
 
     // notify anyone who wants to know about this
     size_t driver_count = g_drivers_end - g_drivers;

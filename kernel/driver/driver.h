@@ -26,9 +26,14 @@ typedef enum driver_interface_type {
 } driver_interface_type_t;
 
 typedef struct driver_block {
-    size_t (*size)(struct driver_instance* instance);
-    err_t (*read)(struct driver_instance* instance, void* dest, size_t size, size_t offset);
-    err_t (*write)(struct driver_instance* instance, void* dest, size_t size, size_t offset);
+    // information about the block
+    size_t block_size;
+    size_t last_block;
+
+    // functions to modify the block device
+    err_t (*read_blocks)(struct driver_instance* instance, size_t lba, void* buffer, size_t buffer_size);
+    err_t (*write_blocks)(struct driver_instance* instance, size_t lba, void* buffer, size_t buffer_size);
+    err_t (*flush_blocks)(struct driver_instance* instance);
 } driver_block_t;
 
 typedef err_t (*driver_connect_t)(struct driver_instance* instance);
@@ -120,6 +125,11 @@ typedef struct driver_instance {
      * The driver handle
      */
     handle_meta_t meta;
+
+    /**
+     * The name of the instance
+     */
+    char name[50];
 
     /**
      * The link to the driver list
