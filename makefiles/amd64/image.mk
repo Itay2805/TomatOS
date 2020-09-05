@@ -36,8 +36,7 @@ image: $(BIN_DIR)/image.hdd
 # Builds the image itself
 #
 $(BIN_DIR)/image.hdd:	$(BIN_DIR)/tomatos.elf \
-						makefiles/amd64/boot/qloader2.cfg \
-						makefiles/amd64/boot/qloader2.bin
+						makefiles/amd64/boot/limine.cfg
 	@mkdir -p $(@D)
 	@echo "Creating disk"
 	@rm -rf $@
@@ -48,8 +47,6 @@ $(BIN_DIR)/image.hdd:	$(BIN_DIR)/tomatos.elf \
 	@echfs-utils -m -p0 $@ quick-format 32768
 	@echo "Importing files"
 	@echfs-utils -m -p0 $@ import $(BIN_DIR)/tomatos.elf tomatos.elf
-	@echfs-utils -m -p0 $@ import makefiles/amd64/boot/qloader2.cfg qloader2.cfg
+	@echfs-utils -m -p0 $@ import makefiles/amd64/boot/limine.cfg limine.cfg
 	@echo "Installing qloader2"
-	@makefiles/amd64/boot/qloader2-install makefiles/amd64/boot/qloader2.bin $@
-
-
+	@tools/limine-install $@
