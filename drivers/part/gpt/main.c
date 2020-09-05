@@ -3,6 +3,9 @@
 #include <driver/pci/pci_spec.h>
 #include <mem/pmm.h>
 
+#undef __MODULE__
+#define __MODULE__ "gpt"
+
 typedef struct gpt_table_header {
     // the head
     uint64_t signature;

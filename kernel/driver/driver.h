@@ -71,6 +71,8 @@ typedef struct driver_bind {
         } pci;
         struct {
             driver_interface_type_t type;
+            // TODO: why are we actually using connect and not
+            //       the default entry?
             driver_connect_t connect;
             driver_check_t check;
         } interface;

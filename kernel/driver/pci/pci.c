@@ -128,6 +128,8 @@ static err_t init_pci_dev(pci_dev_t* dev) {
         }
     }
 
+    // TODO: this is super slow! we can probably optimize this by resolving the prt in
+    //       the parent once instead of doing it for each device
     dev->irq = -1;
     if (dev->device->interrupt_pin) {
         lai_nsnode_t* prt_node = NULL;

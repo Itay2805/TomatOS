@@ -15,7 +15,9 @@ endif
 
 ifeq ($(shell uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/p'), Microsoft)
     QEMU := qemu-system-x86_64.exe
-    QEMU_ARGS += --accel whpx
+    ifneq ($(DEBUGGER), 1)
+        QEMU_ARGS += --accel whpx
+    endif
 else
     QEMU := qemu-system-x86_64
 	QEMU_ARGS += --enable-kvm

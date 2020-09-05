@@ -72,8 +72,6 @@ static void buddy_add_free_item(buddy_t* buddy, directptr_t address, size_t orde
     NEXT(address) = 0;
     size_t size = 1ull << order;
 
-    ticket_lock(&buddy->lock);
-
     if (!new && head != 0) {
         directptr_t prev = 0;
         while (true) {
@@ -101,7 +99,11 @@ static void buddy_add_free_item(buddy_t* buddy, directptr_t address, size_t orde
         NEXT(address) = head;
         buddy->free_list[order - MIN_ORDER] = address;
     }
+}
 
+static void buddy_add_free_item_locked(buddy_t* buddy, directptr_t address, size_t order, bool new) {
+    ticket_lock(&buddy->lock);
+    buddy_add_free_item(buddy, address, order, new);
     ticket_unlock(&buddy->lock);
 }
 
@@ -130,7 +132,6 @@ static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
         return NULL;
     }
 
-    // TODO: maybe use a lock per free list
     ticket_lock(&buddy->lock);
 
     // find the smallest order with space
@@ -139,7 +140,6 @@ static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
             // pop the head
             directptr_t address = buddy->free_list[order - MIN_ORDER];
             buddy->free_list[order - MIN_ORDER] = NEXT(address);
-            ticket_unlock(&buddy->lock);
 
             // try to free the left overs
             size_t found_size = 1ull << order;
@@ -149,12 +149,12 @@ static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
             }
 
             // return the allocated address
+            ticket_unlock(&buddy->lock);
             return address;
         }
     }
 
     ticket_unlock(&buddy->lock);
-
     return NULL;
 }
 
@@ -229,7 +229,7 @@ void pmfree(directptr_t ptr, size_t size) {
 
     // get the order and add it
     int order = MAX(64 - clz(size - 1), MIN_ORDER);
-    buddy_add_free_item(buddy, ptr, order, false);
+    buddy_add_free_item_locked(buddy, ptr, order, false);
 }
 
 static _Atomic(uint8_t)* g_page_refcount = NULL;
