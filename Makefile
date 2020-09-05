@@ -118,6 +118,7 @@ endef
 $(foreach file, $(wildcard drivers/disk/*), $(eval $(call def-driver,disk,$(notdir $(file))));)
 $(foreach file, $(wildcard drivers/block/*), $(eval $(call def-driver,block,$(notdir $(file))));)
 $(foreach file, $(wildcard drivers/fs/*), $(eval $(call def-driver,fs,$(notdir $(file))));)
+$(foreach file, $(wildcard drivers/part/*), $(eval $(call def-driver,part,$(notdir $(file))));)
 
 ########################################################################################################################
 # Phony

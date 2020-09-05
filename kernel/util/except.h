@@ -12,6 +12,10 @@
 
 void trace(const char* fmt, ...);
 
+void trace_hex(const void* data, size_t size);
+
+#define TRACE_HEX(data, size) trace_hex((void*)(data), size);
+
 #define PRINT(fmt, ...) trace(fmt, ## __VA_ARGS__)
 #define TRACE(fmt, ...) PRINT("[%5u.%06u][*] %-6s: " fmt "\n", uptime() / 1000000, uptime() % 1000000, __MODULE__, ## __VA_ARGS__)
 #define ERROR(fmt, ...) PRINT("[%5u.%06u][-] %-6s: " fmt "\n", uptime() / 1000000, uptime() % 1000000, __MODULE__, ## __VA_ARGS__)

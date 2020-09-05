@@ -47,33 +47,11 @@ static const char* g_size_names[] = { "B", "kB", "MB", "GB" };
 
 event_t event = NULL;
 
-static bool isprint(char c) {
-    if (c <= 31) return false;
-    if (c >= 127) return false;
-    return true;
-}
-
 static void main_thread(void* arg) {
     err_t err = NO_ERROR;
 
     TRACE("In kernel thread!");
     CHECK_AND_RETHROW(dispatch_drivers());
-
-    // get the block
-    driver_instance_t* instance = CR(g_interfaces[DRIVER_BLOCK].next, driver_instance_t, link);
-    char* buffer = pmalloc(512);
-    CHECK_AND_RETHROW(instance->block.read_blocks(instance, 0, buffer, 512));
-
-    for (int i = 0; i < 512; i++) {
-        if (i != 0 && i % 16 == 0) {
-            TRACE("\n");
-        }
-        if (isprint(buffer[i])) {
-            TRACE("%c", buffer[i]);
-        } else {
-            TRACE(".");
-        }
-    }
 
 cleanup:
     ASSERT_TRACE(!IS_ERROR(err), "Got an error in main thread");

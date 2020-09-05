@@ -26,3 +26,5 @@ BINS := $(REALFILES:%.real=$(BUILD_DIR)/%.bin)
 # drivers enabled by default
 DRIVER_DISK_AHCI := 1
 DRIVER_FS_ECHFS := 1
+DRIVER_PART_GPT := 1
+DRIVER_PART_MBR := 1

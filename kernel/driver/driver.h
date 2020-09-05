@@ -57,6 +57,7 @@ typedef enum driver_bind_type {
 
 typedef struct driver_bind {
     driver_bind_type_t type;
+    int priority;
     union {
         struct {
             const char* hid;
@@ -112,9 +113,16 @@ extern driver_t g_drivers[];
 extern driver_t g_drivers_end[];
 
 /**
- * Kinda ugly but works lol
+ * Declare a driver with lowest priority
  */
-#define DRIVER __attribute__((used, section(".drivers"))) static driver_t CONCAT(__driver_, __LINE__) =
+#define DRIVER \
+    __attribute__((used, section(".drivers"))) static driver_t CONCAT(__driver_, __LINE__) =
+
+/**
+ * Declare a driver with high priority
+ */
+#define PRIORITY_DRIVER \
+    __attribute__((used, section(".drivers.priority"))) static driver_t CONCAT(__driver_, __LINE__) =
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Driver definition

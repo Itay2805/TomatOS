@@ -99,8 +99,15 @@ static void ahci_thread(ahci_interface_t *interface) {
     interface->free_cmds = (1ull << interface->cmd_list_len) - 1;
     CHECK_AND_RETHROW(create_event(&interface->port_event));
 
-    // setup the interrupts
-    port->ie = PxIE_DHRE;
+    // setup the interrupts (enable all of them)
+    port->ie =  PxIE_DHRE |
+                PxIE_UFE  |
+                PxIE_IPME |
+                PxIE_INFE |
+                PxIE_IFE  |
+                PxIE_HBDE |
+                PxIE_HBFE |
+                PxIE_TFEE;
 
     // make sure to stop the cmd before doing anything
     port->cmd &= ~PxCMD_ST;
@@ -141,13 +148,24 @@ static void ahci_thread(ahci_interface_t *interface) {
                         CHECK_AND_RETHROW(signal_event(request->event));
 
                         // can free the slot
-                        interface->used_cmds &= ~slot;
-                        interface->free_cmds |= slot;
+                        interface->used_cmds &= ~(1 << slot);
+                        interface->free_cmds |= (1 << slot);
                     }
                 }
             }
 
-            // TODO: errors and such
+            // process errors
+            // TODO: how can we figure which request has caused the error?
+            if (port->is & PxIS_UFS) ERROR("Unknown FIS Interrupt");
+            if (port->is & PxIS_IPMS) ERROR("Incorrect Port Multiplier");
+            if (port->is & PxIS_INFS) ERROR("Interface Non-fatal Error");
+            if (port->is & PxIS_IFS) ERROR("Interface Fatal Error");
+            if (port->is & PxIS_HBDS) ERROR("Host Bus Data Error");
+            if (port->is & PxIS_HBFS) ERROR("Host Bus Fatal Error");
+            if (port->is & PxIS_TFES) ERROR("Task File Error");
+
+            // clear the interrupt status
+            port->is = port->is;
         }
 
         // always check if there are requests to handle
@@ -184,13 +202,13 @@ static err_t do_read_write(driver_instance_t* instance, size_t lba, void* buffer
     ahci_interface_t* interface = CR(instance, ahci_interface_t, instance);
     hba_cmd_table_t* cmdtbl = NULL;
     vbuffer_t* vb = NULL;
+    ahci_request_t request = {};
 
     // make sure everything is aligned nicely
-    CHECK(buffer_size % instance->block.block_size == 0);
+    CHECK((buffer_size % instance->block.block_size) == 0);
     CHECK(lba + (buffer_size / instance->block.block_size) <= instance->block.last_block);
 
     // setup the request
-    ahci_request_t request;
     CHECK_AND_RETHROW(create_event(&request.event));
 
     // setup the header
@@ -240,7 +258,9 @@ static err_t do_read_write(driver_instance_t* instance, size_t lba, void* buffer
     CHECK_AND_RETHROW(wait_for_event(&request.event, 1, NULL));
 
 cleanup:
-    close_event(request.event);
+    if (request.event != NULL) {
+        close_event(request.event);
+    }
     if (cmdtbl) {
         pmfree(cmdtbl, sizeof(hba_cmd_table_t) + sizeof(hba_prdt_entry_t) * prdt_entries);
     }

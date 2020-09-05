@@ -77,7 +77,17 @@ typedef struct hba_port {
 #define PxIS_SDBS   BIT3    /* Set Device Bits Interrupt */
 #define PxIS_UFS    BIT4    /* Unknown FIS Interrupt */
 #define PxIS_DPS    BIT5    /* Descriptor Processed */
-// TODO: The rest
+#define PxIS_PCS    BIT6    /* Port Connect Change Status */
+#define PxIS_DMPS   BIT7    /* Device Mechanical Presence Status */
+#define PxIS_PRCS   BIT22   /* PhyRdy Change Status */
+#define PxIS_IPMS   BIT23   /* Incorrect Port Multiplier Status */
+#define PxIS_OFS    BIT24   /* Overflow Status */
+#define PxIS_INFS   BIT26   /* Interface Non-fatal Error Status */
+#define PxIS_IFS    BIT27   /* Interface Fatal Error Status */
+#define PxIS_HBDS   BIT28   /* Host Bus Data Error Status */
+#define PxIS_HBFS   BIT29   /* Host Bus Fatal Error Status */
+#define PxIS_TFES   BIT30   /* Task File Error Status */
+#define PxIS_CPDS   BIT31   /* Cold Port Detect Status */
     uint32_t ie;        // 0x14, interrupt enable
 #define PxIE_DHRE   BIT0    /* Device to Host Register FIS Interrupt */
 #define PxIE_PSE    BIT1    /* PIO Setup FIS Interrupt Enabe */
@@ -85,6 +95,17 @@ typedef struct hba_port {
 #define PxIE_SDBE   BIT3    /* Set Device Bits Interrupt Enable */
 #define PxIE_UFE    BIT4    /* Unknown FIS Interrupt Enable */
 #define PxIE_DPE    BIT5    /* Descriptor Processed Interrupt Enable */
+#define PxIE_PCE    BIT6    /* Port Change Interrupt Enable */
+#define PxIE_DMPE   BIT7    /* Device Mechanical Presence Enable */
+#define PxIE_PRCE   BIT22   /* PhyRdy Change Interrupt Enable */
+#define PxIE_IPME   BIT23   /* Incorrect Port Multiplier Enable */
+#define PxIE_OFE    BIT24   /* Overflow Enable */
+#define PxIE_INFE   BIT26   /* Interface Non-fatal Error Enable */
+#define PxIE_IFE    BIT27   /* Interface Fatal Error Enable */
+#define PxIE_HBDE   BIT28   /* Host Bus Data Error Enable */
+#define PxIE_HBFE   BIT29   /* Host Bus Fatal Error Enable */
+#define PxIE_TFEE   BIT30   /* Task File Error Enable */
+#define PxIE_CPDE   BIT31   /* Cold Presence Detect Enable */
     uint32_t cmd;       // 0x18, command and status
 #define PxCMD_ST    0x0001
 #define PxCMD_FRE   0x0010

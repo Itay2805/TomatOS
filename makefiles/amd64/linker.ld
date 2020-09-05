@@ -42,8 +42,9 @@ SECTIONS
 
     .drivers ALIGN(4K) :
     {
-        g_drivers = .;
-        KEEP(*(.drivers*))
+        g_drivers = .;gg
+        *(.drivers.priority*)
+        *(.drivers*)
         g_drivers_end = .;
     }
 

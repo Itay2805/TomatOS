@@ -116,8 +116,10 @@ err_t signal_event(event_t event) {
     }
 
 cleanup:
-    ticket_unlock(&data->lock);
-    exit_critical(&crit);
+    if (data != NULL) {
+        ticket_unlock(&data->lock);
+        exit_critical(&crit);
+    }
 
     return err;
 }

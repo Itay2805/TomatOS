@@ -22,9 +22,9 @@ inline size_t next_bit(uint64_t bf, size_t bit) {
 #define _CONCAT(x, y) x ## y
 #define CONCAT(x, y) _CONCAT(x, y)
 
-#define SIGNATURE_16(A) ((A[0]) | (A[1] << 8))
-#define SIGNATURE_32(A) (SIGNATURE_16 (&A[0]) | (SIGNATURE_16 (&A[2]) << 16))
-#define SIGNATURE_64(A) (SIGNATURE_32 (&A[0]) | ((UINT64) (SIGNATURE_32 (&A[4])) << 32))
+#define SIGNATURE_16(A) (((A)[0]) | ((A)[1] << 8))
+#define SIGNATURE_32(A) (SIGNATURE_16 (&(A)[0]) | (SIGNATURE_16 (&(A)[2]) << 16))
+#define SIGNATURE_64(A) (SIGNATURE_32 (&(A)[0]) | ((uint64_t) (SIGNATURE_32 (&(A)[4])) << 32))
 
 #define ARRAY_LENGTH(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 
