@@ -1,7 +1,6 @@
 
 # TODO: support uefi boot
 
-QEMU_ARGS += -hdd $^
 QEMU_ARGS += -m 4G -smp 4
 QEMU_ARGS += -machine q35
 QEMU_ARGS += -debugcon stdio
@@ -30,7 +29,7 @@ endif
 # A target to start the kernel in qemu
 #
 qemu: $(BIN_DIR)/image.hdd
-	$(QEMU) $(QEMU_ARGS) | python3 scripts/trace2funcs.py $(BIN_DIR)/tomatos.elf
+	$(QEMU) -hdd $^ $(QEMU_ARGS) | python3 scripts/trace2funcs.py $(BIN_DIR)/tomatos.elf
 
 #
 # A target to build a bootable image
