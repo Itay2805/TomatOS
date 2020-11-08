@@ -13,18 +13,14 @@ err_t init_vmm(stivale2_struct_tag_memmap_t* memap);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct address_space {
-     ticket_lock_t lock;
-
-    // arch specific stuff
-#ifdef __TOMATOS_AMD64__
+    ticket_lock_t lock;
     directptr_t pml4;
-#endif
 } address_space_t;
 
 err_t set_address_space(address_space_t* space);
 
 typedef enum page_perms {
-    MAP_READ   = 0,
+    MAP_READ   = 0u,
     MAP_WRITE  = BIT0,
     MAP_EXEC   = BIT1,
 } page_perms_t;

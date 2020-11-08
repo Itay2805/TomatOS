@@ -4,15 +4,15 @@
 #include <mem/pmm.h>
 #include <proc/proc.h>
 #include "mem/vmm.h"
-#include "intrin.h"
+#include "arch/intrin.h"
 
 /**
  * Kernel regions
  */
-symbol_t __kernel_start_text;
-symbol_t __kernel_end_text;
-symbol_t __kernel_end_rodata;
-symbol_t __kernel_end_data;
+extern symbol_t __kernel_start_text;
+extern symbol_t __kernel_end_text;
+extern symbol_t __kernel_end_rodata;
+extern symbol_t __kernel_end_data;
 
 /**
  * Bits
@@ -94,7 +94,7 @@ err_t init_vmm(stivale2_struct_tag_memmap_t* memap) {
             vmm_map(
                     &g_kernel.address_space,
                     (uintptr_t)PHYS_TO_DIRECT(entry->base),
-                    entry->base,
+                    ALIGN_DOWN(entry->base, PAGE_SIZE),
                     ALIGN_UP(entry->length, PAGE_SIZE) / PAGE_SIZE,
                     MAP_READ
             );
@@ -103,12 +103,15 @@ err_t init_vmm(stivale2_struct_tag_memmap_t* memap) {
 
     // create kernel mappings
     TRACE("\t* kernel");
-    size_t rx_pages = (ALIGN_UP(__kernel_end_text, PAGE_SIZE) - __kernel_start_text) / PAGE_SIZE;
-    size_t ro_pages = (ALIGN_UP(__kernel_end_rodata, PAGE_SIZE) - ALIGN_UP(__kernel_end_text, PAGE_SIZE)) / PAGE_SIZE;
-    size_t rw_pages = (ALIGN_UP(__kernel_end_data, PAGE_SIZE) - ALIGN_UP(__kernel_end_rodata, PAGE_SIZE)) / PAGE_SIZE;
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_start_text, (uintptr_t)(__kernel_start_text - KERNEL_BASE), rx_pages, MAP_READ | MAP_EXEC));
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)ALIGN_UP(__kernel_end_text, PAGE_SIZE), (uintptr_t)(ALIGN_UP(__kernel_end_text, PAGE_SIZE) - KERNEL_BASE), ro_pages, MAP_READ));
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)ALIGN_UP(__kernel_end_rodata, PAGE_SIZE), (uintptr_t)(ALIGN_UP(__kernel_end_rodata, PAGE_SIZE) - KERNEL_BASE), rw_pages, MAP_READ | MAP_WRITE));
+    size_t rx_pages = (__kernel_end_text - __kernel_start_text) / PAGE_SIZE;
+    size_t ro_pages = (__kernel_end_rodata - __kernel_end_text) / PAGE_SIZE;
+    size_t rw_pages = (__kernel_end_data - __kernel_end_rodata) / PAGE_SIZE;
+    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_start_text, (uintptr_t)(__kernel_start_text - KERNEL_BASE), rx_pages, MAP_EXEC));
+    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_end_text, (uintptr_t)(__kernel_end_text - KERNEL_BASE), ro_pages, MAP_READ));
+    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_end_rodata, (uintptr_t)(__kernel_end_rodata - KERNEL_BASE), rw_pages, MAP_WRITE));
+
+    // switch to kernel address space
+    CHECK_AND_RETHROW(set_address_space(&g_kernel.address_space));
 
 cleanup:
     return err;
@@ -198,11 +201,12 @@ err_t vmm_map(address_space_t* space, uintptr_t virt, physptr_t phys, size_t pag
 
     while (pages--) {
         // set this page as mapped
-        uint64_t* entry = get_or_alloc_page(space, virt, flags_add, ~flags_remove);
+        uint64_t* entry = get_or_alloc_page(space, virt, ~flags_remove, flags_add);
         *entry = flags_add | phys;
 
         // next page
         virt += PAGE_SIZE;
+        phys += PAGE_SIZE;
     }
 
 cleanup:

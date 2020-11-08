@@ -6,16 +6,12 @@
 typedef void* directptr_t;
 typedef uint64_t physptr_t;
 
+#define PAGE_SIZE               (SIZE_4KB)
 #define MAX_PHYS_MEMORY_SIZE    (SIZE_256GB)
 
-#ifdef __TOMATOS_AMD64__
-    #define PAGE_SIZE           (SIZE_4KB)
-    #define DIRECT_BASE         (0xFFFF800000000000ull)
-    #define KERNEL_BASE         (0xffffffff80000000ull)
-#else
-#error Unknown ARCH
-#endif
+#define KERNEL_BASE             (0xffffffff80000000ull)
 
+#define DIRECT_BASE             (0xFFFF800000000000ull)
 #define DIRECT_END              (0xFFFF800000000000ull + MAX_PHYS_MEMORY_SIZE)
 
 #define MAX_PAGE_COUNT          (MAX_PHYS_MEMORY_SIZE / PAGE_SIZE)

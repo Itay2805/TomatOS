@@ -7,6 +7,7 @@ QEMU_ARGS += -debugcon stdio
 QEMU_ARGS += -monitor telnet:localhost:4321,server,nowait
 QEMU_ARGS += --no-shutdown
 QEMU_ARGS += --no-reboot
+QEMU_ARGS += -d int
 
 # We require iommu
 QEMU_ARGS += -device intel-iommu,aw-bits=48
@@ -16,13 +17,15 @@ ifeq ($(DEBUGGER), 1)
 endif
 
 ifeq ($(shell uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/p'), Microsoft)
-    QEMU := qemu-system-x86_64.exe
-    ifneq ($(DEBUGGER), 1)
-#        QEMU_ARGS += --accel whpx
-    endif
+	QEMU := qemu-system-x86_64.exe
+	ifneq ($(DEBUGGER), 1)
+		QEMU_ARGS += --accel whpx
+	endif
 else
-    QEMU := qemu-system-x86_64
-	QEMU_ARGS += --enable-kvm
+	QEMU := qemu-system-x86_64
+	ifneq ($(DEBUGGER), 1)
+#		QEMU_ARGS += --enable-kvm
+	endif
 endif
 
 #
@@ -40,7 +43,7 @@ image: $(BIN_DIR)/image.hdd
 # Builds the image itself
 #
 $(BIN_DIR)/image.hdd:	$(BIN_DIR)/tomatos.elf \
-						makefiles/amd64/boot/limine.cfg
+						boot/limine.cfg
 	@mkdir -p $(@D)
 	@echo "Creating disk"
 	@rm -rf $@
@@ -51,6 +54,6 @@ $(BIN_DIR)/image.hdd:	$(BIN_DIR)/tomatos.elf \
 	@echfs-utils -m -p0 $@ quick-format 32768
 	@echo "Importing files"
 	@echfs-utils -m -p0 $@ import $(BIN_DIR)/tomatos.elf tomatos.elf
-	@echfs-utils -m -p0 $@ import makefiles/amd64/boot/limine.cfg limine.cfg
+	@echfs-utils -m -p0 $@ import boot/limine.cfg limine.cfg
 	@echo "Installing qloader2"
-	@tools/limine-install makefiles/amd64/boot/limine.bin $@
+	@tools/limine-install boot/limine.bin $@

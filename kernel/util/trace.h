@@ -62,7 +62,8 @@ void trace_ptr(void* ptr);
         uint8_t: trace_uint8, \
         uint16_t: trace_uint16, \
         uint32_t: trace_uint32, \
-        uint64_t: trace_uint64 \
+        uint64_t: trace_uint64, \
+        unsigned long long: trace_uint64 \
     )(val);
 
 #ifdef __IN_EDITOR__

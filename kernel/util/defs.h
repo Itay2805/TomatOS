@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include "err.h"
 
-typedef char symbol_t[0];
+typedef char symbol_t[];
 
 #define ALIGN_UP(value, alignment) __builtin_align_up(value, alignment)
 #define ALIGN_DOWN(value, alignment) __builtin_align_down(value, alignment)
@@ -19,38 +19,38 @@ typedef char symbol_t[0];
 #define NONNULL _Nonnull
 #define NULLABLE _Nullable
 
-#define  BIT0     0x00000001
-#define  BIT1     0x00000002
-#define  BIT2     0x00000004
-#define  BIT3     0x00000008
-#define  BIT4     0x00000010
-#define  BIT5     0x00000020
-#define  BIT6     0x00000040
-#define  BIT7     0x00000080
-#define  BIT8     0x00000100
-#define  BIT9     0x00000200
-#define  BIT10    0x00000400
-#define  BIT11    0x00000800
-#define  BIT12    0x00001000
-#define  BIT13    0x00002000
-#define  BIT14    0x00004000
-#define  BIT15    0x00008000
-#define  BIT16    0x00010000
-#define  BIT17    0x00020000
-#define  BIT18    0x00040000
-#define  BIT19    0x00080000
-#define  BIT20    0x00100000
-#define  BIT21    0x00200000
-#define  BIT22    0x00400000
-#define  BIT23    0x00800000
-#define  BIT24    0x01000000
-#define  BIT25    0x02000000
-#define  BIT26    0x04000000
-#define  BIT27    0x08000000
-#define  BIT28    0x10000000
-#define  BIT29    0x20000000
-#define  BIT30    0x40000000
-#define  BIT31    0x80000000
+#define  BIT0     0x00000001u
+#define  BIT1     0x00000002u
+#define  BIT2     0x00000004u
+#define  BIT3     0x00000008u
+#define  BIT4     0x00000010u
+#define  BIT5     0x00000020u
+#define  BIT6     0x00000040u
+#define  BIT7     0x00000080u
+#define  BIT8     0x00000100u
+#define  BIT9     0x00000200u
+#define  BIT10    0x00000400u
+#define  BIT11    0x00000800u
+#define  BIT12    0x00001000u
+#define  BIT13    0x00002000u
+#define  BIT14    0x00004000u
+#define  BIT15    0x00008000u
+#define  BIT16    0x00010000u
+#define  BIT17    0x00020000u
+#define  BIT18    0x00040000u
+#define  BIT19    0x00080000u
+#define  BIT20    0x00100000u
+#define  BIT21    0x00200000u
+#define  BIT22    0x00400000u
+#define  BIT23    0x00800000u
+#define  BIT24    0x01000000u
+#define  BIT25    0x02000000u
+#define  BIT26    0x04000000u
+#define  BIT27    0x08000000u
+#define  BIT28    0x10000000u
+#define  BIT29    0x20000000u
+#define  BIT30    0x40000000u
+#define  BIT31    0x80000000u
 #define  BIT32    0x0000000100000000ULL
 #define  BIT33    0x0000000200000000ULL
 #define  BIT34    0x0000000400000000ULL

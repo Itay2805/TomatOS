@@ -14,12 +14,14 @@ SECTIONS
     {
         *(.text*)
     }
+    . = ALIGN(4K);
     __kernel_end_text = .;
 
     .rodata ALIGN(4K) :
     {
         *(.rodata*)
     }
+    . = ALIGN(4K);
     __kernel_end_rodata = .;
 
     .data ALIGN(4K) :
@@ -32,5 +34,6 @@ SECTIONS
     {
         *(.bss*)
     }
+    . = ALIGN(4K);
     __kernel_end_data = .;
 }

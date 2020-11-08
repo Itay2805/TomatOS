@@ -188,13 +188,15 @@ static void default_exception_handler(system_context_t* ctx) {
 //    if (g_current_thread != NULL) {
 //        ERROR("Thread: `%s` (#%d)", g_current_thread->name, g_current_thread->tid);
 //    }
-    ERROR("");
+//    ERROR("");
+
     ERROR("RAX=", (void*)ctx->rax, " RBX=", (void*)ctx->rbx, " RCX=", (void*)ctx->rcx, " RDX=", (void*)ctx->rdx);
     ERROR("RSI=", (void*)ctx->rsi, " RDI=", (void*)ctx->rdi, " RBP=", (void*)ctx->rbp, " RSP=", (void*)ctx->rsp);
     ERROR("R8 =", (void*)ctx->r8 , " R9 =", (void*)ctx->r9 , " R10=", (void*)ctx->r10, " R11=", (void*)ctx->r11);
     ERROR("R12=", (void*)ctx->r12, " R13=", (void*)ctx->r13, " R14=", (void*)ctx->r14, " R15=", (void*)ctx->r15);
     ERROR("RIP=", (void*)ctx->rip, " RFL=", (void*)ctx->rflags.raw);
     // TODO: ERROR("CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
+
     ERROR("");
 //    if (g_exception_count == 0) {
 //        g_exception_count++;
@@ -211,7 +213,6 @@ __attribute__((used))
 void common_exception_handler(system_context_t* ctx) {
     default_exception_handler(ctx);
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define IDT structures and set the idt up
@@ -237,7 +238,9 @@ static void set_idt_entry(uint8_t i, void(*handler)(), int ist) {
     g_idt_entries[i].selector = GDT_KERNEL_CODE;
     g_idt_entries[i].present = 1;
     g_idt_entries[i].ring = 0;
-    g_idt_entries[i].ist = (uint64_t) ist;
+    g_idt_entries[i].ist = 0;
+    // TODO: don't ignore ist value
+//    g_idt_entries[i].ist = (uint64_t) ist;
 }
 
 void init_idt() {

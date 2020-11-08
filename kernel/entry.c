@@ -4,8 +4,8 @@
 #include <mem/pmm.h>
 #include <mem/vmm.h>
 #include "arch/stivale2.h"
-#include "gdt.h"
-#include "idt.h"
+#include "arch/gdt.h"
+#include "arch/idt.h"
 
 static char g_bootstrap_stack[SIZE_4KB];
 
@@ -46,6 +46,8 @@ void kentry(stivale2_struct_t* info) {
     stivale2_struct_tag_memmap_t* memmap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
     init_pmm(memmap);
     CHECK_AND_RETHROW(init_vmm(memmap));
+
+    TRACE("Done early init!");
 
 cleanup:
     ASSERT(!IS_ERROR(err), "Failed early kernel initialization")

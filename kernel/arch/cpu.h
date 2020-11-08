@@ -3,12 +3,9 @@
 
 #include <util/defs.h>
 
-#ifdef __TOMATOS_AMD64__
-    #include <arch/amd64/intrin.h>
-#endif
+#include <arch/intrin.h>
 
 typedef struct system_context {
-#ifdef __TOMATOS_AMD64__
     uint64_t ds;
     uint64_t r15;
     uint64_t r14;
@@ -32,15 +29,6 @@ typedef struct system_context {
     IA32_RFLAGS rflags;
     uint64_t rsp;
     uint64_t ss;
-
-    // arch generic regs
-    #define IP rip
-    #define SP rsp
-    #define ARG0 rdi
-    #define ARG1 rsi
-#else
-    #error Unknown achitecture
-#endif
 } system_context_t;
 
 /**
