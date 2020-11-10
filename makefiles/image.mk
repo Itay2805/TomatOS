@@ -7,7 +7,6 @@ QEMU_ARGS += -debugcon stdio
 QEMU_ARGS += -monitor telnet:localhost:4321,server,nowait
 QEMU_ARGS += --no-shutdown
 QEMU_ARGS += --no-reboot
-QEMU_ARGS += -d int
 
 # We require iommu
 QEMU_ARGS += -device intel-iommu,aw-bits=48

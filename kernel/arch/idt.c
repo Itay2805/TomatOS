@@ -168,6 +168,10 @@ static const char* g_pf_reason[] = {
 };
 
 static void default_exception_handler(system_context_t* ctx) {
+    if (!ticket_try_lock(&g_trace_lock)) {
+        ticket_unlock(&g_trace_lock);
+    }
+
     ERROR("");
     ERROR("****************************************************");
     ERROR("Exception occurred: ", g_exception_name[ctx->int_num]);

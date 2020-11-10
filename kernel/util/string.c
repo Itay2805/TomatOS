@@ -9,8 +9,52 @@ void memrev(void* ptr, int length) {
     }
 }
 
-// NOTE: Copied from musl
-// https://github.com/ifduyue/musl/blob/master/src/string/memset.c
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// The following functions have been copied from musl
+// https://github.com/ifduyue/musl/tree/master/src/string/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <limits.h>
+
+#define ALIGN (sizeof(size_t)-1)
+#define ONES ((size_t)-1/UCHAR_MAX)
+#define HIGHS (ONES * (UCHAR_MAX/2+1))
+#define HASZERO(x) ((x)-ONES & ~(x) & HIGHS)
+
+__attribute__((no_builtin("strlen")))
+size_t strlen(const char *s) {
+    const char *a = s;
+    for (; *s; s++);
+    return s-a;
+}
+
+__attribute__((no_builtin("strncmp")))
+int strncmp(const char *_l, const char *_r, size_t n) {
+    const unsigned char *l=(void *)_l, *r=(void *)_r;
+    if (!n--) return 0;
+    for (; *l && *r && n && *l == *r ; l++, r++, n--);
+    return *l - *r;
+}
+
+__attribute__((no_builtin("strncpy")))
+char* strncpy(char* restrict d, const char* restrict s, size_t n) {
+    typedef size_t __attribute__((__may_alias__)) word;
+    word *wd;
+    const word *ws;
+    if (((uintptr_t)s & ALIGN) == ((uintptr_t)d & ALIGN)) {
+        for (; ((uintptr_t)s & ALIGN) && n && (*d=*s); n--, s++, d++);
+        if (!n || !*s) goto tail;
+        wd=(void *)d; ws=(const void *)s;
+        for (; n>=sizeof(size_t) && !HASZERO(*ws);
+               n-=sizeof(size_t), ws++, wd++) *wd = *ws;
+        d=(void *)wd; s=(const void *)ws;
+    }
+    for (; n && (*d=*s); n--, s++, d++);
+tail:
+    memset(d, 0, n);
+    return d;
+}
+
 __attribute__((no_builtin("memset")))
 void* memset(void* dest, int c, size_t n) {
     unsigned char* s = dest;

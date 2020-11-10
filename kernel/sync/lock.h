@@ -2,6 +2,7 @@
 #define TOMATOS_LOCK_H
 
 #include <stdatomic.h>
+#include <stdbool.h>
 
 typedef struct lock {
     atomic_size_t now_serving;

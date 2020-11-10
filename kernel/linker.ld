@@ -9,6 +9,7 @@ SECTIONS
         KEEP(*(.stivale2hdr))
     }
 
+    . = ALIGN(4K);
     __kernel_start_text = .;
     .text ALIGN(4K) :
     {

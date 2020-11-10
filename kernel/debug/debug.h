@@ -12,4 +12,9 @@ void debug_write_char(char c);
  */
 int debug_read_char();
 
+/**
+ * This is a blocking debug console
+ */
+void enter_debug_console();
+
 #endif //TOMATOS_DEBUG_H

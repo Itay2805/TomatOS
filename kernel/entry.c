@@ -46,6 +46,7 @@ void kentry(stivale2_struct_t* info) {
     stivale2_struct_tag_memmap_t* memmap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
     init_pmm(memmap);
     CHECK_AND_RETHROW(init_vmm(memmap));
+    dump_kernel_mappings();
 
     TRACE("Done early init!");
 
