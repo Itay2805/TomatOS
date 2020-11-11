@@ -24,6 +24,7 @@ void* kalloc(size_t size) {
     ticket_lock(&g_mm_lock);
     void* ptr = tlsf_malloc(&g_tlsf, size);
     ticket_unlock(&g_mm_lock);
+    memset(ptr, 0, size);
     return ptr;
 }
 

@@ -1,6 +1,7 @@
-#include "tlsf.h"
+#include <util/string.h>
 #include <stdbool.h>
-#include <string.h>
+
+#include "tlsf.h"
 
 #define UNLIKELY(x) __builtin_expect(!!(x), false)
 

@@ -13,53 +13,122 @@
  * The common handler that will push all registers and call
  * the true common handler with the system_context_t
  */
-__attribute__((naked, used))
-void common_exception_stub() {
-    asm("cld\n"
-        "pushq %rax\n"
-        "pushq %rbx\n"
-        "pushq %rcx\n"
-        "pushq %rdx\n"
-        "pushq %rsi\n"
-        "pushq %rdi\n"
-        "pushq %rbp\n"
-        "pushq %r8\n"
-        "pushq %r9\n"
-        "pushq %r10\n"
-        "pushq %r11\n"
-        "pushq %r12\n"
-        "pushq %r13\n"
-        "pushq %r14\n"
-        "pushq %r15\n"
-        "movq %ds, %rax\n"
-        "pushq %rax\n"
-        "movw $16, %ax\n"
-        "movw %ax, %ds\n"
-        "movw %ax, %es\n"
-        "movw %ax, %ss\n"
-        "movq %rsp, %rdi\n"
-        "call common_exception_handler\n"
-        "popq %rax\n"
-        "movw %ax, %ds\n"
-        "movw %ax, %es\n"
-        "popq %r15\n"
-        "popq %r14\n"
-        "popq %r13\n"
-        "popq %r12\n"
-        "popq %r11\n"
-        "popq %r10\n"
-        "popq %r9\n"
-        "popq %r8\n"
-        "popq %rbp\n"
-        "popq %rdi\n"
-        "popq %rsi\n"
-        "popq %rdx\n"
-        "popq %rcx\n"
-        "popq %rbx\n"
-        "popq %rax\n"
-        "addq $16, %rsp\n"
-        "iretq");
-}
+asm(
+    "common_exception_stub:\n"
+    ".cfi_startproc simple\n"
+    ".cfi_signal_frame\n"
+    ".cfi_def_cfa %rsp, 0\n"
+    ".cfi_offset %rip, 16\n"
+    ".cfi_offset %rsp, 40\n"
+    "cld\n"
+    "pushq %rax\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %rax, 0\n"
+    "pushq %rbx\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %rbx, 0\n"
+    "pushq %rcx\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %rcx, 0\n"
+    "pushq %rdx\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %rdx, 0\n"
+    "pushq %rsi\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %rsi, 0\n"
+    "pushq %rdi\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %rdi, 0\n"
+    "pushq %rbp\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %rbp, 0\n"
+    "pushq %r8\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %r8, 0\n"
+    "pushq %r9\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %r9, 0\n"
+    "pushq %r10\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %r10, 0\n"
+    "pushq %r11\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %r11, 0\n"
+    "pushq %r12\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %r12, 0\n"
+    "pushq %r13\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %r13, 0\n"
+    "pushq %r14\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %r14, 0\n"
+    "pushq %r15\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    ".cfi_rel_offset %r15, 0\n"
+    "movq %ds, %rax\n"
+    "pushq %rax\n"
+    ".cfi_adjust_cfa_offset 8\n"
+    "movw $16, %ax\n"
+    "movw %ax, %ds\n"
+    "movw %ax, %es\n"
+    "movw %ax, %ss\n"
+    "movq %rsp, %rdi\n"
+    "call common_exception_handler\n"
+    "popq %rax\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    "movw %ax, %ds\n"
+    "movw %ax, %es\n"
+    "popq %r15\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %r15\n"
+    "popq %r14\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %r14\n"
+    "popq %r13\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %r13\n"
+    "popq %r12\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %r12\n"
+    "popq %r11\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %r11\n"
+    "popq %r10\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %r10\n"
+    "popq %r9\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %r9\n"
+    "popq %r8\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %r8\n"
+    "popq %rbp\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %rbp\n"
+    "popq %rdi\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %rdi\n"
+    "popq %rsi\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %rsi\n"
+    "popq %rdx\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %rdx\n"
+    "popq %rcx\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %rcx\n"
+    "popq %rbx\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %rbx\n"
+    "popq %rax\n"
+    ".cfi_adjust_cfa_offset -8\n"
+    ".cfi_restore %rax\n"
+    "addq $16, %rsp\n"
+    ".cfi_adjust_cfa_offset -16\n"
+    "iretq\n"
+    ".cfi_endproc\n"
+);
 
 /**
  * Define exception stub that has no error
@@ -67,7 +136,8 @@ void common_exception_stub() {
 #define EXCEPTION_STUB(num) \
     __attribute__((naked)) \
     void interrupt_handle_##num() { \
-        asm("pushq $0\n" \
+        asm( \
+            "pushq $0\n" \
             "pushq $" #num "\n" \
             "jmp common_exception_stub"); \
     }
@@ -78,7 +148,8 @@ void common_exception_stub() {
 #define EXCEPTION_ERROR_STUB(num) \
     __attribute__((naked)) \
     void interrupt_handle_##num() { \
-        asm("pushq $" #num "\n" \
+        asm( \
+            "pushq $" #num "\n" \
             "jmp common_exception_stub"); \
     }
 
@@ -168,9 +239,8 @@ static const char* g_pf_reason[] = {
 };
 
 static void default_exception_handler(system_context_t* ctx) {
-    if (!ticket_try_lock(&g_trace_lock)) {
-        ticket_unlock(&g_trace_lock);
-    }
+    // reset the lock
+    g_trace_lock = INIT_LOCK();
 
     ERROR("");
     ERROR("****************************************************");
