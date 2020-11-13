@@ -48,10 +48,6 @@ void kentry(stivale2_struct_t* info) {
     CHECK_AND_RETHROW(init_vmm(memmap));
     dump_kernel_mappings();
 
-    void* ptr = kalloc(12);
-    TRACE("GOT PTR");
-    TRACE(ptr);
-
     TRACE("Done early init!");
 
 cleanup:

@@ -31,6 +31,17 @@ typedef struct system_context {
     uint64_t ss;
 } system_context_t;
 
+typedef union page_fault_params {
+    struct {
+        uint32_t present : 1;
+        uint32_t write : 1;
+        uint32_t user : 1;
+        uint32_t reserved_write : 1;
+        uint32_t instruction_fetch : 1;
+    };
+    uint32_t raw;
+} page_fault_params_t;
+
 /**
  * Initialize a new system context
  */

@@ -4,6 +4,7 @@
 #include <arch/stivale2.h>
 #include <util/defs.h>
 #include <sync/lock.h>
+#include <arch/cpu.h>
 #include "mm.h"
 
 err_t init_vmm(stivale2_struct_tag_memmap_t* memap);
@@ -48,8 +49,8 @@ err_t vmm_unmap(address_space_t* space, uintptr_t virt, size_t pages);
  * and the interrupt will return.
  *
  * @param addr      [IN] The fault address
- * @param write     [IN] Was this a write that caused the fault
+ * @param params    [IN] The page fault parameters
  */
-err_t vmm_handle_pagefault(uintptr_t addr, bool write);
+err_t vmm_handle_kernel_pagefault(uintptr_t addr, page_fault_params_t params);
 
 #endif //TOMATOS_VMM_H

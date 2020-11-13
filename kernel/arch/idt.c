@@ -1,6 +1,7 @@
 #include <util/trace.h>
 #include <arch/cpu.h>
 #include <util/except.h>
+#include <mem/vmm.h>
 #include "idt.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -228,17 +229,17 @@ static const char* g_exception_name[] = {
 };
 
 static const char* g_pf_reason[] = {
-        "Supervisory process tried to read a non-present page entry",
-        "Supervisory process tried to read a page and caused a protection fault",
-        "Supervisory process tried to write to a non-present page entry",
-        "Supervisory process tried to write a page and caused a protection fault",
-        "User process tried to read a non-present page entry",
-        "User process tried to read a page and caused a protection fault",
-        "User process tried to write to a non-present page entry",
-        "User process tried to write a page and caused a protection fault"
+    "Supervisory process tried to read a non-present page entry",
+    "Supervisory process tried to read a page and caused a protection fault",
+    "Supervisory process tried to write to a non-present page entry",
+    "Supervisory process tried to write a page and caused a protection fault",
+    "User process tried to read a non-present page entry",
+    "User process tried to read a page and caused a protection fault",
+    "User process tried to write to a non-present page entry",
+    "User process tried to write a page and caused a protection fault"
 };
 
-static void default_exception_handler(system_context_t* ctx) {
+static void kernel_exception_handler(system_context_t* ctx) {
     // reset the lock
     g_trace_lock = INIT_LOCK();
 
@@ -255,6 +256,7 @@ static void default_exception_handler(system_context_t* ctx) {
         }
         ERROR("");
     }
+
 //    ERROR("Cpu: #%d", g_cpu_id);
 //    if (g_current_process != NULL) {
 //        ERROR("Process: `%s` (#%d)", g_current_process->name, g_current_process->pid);
@@ -269,7 +271,7 @@ static void default_exception_handler(system_context_t* ctx) {
     ERROR("R8 =", (void*)ctx->r8 , " R9 =", (void*)ctx->r9 , " R10=", (void*)ctx->r10, " R11=", (void*)ctx->r11);
     ERROR("R12=", (void*)ctx->r12, " R13=", (void*)ctx->r13, " R14=", (void*)ctx->r14, " R15=", (void*)ctx->r15);
     ERROR("RIP=", (void*)ctx->rip, " RFL=", (void*)ctx->rflags.raw);
-    // TODO: ERROR("CR0=%08x CR2=%016llx CR3=%016llx CR4=%08x", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
+    ERROR("CR0=", (void*)__readcr0().raw," CR2=", (void*)__readcr2()," CR3=", (void*)__readcr3()," CR4=", __readcr4().raw);
 
     ERROR("");
 //    if (g_exception_count == 0) {
@@ -285,7 +287,25 @@ static void default_exception_handler(system_context_t* ctx) {
 
 __attribute__((used))
 void common_exception_handler(system_context_t* ctx) {
-    default_exception_handler(ctx);
+    err_t err = NO_ERROR;
+
+    // page faults are special
+    if (ctx->int_num == 0xE) {
+        page_fault_params_t params = { .raw = ctx->error_code };
+        CHECK(!params.instruction_fetch && !params.reserved_write, "Very bad page fault!");
+
+        // while handling page faults
+        if (ctx->cs == GDT_KERNEL_CODE) {
+            CHECK_AND_RETHROW(vmm_handle_kernel_pagefault(__readcr2(), params));
+        } else {
+            CHECK_FAIL("TODO: Handle usermode page fault");
+        }
+    }
+
+cleanup:
+    if (IS_ERROR(err)) {
+        kernel_exception_handler(ctx);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

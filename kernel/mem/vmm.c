@@ -245,3 +245,48 @@ cleanup:
     return err;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Page fault handling
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+err_t vmm_handle_kernel_pagefault(uintptr_t addr, page_fault_params_t params) {
+    err_t err = NO_ERROR;
+    bool enabled_interrupts = false;
+
+    // on-demand kernel paging ranges
+    if (
+        (PAGE_REFCOUNT_START <= addr && addr < PAGE_REFCOUNT_END) ||
+        (KERNEL_HEAP_START <= addr && addr < KERNEL_HEAP_END)
+    ) {
+        // this is the page refcount handling
+
+        // must enable interrupts when
+        // doing vmm stuff
+        enable_interrupts();
+        enabled_interrupts = true;
+
+        if (params.write) {
+            // this is on a write, we don't care if there was a mapping or not because we
+            // create a new page anyways
+            physptr_t page = DIRECT_TO_PHYS(page_alloc());
+            CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, ALIGN_DOWN(addr, PAGE_SIZE), page, 1, MAP_WRITE));
+        } else {
+            // this is on a read, there is no way to disable reading on a page
+            // so this 100% a missing page, map the zero page onto it
+            CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, ALIGN_DOWN(addr, PAGE_SIZE), g_zero_page, 1, MAP_READ));
+        }
+
+        // make sure the address is invalidated
+        // no matter what
+        __invlpg(addr);
+
+    } else {
+        CHECK_FAIL("This is a real kernel page fault :(");
+    }
+
+cleanup:
+    if (enabled_interrupts) {
+        disable_interrupts();
+    }
+    return err;
+}
