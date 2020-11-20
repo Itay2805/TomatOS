@@ -4,7 +4,7 @@
 #include <mem/pmm.h>
 #include <proc/proc.h>
 #include "mem/vmm.h"
-#include "arch/intrin.h"
+#include "arch/amd64/intrin.h"
 
 /**
  * Kernel regions
@@ -184,7 +184,7 @@ err_t vmm_map(address_space_t* space, uintptr_t virt, physptr_t phys, size_t pag
 
     CHECK(space != NULL);
 
-    ticket_lock(&space->lock);
+    irq_lock(&space->lock);
 
     uint64_t flags_add = PM_PRESENT;
     if (perms & MAP_WRITE) {
@@ -211,7 +211,7 @@ err_t vmm_map(address_space_t* space, uintptr_t virt, physptr_t phys, size_t pag
 
 cleanup:
     if (space != NULL) {
-        ticket_unlock(&space->lock);
+        irq_unlock(&space->lock);
     }
 
     return err;
@@ -222,7 +222,7 @@ err_t vmm_unmap(address_space_t* space, uintptr_t virt, size_t pages) {
 
     CHECK(space != NULL);
 
-    ticket_lock(&space->lock);
+    irq_lock(&space->lock);
 
     while (pages--) {
         // get and unmap the page
@@ -239,7 +239,7 @@ err_t vmm_unmap(address_space_t* space, uintptr_t virt, size_t pages) {
 
 cleanup:
     if (space != NULL) {
-        ticket_unlock(&space->lock);
+        irq_unlock(&space->lock);
     }
 
     return err;
@@ -251,7 +251,6 @@ cleanup:
 
 err_t vmm_handle_kernel_pagefault(uintptr_t addr, page_fault_params_t params) {
     err_t err = NO_ERROR;
-    bool enabled_interrupts = false;
 
     // on-demand kernel paging ranges
     if (
@@ -259,11 +258,6 @@ err_t vmm_handle_kernel_pagefault(uintptr_t addr, page_fault_params_t params) {
         (KERNEL_HEAP_START <= addr && addr < KERNEL_HEAP_END)
     ) {
         // this is the page refcount handling
-
-        // must enable interrupts when
-        // doing vmm stuff
-        enable_interrupts();
-        enabled_interrupts = true;
 
         if (params.write) {
             // this is on a write, we don't care if there was a mapping or not because we
@@ -285,8 +279,5 @@ err_t vmm_handle_kernel_pagefault(uintptr_t addr, page_fault_params_t params) {
     }
 
 cleanup:
-    if (enabled_interrupts) {
-        disable_interrupts();
-    }
     return err;
 }

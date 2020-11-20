@@ -4,8 +4,8 @@
 #include <mem/pmm.h>
 #include <mem/vmm.h>
 #include "arch/stivale2.h"
-#include "arch/gdt.h"
-#include "arch/idt.h"
+#include "arch/amd64/gdt.h"
+#include "arch/amd64/idt.h"
 
 static char g_bootstrap_stack[SIZE_4KB];
 
@@ -31,6 +31,10 @@ static stivale2_header_t header = {
     .stack = (uint64_t)(g_bootstrap_stack + SIZE_4KB),
     .tags = &g_stibale2_smp.tag
 };
+
+static void smp_kentry() {
+
+}
 
 void kentry(stivale2_struct_t* info) {
     err_t err = NO_ERROR;

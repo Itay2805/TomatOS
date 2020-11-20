@@ -14,7 +14,7 @@ err_t init_vmm(stivale2_struct_tag_memmap_t* memap);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 typedef struct address_space {
-    ticket_lock_t lock;
+    lock_t lock;
     directptr_t pml4;
 } address_space_t;
 

@@ -3,7 +3,7 @@
 #include "trace.h"
 #include "string.h"
 
-ticket_lock_t g_trace_lock = INIT_LOCK();
+lock_t g_trace_lock = INIT_LOCK();
 
 void trace_char(char c) {
     debug_write_char(c);

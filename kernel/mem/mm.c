@@ -11,8 +11,14 @@ void dump_kernel_mappings() {
     TRACE("\tkernel heap  | ", (void*)KERNEL_HEAP_START, "-", (void*)KERNEL_HEAP_END);
 }
 
-// TODO: maybe have a pool per cpu for better performance
-static ticket_lock_t g_mm_lock = INIT_LOCK();
+/**
+ * The memory manager lock
+ */
+static lock_t g_mm_lock = INIT_LOCK();
+
+/**
+ * The TLSF instance for the vmm
+ */
 static tlsf g_tlsf = TLSF_INIT;
 
 void* tlsf_resize(tlsf* t, size_t size) {
@@ -21,23 +27,23 @@ void* tlsf_resize(tlsf* t, size_t size) {
 }
 
 void* kalloc(size_t size) {
-    ticket_lock(&g_mm_lock);
+    irq_lock(&g_mm_lock);
     void* ptr = tlsf_malloc(&g_tlsf, size);
-    ticket_unlock(&g_mm_lock);
+    irq_unlock(&g_mm_lock);
     memset(ptr, 0, size);
     return ptr;
 }
 
 void* krealloc(void* ptr, size_t size) {
-    ticket_lock(&g_mm_lock);
+    irq_lock(&g_mm_lock);
     ptr = tlsf_realloc(&g_tlsf, ptr, size);
-    ticket_unlock(&g_mm_lock);
+    irq_unlock(&g_mm_lock);
     return ptr;
 }
 
 void kfree(void* ptr) {
-    ticket_lock(&g_mm_lock);
+    irq_lock(&g_mm_lock);
     tlsf_free(&g_tlsf, ptr);
-    ticket_unlock(&g_mm_lock);
+    irq_unlock(&g_mm_lock);
 }
 

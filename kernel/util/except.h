@@ -62,4 +62,6 @@
 
 // TODO:             debug_trace_own_stack();
 
+#define DEBUG_ASSERT(expr, ...) ASSERT(expr, ## __VA_ARGS__)
+
 #endif //TOMATOS_EXCEPT_H

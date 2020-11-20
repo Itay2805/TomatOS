@@ -14,7 +14,7 @@ typedef struct pages {
     size_t page_count;
 } pages_t;
 
-static ticket_lock_t g_pmm_lock = INIT_LOCK();
+static lock_t g_pmm_lock = INIT_LOCK();
 
 static const char* memmap_type_to_string(int type) {
     switch (type) {
@@ -49,7 +49,7 @@ void init_pmm(stivale2_struct_tag_memmap_t* memap) {
 }
 
 directptr_t page_alloc() {
-    ticket_lock(&g_pmm_lock);
+    irq_lock(&g_pmm_lock);
 
     // make sure has pages
     ASSERT(!slist_empty(&g_freelist), "Out of memory!");
@@ -65,15 +65,27 @@ directptr_t page_alloc() {
         slist_push(&g_freelist, &page->link);
     }
 
-    ticket_unlock(&g_pmm_lock);
+    irq_unlock(&g_pmm_lock);
     return res;
 }
 
 void page_free(directptr_t page) {
-    // TODO: lock
-    // TODO: check if refcount is zero then free
+    uintptr_t index = (uintptr_t)ALIGN_DOWN(page, PAGE_SIZE) / PAGE_SIZE;
+    _Atomic(uint16_t)* refcount = &((_Atomic(uint16_t)*)PAGE_REFCOUNT_START)[index];
+
+    // TODO: too lazy to figure how to do this correctly lol
+    if (atomic_fetch_sub(refcount, 1) == 0) {
+        atomic_store(refcount, 0);
+
+        // this is the last ref, free it
+        irq_lock(&g_pmm_lock);
+        slist_push(&g_freelist, page);
+        irq_unlock(&g_pmm_lock);
+    }
 }
 
 void page_ref(directptr_t page) {
-    // TODO: increase refcount
+    // increment the refcount
+    uintptr_t index = (uintptr_t)ALIGN_DOWN(page, PAGE_SIZE) / PAGE_SIZE;
+    atomic_fetch_add(&((_Atomic(uint16_t)*)PAGE_REFCOUNT_START)[index], 1);
 }

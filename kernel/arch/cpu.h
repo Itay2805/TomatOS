@@ -3,7 +3,7 @@
 
 #include <util/defs.h>
 
-#include <arch/intrin.h>
+#include <arch/amd64/intrin.h>
 
 typedef struct system_context {
     uint64_t ds;

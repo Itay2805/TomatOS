@@ -74,34 +74,34 @@ void trace_ptr(void* ptr);
     #define PRINT(...) MAP(PRINT_VALUE, ## __VA_ARGS__)
 #endif
 
-extern ticket_lock_t g_trace_lock;
+extern lock_t g_trace_lock;
 
 #define DEBUG(...) \
     do { \
-        ticket_lock(&g_trace_lock); \
+        irq_lock(&g_trace_lock); \
         PRINT("[?] ", ## __VA_ARGS__, "\n"); \
-        ticket_unlock(&g_trace_lock); \
+        irq_unlock(&g_trace_lock); \
     } while(0)
 
 #define TRACE(...) \
     do { \
-        ticket_lock(&g_trace_lock); \
+        irq_lock(&g_trace_lock); \
         PRINT("[*] ", ## __VA_ARGS__, "\n"); \
-        ticket_unlock(&g_trace_lock); \
+        irq_unlock(&g_trace_lock); \
     } while(0)
 
 #define WARN(...) \
     do { \
-        ticket_lock(&g_trace_lock); \
+        irq_lock(&g_trace_lock); \
         PRINT("[!] ", ## __VA_ARGS__, "\n"); \
-        ticket_unlock(&g_trace_lock); \
+        irq_unlock(&g_trace_lock); \
     } while(0)
 
 #define ERROR(...) \
     do { \
-        ticket_lock(&g_trace_lock); \
+        irq_lock(&g_trace_lock); \
         PRINT("[-] ", ## __VA_ARGS__, "\n"); \
-        ticket_unlock(&g_trace_lock); \
+        irq_unlock(&g_trace_lock); \
     } while(0)
 
 

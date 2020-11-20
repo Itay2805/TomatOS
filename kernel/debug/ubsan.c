@@ -1,5 +1,6 @@
 #include <util/defs.h>
 #include <util/except.h>
+#include <util/string.h>
 
 typedef struct source_location {
     const char* filename;
@@ -182,7 +183,14 @@ void __ubsan_handle_out_of_bounds(out_of_bounds_data_t* data, size_t index) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO: load_invalid_value
+typedef struct invalid_value_data {
+    source_location_t loc;
+    type_descriptor_t* type;
+} invalid_value_data_t;
+
+void __ubsan_handle_load_invalid_value(invalid_value_data_t* data, size_t val) {
+    WARN("load of value ", val, ", which is not a valid value for type ", data->type->type_name, SOURCE_LOCATION(data->loc));
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
