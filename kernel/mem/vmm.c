@@ -90,25 +90,28 @@ err_t init_vmm(stivale2_struct_tag_memmap_t* memap) {
     TRACE("\t* direct map");
     for (int i = 0; i < memap->entries; i++) {
         stivale2_mmap_entry_t* entry = &memap->memmap[i];
-        if (entry->type != STIVALE2_MMAP_TYPE_BAD_MEMORY) {
-            vmm_map(
-                    &g_kernel.address_space,
-                    (uintptr_t)PHYS_TO_DIRECT(entry->base),
-                    ALIGN_DOWN(entry->base, PAGE_SIZE),
-                    ALIGN_UP(entry->length, PAGE_SIZE) / PAGE_SIZE,
-                    MAP_READ
-            );
+        if (
+            entry->type == STIVALE2_MMAP_TYPE_RESERVED ||
+            entry->type == STIVALE2_MMAP_TYPE_USABLE ||
+            entry->type == STIVALE2_MMAP_TYPE_BOOTLOADER_RECLAIMABLE
+        ) {
+            uintptr_t base = ALIGN_DOWN(entry->base, PAGE_SIZE);
+            size_t page_count = (ALIGN_UP(entry->base + entry->length, PAGE_SIZE) - base) / PAGE_SIZE;
+            CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)PHYS_TO_DIRECT(base), base, page_count, MAP_READ | MAP_WRITE));
         }
     }
+
+    // for limine we must make sure the first 1mb is mapped
+    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)PHYS_TO_DIRECT(BASE_4KB), PAGE_SIZE, (SIZE_1MB - PAGE_SIZE) / PAGE_SIZE, MAP_READ));
 
     // create kernel mappings
     TRACE("\t* kernel");
     size_t rx_pages = (__kernel_end_text - __kernel_start_text) / PAGE_SIZE;
     size_t ro_pages = (__kernel_end_rodata - __kernel_end_text) / PAGE_SIZE;
     size_t rw_pages = (__kernel_end_data - __kernel_end_rodata) / PAGE_SIZE;
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_start_text, (uintptr_t)(__kernel_start_text - KERNEL_BASE), rx_pages, MAP_EXEC));
+    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_start_text, (uintptr_t)(__kernel_start_text - KERNEL_BASE), rx_pages, MAP_READ | MAP_EXEC));
     CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_end_text, (uintptr_t)(__kernel_end_text - KERNEL_BASE), ro_pages, MAP_READ));
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_end_rodata, (uintptr_t)(__kernel_end_rodata - KERNEL_BASE), rw_pages, MAP_WRITE));
+    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_end_rodata, (uintptr_t)(__kernel_end_rodata - KERNEL_BASE), rw_pages, MAP_READ | MAP_WRITE));
 
     // switch to kernel address space
     CHECK_AND_RETHROW(set_address_space(&g_kernel.address_space));

@@ -40,7 +40,7 @@ typedef struct stivale2_struct {
 } PACKED stivale2_struct_t;
 
 #define STIVALE2_STRUCT_TAG_CMDLINE_IDENT 0xe5e76a1b4597a781
-struct stivale2_struct_tag_cmdline {
+typedef struct stivale2_struct_tag_cmdline {
     stivale2_tag_t tag;
     const char* cmdline;
 } PACKED stivale2_struct_tag_cmdline_t;
@@ -95,6 +95,14 @@ typedef struct stivale2_struct_tag_smp {
 
 extern stivale2_struct_t* g_stivale2_struct;
 
+/**
+ * Get a stivale tag by its id, return null if not found
+ */
 void* get_stivale2_tag(uint64_t id);
+
+/**
+ * Convert the stivale struct to have direct map (higher half) addresses
+ */
+void stivale2_to_higher_half();
 
 #endif //TOMATOS_STIVALE2_H
