@@ -72,6 +72,12 @@ void cpu_sleep();
 /**
  * Memory fence to serialize memory accesses
  */
+void memory_barrier();
+
+void store_fence();
+
+void load_fence();
+
 void memory_fence();
 
 /**
@@ -88,5 +94,15 @@ void enable_interrupts();
  * Checks if interrupts are enabled on the current cpu
  */
 bool are_interrupts_enabled();
+
+/**
+ * Get the cpu id, used to index into cpu specific cpu info
+ */
+size_t get_cpu_id();
+
+/**
+ * Used to set the id on boot
+ */
+void set_cpu_id(size_t id);
 
 #endif //TOMATOS_CPU_H

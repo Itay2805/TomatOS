@@ -46,13 +46,13 @@ $(BIN_DIR)/image.hdd:	$(BIN_DIR)/tomatos.elf \
 	@mkdir -p $(@D)
 	@echo "Creating disk"
 	@rm -rf $@
-	@dd if=/dev/zero bs=1M count=0 seek=64 of=$@
+	dd if=/dev/zero bs=1M count=0 seek=64 of=$@
 	@echo "Creating echfs partition"
-	@parted -s $@ mklabel msdos
-	@parted -s $@ mkpart primary 1 100%
-	@echfs-utils -m -p0 $@ quick-format 32768
+	parted -s $@ mklabel msdos
+	parted -s $@ mkpart primary 1 100%
+	echfs-utils -m -p0 $@ quick-format 32768
 	@echo "Importing files"
-	@echfs-utils -m -p0 $@ import $(BIN_DIR)/tomatos.elf tomatos.elf
-	@echfs-utils -m -p0 $@ import boot/limine.cfg limine.cfg
+	echfs-utils -m -p0 $@ import $(BIN_DIR)/tomatos.elf tomatos.elf
+	echfs-utils -m -p0 $@ import boot/limine.cfg limine.cfg
 	@echo "Installing qloader2"
-	@tools/limine-install boot/limine.bin $@
+	tools/limine-install boot/limine.bin $@

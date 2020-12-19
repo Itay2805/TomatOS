@@ -34,6 +34,7 @@ static stivale2_header_t header = {
 };
 
 static atomic_int g_cpu_start_count = 0;
+static atomic_bool g_ready = false;
 
 static void smp_kentry(stivale2_smp_info_t* smpinfo) {
     smpinfo = PHYS_TO_DIRECT(smpinfo);
@@ -42,11 +43,23 @@ static void smp_kentry(stivale2_smp_info_t* smpinfo) {
     init_gdt();
     init_idt();
 
+    set_cpu_id(smpinfo->extra_argument);
+    TRACE("\tGot CPU #", get_cpu_id());
+    g_cpu_start_count++;
+
+    // spin the cpu until the pmm and vmm are initialized
+    // properly so we can switch paging
+    while (!g_ready) {
+        cpu_pause();
+    }
+
+    TRACE("\tCPU #", get_cpu_id(), " Ready");
+
     // init paging
     set_address_space(&g_kernel.address_space);
 
+    // we are ready
     g_cpu_start_count++;
-    TRACE("\tStarted CPU #", smpinfo->extra_argument);
 
     while (1) {
         cpu_pause();
@@ -57,35 +70,35 @@ void kentry(stivale2_struct_t* info) {
     err_t err = NO_ERROR;
     g_stivale2_struct = info;
 
-    // we need to convert the addresses in the stivale2
-    // info to be virtual addresses
-    stivale2_to_higher_half();
+    //
+    // quick way to see we are up and running
+    //
+    TRACE("Starting TomatOS [bootloader: ", info->bootloader_brand, "-", info->bootloader_version, "]");
 
+    //
     // start with initializing basic shit
+    //
     init_idt();
     init_gdt();
 
-    TRACE("Starting TomatOS [bootloader: ", info->bootloader_brand, "-", info->bootloader_version, "]");
-
-    // initialize pmm and gd
+    //
+    // initialize pmm
+    //
     stivale2_struct_tag_memmap_t* memmap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
     init_pmm(memmap);
-    CHECK_AND_RETHROW(init_vmm(memmap));
 
-    // print the mapping ranges for the lols
-    dump_kernel_mappings();
-
-    TRACE("Done early init!");
-
-    // go into the other cpus if the bootloader supports SMP, otherwise
-    // we will not do smp at all
+    //
+    // take ownership over all the cores first
+    //
     stivale2_struct_tag_smp_t* smp = get_stivale2_tag(STIVALE2_STRUCT_TAG_SMP_IDENT);
+    size_t cpu_count = smp->cpu_count;
     if (smp != NULL) {
-        TRACE("Starting CPUs");
+        TRACE("Take ownership over CPUs");
         for (int i = 0; i < smp->cpu_count; i++) {
             stivale2_smp_info_t* smpinfo = &smp->smp_info[i];
             if (smpinfo->lapic_id == smp->bsp_lapic_id) {
                 TRACE("\tCPU #", i, " is BSP");
+                set_cpu_id(i);
                 g_cpu_start_count++;
             } else {
                 // TODO: stack allocator
@@ -95,7 +108,7 @@ void kentry(stivale2_struct_t* info) {
 
                 // must have barrier to make sure this is written
                 // after the rest is written
-                memory_fence();
+                memory_barrier();
                 smpinfo->goto_address = (uint64_t)smp_kentry;
             }
         }
@@ -109,7 +122,35 @@ void kentry(stivale2_struct_t* info) {
         WARN("Missing SMP info");
     }
 
-    // TODO: reclaim bootloader pages
+    //
+    // initialize vmm
+    //
+    CHECK_AND_RETHROW(init_vmm(memmap));
+
+    // print the mapping ranges for the lols
+    dump_kernel_mappings();
+
+    // we can't access these anymore at this point
+    smp = NULL;
+    g_stivale2_struct = NULL;
+
+    //
+    // we are going to tell all the cpus that we are ready
+    // to continue operation on them
+    //
+    TRACE("Continuing all CPUs");
+    g_cpu_start_count = 1;
+    store_fence();
+    g_ready = true;
+    while (g_cpu_start_count != cpu_count) {
+        cpu_pause();
+    }
+
+    TRACE("Done kernel init");
+
+    //
+    // TODO: reclaim bootloader memory
+    //
 
 cleanup:
     ASSERT(!IS_ERROR(err), "Failed early kernel initialization")

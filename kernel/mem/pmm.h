@@ -5,7 +5,13 @@
 #include <util/defs.h>
 #include "mm.h"
 
+/**
+ * Initialize the pmm with
+ * @param memap
+ */
 void init_pmm(stivale2_struct_tag_memmap_t* memap);
+
+void pmm_reclaim_bootloader_memory(stivale2_struct_tag_memmap_t* memap);
 
 __attribute__((assume_aligned(4096)))
 directptr_t page_alloc();

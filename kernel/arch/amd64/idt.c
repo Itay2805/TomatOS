@@ -289,17 +289,21 @@ __attribute__((used))
 void common_exception_handler(system_context_t* ctx) {
     err_t err = NO_ERROR;
 
-    // page faults are special
-    if (ctx->int_num == 0xE) {
-        page_fault_params_t params = { .raw = ctx->error_code };
-        CHECK(!params.instruction_fetch && !params.reserved_write, "Very bad page fault!");
+    // check if in kernel or not
+    if (ctx->cs == GDT_KERNEL_CODE) {
+        if (ctx->int_num == 0xE) {
+            page_fault_params_t params = {.raw = ctx->error_code};
+            CHECK(!params.instruction_fetch && !params.reserved_write, "Very bad page fault!");
 
-        // while handling page faults
-        if (ctx->cs == GDT_KERNEL_CODE) {
+            // while handling page faults
             CHECK_AND_RETHROW(vmm_handle_kernel_pagefault(__readcr2(), params));
         } else {
-            CHECK_FAIL("TODO: Handle usermode page fault");
+            // we might have got this in the middle of a print...
+            g_trace_lock = INIT_LOCK();
+            CHECK_FAIL("");
         }
+    } else {
+        CHECK_FAIL("TODO: Handle usermode exceptions");
     }
 
 cleanup:

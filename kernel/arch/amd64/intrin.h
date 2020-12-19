@@ -84,6 +84,7 @@ void __writecr0(IA32_CR0 Data);
 #define MSR_IA32_FS_BASE                         0xC0000100
 #define MSR_IA32_GS_BASE                         0xC0000101
 #define MSR_IA32_KERNEL_GS_BASE                  0xC0000102
+#define MSR_IA32_TSC_AUX                         0xC0000103
 
 #define MSR_IA32_STAR                            0xC0000081
 #define MSR_IA32_LSTAR                           0xC0000082

@@ -48,6 +48,20 @@ void init_pmm(stivale2_struct_tag_memmap_t* memap) {
     TRACE("\tAvailable memory: ", SIZE(g_total_pages * PAGE_SIZE));
 }
 
+void pmm_reclaim_bootloader_memory(stivale2_struct_tag_memmap_t* memap) {
+    // TODO: maybe copy the memmap aside first
+    for (size_t i = 0; i < memap->entries; i++) {
+        stivale2_mmap_entry_t* entry = &memap->memmap[i];
+        if (entry->type == STIVALE2_MMAP_TYPE_BOOTLOADER_RECLAIMABLE) {
+            // add the range of pages
+            pages_t* base = PHYS_TO_DIRECT(entry->base);
+            base->page_count = entry->length / PAGE_SIZE;
+            g_total_pages += base->page_count;
+            slist_push(&g_freelist, &base->link);
+        }
+    }
+}
+
 directptr_t page_alloc() {
     irq_lock(&g_pmm_lock);
 
