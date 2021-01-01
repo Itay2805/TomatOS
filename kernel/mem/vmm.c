@@ -2,9 +2,9 @@
 #include <util/except.h>
 #include <util/trace.h>
 #include <mem/pmm.h>
-#include <proc/proc.h>
-#include "mem/vmm.h"
+
 #include "arch/amd64/intrin.h"
+#include "mem/vmm.h"
 
 /**
  * Kernel regions
@@ -26,7 +26,20 @@ extern symbol_t __kernel_end_data;
 
 #define PM_ADDR(entry) ((entry) & 0x7ffffffffffff000ull)
 
-static physptr_t g_zero_page = 0;
+/**
+ * A page that is always zeroed out
+ */
+static physptr_t m_zero_page = 0;
+
+/**
+ * The vmm editing lock
+ */
+static lock_t m_vmm_lock;
+
+/**
+ * The top level table
+ */
+static directptr_t m_pml4;
 
 static void init_vmm_features() {
     IA32_CR4 cr4 = __readcr4();
@@ -57,9 +70,16 @@ static void init_vmm_features() {
     __writecr4(cr4);
 }
 
-err_t init_vmm(stivale2_struct_tag_memmap_t* memap) {
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// VMM initialization
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+err_t init_vmm() {
     err_t err = NO_ERROR;
     TRACE("Initializing VMM");
+
+    stivale2_struct_tag_memmap_t* memap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
+    CHECK(memap != NULL);
 
     // enable cpu features
     init_vmm_features();
@@ -67,27 +87,16 @@ err_t init_vmm(stivale2_struct_tag_memmap_t* memap) {
     // allocate the zero page
     directptr_t zero_page = page_alloc();
     memset(zero_page, 0, PAGE_SIZE);
-    g_zero_page = DIRECT_TO_PHYS(zero_page);
+    m_zero_page = DIRECT_TO_PHYS(zero_page);
 
-    TRACE("Creating kernel mappings");
+    TRACE("Creating mappings");
 
     // initialize the kernel address space
-    g_kernel.address_space.lock = INIT_LOCK();
-    g_kernel.address_space.pml4 = page_alloc();
-
-    // all the kernel entries are preallocated, this makes sure the
-    // address space is always in sync between all the kernel threads
-    TRACE("\t* top level");
-    uint64_t* table = g_kernel.address_space.pml4;
-    for (int i = 256; i < 512; i++) {
-        directptr_t ptr = page_alloc();
-        memset(ptr, 0, PAGE_SIZE);
-        table[i] = DIRECT_TO_PHYS(ptr);
-        table[i] |= (PM_PRESENT | PM_WRITE);
-    }
+    m_vmm_lock = INIT_LOCK();
+    m_pml4 = page_alloc();
 
     // create the kernel mappings
-    TRACE("\t* direct map");
+    TRACE("\t* mapping physical memory");
     for (int i = 0; i < memap->entries; i++) {
         stivale2_mmap_entry_t* entry = &memap->memmap[i];
         if (
@@ -97,40 +106,40 @@ err_t init_vmm(stivale2_struct_tag_memmap_t* memap) {
         ) {
             uintptr_t base = ALIGN_DOWN(entry->base, PAGE_SIZE);
             size_t page_count = (ALIGN_UP(entry->base + entry->length, PAGE_SIZE) - base) / PAGE_SIZE;
-            CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)PHYS_TO_DIRECT(base), base, page_count, MAP_READ | MAP_WRITE));
+            CHECK_AND_RETHROW(vmm_map((uintptr_t)PHYS_TO_DIRECT(base), base, page_count, MAP_READ | MAP_WRITE));
         }
     }
 
-    // for limine we must make sure the first 1mb is mapped
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)PHYS_TO_DIRECT(BASE_4KB), PAGE_SIZE, (SIZE_1MB - PAGE_SIZE) / PAGE_SIZE, MAP_READ));
-
     // create kernel mappings
-    TRACE("\t* kernel");
+    TRACE("\t* mapping kernel");
     size_t rx_pages = (__kernel_end_text - __kernel_start_text) / PAGE_SIZE;
     size_t ro_pages = (__kernel_end_rodata - __kernel_end_text) / PAGE_SIZE;
     size_t rw_pages = (__kernel_end_data - __kernel_end_rodata) / PAGE_SIZE;
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_start_text, (uintptr_t)(__kernel_start_text - KERNEL_BASE), rx_pages, MAP_READ | MAP_EXEC));
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_end_text, (uintptr_t)(__kernel_end_text - KERNEL_BASE), ro_pages, MAP_READ));
-    CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, (uintptr_t)__kernel_end_rodata, (uintptr_t)(__kernel_end_rodata - KERNEL_BASE), rw_pages, MAP_READ | MAP_WRITE));
+    CHECK_AND_RETHROW(vmm_map((uintptr_t)__kernel_start_text, (uintptr_t)(__kernel_start_text - KERNEL_BASE), rx_pages, MAP_READ | MAP_EXEC));
+    CHECK_AND_RETHROW(vmm_map((uintptr_t)__kernel_end_text, (uintptr_t)(__kernel_end_text - KERNEL_BASE), ro_pages, MAP_READ));
+    CHECK_AND_RETHROW(vmm_map((uintptr_t)__kernel_end_rodata, (uintptr_t)(__kernel_end_rodata - KERNEL_BASE), rw_pages, MAP_READ | MAP_WRITE));
 
     // switch to kernel address space
-    CHECK_AND_RETHROW(set_address_space(&g_kernel.address_space));
+    set_address_space();
 
 cleanup:
     return err;
+}
+
+void set_address_space() {
+    __writecr3(DIRECT_TO_PHYS(m_pml4));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Map and Unmap primitives
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static err_t get_page(address_space_t* space, uintptr_t virt, uint64_t** page) {
+static err_t get_page(uintptr_t virt, uint64_t** page) {
     err_t err = NO_ERROR;
 
     CHECK(page != NULL);
-    CHECK(space != NULL);
 
-    uint64_t* table = space->pml4;
+    uint64_t* table = m_pml4;
     for (int level = 4; level > 1; level--) {
         uint64_t* entry = &table[(virt >> (12u + 9u * (level - 1))) & 0x1ffu];
 
@@ -148,14 +157,18 @@ cleanup:
     return err;
 }
 
-static uint64_t* get_or_alloc_page(address_space_t* space, uintptr_t virt, uint64_t flags_and, uint64_t flags_or) {
-    uint64_t* table = space->pml4;
+static uint64_t* get_or_alloc_page(uintptr_t virt, uint64_t flags_and, uint64_t flags_or) {
+    uint64_t* table = m_pml4;
     for (int level = 4; level > 1; level--) {
         uint64_t* entry = &table[(virt >> (12u + 9u * (level - 1))) & 0x1ffu];
 
         // check if need to allocate entry
         if (!(*entry & PM_PRESENT)) {
             directptr_t ptr = page_alloc();
+            if (ptr == NULL) {
+                return NULL;
+            }
+
             memset(ptr, 0, PAGE_SIZE);
             *entry = DIRECT_TO_PHYS(ptr);
         }
@@ -169,25 +182,10 @@ static uint64_t* get_or_alloc_page(address_space_t* space, uintptr_t virt, uint6
     return &table[(virt >> 12u) & 0x1ffu];
 }
 
-err_t set_address_space(address_space_t* space) {
+err_t vmm_map(uintptr_t virt, physptr_t phys, size_t pages, page_perms_t perms) {
     err_t err = NO_ERROR;
 
-    CHECK(space != NULL);
-
-    if (PHYS_TO_DIRECT(__readcr3()) != space->pml4) {
-        __writecr3(DIRECT_TO_PHYS(space->pml4));
-    }
-
-cleanup:
-    return err;
-}
-
-err_t vmm_map(address_space_t* space, uintptr_t virt, physptr_t phys, size_t pages, page_perms_t perms) {
-    err_t err = NO_ERROR;
-
-    CHECK(space != NULL);
-
-    irq_lock(&space->lock);
+    irq_lock(&m_vmm_lock);
 
     uint64_t flags_add = PM_PRESENT;
     if (perms & MAP_WRITE) {
@@ -204,7 +202,8 @@ err_t vmm_map(address_space_t* space, uintptr_t virt, physptr_t phys, size_t pag
 
     while (pages--) {
         // set this page as mapped
-        uint64_t* entry = get_or_alloc_page(space, virt, ~flags_remove, flags_add);
+        uint64_t* entry = get_or_alloc_page(virt, ~flags_remove, flags_add);
+        CHECK_ERROR(entry != NULL, ERROR_OUT_OF_RESOURCES);
         *entry = flags_add | phys;
 
         // next page
@@ -213,24 +212,20 @@ err_t vmm_map(address_space_t* space, uintptr_t virt, physptr_t phys, size_t pag
     }
 
 cleanup:
-    if (space != NULL) {
-        irq_unlock(&space->lock);
-    }
+    irq_unlock(&m_vmm_lock);
 
     return err;
 }
 
-err_t vmm_unmap(address_space_t* space, uintptr_t virt, size_t pages) {
+err_t vmm_unmap(uintptr_t virt, size_t pages) {
     err_t err = NO_ERROR;
 
-    CHECK(space != NULL);
-
-    irq_lock(&space->lock);
+    irq_lock(&m_vmm_lock);
 
     while (pages--) {
         // get and unmap the page
         uint64_t* entry;
-        CHECK_AND_RETHROW(get_page(space, virt, &entry));
+        CHECK_AND_RETHROW(get_page(virt, &entry));
         *entry = 0;
 
         // invalidate the page
@@ -241,9 +236,7 @@ err_t vmm_unmap(address_space_t* space, uintptr_t virt, size_t pages) {
     }
 
 cleanup:
-    if (space != NULL) {
-        irq_unlock(&space->lock);
-    }
+    irq_unlock(&m_vmm_lock);
 
     return err;
 }
@@ -252,25 +245,34 @@ cleanup:
 // Page fault handling
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-err_t vmm_handle_kernel_pagefault(uintptr_t addr, page_fault_params_t params) {
+err_t vmm_handle_pagefault(uintptr_t addr, page_fault_params_t params) {
     err_t err = NO_ERROR;
 
-    // on-demand kernel paging ranges
     if (
-        (PAGE_REFCOUNT_START <= addr && addr < PAGE_REFCOUNT_END) ||
         (KERNEL_HEAP_START <= addr && addr < KERNEL_HEAP_END)
     ) {
-        // this is the page refcount handling
+        //
+        // on-demand kernel paging ranges
+        //
+        // our on-demand mapping is limited to very specific set of ranges which are the kernel
+        // heap and the pmm bitmap, both of those are grown dynamically as more memory is allocated
+        // in the system. both these ranges are defined to always be rw
+        //
+        // for pages which are just being read we map to the same zero page and we map them as read only,
+        // for pages which are written we allocate a new page and map it as rw.
+        //
 
         if (params.write) {
             // this is on a write, we don't care if there was a mapping or not because we
             // create a new page anyways
-            physptr_t page = DIRECT_TO_PHYS(page_alloc());
-            CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, ALIGN_DOWN(addr, PAGE_SIZE), page, 1, MAP_WRITE));
+            directptr_t dpage = page_alloc();
+            CHECK_ERROR(dpage != NULL, ERROR_OUT_OF_RESOURCES);
+            physptr_t page = DIRECT_TO_PHYS(dpage);
+            CHECK_AND_RETHROW(vmm_map(ALIGN_DOWN(addr, PAGE_SIZE), page, 1, MAP_WRITE));
         } else {
             // this is on a read, there is no way to disable reading on a page
             // so this 100% a missing page, map the zero page onto it
-            CHECK_AND_RETHROW(vmm_map(&g_kernel.address_space, ALIGN_DOWN(addr, PAGE_SIZE), g_zero_page, 1, MAP_READ));
+            CHECK_AND_RETHROW(vmm_map(ALIGN_DOWN(addr, PAGE_SIZE), m_zero_page, 1, MAP_READ));
         }
 
         // make sure the address is invalidated
@@ -278,6 +280,10 @@ err_t vmm_handle_kernel_pagefault(uintptr_t addr, page_fault_params_t params) {
         __invlpg(addr);
 
     } else {
+        //
+        // This was a real page fault, fail the check so
+        // we will put a register dump.
+        //
         CHECK_FAIL("This is a real kernel page fault :(");
     }
 

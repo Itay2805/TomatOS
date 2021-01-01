@@ -7,17 +7,44 @@
 
 /**
  * Initialize the pmm with
- * @param memap
  */
-void init_pmm(stivale2_struct_tag_memmap_t* memap);
+err_t init_pmm();
 
-void pmm_reclaim_bootloader_memory(stivale2_struct_tag_memmap_t* memap);
-
-__attribute__((assume_aligned(4096)))
+/**
+ * Allocate a single page
+ */
 directptr_t page_alloc();
 
-void page_free(directptr_t page);
+/**
+ * Free a single page
+ */
+void page_free(directptr_t ptr);
 
-void page_ref(directptr_t page);
+/**
+ * Allocate physical memory, this will try to first allocate from high
+ * memory and only if that is out it will allocate from low memory
+ */
+directptr_t palloc(size_t size);
+
+/**
+ * Allocate physical memory from low memory (<4GB) this is needed for
+ * some drivers but should be avoided if not needed
+ */
+directptr_t palloc_low(size_t size);
+
+/**
+ * Like palloc but will first zero the memory
+ */
+directptr_t pallocz(size_t size);
+
+/**
+ * like palloc_low, but will first zero the memory
+ */
+directptr_t pallocz_low(size_t size);
+
+/**
+ * Free physical memory, works for both low and higher memory
+ */
+void pfree(directptr_t ptr, size_t size);
 
 #endif //TOMATOS_PMM_H

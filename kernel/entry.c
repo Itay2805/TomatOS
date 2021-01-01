@@ -1,12 +1,12 @@
-
 #include <util/trace.h>
 #include <util/except.h>
 #include <mem/pmm.h>
 #include <mem/vmm.h>
-#include <proc/proc.h>
-#include "arch/stivale2.h"
+
 #include "arch/amd64/gdt.h"
 #include "arch/amd64/idt.h"
+
+#include "arch/stivale2.h"
 
 static char g_bootstrap_stack[SIZE_4KB];
 
@@ -56,7 +56,7 @@ static void smp_kentry(stivale2_smp_info_t* smpinfo) {
     TRACE("\tCPU #", get_cpu_id(), " Ready");
 
     // init paging
-    set_address_space(&g_kernel.address_space);
+    set_address_space();
 
     // we are ready
     g_cpu_start_count++;
@@ -82,10 +82,9 @@ void kentry(stivale2_struct_t* info) {
     init_gdt();
 
     //
-    // initialize pmm
+    // initialize the pmm
     //
-    stivale2_struct_tag_memmap_t* memmap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
-    init_pmm(memmap);
+    CHECK_AND_RETHROW(init_pmm());
 
     //
     // take ownership over all the cores first
@@ -102,7 +101,7 @@ void kentry(stivale2_struct_t* info) {
                 g_cpu_start_count++;
             } else {
                 // TODO: stack allocator
-                uint8_t* stack = page_alloc() + PAGE_SIZE;
+                uint8_t* stack = early_page_alloc() + PAGE_SIZE;
                 smpinfo->target_stack = (uint64_t)stack;
                 smpinfo->extra_argument = i;
 
@@ -125,10 +124,7 @@ void kentry(stivale2_struct_t* info) {
     //
     // initialize vmm
     //
-    CHECK_AND_RETHROW(init_vmm(memmap));
-
-    // print the mapping ranges for the lols
-    dump_kernel_mappings();
+    CHECK_AND_RETHROW(init_vmm());
 
     // we can't access these anymore at this point
     smp = NULL;
@@ -146,11 +142,7 @@ void kentry(stivale2_struct_t* info) {
         cpu_pause();
     }
 
-    TRACE("Done kernel init");
-
-    //
-    // TODO: reclaim bootloader memory
-    //
+    TRACE("Done kernel early init");
 
 cleanup:
     ASSERT(!IS_ERROR(err), "Failed early kernel initialization")

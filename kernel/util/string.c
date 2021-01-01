@@ -1,4 +1,5 @@
-#include "string.h"
+#include <stddef.h>
+#include <stdint.h>
 
 void memrev(void* ptr, int length) {
     char* buf = ptr;
@@ -51,7 +52,7 @@ char* strncpy(char* restrict d, const char* restrict s, size_t n) {
     }
     for (; n && (*d=*s); n--, s++, d++);
 tail:
-    memset(d, 0, n);
+    __builtin_memset(d, 0, n);
     return d;
 }
 

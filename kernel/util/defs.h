@@ -12,11 +12,15 @@ typedef char symbol_t[];
 
 #define ALIGN_UP(value, alignment) __builtin_align_up(value, alignment)
 #define ALIGN_DOWN(value, alignment) __builtin_align_down(value, alignment)
-#define LOG2(X) ((unsigned) (8 * sizeof(unsigned long long) - __builtin_clzll((X)) - 1))
+#define LOG2(x) ((unsigned) (64ull - __builtin_clzll(x) - 1ull))
+#define NEXT_POW2(x) (1ull << (64ull - __builtin_clzll((x) - 1ull)))
 
 #define ARRAY_LEN(x) (sizeof(x) / sizeof(x[0]))
 
 #define PACKED __attribute__((packed))
+
+#define MAX(a,b) ((a) > (b) ? a : b)
+#define MIN(a,b) ((a) < (b) ? a : b)
 
 #define NONNULL _Nonnull
 #define NULLABLE _Nullable

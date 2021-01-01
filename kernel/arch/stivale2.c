@@ -6,14 +6,20 @@
 stivale2_struct_t* g_stivale2_struct = NULL;
 
 void* get_stivale2_tag(uint64_t id) {
+    if (g_stivale2_struct == NULL) {
+        WARN("Tried to get a stivale2 tag after early init");
+        return NULL;
+    }
+
     stivale2_tag_t* tag = g_stivale2_struct->tags;
+
     while (tag != NULL) {
-        TRACE((void*)tag);
         if (tag->identifier == id) {
             return tag;
         }
         tag = tag->next;
     }
+
     return NULL;
 }
 

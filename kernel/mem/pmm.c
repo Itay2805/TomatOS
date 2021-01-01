@@ -1,105 +1,286 @@
 #include <util/except.h>
+#include <cont/list.h>
 #include <util/string.h>
-#include <stdatomic.h>
-#include <cont/slist.h>
-#include <sync/lock.h>
 #include "pmm.h"
 
-static size_t g_total_pages = 0;
-static size_t g_free_pages = 0;
-static slist_entry_t g_freelist = INIT_SLIST;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Code related to the pmm
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef struct pages {
-    slist_entry_t link;
-    size_t page_count;
-} pages_t;
+/**
+ * The min order needs to fit a single pointer
+ * for our linked list, meaning the min is 3
+ */
+#define MIN_ORDER 3
 
-static lock_t g_pmm_lock = INIT_LOCK();
+#define NEXT(ptr) *((directptr_t*)(ptr))
 
-static const char* memmap_type_to_string(int type) {
-    switch (type) {
-        case STIVALE2_MMAP_TYPE_BAD_MEMORY: return "Bad memory";
-        case STIVALE2_MMAP_TYPE_USABLE: return "Usable";
-        case STIVALE2_MMAP_TYPE_ACPI_NVS: return "ACPI NVS";
-        case STIVALE2_MMAP_TYPE_ACPI_RECLAIMABLE: return "ACPI reclaimable";
-        case STIVALE2_MMAP_TYPE_BOOTLOADER_RECLAIMABLE: return "Bootloader reclaimable";
-        case STIVALE2_MMAP_TYPE_KERNEL_AND_MODULES: return "Kernel and modules";
-        case STIVALE2_MMAP_TYPE_RESERVED: return "Reserved";
-        default: return "unknown";
+/**
+ * Represents a single buddy
+ */
+typedef struct {
+    /**
+     * The max ordered supported by this structure
+     */
+    int max_order;
+
+    /**
+     * The base of the buddy
+     */
+    directptr_t base;
+
+    /**
+     * Singly linked list of all free pages in each of the orders
+     */
+    directptr_t* free_list;
+
+    /**
+     * The buddies lock
+     */
+    lock_t lock;
+} buddy_t;
+
+/**
+ * The low memory buddy (<4GB)
+ */
+static buddy_t g_low_buddy = {
+        .max_order = 32,
+        .base = PHYS_TO_DIRECT(0),
+        .free_list = (directptr_t[32 - MIN_ORDER]){},
+};
+
+/**
+ * The high memory buddy allocator (>4GB)
+ */
+static buddy_t g_high_buddy = {
+        .max_order = 64,
+        .base = 0, // will be set from the first entry
+        .free_list = (directptr_t[64 - MIN_ORDER]){},
+};
+
+/**
+ * The amount of pages in the system
+ */
+static size_t g_highest_address;
+
+static bool check_buddies(buddy_t* buddy, directptr_t a, directptr_t b, size_t size) {
+    uintptr_t lower = MIN(a, b) - buddy->base;
+    uintptr_t upper = MAX(a, b) - buddy->base;
+    return (lower ^ size) == upper;
+}
+
+static void buddy_add_free_item(buddy_t* buddy, directptr_t address, size_t order, bool new) {
+    directptr_t head = buddy->free_list[order - MIN_ORDER];
+    NEXT(address) = 0;
+    size_t size = 1ull << order;
+
+    if (!new && head != 0) {
+        directptr_t prev = 0;
+        while (true) {
+            if (check_buddies(buddy, head, address, size)) {
+                if (prev != 0) {
+                    NEXT(prev) = NEXT(head);
+                } else {
+                    buddy->free_list[order - MIN_ORDER] = NEXT(head);
+                }
+
+                buddy_add_free_item(buddy, MIN(head, address), order + 1, false);
+                break;
+            }
+
+            if (NEXT(head) == 0) {
+                NEXT(head) = address;
+                break;
+            }
+
+            prev = head;
+            head = NEXT(head);
+        }
+    } else {
+        // just put in the head
+        NEXT(address) = head;
+        buddy->free_list[order - MIN_ORDER] = address;
     }
 }
 
-void init_pmm(stivale2_struct_tag_memmap_t* memap) {
+static void buddy_add_free_item_locked(buddy_t* buddy, directptr_t address, size_t order, bool new) {
+    lock(&buddy->lock);
+    buddy_add_free_item(buddy, address, order, new);
+    unlock(&buddy->lock);
+}
+
+static void buddy_add_range(buddy_t* buddy, directptr_t address, size_t size) {
+    // as long as the chunk is big enough to fit
+    while (size > (1ull << MIN_ORDER)) {
+        // find the largest order and use that
+        for (int order = buddy->max_order - 1; order >= MIN_ORDER; order--) {
+            if (size >= (1ull << order)) {
+                buddy_add_free_item(buddy, address, order, true);
+                address += 1ull << order;
+                size -= 1ull << order;
+                break;
+            }
+        }
+    }
+}
+
+static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
+    int original_order = MAX(LOG2(size), MIN_ORDER);
+    size_t want_size = 1ull << original_order;
+
+    // make sure the buddy can actually do that
+    if (original_order >= buddy->max_order) {
+        WARN(false, "Tried to allocate too much from buddy (requested %zx bytes, order %d, max order %d)", size, original_order, buddy->max_order);
+        return NULL;
+    }
+
+    lock(&buddy->lock);
+
+    // find the smallest order with space
+    for (int order = original_order; order < buddy->max_order; order++) {
+        if (buddy->free_list[order - MIN_ORDER] != 0) {
+            // pop the head
+            directptr_t address = buddy->free_list[order - MIN_ORDER];
+            buddy->free_list[order - MIN_ORDER] = NEXT(address);
+
+            // try to free the left overs
+            size_t found_size = 1ull << order;
+            while (found_size > want_size) {
+                found_size >>= 1ull;
+                buddy_add_free_item(buddy, address + found_size, LOG2(found_size), true);
+            }
+
+            // return the allocated address
+            unlock(&buddy->lock);
+            return address;
+        }
+    }
+
+    unlock(&buddy->lock);
+    return NULL;
+}
+
+directptr_t palloc(size_t size) {
+    directptr_t ptr = NULL;
+
+    // check if has high memory
+    if (g_high_buddy.base == 0) {
+        ptr = buddy_alloc(&g_high_buddy, size);
+    }
+
+    // if still null try to allocate low memory
+    if (ptr == NULL) {
+        ptr = buddy_alloc(&g_low_buddy, size);
+    }
+
+    return ptr;
+}
+
+directptr_t palloc_low(size_t size) {
+    return buddy_alloc(&g_low_buddy, size);
+}
+
+void pfree(directptr_t ptr, size_t size) {
+    // figure which of the buddies to use
+    buddy_t* buddy;
+    if (DIRECT_TO_PHYS(ptr) < BASE_4GB) {
+        buddy = &g_low_buddy;
+    } else {
+        buddy = &g_high_buddy;
+    }
+
+    // get the order and add it
+    int order = MAX(LOG2(size), MIN_ORDER);
+    buddy_add_free_item_locked(buddy, ptr, order, false);
+}
+
+directptr_t pallocz(size_t size) {
+    void* ptr = palloc(size);
+    memset(ptr, 0, size);
+    return ptr;
+}
+
+directptr_t pallocz_low(size_t size) {
+    void* ptr = palloc_low(size);
+    memset(ptr, 0, size);
+    return ptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Code related to initializing the pmm
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static const char* stivale2_type_to_str(int type) {
+    switch (type) {
+        case STIVALE2_MMAP_TYPE_USABLE: return "Usable";
+        case STIVALE2_MMAP_TYPE_RESERVED: return "Reserved";
+        case STIVALE2_MMAP_TYPE_ACPI_RECLAIMABLE: return "ACPI Reclaimable";
+        case STIVALE2_MMAP_TYPE_ACPI_NVS: return "ACPI NVS";
+        case STIVALE2_MMAP_TYPE_BAD_MEMORY: return "Bad Memory";
+        case STIVALE2_MMAP_TYPE_BOOTLOADER_RECLAIMABLE: return "Bootloader Reclaimable";
+        case STIVALE2_MMAP_TYPE_KERNEL_AND_MODULES: return "Kernel and Modules";
+        default: return NULL;
+    }
+}
+
+static void pmm_add_range(physptr_t base, size_t size) {
+    if (base < BASE_4GB) {
+        buddy_add_range(&g_low_buddy, PHYS_TO_DIRECT(base), size);
+    } else {
+        // allocate the high buddy if needed
+        if (g_high_buddy.base == NULL) {
+            g_high_buddy.base = PHYS_TO_DIRECT(base);
+        }
+        buddy_add_range(&g_high_buddy, PHYS_TO_DIRECT(base), size);
+    }
+}
+
+err_t init_pmm() {
+    err_t err = NO_ERROR;
     TRACE("Initializing pmm");
 
-    for (size_t i = 0; i < memap->entries; i++) {
+    stivale2_struct_tag_memmap_t* memap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
+    CHECK(memap != NULL);
+
+    // calculate the max allocation size
+    g_highest_address = 0;
+    for (int i = 0; i < memap->entries; i++) {
         stivale2_mmap_entry_t* entry = &memap->memmap[i];
-        TRACE("\t", (void*)entry->base," - ", (void*)(entry->base + entry->length), ": ", memmap_type_to_string(entry->type));
         if (entry->type == STIVALE2_MMAP_TYPE_USABLE) {
-            // add the range of pages
-            pages_t* base = PHYS_TO_DIRECT(entry->base);
-            base->page_count = entry->length / PAGE_SIZE;
-            g_total_pages += base->page_count;
-            slist_push(&g_freelist, &base->link);
+            uintptr_t top_addr = entry->base + entry->length;
+            if (top_addr > g_highest_address) {
+                g_highest_address = top_addr;
+            }
         }
     }
 
-    g_free_pages = g_total_pages;
-    TRACE("\tAvailable memory: ", SIZE(g_total_pages * PAGE_SIZE));
-}
-
-void pmm_reclaim_bootloader_memory(stivale2_struct_tag_memmap_t* memap) {
-    // TODO: maybe copy the memmap aside first
-    for (size_t i = 0; i < memap->entries; i++) {
+    // go over all the entries and put them correctly in the bitmap
+    for (int i = 0; i < memap->entries; i++) {
         stivale2_mmap_entry_t* entry = &memap->memmap[i];
-        if (entry->type == STIVALE2_MMAP_TYPE_BOOTLOADER_RECLAIMABLE) {
-            // add the range of pages
-            pages_t* base = PHYS_TO_DIRECT(entry->base);
-            base->page_count = entry->length / PAGE_SIZE;
-            g_total_pages += base->page_count;
-            slist_push(&g_freelist, &base->link);
+
+        // trace nicely
+        const char* type_str = stivale2_type_to_str(entry->type);
+        if (type_str != NULL) {
+            TRACE("\t", (void*)entry->base, "-", (void*)(entry->base + entry->length), ": ", type_str);
+        } else {
+            TRACE("\t", (void*)entry->base, "-", (void*)(entry->base + entry->length), ": ", entry->type);
+        }
+
+        // if the range is free add it to our memory map
+        if (entry->type == STIVALE2_MMAP_TYPE_USABLE) {
+            pmm_add_range(entry->base, entry->length);
         }
     }
+
+cleanup:
+    return err;
 }
+
 
 directptr_t page_alloc() {
-    irq_lock(&g_pmm_lock);
-
-    // make sure has pages
-    ASSERT(!slist_empty(&g_freelist), "Out of memory!");
-
-    // pop the page range, get the last page, and decrement
-    // the page count
-    pages_t* page = CR(slist_pop(&g_freelist), pages_t, link);
-    page->page_count--;
-    directptr_t res = (directptr_t)page + PAGE_SIZE * page->page_count;
-
-    // if has more pages return
-    if (page->page_count != 0) {
-        slist_push(&g_freelist, &page->link);
-    }
-
-    irq_unlock(&g_pmm_lock);
-    return res;
+    return palloc(PAGE_SIZE);
 }
 
-void page_free(directptr_t page) {
-    uintptr_t index = (uintptr_t)ALIGN_DOWN(page, PAGE_SIZE) / PAGE_SIZE;
-    _Atomic(uint16_t)* refcount = &((_Atomic(uint16_t)*)PAGE_REFCOUNT_START)[index];
-
-    // TODO: too lazy to figure how to do this correctly lol
-    if (atomic_fetch_sub(refcount, 1) == 0) {
-        atomic_store(refcount, 0);
-
-        // this is the last ref, free it
-        irq_lock(&g_pmm_lock);
-        slist_push(&g_freelist, page);
-        irq_unlock(&g_pmm_lock);
-    }
-}
-
-void page_ref(directptr_t page) {
-    // increment the refcount
-    uintptr_t index = (uintptr_t)ALIGN_DOWN(page, PAGE_SIZE) / PAGE_SIZE;
-    atomic_fetch_add(&((_Atomic(uint16_t)*)PAGE_REFCOUNT_START)[index], 1);
+void page_free(directptr_t ptr) {
+    pfree(ptr, PAGE_SIZE);
 }

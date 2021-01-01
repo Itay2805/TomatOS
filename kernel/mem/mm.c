@@ -4,13 +4,6 @@
 #include "pmm.h"
 #include "tlsf.h"
 
-void dump_kernel_mappings() {
-    TRACE("Kernel mappings:");
-    TRACE("\tDirect map   | ", (void*)DIRECT_BASE, "-", (void*)DIRECT_END);
-    TRACE("\tPMM refcount | ", (void*)PAGE_REFCOUNT_START, "-", (void*)PAGE_REFCOUNT_END);
-    TRACE("\tkernel heap  | ", (void*)KERNEL_HEAP_START, "-", (void*)KERNEL_HEAP_END);
-}
-
 /**
  * The memory manager lock
  */
@@ -47,3 +40,32 @@ void kfree(void* ptr) {
     irq_unlock(&g_mm_lock);
 }
 
+directptr_t early_alloc(size_t page_count) {
+    stivale2_struct_tag_memmap_t* memmap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
+    ASSERT(memmap != NULL);
+
+    // we are only supporting page aligned allocations
+    size_t size = PAGES_TO_SIZE(page_count);
+
+    // find an entry with enough space
+    for (int i = 0; i < memmap->entries; i++) {
+        stivale2_mmap_entry_t* entry = &memmap->memmap[i];
+
+        // check if a valid type
+        if (entry->type == STIVALE2_MMAP_TYPE_USABLE && entry->length >= size) {
+
+            // remove the the chunk and return the pointer
+            directptr_t ptr = PHYS_TO_DIRECT(entry->base);
+            entry->base += size;
+            entry->length -= size;
+            return ptr;
+        }
+    }
+
+    // no empty entries
+    return NULL;
+}
+
+directptr_t early_page_alloc() {
+    return early_alloc(SIZE_TO_PAGES(PAGE_SIZE));
+}

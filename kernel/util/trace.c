@@ -100,6 +100,8 @@ void trace_err(err_t err) {
     switch (err.value) {
         case 0: trace_string("NO_ERROR"); break;
         case 1: trace_string("ERROR_CHECK_FAILED"); break;
+        case 2: trace_string("ERROR_NOT_FOUND"); break;
+        case 3: trace_string("ERROR_OUT_OF_RESOURCES"); break;
         default: {
             trace_string("<error:");
             trace_uint32(err.value);
@@ -123,6 +125,7 @@ void trace_hex(trace_hex_t hex) {
 
 // pointer tracing
 void trace_ptr(void* ptr) {
+    trace_string("0x");
     trace_hex(HEX((uintptr_t)ptr));
 }
 

@@ -17,4 +17,16 @@ int debug_read_char();
  */
 void enter_debug_console();
 
+/**
+ * Print a stack trace
+ */
+void debug_trace_stack(void* frame_pointer);
+
+/**
+ * Trace the caller's stack
+ */
+static inline void debug_trace_own_stack() {
+    debug_trace_stack(__builtin_frame_address(0));
+}
+
 #endif //TOMATOS_DEBUG_H

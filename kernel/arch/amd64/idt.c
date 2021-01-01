@@ -296,7 +296,7 @@ void common_exception_handler(system_context_t* ctx) {
             CHECK(!params.instruction_fetch && !params.reserved_write, "Very bad page fault!");
 
             // while handling page faults
-            CHECK_AND_RETHROW(vmm_handle_kernel_pagefault(__readcr2(), params));
+            CHECK_AND_RETHROW(vmm_handle_pagefault(__readcr2(), params));
         } else {
             // we might have got this in the middle of a print...
             g_trace_lock = INIT_LOCK();

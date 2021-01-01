@@ -7,18 +7,17 @@
 #include <arch/cpu.h>
 #include "mm.h"
 
-err_t init_vmm(stivale2_struct_tag_memmap_t* memap);
+err_t init_vmm();
+
+/**
+ * Will set the address space of the current cpu to the
+ * kernel address space.
+ */
+void set_address_space();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Map and Unmap primitives
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-typedef struct address_space {
-    lock_t lock;
-    directptr_t pml4;
-} address_space_t;
-
-err_t set_address_space(address_space_t* space);
 
 typedef enum page_perms {
     MAP_READ   = 0u,
@@ -26,9 +25,9 @@ typedef enum page_perms {
     MAP_EXEC   = BIT1,
 } page_perms_t;
 
-err_t vmm_map(address_space_t* space, uintptr_t virt, physptr_t phys, size_t pages, page_perms_t perms);
+err_t vmm_map(uintptr_t virt, physptr_t phys, size_t pages, page_perms_t perms);
 
-err_t vmm_unmap(address_space_t* space, uintptr_t virt, size_t pages);
+err_t vmm_unmap(uintptr_t virt, size_t pages);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Buffer handling
@@ -51,6 +50,6 @@ err_t vmm_unmap(address_space_t* space, uintptr_t virt, size_t pages);
  * @param addr      [IN] The fault address
  * @param params    [IN] The page fault parameters
  */
-err_t vmm_handle_kernel_pagefault(uintptr_t addr, page_fault_params_t params);
+err_t vmm_handle_pagefault(uintptr_t addr, page_fault_params_t params);
 
 #endif //TOMATOS_VMM_H
