@@ -8,8 +8,8 @@ void list_init(list_t *list) {
 }
 
 void list_push(list_t* list, list_entry_t* entry) {
-    ASSERT(list != NULL);
-    ASSERT(entry != NULL);
+    DEBUG_ASSERT(list != NULL);
+    DEBUG_ASSERT(entry != NULL);
 
     list_t *prev = list->prev;
     entry->prev = prev;
@@ -19,7 +19,7 @@ void list_push(list_t* list, list_entry_t* entry) {
 }
 
 void list_remove(list_entry_t* entry) {
-    ASSERT(entry != NULL);
+    DEBUG_ASSERT(entry != NULL);
 
     list_t *prev = entry->prev;
     list_t *next = entry->next;
@@ -28,7 +28,7 @@ void list_remove(list_entry_t* entry) {
 }
 
 list_entry_t* list_pop(list_t* list) {
-    ASSERT(list != NULL);
+    DEBUG_ASSERT(list != NULL);
 
     list_entry_t* back = list->prev;
     if (back == list) {

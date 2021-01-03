@@ -1,6 +1,9 @@
 #ifndef TOMATOS_LIST_H
 #define TOMATOS_LIST_H
 
+#define CR(ptr, type, member) \
+    ((type*)((char*)(ptr) - (char*)offsetof(type, member)))
+
 /**
  * an entry in a list
  */

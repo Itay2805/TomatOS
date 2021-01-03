@@ -2,6 +2,7 @@
 #include <util/except.h>
 #include <mem/pmm.h>
 #include <mem/vmm.h>
+#include <task/sched.h>
 
 #include "arch/amd64/gdt.h"
 #include "arch/amd64/idt.h"
@@ -61,9 +62,10 @@ static void smp_kentry(stivale2_smp_info_t* smpinfo) {
     // we are ready
     g_cpu_start_count++;
 
-    while (1) {
-        cpu_pause();
-    }
+    // call the handling loop, this will enter sleep
+    // but once we send an ipi to wake it up it will
+    // start running as well
+    start_schedule_loop();
 }
 
 void kentry(stivale2_struct_t* info) {

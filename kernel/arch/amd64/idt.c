@@ -2,12 +2,12 @@
 #include <arch/cpu.h>
 #include <util/except.h>
 #include <mem/vmm.h>
+#include <debug/debug.h>
 #include "idt.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Interrupts without signals, this applies to:
-//  - exceptions
-//  - scheduler tick
+// Exception interrupt handlers, these push all the state into the stack
+// so it can be nicely printed when an error occures
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -257,14 +257,8 @@ static void kernel_exception_handler(system_context_t* ctx) {
         ERROR("");
     }
 
-//    ERROR("Cpu: #%d", g_cpu_id);
-//    if (g_current_process != NULL) {
-//        ERROR("Process: `%s` (#%d)", g_current_process->name, g_current_process->pid);
-//    }
-//    if (g_current_thread != NULL) {
-//        ERROR("Thread: `%s` (#%d)", g_current_thread->name, g_current_thread->tid);
-//    }
-//    ERROR("");
+    ERROR("Cpu: #%d", get_cpu_id());
+    ERROR("");
 
     ERROR("RAX=", (void*)ctx->rax, " RBX=", (void*)ctx->rbx, " RCX=", (void*)ctx->rcx, " RDX=", (void*)ctx->rdx);
     ERROR("RSI=", (void*)ctx->rsi, " RDI=", (void*)ctx->rdi, " RBP=", (void*)ctx->rbp, " RSP=", (void*)ctx->rsp);
@@ -274,15 +268,16 @@ static void kernel_exception_handler(system_context_t* ctx) {
     ERROR("CR0=", (void*)__readcr0().raw," CR2=", (void*)__readcr2()," CR3=", (void*)__readcr3()," CR4=", __readcr4().raw);
 
     ERROR("");
-//    if (g_exception_count == 0) {
-//        g_exception_count++;
-//        ERROR("Stack trace:");
-//        debug_trace_stack((void*)ctx->rbp);
-//        ERROR("");
-//    }
+    static atomic_int exception_count = 0;
+    if (exception_count == 0) {
+        exception_count++;
+        ERROR("Stack trace:");
+        debug_trace_stack((void*)ctx->rbp);
+        ERROR("");
+    }
+
     ERROR("Halting :(");
-    while(1)
-        __hlt();
+    while(1) __hlt();
 }
 
 __attribute__((used))
@@ -311,6 +306,11 @@ cleanup:
         kernel_exception_handler(ctx);
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// For all other handlers just trigger an event
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define IDT structures and set the idt up
@@ -604,33 +604,4 @@ void init_idt() {
 
     // TODO: put as __lidt
     asm volatile ("lidt %0" : : "m" (g_idt));
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Context switching
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// TODO: fpu context
-
-void init_context(system_context_t* target, bool kernel) {
-    *target = (system_context_t) {
-        .ds = kernel ? GDT_KERNEL_DATA : GDT_USER_DATA,
-        .ss = kernel ? GDT_KERNEL_DATA : GDT_USER_DATA,
-        .cs = kernel ? GDT_KERNEL_CODE : GDT_USER_CODE,
-        .rflags = (IA32_RFLAGS) {
-            .always_one = 1,
-            .IF = 1,
-            .ID = 1,
-        }
-    };
-}
-
-// TODO: this
-void save_context(system_context_t* curr) {
-//    g_current_thread->system_context = *curr;
-}
-
-void restore_context(system_context_t* curr) {
-//    *curr = g_current_thread->system_context;
-//    set_address_space(&g_current_process->address_space);
 }

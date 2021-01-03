@@ -5,6 +5,10 @@
 
 #include <arch/amd64/intrin.h>
 
+/**
+ * The system context is saved into this struct on exceptions
+ * so it can be nicely logged
+ */
 typedef struct system_context {
     uint64_t ds;
     uint64_t r15;
@@ -31,6 +35,10 @@ typedef struct system_context {
     uint64_t ss;
 } system_context_t;
 
+/**
+ * The page fault params are passed to the page fault handler function
+ * for handling it or crashing on it
+ */
 typedef union page_fault_params {
     struct {
         uint32_t present : 1;
@@ -41,21 +49,6 @@ typedef union page_fault_params {
     };
     uint32_t raw;
 } page_fault_params_t;
-
-/**
- * Initialize a new system context
- */
-void init_context(system_context_t* target, bool kernel);
-
-/**
- * Will save the current context to the current thread
- */
-void save_context(system_context_t* curr);
-
-/**
- * Will restore the context of the current thread to the current context
- */
-void restore_context(system_context_t* curr);
 
 /**
  * Pause the cpu for a bit, used around spinlocks
@@ -74,10 +67,19 @@ void cpu_sleep();
  */
 void memory_barrier();
 
+/**
+ * TODO: This
+ */
 void store_fence();
 
+/**
+ * TODO: This
+ */
 void load_fence();
 
+/**
+ * TODO: This
+ */
 void memory_fence();
 
 /**

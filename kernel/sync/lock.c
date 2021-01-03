@@ -21,7 +21,14 @@ void unlock(lock_t* l) {
 void irq_lock(lock_t* l) {
     l->ints = are_interrupts_enabled();
     disable_interrupts();
-    lock(l);
+    size_t ticket = atomic_fetch_add_explicit(&l->next_ticket, 1, memory_order_relaxed);
+    while (atomic_load_explicit(&l->now_serving, memory_order_acquire) != ticket) {
+        if (l->ints) {
+            enable_interrupts();
+        }
+        cpu_pause();
+        disable_interrupts();
+    }
 }
 
 void irq_unlock(lock_t* l) {
