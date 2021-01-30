@@ -1,8 +1,9 @@
 #ifndef TOMATOS_TASK_H
 #define TOMATOS_TASK_H
 
-#include <mem/mm.h>
 #include <cont/list.h>
+#include <mem/mm.h>
+
 #include "async.h"
 
 /**
@@ -62,24 +63,34 @@ typedef struct task {
     list_entry_t schedule_link;
 } task_t;
 
+/**
+ * A handle to a task, not that useful but required for creating a new task
+ */
 typedef void* task_handle_t;
 
-#define task_resume(task) __builtin_coro_resume(task)
-#define task_done(task) __builtin_coro_done(task)
-#define task_destroy(task) __builtin_coro_destroy(task)
-#define task_handle(task) (task_handle_t)__builtin_coro_promise(task, 0, true)
+static inline void task_resume(task_t* task) {
+    __builtin_coro_resume(__builtin_coro_promise(task, 0, true));
+}
+
+static inline void task_destroy(task_t* task) {
+    __builtin_coro_destroy(__builtin_coro_promise(task, 0, true));
+}
+
+static inline bool task_done(task_t* task) {
+    return __builtin_coro_done(__builtin_coro_promise(task, 0, true));
+}
 
 #define task(name, sig, ...) \
-    IFE(__VA_ARGS__)( \
-        task_t name sig; \
+    IF(NOT(HAS_ARGS(__VA_ARGS__)))( \
+        task_handle_t name sig; \
     ) \
-    IFN(__VA_ARGS__)( \
-        task_t name sig { \
+    IF(HAS_ARGS(__VA_ARGS__))( \
+        task_handle_t name sig { \
             void* mem; \
             __builtin_coro_id(0, &((char[sizeof(task_t)]){}), NULL, NULL); \
             void* alloc = NULL; \
             if (__builtin_coro_alloc()) { \
-                alloc = kalloc(__builtin_coro_size()); \
+                alloc = malloc(__builtin_coro_size()); \
                 if (alloc == NULL) { \
                     return NULL; \
                 }\
@@ -87,7 +98,7 @@ typedef void* task_handle_t;
             void* __coro_hdl = __builtin_coro_begin(alloc); \
             yield(); \
             { \
-                __VA_ARGS__ \
+                FIRST(__VA_ARGS__) \
             } \
         __coro_final: \
             switch (__builtin_coro_suspend(true)) { \
@@ -95,9 +106,10 @@ typedef void* task_handle_t;
                 case 1: goto __coro_cleanup; \
                 default: goto __coro_suspend; \
             } \
-        __coro_cleanup: \
+        __coro_cleanup:      \
+            IF(HAS_SECOND(__VA_ARGS__))(SECOND(__VA_ARGS__)); \
             mem = __builtin_coro_free(__coro_hdl); \
-            kfree(mem); \
+            free(mem); \
         __coro_suspend: \
             __builtin_coro_end(__coro_hdl, false); \
             return __coro_hdl; \

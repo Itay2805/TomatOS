@@ -8,17 +8,20 @@ DEBUG 		?= 1
 # Should qemu debugger be enabled
 DEBUGGER 	?= 0
 
+# Prefix to the compiler
+PREFIX 		?=
+
 ########################################################################################################################
 # Build constants
 ########################################################################################################################
 
-CC 			:= /tmp/llvm-project/build/bin/clang-11
-LD			:= /tmp/llvm-project/build/bin/ld.lld
+CC 			:= $(PREFIX)clang
+LD			:= $(PREFIX)ld.lld
 
 CFLAGS 		:= -Wall -Werror -Wno-unused-label
 CFLAGS  	+= -target x86_64-unknown-elf
 CFLAGS 		+= -mno-sse -mno-sse2 -mno-mmx -mno-80387 -m64
-CFLAGS 		+= -mno-red-zone -mcmodel=kernel
+CFLAGS 		+= -mno-red-zone -fno-builtin -mcmodel=kernel
 CFLAGS 		+= -march=nehalem -fcoroutines-ts
 CFLAGS 		+= -fstack-protector -ffreestanding -fno-pic
 CFLAGS 		+= -O2 -flto -g

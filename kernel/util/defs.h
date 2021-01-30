@@ -8,8 +8,6 @@
 
 typedef char symbol_t[];
 
-#define CR(Record, TYPE, Field) ((TYPE *) ((uint8_t*) (Record) - offsetof(TYPE, Field)))
-
 #define ALIGN_UP(value, alignment) __builtin_align_up(value, alignment)
 #define ALIGN_DOWN(value, alignment) __builtin_align_down(value, alignment)
 #define LOG2(x) ((unsigned) (64ull - __builtin_clzll(x) - 1ull))

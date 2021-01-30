@@ -7,7 +7,7 @@
 /**
  * The memory manager lock
  */
-static lock_t g_mm_lock = INIT_LOCK();
+static lock_t g_mm_lock = INIT_LOCK(TPL_HIGH_LEVEL);
 
 /**
  * The TLSF instance for the vmm
@@ -20,28 +20,28 @@ void* tlsf_resize(tlsf* t, size_t size) {
 }
 
 void* kalloc(size_t size) {
-    irq_lock(&g_mm_lock);
+    acquire_lock(&g_mm_lock);
     void* ptr = tlsf_malloc(&g_tlsf, size);
-    irq_unlock(&g_mm_lock);
+    release_lock(&g_mm_lock);
     memset(ptr, 0, size);
     return ptr;
 }
 
 void* krealloc(void* ptr, size_t size) {
-    irq_lock(&g_mm_lock);
+    acquire_lock(&g_mm_lock);
     ptr = tlsf_realloc(&g_tlsf, ptr, size);
-    irq_unlock(&g_mm_lock);
+    release_lock(&g_mm_lock);
     return ptr;
 }
 
 void kfree(void* ptr) {
-    irq_lock(&g_mm_lock);
+    acquire_lock(&g_mm_lock);
     tlsf_free(&g_tlsf, ptr);
-    irq_unlock(&g_mm_lock);
+    release_lock(&g_mm_lock);
 }
 
 directptr_t early_alloc(size_t page_count) {
-    stivale2_struct_tag_memmap_t* memmap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
+    stivale2_struct_tag_memmap_t* memmap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_ID);
     ASSERT(memmap != NULL);
 
     // we are only supporting page aligned allocations
@@ -52,13 +52,11 @@ directptr_t early_alloc(size_t page_count) {
         stivale2_mmap_entry_t* entry = &memmap->memmap[i];
 
         // check if a valid type
-        if (entry->type == STIVALE2_MMAP_TYPE_USABLE && entry->length >= size) {
-
+        if (entry->type == STIVALE2_MMAP_USABLE && entry->length >= size) {
             // remove the the chunk and return the pointer
-            directptr_t ptr = PHYS_TO_DIRECT(entry->base);
-            entry->base += size;
             entry->length -= size;
-            return ptr;
+            entry->unused += size;
+            return PHYS_TO_DIRECT(entry->base) + entry->length;
         }
     }
 

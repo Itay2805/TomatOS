@@ -13,11 +13,6 @@ void debug_write_char(char c);
 int debug_read_char();
 
 /**
- * This is a blocking debug console
- */
-void enter_debug_console();
-
-/**
  * Print a stack trace
  */
 void debug_trace_stack(void* frame_pointer);
@@ -25,7 +20,7 @@ void debug_trace_stack(void* frame_pointer);
 /**
  * Trace the caller's stack
  */
-static inline void debug_trace_own_stack() {
+static inline void debug_trace_me() {
     debug_trace_stack(__builtin_frame_address(0));
 }
 

@@ -11,11 +11,6 @@ int debug_read_char() {
     return -1;
 }
 
-void enter_debug_console() {
-    DEBUG("Entering debug console");
-    while(1);
-}
-
 typedef struct frame {
     struct frame* rbp;
     uint64_t rip;
@@ -28,7 +23,7 @@ void debug_trace_stack(void* frame_pointer) {
             break;
         }
 
-        TRACE("\t", i,": RIP [", (void*)current->rip, "]");
+        UNLOCKED_TRACE("\t", i,": RIP [", (void*)current->rip, "]");
 
         current = current->rbp;
     }

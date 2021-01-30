@@ -240,71 +240,68 @@ static const char* g_pf_reason[] = {
 };
 
 static void kernel_exception_handler(system_context_t* ctx) {
-    // reset the lock
-    g_trace_lock = INIT_LOCK();
-
-    ERROR("");
-    ERROR("****************************************************");
-    ERROR("Exception occurred: ", g_exception_name[ctx->int_num]);
-    ERROR("****************************************************");
-    ERROR("");
+    // reset the lock so we can print
+    UNLOCKED_ERROR("");
+    UNLOCKED_ERROR("****************************************************");
+    UNLOCKED_ERROR("Exception occurred: %s", g_exception_name[ctx->int_num]);
+    UNLOCKED_ERROR("****************************************************");
+    UNLOCKED_ERROR("");
     if (ctx->int_num == 0xE) {
         if (ctx->error_code & BIT3) {
-            ERROR("one or more page directory entries contain reserved bits which are set to 1");
+            UNLOCKED_ERROR("one or more page directory entries contain reserved bits which are set to 1");
         } else {
-            ERROR(g_pf_reason[ctx->error_code & 0b111]);
+            UNLOCKED_ERROR("%s", g_pf_reason[ctx->error_code & 0b111]);
         }
-        ERROR("");
+        UNLOCKED_ERROR("");
     }
 
-    ERROR("Cpu: #%d", get_cpu_id());
-    ERROR("");
+//    UNLOCKED_ERROR("Cpu: #%d", g_cpu_id);
+//    UNLOCKED_ERROR("");
 
-    ERROR("RAX=", (void*)ctx->rax, " RBX=", (void*)ctx->rbx, " RCX=", (void*)ctx->rcx, " RDX=", (void*)ctx->rdx);
-    ERROR("RSI=", (void*)ctx->rsi, " RDI=", (void*)ctx->rdi, " RBP=", (void*)ctx->rbp, " RSP=", (void*)ctx->rsp);
-    ERROR("R8 =", (void*)ctx->r8 , " R9 =", (void*)ctx->r9 , " R10=", (void*)ctx->r10, " R11=", (void*)ctx->r11);
-    ERROR("R12=", (void*)ctx->r12, " R13=", (void*)ctx->r13, " R14=", (void*)ctx->r14, " R15=", (void*)ctx->r15);
-    ERROR("RIP=", (void*)ctx->rip, " RFL=", (void*)ctx->rflags.raw);
-    ERROR("CR0=", (void*)__readcr0().raw," CR2=", (void*)__readcr2()," CR3=", (void*)__readcr3()," CR4=", __readcr4().raw);
+    UNLOCKED_ERROR("RAX=0x%016p  RBX=0x%016p RCX=0x%016p RDX=0x%016p", ctx->rax, ctx->rbx, ctx->rcx, ctx->rdx);
+    UNLOCKED_ERROR("RSI=0x%016p  RDI=0x%016p RBP=0x%016p RSP=0x%016p", ctx->rsi, ctx->rdi, ctx->rbp, ctx->rsp);
+    UNLOCKED_ERROR("R8 =0x%016p  R9 =0x%016p R10=0x%016p R11=0x%016p", ctx->r8 , ctx->r9 , ctx->r10, ctx->r11);
+    UNLOCKED_ERROR("R12=0x%016p  R13=0x%016p R14=0x%016p R15=0x%016p", ctx->r12, ctx->r13, ctx->r14, ctx->r15);
+    UNLOCKED_ERROR("CR0=%b CR2=%016p CR3=%016P CR4=%b", __readcr0().raw, __readcr2(), __readcr3(), __readcr4().raw);
+    UNLOCKED_ERROR("RIP=0x%016p RFL=%b", ctx->rip, ctx->rflags.raw);
 
-    ERROR("");
+    UNLOCKED_ERROR("");
+    UNLOCKED_ERROR("GS 0x%016p", __rdmsr(MSR_IA32_GS_BASE));
+
+    UNLOCKED_ERROR("");
     static atomic_int exception_count = 0;
     if (exception_count == 0) {
         exception_count++;
-        ERROR("Stack trace:");
+        UNLOCKED_ERROR("Stack trace:");
         debug_trace_stack((void*)ctx->rbp);
-        ERROR("");
+        UNLOCKED_ERROR("");
     }
 
-    ERROR("Halting :(");
-    while(1) __hlt();
+    UNLOCKED_ERROR("Halting :(");
+    while(1) cpu_sleep();
 }
 
 __attribute__((used))
 void common_exception_handler(system_context_t* ctx) {
-    err_t err = NO_ERROR;
-
-    // check if in kernel or not
-    if (ctx->cs == GDT_KERNEL_CODE) {
-        if (ctx->int_num == 0xE) {
-            page_fault_params_t params = {.raw = ctx->error_code};
-            CHECK(!params.instruction_fetch && !params.reserved_write, "Very bad page fault!");
-
-            // while handling page faults
-            CHECK_AND_RETHROW(vmm_handle_pagefault(__readcr2(), params));
-        } else {
-            // we might have got this in the middle of a print...
-            g_trace_lock = INIT_LOCK();
-            CHECK_FAIL("");
-        }
-    } else {
-        CHECK_FAIL("TODO: Handle usermode exceptions");
-    }
-
-cleanup:
-    if (IS_ERROR(err)) {
+//    err_t err = NO_ERROR;
+//
+//    if (ctx->int_num == 0xE) {
+//        page_fault_params_t params = {.raw = ctx->error_code};
+//        CHECK(!params.instruction_fetch && !params.reserved_write, "Very bad page fault!");
+//
+//        if (IS_ERROR(vmm_handle_pagefault(__readcr2(), params))) {
+//            goto cleanup;
+//        }
+//    } else {
+//        // we might have got this in the middle of a print...
+//        UNLOCKED_ERROR("We got a bad exception :(");
+//        err = ERROR_CHECK_FAILED;
+//    }
+//
+//cleanup:
+//    if (IS_ERROR(err)) {
         kernel_exception_handler(ctx);
-    }
+//    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

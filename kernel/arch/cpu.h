@@ -3,7 +3,7 @@
 
 #include <util/defs.h>
 
-#include <arch/amd64/intrin.h>
+#include <arch/intrin.h>
 
 /**
  * The system context is saved into this struct on exceptions
@@ -51,6 +51,45 @@ typedef union page_fault_params {
 } page_fault_params_t;
 
 /**
+ * Declares a cpu local variable
+ */
+#define CPU_LOCAL __attribute__((address_space(256), section(".cpu_local_data")))
+
+/**
+ * Get the local variable of the given cpu
+ */
+#define CPU_LOCAL_OF(var, cpu) (*(typeof(var)*)(g_cpu_locals[cpu] + ((uintptr)&var)))
+
+/**
+ * List of pointers to the cpu locals of each cpu
+ */
+extern uintptr_t g_cpu_locals[256];
+
+/**
+ * The amount of cpus in the running system
+ */
+extern size_t g_cpu_count;
+
+/**
+ * The id of the current cpu
+ */
+extern size_t CPU_LOCAL g_cpu_id;
+
+/**
+ * The lapic id of the current cpu, this may not be the same
+ * as the current cpu id
+ */
+extern size_t CPU_LOCAL g_lapic_id;
+
+/**
+ * Initialize the cpu locals for the given cpu
+ *
+ * @param cpuid     [IN] The id of the cpu
+ * @param lapic_id  [IN] The id of the lapic
+ */
+void init_cpu_locals(size_t cpuid, size_t lapic_id);
+
+/**
  * Pause the cpu for a bit, used around spinlocks
  * and alike
  */
@@ -96,15 +135,5 @@ void enable_interrupts();
  * Checks if interrupts are enabled on the current cpu
  */
 bool are_interrupts_enabled();
-
-/**
- * Get the cpu id, used to index into cpu specific cpu info
- */
-size_t get_cpu_id();
-
-/**
- * Used to set the id on boot
- */
-void set_cpu_id(size_t id);
 
 #endif //TOMATOS_CPU_H

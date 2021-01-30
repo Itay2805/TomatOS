@@ -44,18 +44,20 @@ typedef struct {
  * The low memory buddy (<4GB)
  */
 static buddy_t g_low_buddy = {
-        .max_order = 32,
-        .base = PHYS_TO_DIRECT(0),
-        .free_list = (directptr_t[32 - MIN_ORDER]){},
+    .max_order = 32,
+    .base = PHYS_TO_DIRECT(0),
+    .free_list = (directptr_t[32 - MIN_ORDER]){},
+    .lock = INIT_LOCK(TPL_HIGH_LEVEL)
 };
 
 /**
  * The high memory buddy allocator (>4GB)
  */
 static buddy_t g_high_buddy = {
-        .max_order = 64,
-        .base = 0, // will be set from the first entry
-        .free_list = (directptr_t[64 - MIN_ORDER]){},
+    .max_order = 64,
+    .base = 0, // will be set from the first entry
+    .free_list = (directptr_t[64 - MIN_ORDER]){},
+    .lock = INIT_LOCK(TPL_HIGH_LEVEL)
 };
 
 /**
@@ -104,9 +106,9 @@ static void buddy_add_free_item(buddy_t* buddy, directptr_t address, size_t orde
 }
 
 static void buddy_add_free_item_locked(buddy_t* buddy, directptr_t address, size_t order, bool new) {
-    lock(&buddy->lock);
+    acquire_lock(&buddy->lock);
     buddy_add_free_item(buddy, address, order, new);
-    unlock(&buddy->lock);
+    release_lock(&buddy->lock);
 }
 
 static void buddy_add_range(buddy_t* buddy, directptr_t address, size_t size) {
@@ -130,11 +132,11 @@ static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
 
     // make sure the buddy can actually do that
     if (original_order >= buddy->max_order) {
-        WARN(false, "Tried to allocate too much from buddy (requested %zx bytes, order %d, max order %d)", size, original_order, buddy->max_order);
+        WARN("Tried to allocate too much from buddy (requested %zx bytes, order %d, max order %d)", size, original_order, buddy->max_order);
         return NULL;
     }
 
-    lock(&buddy->lock);
+    acquire_lock(&buddy->lock);
 
     // find the smallest order with space
     for (int order = original_order; order < buddy->max_order; order++) {
@@ -151,12 +153,12 @@ static directptr_t buddy_alloc(buddy_t* buddy, size_t size) {
             }
 
             // return the allocated address
-            unlock(&buddy->lock);
+            release_lock(&buddy->lock);
             return address;
         }
     }
 
-    unlock(&buddy->lock);
+    release_lock(&buddy->lock);
     return NULL;
 }
 
@@ -212,13 +214,13 @@ directptr_t pallocz_low(size_t size) {
 
 static const char* stivale2_type_to_str(int type) {
     switch (type) {
-        case STIVALE2_MMAP_TYPE_USABLE: return "Usable";
-        case STIVALE2_MMAP_TYPE_RESERVED: return "Reserved";
-        case STIVALE2_MMAP_TYPE_ACPI_RECLAIMABLE: return "ACPI Reclaimable";
-        case STIVALE2_MMAP_TYPE_ACPI_NVS: return "ACPI NVS";
-        case STIVALE2_MMAP_TYPE_BAD_MEMORY: return "Bad Memory";
-        case STIVALE2_MMAP_TYPE_BOOTLOADER_RECLAIMABLE: return "Bootloader Reclaimable";
-        case STIVALE2_MMAP_TYPE_KERNEL_AND_MODULES: return "Kernel and Modules";
+        case STIVALE2_MMAP_USABLE: return "Usable";
+        case STIVALE2_MMAP_RESERVED: return "Reserved";
+        case STIVALE2_MMAP_ACPI_RECLAIMABLE: return "ACPI Reclaimable";
+        case STIVALE2_MMAP_ACPI_NVS: return "ACPI NVS";
+        case STIVALE2_MMAP_BAD_MEMORY: return "Bad Memory";
+        case STIVALE2_MMAP_BOOTLOADER_RECLAIMABLE: return "Bootloader Reclaimable";
+        case STIVALE2_MMAP_KERNEL_AND_MODULES: return "Kernel and Modules";
         default: return NULL;
     }
 }
@@ -237,16 +239,17 @@ static void pmm_add_range(physptr_t base, size_t size) {
 
 err_t init_pmm() {
     err_t err = NO_ERROR;
-    TRACE("Initializing pmm");
 
-    stivale2_struct_tag_memmap_t* memap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
+    UNLOCKED_TRACE("Initializing pmm");
+
+    stivale2_struct_tag_memmap_t* memap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_ID);
     CHECK(memap != NULL);
 
     // calculate the max allocation size
     g_highest_address = 0;
     for (int i = 0; i < memap->entries; i++) {
         stivale2_mmap_entry_t* entry = &memap->memmap[i];
-        if (entry->type == STIVALE2_MMAP_TYPE_USABLE) {
+        if (entry->type == STIVALE2_MMAP_USABLE) {
             uintptr_t top_addr = entry->base + entry->length;
             if (top_addr > g_highest_address) {
                 g_highest_address = top_addr;
@@ -261,13 +264,13 @@ err_t init_pmm() {
         // trace nicely
         const char* type_str = stivale2_type_to_str(entry->type);
         if (type_str != NULL) {
-            TRACE("\t", (void*)entry->base, "-", (void*)(entry->base + entry->length), ": ", type_str);
+            TRACE("\t%016p-%016p: %s", entry->base, entry->base + entry->length + entry->unused, type_str);
         } else {
-            TRACE("\t", (void*)entry->base, "-", (void*)(entry->base + entry->length), ": ", entry->type);
+            TRACE("\t%016p-%016p: %d", entry->base, entry->base + entry->length + entry->unused, entry->type);
         }
 
         // if the range is free add it to our memory map
-        if (entry->type == STIVALE2_MMAP_TYPE_USABLE) {
+        if (entry->type == STIVALE2_MMAP_USABLE) {
             pmm_add_range(entry->base, entry->length);
         }
     }

@@ -1,5 +1,12 @@
+# Ignore IDE stuff
 .idea
-bin
-build
 CMakeLists.txt
 cmake-build-debug
+
+# Ignore build directories
+bin
+build
+
+# Ignore custom compiler
+tools/clang
+tools/ld.lld

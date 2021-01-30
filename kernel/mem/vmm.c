@@ -3,7 +3,7 @@
 #include <util/trace.h>
 #include <mem/pmm.h>
 
-#include "arch/amd64/intrin.h"
+#include "arch/intrin.h"
 #include "mem/vmm.h"
 
 /**
@@ -78,7 +78,7 @@ err_t init_vmm() {
     err_t err = NO_ERROR;
     TRACE("Initializing VMM");
 
-    stivale2_struct_tag_memmap_t* memap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_IDENT);
+    stivale2_struct_tag_memmap_t* memap = get_stivale2_tag(STIVALE2_STRUCT_TAG_MEMMAP_ID);
     CHECK(memap != NULL);
 
     // enable cpu features
@@ -92,7 +92,7 @@ err_t init_vmm() {
     TRACE("Creating mappings");
 
     // initialize the kernel address space
-    m_vmm_lock = INIT_LOCK();
+    m_vmm_lock = INIT_LOCK(TPL_HIGH_LEVEL);
     m_pml4 = page_alloc();
 
     // create the kernel mappings
@@ -100,12 +100,12 @@ err_t init_vmm() {
     for (int i = 0; i < memap->entries; i++) {
         stivale2_mmap_entry_t* entry = &memap->memmap[i];
         if (
-            entry->type == STIVALE2_MMAP_TYPE_RESERVED ||
-            entry->type == STIVALE2_MMAP_TYPE_USABLE ||
-            entry->type == STIVALE2_MMAP_TYPE_BOOTLOADER_RECLAIMABLE
+            entry->type == STIVALE2_MMAP_RESERVED ||
+            entry->type == STIVALE2_MMAP_USABLE ||
+            entry->type == STIVALE2_MMAP_BOOTLOADER_RECLAIMABLE
         ) {
             uintptr_t base = ALIGN_DOWN(entry->base, PAGE_SIZE);
-            size_t page_count = (ALIGN_UP(entry->base + entry->length, PAGE_SIZE) - base) / PAGE_SIZE;
+            size_t page_count = (ALIGN_UP(entry->base + entry->length + entry->unused, PAGE_SIZE) - base) / PAGE_SIZE;
             CHECK_AND_RETHROW(vmm_map((uintptr_t)PHYS_TO_DIRECT(base), base, page_count, MAP_READ | MAP_WRITE));
         }
     }
@@ -185,7 +185,7 @@ static uint64_t* get_or_alloc_page(uintptr_t virt, uint64_t flags_and, uint64_t 
 err_t vmm_map(uintptr_t virt, physptr_t phys, size_t pages, page_perms_t perms) {
     err_t err = NO_ERROR;
 
-    irq_lock(&m_vmm_lock);
+    acquire_lock(&m_vmm_lock);
 
     uint64_t flags_add = PM_PRESENT;
     if (perms & MAP_WRITE) {
@@ -212,7 +212,7 @@ err_t vmm_map(uintptr_t virt, physptr_t phys, size_t pages, page_perms_t perms) 
     }
 
 cleanup:
-    irq_unlock(&m_vmm_lock);
+    release_lock(&m_vmm_lock);
 
     return err;
 }
@@ -220,7 +220,7 @@ cleanup:
 err_t vmm_unmap(uintptr_t virt, size_t pages) {
     err_t err = NO_ERROR;
 
-    irq_lock(&m_vmm_lock);
+    acquire_lock(&m_vmm_lock);
 
     while (pages--) {
         // get and unmap the page
@@ -236,7 +236,7 @@ err_t vmm_unmap(uintptr_t virt, size_t pages) {
     }
 
 cleanup:
-    irq_unlock(&m_vmm_lock);
+    release_lock(&m_vmm_lock);
 
     return err;
 }
@@ -284,7 +284,8 @@ err_t vmm_handle_pagefault(uintptr_t addr, page_fault_params_t params) {
         // This was a real page fault, fail the check so
         // we will put a register dump.
         //
-        CHECK_FAIL("This is a real kernel page fault :(");
+        UNLOCKED_ERROR("This is a real kernel page fault :(");
+        err = ERROR_CHECK_FAILED;
     }
 
 cleanup:

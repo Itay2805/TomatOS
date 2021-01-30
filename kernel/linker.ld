@@ -1,6 +1,14 @@
 ENTRY(kentry)
 SECTIONS
 {
+    /****************   CPU Locals    ****************/
+    . = 0x0;
+    .cpu_local_data (NOLOAD) :
+    {
+        KEEP(*(.cpu_local_data*))
+    }
+    __cpu_local_size = .;
+
     /**************** Kernel sections ****************/
     . = 0xffffffff80000000 + 0x01000000;
 

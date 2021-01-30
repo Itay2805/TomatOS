@@ -1,107 +1,104 @@
 #ifndef TOMATOS_TRACE_H
 #define TOMATOS_TRACE_H
 
-#include <stdint.h>
+#include <sync/lock.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <sync/lock.h>
+#include <stdint.h>
 
-#include "map.h"
-#include "err.h"
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Format utilities
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// char and string tracing
-void trace_char(char c);
-void trace_string(const char* c);
+/**
+ * Callback to output a single character
+ *
+ * if the output is going to run out of space in 4 chars then this function should
+ * return true, that will cause the printf to exit
+ */
+typedef void (*printf_callback_t)(char c, void* ctx);
 
-// normal tracing
-void trace_int8(int8_t val);
-void trace_int16(int16_t val);
-void trace_int32(int32_t val);
-void trace_int64(int64_t val);
-void trace_uint8(uint8_t val);
-void trace_uint16(uint16_t val);
-void trace_uint32(uint32_t val);
-void trace_uint64(uint64_t val);
+/**
+ * The most basic format function
+ *
+ * @param cb    [IN] Put char callback
+ * @param ctx   [IN] The context of the callback
+ * @param fmt   [IN] The format to print
+ * @param ap    [IN] The va_list to read from
+ */
+size_t kvcprintf(printf_callback_t cb, void* ctx, const char* fmt, va_list ap);
 
-// boolean tracing
-void trace_bool(bool val);
+/**
+ * Format into a buffer
+ *
+ * @param buffer    [IN] The buffer to format into
+ * @param size      [IN] The size of the buffer, including null terminator
+ * @param fmt       [IN] The format string
+ * @param ap        [IN] The va_list
+ */
+size_t kvsnprintf(char* buffer, size_t size, const char* fmt, va_list ap);
 
-// error tracing
-void trace_err(err_t err);
+/**
+ * Format into a buffer
+ *
+ * @param buffer    [IN] The buffer to format into
+ * @param size      [IN] The size of the buffer, including null terminator
+ * @param fmt       [IN] The format string
+ */
+size_t ksnprintf(char* buffer, size_t size, const char* fmt, ...);
 
-// hex tracing
-typedef struct trace_hex {
-    uint64_t value;
-    uint8_t bytes;
-} trace_hex_t;
-#define HEX(val) ((trace_hex_t){ .value = val, .bytes = sizeof(val) })
-void trace_hex(trace_hex_t hex);
+/**
+ * Printf function, outputs to the kernel debug output
+ *
+ * @param fmt   [IN] The format string
+ */
+size_t kprintf(const char* fmt, ...);
 
-typedef struct trace_size {
-    size_t val;
-} trace_size_t;
-#define SIZE(num) ((trace_size_t){ .val = num })
-void trace_size(trace_size_t hex);
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Tracing utils
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// pointer tracing
-void trace_ptr(void* ptr);
+//----------------------------------------------------------------------------------------------------------------------
+// These versions don't do any locks, and may cause output to be overlapped
+//----------------------------------------------------------------------------------------------------------------------
 
-#define PRINT_VALUE(val) \
-    _Generic((val), \
-        char: trace_char, \
-        const char*: trace_string, \
-        char*: trace_string, \
-        bool: trace_bool, \
-        err_t: trace_err, \
-        trace_hex_t: trace_hex, \
-        trace_size_t: trace_size, \
-        void*: trace_ptr, \
-        int8_t: trace_int8, \
-        int16_t: trace_int16, \
-        int32_t: trace_int32, \
-        int64_t: trace_int64, \
-        uint8_t: trace_uint8, \
-        uint16_t: trace_uint16, \
-        uint32_t: trace_uint32, \
-        uint64_t: trace_uint64, \
-        unsigned long long: trace_uint64 \
-    )(val);
+#define UNLOCKED_DEBUG(fmt, ...)    kprintf("[?] " fmt "\n", ## __VA_ARGS__)
+#define UNLOCKED_TRACE(fmt, ...)    kprintf("[*] " fmt "\n", ## __VA_ARGS__)
+#define UNLOCKED_WARN(fmt, ...)     kprintf("[!] " fmt "\n", ## __VA_ARGS__)
+#define UNLOCKED_ERROR(fmt, ...)    kprintf("[-] " fmt "\n", ## __VA_ARGS__)
 
-#ifdef __IN_EDITOR__
-    void __dummy_trace();
-    #define PRINT(...) __dummy_trace(__VA_ARGS__)
-#else
-    #define PRINT(...) MAP(PRINT_VALUE, ## __VA_ARGS__)
-#endif
+//----------------------------------------------------------------------------------------------------------------------
+// These versions use a lock, and make sure nothing will get overlapped
+//----------------------------------------------------------------------------------------------------------------------
 
 extern lock_t g_trace_lock;
 
 #define DEBUG(...) \
     do { \
-        irq_lock(&g_trace_lock); \
-        PRINT("[?] ", ## __VA_ARGS__, "\n"); \
-        irq_unlock(&g_trace_lock); \
+        acquire_lock(&g_trace_lock); \
+        UNLOCKED_DEBUG(__VA_ARGS__); \
+        release_lock(&g_trace_lock); \
     } while(0)
 
 #define TRACE(...) \
     do { \
-        irq_lock(&g_trace_lock); \
-        PRINT("[*] ", ## __VA_ARGS__, "\n"); \
-        irq_unlock(&g_trace_lock); \
+        acquire_lock(&g_trace_lock); \
+        UNLOCKED_TRACE(__VA_ARGS__); \
+        release_lock(&g_trace_lock); \
     } while(0)
 
 #define WARN(...) \
     do { \
-        irq_lock(&g_trace_lock); \
-        PRINT("[!] ", ## __VA_ARGS__, "\n"); \
-        irq_unlock(&g_trace_lock); \
+        acquire_lock(&g_trace_lock); \
+        UNLOCKED_WARN(__VA_ARGS__); \
+        release_lock(&g_trace_lock); \
     } while(0)
 
 #define ERROR(...) \
     do { \
-        irq_lock(&g_trace_lock); \
-        PRINT("[-] ", ## __VA_ARGS__, "\n"); \
-        irq_unlock(&g_trace_lock); \
+        acquire_lock(&g_trace_lock); \
+        UNLOCKED_ERROR(__VA_ARGS__); \
+        release_lock(&g_trace_lock); \
     } while(0)
 
 

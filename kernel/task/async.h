@@ -2,11 +2,14 @@
 #define TOMATOS_ASYNC_H
 
 
-#include <util/macro.h>
+#include <util/cpp_magic.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <string.h>
 
+/**
+ * Returned from an async function, can be used to await/wait for it
+ */
 typedef void* future_t;
 
 #define void_t
@@ -23,10 +26,10 @@ typedef void* future_t;
 #define ret(...) \
     do { \
         *(__coro_ret_t*)__builtin_coro_promise(__coro_hdl, 0, false) = \
-        IFN(__VA_ARGS__)( \
+        IF_HAS_ARGS(__VA_ARGS__)( \
             __VA_ARGS__; \
         )\
-        IFE(__VA_ARGS__)( \
+        IF_EMPTY(__VA_ARGS__)( \
             0; \
         )\
         goto __coro_final; \
@@ -44,8 +47,14 @@ typedef void* future_t;
         retval; \
     })
 
-#define promise_type(func) typeof(CAT(CAT(__, func), _type)())
+/**
+ * The promise type of the given function
+ */
+#define promise_type(func) typeof(CAT3(__, func, _type)())
 
+/**
+ * Will wait (blocking) for the future to finish
+ */
 #define wait(func, ...) \
     ({ \
         future_t t = func(__VA_ARGS__); \
@@ -57,25 +66,29 @@ typedef void* future_t;
         retval; \
     })
 
+/**
+ * Declare a new async function, async functions return a future which needs to be waited on either
+ * in an async (inside another async function) or a sync (outside of an async function).
+ */
 #define async(ret, name, sig, ...) \
-    IFN(CAT(ret, _t))( \
-        ret CAT(CAT(__, name), _type) (); \
+    IF_HAS_ARGS(CAT(ret, _t))( \
+        ret CAT3(__, name, _type) (); \
     ) \
-    IFE(CAT(ret, _t)) \
+    IF_EMPTY(CAT(ret, _t)) \
     ( \
-        int CAT(CAT(__, name), _type) (); \
+        int CAT3(__, name, _type) (); \
     ) \
-    IFE(__VA_ARGS__)( \
+    IF_EMPTY(__VA_ARGS__)( \
         future_t name sig; \
     ) \
-    IFN(__VA_ARGS__)( \
+    IF_HAS_ARGS(__VA_ARGS__)( \
         future_t name sig { \
             void* mem; \
-            IFN(CAT(ret, _t))( \
+            IF_HAS_ARGS(CAT(ret, _t))( \
                 typedef ret __coro_ret_t; \
                 __builtin_coro_id(0, &((char[sizeof(ret)]){}), NULL, NULL); \
             ) \
-            IFE(CAT(ret, _t)) \
+            IF_EMPTY(CAT(ret, _t)) \
             ( \
                 typedef int __coro_ret_t; \
                 __builtin_coro_id(0, &((char[sizeof(int)]){}), NULL, NULL); \
@@ -88,7 +101,7 @@ typedef void* future_t;
             { \
                 __VA_ARGS__ \
             } \
-            IFN(CAT(ret, _t))( \
+            IF_HAS_ARGS(CAT(ret, _t))( \
                 __builtin_trap(); \
             ) \
         __coro_final: \
@@ -105,5 +118,4 @@ typedef void* future_t;
             return __coro_hdl; \
         } \
     )
-
 #endif //TOMATOS_ASYNC_H
