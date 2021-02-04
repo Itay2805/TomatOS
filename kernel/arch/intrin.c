@@ -199,3 +199,11 @@ void __xsave(void* state) {
 void __xrstor(void* state) {
     asm volatile ("xrstor %0" : : "m"(*(uint8_t*)state), "a" (0xFFFFFFFF), "d" (0xFFFFFFFF) : "memory");
 }
+
+void __monitor(size_t eax, size_t ecx, size_t edx) {
+    asm volatile ("monitor" : : "a"(eax), "c"(ecx), "d"(edx));
+}
+
+void __mwait(size_t eax, size_t ecx) {
+    asm volatile ("mwait" : : "a"(eax), "c"(ecx));
+}

@@ -86,19 +86,20 @@ static inline bool task_done(task_t* task) {
     ) \
     IF(HAS_ARGS(__VA_ARGS__))( \
         task_handle_t name sig { \
-            void* mem; \
-            __builtin_coro_id(0, &((char[sizeof(task_t)]){}), NULL, NULL); \
-            void* alloc = NULL; \
+            void* __coro_mem;\
+            task_t* __coro_task = __builtin_alloca(sizeof(task_t)); \
+            __builtin_coro_id(0, __coro_task, NULL, NULL); \
+            void* __coro_alloc = NULL; \
             if (__builtin_coro_alloc()) { \
-                alloc = malloc(__builtin_coro_size()); \
-                if (alloc == NULL) { \
+                __coro_alloc = kalloc(__builtin_coro_size()); \
+                if (__coro_alloc == NULL) { \
                     return NULL; \
                 }\
             } \
-            void* __coro_hdl = __builtin_coro_begin(alloc); \
+            void* __coro_hdl = __builtin_coro_begin(__coro_alloc); \
             yield(); \
             { \
-                FIRST(__VA_ARGS__) \
+                EVAL1 FIRST(__VA_ARGS__) \
             } \
         __coro_final: \
             switch (__builtin_coro_suspend(true)) { \
@@ -108,8 +109,9 @@ static inline bool task_done(task_t* task) {
             } \
         __coro_cleanup:      \
             IF(HAS_SECOND(__VA_ARGS__))(SECOND(__VA_ARGS__)); \
-            mem = __builtin_coro_free(__coro_hdl); \
-            free(mem); \
+            list_remove(&__coro_task->schedule_link); \
+            __coro_mem = __builtin_coro_free(__coro_hdl); \
+            kfree(__coro_mem); \
         __coro_suspend: \
             __builtin_coro_end(__coro_hdl, false); \
             return __coro_hdl; \

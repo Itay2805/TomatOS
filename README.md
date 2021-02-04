@@ -7,8 +7,9 @@ A 64bit tomato kernel
 First you would need to build a custom clang toolchain, the reason for this is that we use a patched version of the 
 sources to allow c code to make use of the llvm coroutines builtins.
 
-You can get the download the patched sources from [here](), simply follow the normal guidelines of building clang, you 
-will also need to build `ld.lld`.
+You can get the download the patched sources from [here](https://github.com/TomatOrg/llvm-project/tree/tomatos) (note 
+how the branch is not master but tomatos), simply follow the normal guidelines of building clang, you will also need to 
+build `ld.lld`.
 
 ### Kernel
 

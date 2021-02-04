@@ -283,25 +283,25 @@ static void kernel_exception_handler(system_context_t* ctx) {
 
 __attribute__((used))
 void common_exception_handler(system_context_t* ctx) {
-//    err_t err = NO_ERROR;
-//
-//    if (ctx->int_num == 0xE) {
-//        page_fault_params_t params = {.raw = ctx->error_code};
-//        CHECK(!params.instruction_fetch && !params.reserved_write, "Very bad page fault!");
-//
-//        if (IS_ERROR(vmm_handle_pagefault(__readcr2(), params))) {
-//            goto cleanup;
-//        }
-//    } else {
-//        // we might have got this in the middle of a print...
-//        UNLOCKED_ERROR("We got a bad exception :(");
-//        err = ERROR_CHECK_FAILED;
-//    }
-//
-//cleanup:
-//    if (IS_ERROR(err)) {
+    err_t err = NO_ERROR;
+
+    if (ctx->int_num == 0xE) {
+        page_fault_params_t params = {.raw = ctx->error_code};
+        CHECK(!params.instruction_fetch && !params.reserved_write, "Very bad page fault!");
+
+        if (IS_ERROR(vmm_handle_pagefault(__readcr2(), params))) {
+            goto cleanup;
+        }
+    } else {
+        // we might have got this in the middle of a print...
+        UNLOCKED_ERROR("We got a bad exception :(");
+        err = ERROR_CHECK_FAILED;
+    }
+
+cleanup:
+    if (IS_ERROR(err)) {
         kernel_exception_handler(ctx);
-//    }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

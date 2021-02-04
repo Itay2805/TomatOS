@@ -7,6 +7,7 @@ QEMU_ARGS += -debugcon stdio
 QEMU_ARGS += -monitor telnet:localhost:4321,server,nowait
 QEMU_ARGS += --no-shutdown
 QEMU_ARGS += --no-reboot
+QEMU_ARGS += -cpu haswell
 
 # We require iommu
 QEMU_ARGS += -device intel-iommu,aw-bits=48
@@ -18,7 +19,7 @@ endif
 ifeq ($(shell uname -r | sed -n 's/.*\( *Microsoft *\).*/\1/p'), Microsoft)
 	QEMU := qemu-system-x86_64.exe
 	ifneq ($(DEBUGGER), 1)
-#		QEMU_ARGS += --accel whpx
+		QEMU_ARGS += --accel whpx
 	endif
 else
 	QEMU := qemu-system-x86_64

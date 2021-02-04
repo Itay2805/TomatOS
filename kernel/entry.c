@@ -3,11 +3,13 @@
 #include <util/string.h>
 #include <mem/pmm.h>
 #include <mem/vmm.h>
+#include <task/sched.h>
 
 #include "arch/gdt.h"
 #include "arch/idt.h"
 
 #include "arch/stivale2.h"
+#include "main.h"
 
 static char g_bootstrap_stack[SIZE_4KB];
 
@@ -82,7 +84,8 @@ static void smp_kentry(volatile stivale2_smp_info_t* smpinfo) {
     // call the handling loop, this will enter sleep
     // but once we send an ipi to wake it up it will
     // start running as well
-//    start_schedule_loop();
+//    task_dispatcher();
+
     while(1);
 }
 
@@ -160,6 +163,14 @@ void kentry(stivale2_struct_t* info) {
     }
 
     //
+    // check for important stuff
+    //
+    uint32_t ecx = 0;
+    cpuid(0x01, NULL, NULL, &ecx, NULL);
+    CHECK(ecx & BIT3, "mwait/monitor is not supported!");
+
+
+    //
     // initialize the pmm and vmm
     //
     CHECK_AND_RETHROW(init_pmm());
@@ -187,6 +198,12 @@ void kentry(stivale2_struct_t* info) {
     }
 
     TRACE("Done kernel early init");
+
+    // queue the main task so we can continue setup in there
+    queue_main_task();
+
+    // start the scheduler loop
+    task_dispatcher();
 
 cleanup:
     ASSERT(!IS_ERROR(err), "Failed early kernel initialization")
