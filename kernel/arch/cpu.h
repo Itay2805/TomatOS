@@ -2,7 +2,6 @@
 #define TOMATOS_CPU_H
 
 #include <util/defs.h>
-
 #include <arch/intrin.h>
 
 /**
@@ -93,7 +92,6 @@ extern size_t CPU_LOCAL g_lapic_id;
  */
 void init_cpu_locals(size_t cpuid, size_t lapic_id);
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Other cpu related operations
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -161,6 +159,17 @@ typedef enum ipi {
     IPI_WAKEUP = 0xf0
 } ipi_t;
 
-void send_ipi();
+/**
+ * Initialize the lapic for this cpu
+ */
+void init_lapic();
+
+/**
+ * Send a fixed ipi to the given apic id at the given vector
+ *
+ * @param apic_id   [IN] The APIC id
+ * @param vector    [IN] The vector
+ */
+void lapic_send_fixed_ipi_all_excluding_self(uint8_t vector);
 
 #endif //TOMATOS_CPU_H

@@ -8,6 +8,9 @@ DEBUG 		?= 1
 # Should qemu debugger be enabled
 DEBUGGER 	?= 0
 
+# Qemu acceleration
+QEMU_ACCEL	?= 0
+
 # Prefix to the compiler
 PREFIX 		?=
 

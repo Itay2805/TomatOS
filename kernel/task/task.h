@@ -3,6 +3,7 @@
 
 #include <cont/list.h>
 #include <mem/mm.h>
+#include <stdatomic.h>
 
 #include "async.h"
 

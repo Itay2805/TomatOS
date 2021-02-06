@@ -77,6 +77,7 @@ static void smp_kentry(volatile stivale2_smp_info_t* smpinfo) {
 
     // init paging
     set_address_space();
+    init_lapic();
 
     // we are ready
     g_cpu_start_count++;
@@ -84,9 +85,7 @@ static void smp_kentry(volatile stivale2_smp_info_t* smpinfo) {
     // call the handling loop, this will enter sleep
     // but once we send an ipi to wake it up it will
     // start running as well
-//    task_dispatcher();
-
-    while(1);
+    task_dispatcher();
 }
 
 /**
@@ -163,19 +162,16 @@ void kentry(stivale2_struct_t* info) {
     }
 
     //
-    // check for important stuff
-    //
-    uint32_t ecx = 0;
-    cpuid(0x01, NULL, NULL, &ecx, NULL);
-    CHECK(ecx & BIT3, "mwait/monitor is not supported!");
-
-
-    //
     // initialize the pmm and vmm
     //
     CHECK_AND_RETHROW(init_pmm());
     CHECK_AND_RETHROW(init_vmm());
+    init_lapic();
 
+    //
+    // Initialize the task dispatcher
+    //
+    init_task_dispatcher();
 
     // we can't access these anymore at this point
     smp = NULL;

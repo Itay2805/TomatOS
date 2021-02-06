@@ -2,6 +2,7 @@
 #define TOMATOS_VMM_H
 
 #include <arch/stivale2.h>
+#include <util/except.h>
 #include <util/defs.h>
 #include <sync/lock.h>
 #include <arch/cpu.h>

@@ -19,11 +19,11 @@ typedef struct frame {
 void debug_trace_stack(void* frame_pointer) {
     frame_t* current = frame_pointer;
     for (size_t i = 0; i < UINT64_MAX; i++) {
-        if(!current) {
+        if(!current || !current->rip) {
             break;
         }
 
-        UNLOCKED_TRACE("\t", i,": RIP [", (void*)current->rip, "]");
+        UNLOCKED_ERROR("\t%d: RIP [%016p]", i, (void*)current->rip);
 
         current = current->rbp;
     }

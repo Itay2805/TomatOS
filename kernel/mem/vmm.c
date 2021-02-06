@@ -284,7 +284,7 @@ err_t vmm_handle_pagefault(uintptr_t addr, page_fault_params_t params) {
         // This was a real page fault, fail the check so
         // we will put a register dump.
         //
-        UNLOCKED_ERROR("This is a real kernel page fault :(");
+        UNLOCKED_ERROR("Got real page fault on %p :(", addr);
         err = ERROR_CHECK_FAILED;
     }
 

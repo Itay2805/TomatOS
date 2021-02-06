@@ -18,4 +18,9 @@ err_t queue_task(task_t* task);
  */
 noreturn void task_dispatcher();
 
+/**
+ * Initialize the task dispatcher
+ */
+void init_task_dispatcher();
+
 #endif //__TOMATOS_SCHED_H__
